@@ -1,0 +1,10 @@
+
+hl2ss/.vs/
+hl2ss/ARM64/
+hl2ss/packages/
+hl2ss/hl2ss/ARM64/
+hl2ss/hl2ss/Generated Files/
+hl2ss/hl2ss/code_bin.txt
+hl2ss/enc_temp_folder/
+*.pfx
+*.user
