@@ -36,7 +36,7 @@ Set Debugging -> Machine Name to your HoloLens IP address
 
 Run
 
-
+Allow access to: Camera, Motion, Microphone
 
 
 
