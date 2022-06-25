@@ -143,15 +143,6 @@ void CleanupResearchMode()
 }
 
 // OK
-void GetRigNodeId(GUID& outGuid)
-{
-	IResearchModeSensorDevicePerception* pSensorDevicePerception;
-	g_pSensorDevice->QueryInterface(IID_PPV_ARGS(&pSensorDevicePerception));
-	pSensorDevicePerception->GetRigNodeId(&outGuid);
-	pSensorDevicePerception->Release();
-}
-
-// OK
 IResearchModeSensor* GetResearchModeSensor(ResearchModeSensorType type)
 {
 	return g_sensors[type];
@@ -168,3 +159,15 @@ int GetResearchModeSensorTypeCount()
 {
 	return sizeof(g_types) / sizeof(ResearchModeSensorType);
 }
+
+
+
+// OK
+void GetRigNodeId(GUID& outGuid)
+{
+	IResearchModeSensorDevicePerception* pSensorDevicePerception;
+	g_pSensorDevice->QueryInterface(IID_PPV_ARGS(&pSensorDevicePerception));
+	pSensorDevicePerception->GetRigNodeId(&outGuid);
+	pSensorDevicePerception->Release();
+}
+

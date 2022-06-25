@@ -128,7 +128,7 @@ static void PV_CleanupSinkWriter()
 }
 
 // OK
-static void PV_PushFrame_old(MediaFrameReference const& frame)
+static void PV_PushFrame(MediaFrameReference const& frame)
 {
     SoftwareBitmapBuffer* pBuffer; // Release
     IMFSample* pSample; // Release
@@ -146,7 +146,7 @@ static void PV_PushFrame_old(MediaFrameReference const& frame)
     pBuffer->Release();
 }
 
-static void PV_PushFrame(MediaFrameReference const& frame)
+static void PV_PushFrame_new(MediaFrameReference const& frame)
 {
     WrappedBuffer* pBuffer; // Release
     IMFSample* pSample; // Release

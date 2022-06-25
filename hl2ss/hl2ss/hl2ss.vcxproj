@@ -147,6 +147,8 @@
     <ClInclude Include="custom_sink_writers.h" />
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
+    <ClInclude Include="locator.h" />
+    <ClInclude Include="researchmode\ResearchModeApi.h" />
     <ClInclude Include="stream_mc.h" />
     <ClInclude Include="microphone_capture.h" />
     <ClInclude Include="stream_mr.h" />
@@ -174,11 +176,12 @@
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
     <ClCompile Include="header_test.cpp" />
+    <ClCompile Include="locator.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="stream_mr.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp" />
     <ClCompile Include="utilities.cpp" />

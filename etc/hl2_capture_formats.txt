@@ -1,0 +1,198 @@
+Video Formats
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 1504
+Height: 846
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 1920
+Height: 1080
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 1280
+Height: 720
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 1952
+Height: 1100
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 640
+Height: 360
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 760
+Height: 428
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 960
+Height: 540
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 1128
+Height: 636
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 424
+Height: 240
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 30/1
+VideoMediaFrameFormat
+Width: 500
+Height: 282
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 1504
+Height: 846
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 1920
+Height: 1080
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 1280
+Height: 720
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 1952
+Height: 1100
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 640
+Height: 360
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 760
+Height: 428
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 960
+Height: 540
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 1128
+Height: 636
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 424
+Height: 240
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 15/1
+VideoMediaFrameFormat
+Width: 500
+Height: 282
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 5/1
+VideoMediaFrameFormat
+Width: 1504
+Height: 846
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 60/1
+VideoMediaFrameFormat
+Width: 1952
+Height: 1100
+DepthScaleInMeters: 0.001000
+MediaFrameFormat
+MajorType: Video
+Subtype: NV12
+FrameRate: 60/1
+VideoMediaFrameFormat
+Width: 1504
+Height: 846
+DepthScaleInMeters: 0.001000
+Audio Formats
+MediaFrameFormat
+MajorType: Audio
+Subtype: Float
+FrameRate: 0/0
+AudioEncodingProperties
+Type: Audio
+Subtype: Float
+Bitrate: 3072000
+BitsPerSample: 32
+ChannelCount: 2
+IsSpatial: 0
+SampleRate: 48000

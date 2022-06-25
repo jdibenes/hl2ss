@@ -9,7 +9,7 @@
 #include <iostream>
 #include <winsock2.h>
 
-#include "Cannon/MixedReality.h"
+//#include "Cannon/MixedReality.h"
 
 #include "research_mode.h"
 #include "server.h"
@@ -18,12 +18,12 @@
 #include "stream_rm.h"
 #include "stream_mc.h"
 //#include "stream_mr.h"
-
+#include "locator.h"
 
 struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFrameworkViewSource, winrt::Windows::ApplicationModel::Core::IFrameworkView>
 {
 	bool windowClosed = false;
-	MixedReality m_mixedReality;
+	//MixedReality m_mixedReality;
 	bool mixedInit = false;
 
 	winrt::Windows::ApplicationModel::Core::IFrameworkView CreateView()
@@ -33,7 +33,7 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 	
 	void Initialize(winrt::Windows::ApplicationModel::Core::CoreApplicationView const &applicationView)
 	{
-		DrawCall::Initialize();
+		//DrawCall::Initialize();
 
 		
 		
@@ -41,6 +41,11 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 		InitializeSockets();
 		MFStartup(MF_VERSION);
 		InitializeResearchMode();
+
+
+		InitializeLocator();
+
+		PV_SetWorldFrame(GetWorldCoordinateSystem());
 
 		RM_Initialize();
 		MC_Initialize();
@@ -69,7 +74,7 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 //g_mixedreality.EnableQRCodeTracking();
 		//m_mixedReality.EnableEyeTracking();
 
-		//PV_SetWorldFrame(m_mixedReality.GetWorldCoordinateSystem());
+		
 
 		//MR_Initialize();
 		//m_mixedReality = MixedReality();

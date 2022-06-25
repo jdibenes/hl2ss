@@ -4,6 +4,7 @@
 #include <mfreadwrite.h>
 #include "custom_media_sink.h"
 #include "utilities.h"
+#include "types.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
@@ -192,4 +193,21 @@ CriticalSection::CriticalSection(void* pcs)
 CriticalSection::~CriticalSection()
 {
 	if (m_pcs) { LeaveCriticalSection(static_cast<CRITICAL_SECTION*>(m_pcs)); }
+}
+
+//-----------------------------------------------------------------------------
+// Time
+//-----------------------------------------------------------------------------
+
+UINT64 GetCurrentQPCTimeHns()
+{
+	LARGE_INTEGER pc;
+	LARGE_INTEGER pf;
+
+	QueryPerformanceCounter(&pc);
+	QueryPerformanceFrequency(&pf);
+
+	lldiv_t qr = std::div(pc.QuadPart, pf.QuadPart);
+
+	return (qr.quot * HNS_BASE) + (qr.rem * HNS_BASE) / pf.QuadPart;
 }

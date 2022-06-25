@@ -54,4 +54,6 @@ public:
 void ShowMessage(const char* format, ...);
 void ShowMessage(const wchar_t* format, ...);
 
+UINT64 GetCurrentQPCTimeHns();
+
 //#define TRACE(format, params) ShowMessage("%s:%d %s>" format, __FILE__, __LINE__, __func__, params)

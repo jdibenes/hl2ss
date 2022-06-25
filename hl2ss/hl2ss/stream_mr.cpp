@@ -6,17 +6,33 @@
 // Send RM intrinsics/extrinsics
 // 
 
-#include "Cannon/MixedReality.h"
-#include "Cannon/TrackedHands.h"
+//#include "Cannon/MixedReality.h"
+//#include "Cannon/TrackedHands.h"
 #include "utilities.h"
-
-#include <winrt/Windows.Perception.Spatial.h>
-
-using namespace winrt::Windows::Perception::Spatial;
+#include "types.h"
 
 
 
 
+static char const* const g_locatability_name[] = {
+    "Unavailable = 0",
+    "OrientationOnly = 1",
+    "PositionalTrackingActivating = 2",
+    "PositionalTrackingActive = 3",
+    "PositionalTrackingInhibited = 4"
+};
+
+
+
+
+
+
+
+
+
+//ShowMessage("locatability changed %s", g_locatability_name[(int)g_locatability]);
+//ShowMessage("initialize locatability %s", g_locatability_name[(int)g_locatability]);
+/*
 __declspec(align(16))
 struct HeTHaTEyeFrame
 {
@@ -31,14 +47,12 @@ struct HeTHaTEyeFrame
     bool eyeGazePresent;
     long long timestamp;
 };
+*/
 
-static MixedReality g_mixedreality;
-static TrackedHands g_hands;
+//static MixedReality g_mixedreality;
+//static TrackedHands g_hands;
 
-
-
-
-
+/*
 SpatialCoordinateSystem MR_GetWorldCoordinateSystem()
 {
     return g_mixedreality.GetWorldCoordinateSystem();
@@ -136,3 +150,4 @@ void MR_Update()
     
 
 }
+*/

@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="research_mode.cpp">
-      <Filter>Source Files\devices</Filter>
-    </ClCompile>
     <ClCompile Include="custom_media_sink.cpp">
       <Filter>Source Files\sink</Filter>
     </ClCompile>
@@ -20,9 +17,6 @@
       <Filter>Source Files\sink</Filter>
     </ClCompile>
     <ClCompile Include="stream_mc.cpp">
-      <Filter>Source Files\streams</Filter>
-    </ClCompile>
-    <ClCompile Include="stream_rm.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
@@ -71,6 +65,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="locator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="research_mode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_rm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -137,6 +140,9 @@
     <Filter Include="Header Files\utilities">
       <UniqueIdentifier>{b9d42606-b835-4d74-a429-7f6ba1e94449}</UniqueIdentifier>
     </Filter>
+    <Filter Include="researchmode">
+      <UniqueIdentifier>{d3c01eb7-c9d4-4427-8bdc-a5db8f6a69b1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="PropertySheet.props" />
@@ -144,9 +150,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="microphone_capture.h">
-      <Filter>Header Files\devices</Filter>
-    </ClInclude>
-    <ClInclude Include="research_mode.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="custom_media_sink.h">
@@ -168,12 +171,6 @@
       <Filter>Header Files\sink</Filter>
     </ClInclude>
     <ClInclude Include="stream_mc.h">
-      <Filter>Header Files\streams</Filter>
-    </ClInclude>
-    <ClInclude Include="stream_pv.h">
-      <Filter>Header Files\streams</Filter>
-    </ClInclude>
-    <ClInclude Include="stream_rm.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
     <ClInclude Include="stream_mr.h">
@@ -229,6 +226,21 @@
     </ClInclude>
     <ClInclude Include="types.h">
       <Filter>Header Files\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="researchmode\ResearchModeApi.h">
+      <Filter>researchmode</Filter>
+    </ClInclude>
+    <ClInclude Include="locator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="research_mode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_pv.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
