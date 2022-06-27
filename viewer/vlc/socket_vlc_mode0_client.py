@@ -29,6 +29,12 @@ profile = 3
 # encoded stream average bits per second (must be > 0)
 bitrate = 1*1024*1024
 
+# operating mode
+# 0: video
+# 1: video+pose
+# 2: calibration
+mode = 0
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     if (profile == 3):
         codec_name = 'hevc'
@@ -42,7 +48,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     frames = 0
 
     s.connect((HOST, PORT))
-    s.send(struct.pack('<HHBBI', width, height, framerate, profile, bitrate))
+    s.send(struct.pack('<BHHBBI', 0, width, height, framerate, profile, bitrate))
 
     while True:
         chunk = s.recv(1024) # critical value: too high = lag, too low = lag

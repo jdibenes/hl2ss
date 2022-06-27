@@ -8,15 +8,15 @@
 // Research Mode Sensors
 
 //
-#define PORT_RMVLF "3800"
-#define PORT_RMVLL "3801"
-#define PORT_RMVRF "3802"
-#define PORT_RMVRR "3803"
-#define PORT_RMZHT "3804"
-#define PORT_RMZLT "3805"
-#define PORT_RMACC "3806"
-#define PORT_RMGYR "3807"
-#define PORT_RMMAG "3808"
+#define PORT_RM_VLF "3800"
+#define PORT_RM_VLL "3801"
+#define PORT_RM_VRF "3802"
+#define PORT_RM_VRR "3803"
+#define PORT_RM_ZHT "3804"
+#define PORT_RM_ZLT "3805"
+#define PORT_RM_ACC "3806"
+#define PORT_RM_GYR "3807"
+#define PORT_RM_MAG "3808"
 
 #define PORT_PV "3810"
 #define PORT_MC "3811"

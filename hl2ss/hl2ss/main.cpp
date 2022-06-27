@@ -40,12 +40,15 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 
 		InitializeSockets();
 		MFStartup(MF_VERSION);
-		InitializeResearchMode();
+		ResearchMode_Initialize();
 
 
-		InitializeLocator();
+		Locator_Initialize();
 
-		PV_SetWorldFrame(GetWorldCoordinateSystem());
+		winrt::Windows::Perception::Spatial::SpatialCoordinateSystem world = Locator_GetWorldCoordinateSystem();
+
+		PV_SetWorldFrame(world);
+		RM_SetWorldCoordinateSystem(world);
 
 		RM_Initialize();
 		MC_Initialize();

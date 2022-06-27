@@ -1,24 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="custom_media_sink.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
-    <ClCompile Include="custom_media_type_handler.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
-    <ClCompile Include="custom_media_types.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
-    <ClCompile Include="custom_stream_sink.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
-    <ClCompile Include="custom_hook_callback.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
-    <ClCompile Include="stream_mc.cpp">
-      <Filter>Source Files\streams</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -32,34 +14,25 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Cannon\AnimatedVector.cpp">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClCompile>
     <ClCompile Include="Cannon\DrawCall.cpp">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClCompile>
     <ClCompile Include="Cannon\FloatingSlate.cpp">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClCompile>
     <ClCompile Include="Cannon\FloatingText.cpp">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClCompile>
     <ClCompile Include="Cannon\MixedReality.cpp">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClCompile>
     <ClCompile Include="Cannon\RecordedValue.cpp">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClCompile>
     <ClCompile Include="Cannon\TrackedHands.cpp">
-      <Filter>Cannon</Filter>
-    </ClCompile>
-    <ClCompile Include="microphone_capture.cpp">
-      <Filter>Source Files\devices</Filter>
-    </ClCompile>
-    <ClCompile Include="custom_sink_writers.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
-    <ClCompile Include="custom_media_buffer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClCompile>
     <ClCompile Include="header_test.cpp">
       <Filter>Source Files</Filter>
@@ -67,14 +40,50 @@
     <ClCompile Include="stream_pv.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="locator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="research_mode.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_rm_imu.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_rm_vlc.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_rm_zab.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_hook_callback.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_media_sink.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_media_type_handler.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_media_types.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_sink_writers.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_stream_sink.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="microphone_capture.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_mc.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="locator.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_media_buffers.cpp">
+      <Filter>Source Files\sink</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -131,17 +140,20 @@
     <Filter Include="Source Files\streams">
       <UniqueIdentifier>{80cec913-7259-403e-b12a-d26aa7032cbd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Cannon">
-      <UniqueIdentifier>{59ac2317-54f1-4b47-b66d-1a8082686312}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Cannon\Common">
-      <UniqueIdentifier>{38ae5f3b-a14a-421f-a756-a5dc0cf95772}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\utilities">
       <UniqueIdentifier>{b9d42606-b835-4d74-a429-7f6ba1e94449}</UniqueIdentifier>
     </Filter>
-    <Filter Include="researchmode">
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{76257412-a737-46fe-b5df-75da267b6959}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\researchmode">
       <UniqueIdentifier>{d3c01eb7-c9d4-4427-8bdc-a5db8f6a69b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Cannon">
+      <UniqueIdentifier>{59ac2317-54f1-4b47-b66d-1a8082686312}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Cannon\Common">
+      <UniqueIdentifier>{38ae5f3b-a14a-421f-a756-a5dc0cf95772}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -149,30 +161,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="microphone_capture.h">
-      <Filter>Header Files\devices</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_media_sink.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_media_type_handler.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_media_types.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_sink_hook.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_stream_sink.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_hook_callback.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="stream_mc.h">
-      <Filter>Header Files\streams</Filter>
-    </ClInclude>
     <ClInclude Include="stream_mr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -186,61 +174,94 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\AnimatedVector.h">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\DrawCall.h">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\FloatingSlate.h">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\FloatingText.h">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\MixedReality.h">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\RecordedValue.h">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\TrackedHands.h">
-      <Filter>Cannon</Filter>
+      <Filter>Libraries\Cannon</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\Common\FileUtilities.h">
-      <Filter>Cannon\Common</Filter>
+      <Filter>Libraries\Cannon\Common</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\Common\FilterDoubleExponential.h">
-      <Filter>Cannon\Common</Filter>
+      <Filter>Libraries\Cannon\Common</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\Common\Intersectable.h">
-      <Filter>Cannon\Common</Filter>
+      <Filter>Libraries\Cannon\Common</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\Common\Timer.h">
-      <Filter>Cannon\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_sink_writers.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_media_buffer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Libraries\Cannon\Common</Filter>
     </ClInclude>
     <ClInclude Include="types.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
     <ClInclude Include="researchmode\ResearchModeApi.h">
-      <Filter>researchmode</Filter>
-    </ClInclude>
-    <ClInclude Include="locator.h">
-      <Filter>Header Files</Filter>
+      <Filter>Libraries\researchmode</Filter>
     </ClInclude>
     <ClInclude Include="research_mode.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rm_imu.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rm_vlc.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rm_zab.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="microphone_capture.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_hook_callback.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_media_sink.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_media_type_handler.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_sink_hook.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_media_types.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_sink_writers.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_stream_sink.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="locator.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_mc.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_media_buffers.h">
+      <Filter>Header Files\sink</Filter>
     </ClInclude>
     <ClInclude Include="stream_pv.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\streams</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

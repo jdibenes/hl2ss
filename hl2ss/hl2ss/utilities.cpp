@@ -120,7 +120,7 @@ void SendSampleToSocket(IMFSample* pSample, void* param)
 	BYTE* pBytes;
 	DWORD cbData;
 	WSABUF wsaBuf[3];
-	HookCallbackSocketData* user;
+	HookCallbackSocket* user;
 	bool ok;
 
 	pSample->GetSampleTime(&sampletime);
@@ -132,7 +132,7 @@ void SendSampleToSocket(IMFSample* pSample, void* param)
 	wsaBuf[1].buf = (char*)&cbData;     wsaBuf[1].len = sizeof(cbData);
 	wsaBuf[2].buf = (char*)pBytes;      wsaBuf[2].len = cbData;
 
-	user = (HookCallbackSocketData*)param;
+	user = (HookCallbackSocket*)param;
 	ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 	if (!ok) { SetEvent(user->clientevent); }
 

@@ -23,6 +23,7 @@ pngfull = np.zeros((288, 320), dtype=np.uint16)
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
+    s.send(struct.pack('<B', 0))
     packet = bytearray()
     while True:
         chunk = s.recv(1024)

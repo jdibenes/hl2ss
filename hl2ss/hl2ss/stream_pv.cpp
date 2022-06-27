@@ -2,7 +2,7 @@
 #include <queue>
 #include <mfapi.h>
 #include "custom_media_sink.h"
-#include "custom_media_buffer.h"
+#include "custom_media_buffers.h"
 #include "ports.h"
 #include "utilities.h"
 
@@ -46,7 +46,7 @@ static SpatialCoordinateSystem g_world_frame = nullptr;
 // Mode: 0, 1
 static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
-static HookCallbackSocketData g_sinkParam = { INVALID_SOCKET, NULL };
+static HookCallbackSocket g_sinkParam = { INVALID_SOCKET, NULL };
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -237,7 +237,7 @@ static void PV_SendSampleToSocket_Mode1(IMFSample* pSample, void* param)
     DWORD cbData;
     float4x4 location;
     WSABUF wsaBuf[4];
-    HookCallbackSocketData* user;
+    HookCallbackSocket* user;
     bool ok;
 
     pSample->GetSampleTime(&sampletime);
@@ -256,7 +256,7 @@ static void PV_SendSampleToSocket_Mode1(IMFSample* pSample, void* param)
     wsaBuf[2].buf = (char*)pBytes;      wsaBuf[2].len = cbData;
     wsaBuf[3].buf = (char*)&location;   wsaBuf[3].len = sizeof(location);
 
-    user = (HookCallbackSocketData*)param;
+    user = (HookCallbackSocket*)param;
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 

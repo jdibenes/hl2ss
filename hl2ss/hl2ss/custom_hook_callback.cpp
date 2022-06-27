@@ -4,7 +4,7 @@
 #include "utilities.h"
 
 //-----------------------------------------------------------------------------
-// IUnknown Methods
+// HookSinkCallback Methods
 //-----------------------------------------------------------------------------
 
 // OK
@@ -36,6 +36,53 @@ HRESULT HookSinkCallback::QueryInterface(REFIID iid, void** ppv)
 }
 
 // OK
+HookSinkCallback::HookSinkCallback(HOOK_SINK_PROC fCallback, void* param)
+{
+    //assert(fCallback)
+    m_nRefCount = 1;
+    m_fCallback = fCallback;
+    m_param = param;
+}
+
+// OK
+HookSinkCallback::~HookSinkCallback()
+{
+    //assert(!m_nRefCount)
+}
+
+// OK
+HRESULT HookSinkCallback::CreateInstance(HookSinkCallback** ppSink, HOOK_SINK_PROC fCallback, void* param)
+{
+    if (!ppSink || !fCallback) { return E_INVALIDARG; }
+    HookSinkCallback* pSink = new (std::nothrow) HookSinkCallback(fCallback, param);
+    if (!pSink) { return E_OUTOFMEMORY; }
+    *ppSink = pSink;
+    return S_OK;
+}
+
+// OK
+HRESULT HookSinkCallback::CreateHook(DWORD dwStreamSinkIdentifier, IMFMediaType* pMediaType, CustomStreamHook** ppHook)
+{
+    (void)dwStreamSinkIdentifier;
+    (void)pMediaType;
+    if (!ppHook) { return E_INVALIDARG; }
+    CustomStreamHook* pHook = new (std::nothrow) HookStreamCallback(this);
+    if (!pHook) { return E_OUTOFMEMORY; }
+    *ppHook = pHook;
+    return S_OK;
+}
+
+// OK
+void HookSinkCallback::Dispatch(IMFSample* pSample)
+{
+    m_fCallback(pSample, m_param);
+}
+
+//-----------------------------------------------------------------------------
+// HookStreamCallback
+//-----------------------------------------------------------------------------
+
+// OK
 ULONG HookStreamCallback::AddRef()
 {
     return InterlockedIncrement(&m_nRefCount);
@@ -63,25 +110,6 @@ HRESULT HookStreamCallback::QueryInterface(REFIID iid, void** ppv)
     return S_OK;
 }
 
-//-----------------------------------------------------------------------------
-// Hook Methods
-//-----------------------------------------------------------------------------
-
-// OK
-HookSinkCallback::HookSinkCallback(HOOK_SINK_PROC fCallback, void *param)
-{
-    //assert(fCallback)
-    m_nRefCount = 1;
-    m_fCallback = fCallback;
-    m_param = param;
-}
-
-// OK
-HookSinkCallback::~HookSinkCallback()
-{
-    //assert(!m_nRefCount)
-}
-
 // OK
 HookStreamCallback::HookStreamCallback(HookSinkCallback *pParent)
 {
@@ -95,34 +123,6 @@ HookStreamCallback::~HookStreamCallback()
 {
     //assert(!m_nRefCount)
     m_pParent->Release();
-}
-
-// OK
-HRESULT HookSinkCallback::CreateInstance(HookSinkCallback** ppSink, HOOK_SINK_PROC fCallback, void *param)
-{
-    if (!ppSink || !fCallback) { return E_INVALIDARG; }
-    HookSinkCallback* pSink = new (std::nothrow) HookSinkCallback(fCallback, param);
-    if (!pSink) { return E_OUTOFMEMORY; }
-    *ppSink = pSink;
-    return S_OK;
-}
-
-// OK
-HRESULT HookSinkCallback::CreateHook(DWORD dwStreamSinkIdentifier, IMFMediaType* pMediaType, CustomStreamHook** ppHook)
-{
-    (void)dwStreamSinkIdentifier;
-    (void)pMediaType;
-    if (!ppHook) { return E_INVALIDARG; }
-    CustomStreamHook* pHook = new (std::nothrow) HookStreamCallback(this);
-    if (!pHook) { return E_OUTOFMEMORY; }
-    *ppHook = pHook;
-    return S_OK;
-}
-
-// OK
-void HookSinkCallback::Dispatch(IMFSample* pSample)
-{
-    m_fCallback(pSample, m_param);
 }
 
 // OK

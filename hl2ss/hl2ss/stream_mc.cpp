@@ -26,7 +26,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	IMFSinkWriter* pSinkWriter; // release
 	HANDLE clientevent; // CloseHandle
 	AACBitrate aacbitrate;
-	HookCallbackSocketData user;
+	HookCallbackSocket user;
 	DWORD dwAudioIndex;
 	bool ok;
 

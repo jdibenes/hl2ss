@@ -9,7 +9,7 @@
 
 
 
-struct HookCallbackSocketData
+struct HookCallbackSocket
 {
     SOCKET clientsocket;
     HANDLE clientevent;

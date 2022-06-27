@@ -1,22 +1,21 @@
 
-// TODO: AHAT
-
-#include <mfapi.h>
-#include <MemoryBuffer.h>
 #include "research_mode.h"
-#include "ports.h"
 #include "utilities.h"
+#include "stream_rm_vlc.h"
+#include "stream_rm_imu.h"
+#include "stream_rm_zab.h"
+#include "ports.h"
 #include "types.h"
 
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Graphics.Imaging.h>
-#include <winrt/Windows.Storage.h>
-#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Perception.Spatial.h>
+#include <winrt/Windows.Perception.Spatial.Preview.h>
 
-using namespace Windows::Foundation;
-using namespace winrt::Windows::Graphics::Imaging;
-using namespace winrt::Windows::Storage;
-using namespace winrt::Windows::Storage::Streams;
+using namespace winrt::Windows::Perception::Spatial;
+using namespace winrt::Windows::Perception::Spatial::Preview;
+
+typedef void(*RM_MODE0)(IResearchModeSensor*, SOCKET);
+typedef void(*RM_MODE1)(IResearchModeSensor*, SOCKET, SpatialLocator const&, SpatialCoordinateSystem const&);
+typedef void(*RM_MODE2)(IResearchModeSensor*, SOCKET);
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -24,17 +23,18 @@ using namespace winrt::Windows::Storage::Streams;
 
 static char const* const g_research_sensor_port[] =
 {
-    PORT_RMVLF,
-    PORT_RMVLL,
-    PORT_RMVRF,
-    PORT_RMVRR,
-    PORT_RMZHT,
-    PORT_RMZLT,
-    PORT_RMACC,
-    PORT_RMGYR,
-    PORT_RMMAG
+    PORT_RM_VLF,
+    PORT_RM_VLL,
+    PORT_RM_VRF,
+    PORT_RM_VRR,
+    PORT_RM_ZHT,
+    PORT_RM_ZLT,
+    PORT_RM_ACC,
+    PORT_RM_GYR,
+    PORT_RM_MAG
 };
 
+static SpatialCoordinateSystem g_world = nullptr;
 static HANDLE g_quitevent = NULL; // CloseHandle
 static std::vector<HANDLE> g_threads; // CloseHandle
 
@@ -43,354 +43,60 @@ static std::vector<HANDLE> g_threads; // CloseHandle
 //-----------------------------------------------------------------------------
 
 // OK
-static void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket)
+template<RM_MODE0 M0, RM_MODE1 M1, RM_MODE2 M2>
+void RM_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
 {
-    uint32_t const width = 640;
-    uint32_t const height = 480;
-    uint32_t const framerate = 30;
-    uint32_t const lumasize = width * height;
-    uint32_t const chromasize = (width * height) / 2;
-    uint32_t const framebytes = lumasize + chromasize;
-    LONGLONG const duration = HNS_BASE / framerate;
-    uint8_t const zerochroma = 0x80;
-
-    IResearchModeSensorFrame* pSensorFrame; // release
-    IResearchModeSensorVLCFrame* pVLCFrame; // release
-    IMFSinkWriter* pSinkWriter; // release
-    IMFMediaBuffer* pBuffer; // release
-    IMFSample* pSample; // release
-    HANDLE clientevent; // CloseHandle
-    HookCallbackSocketData user;
-    ResearchModeSensorTimestamp timestamp;
-    DWORD dwVideoIndex;
-    BYTE const* pImage;
-    size_t length;
-    BYTE* pDst;
-    H26xFormat format;
+    uint8_t mode;
     bool ok;
-    
-    ok = ReceiveVideoFormatH26x(clientsocket, format);
+
+    ok = recv_u8(clientsocket, mode);
     if (!ok) { return; }
 
-    format.width     = width;
-    format.height    = height;
-    format.framerate = framerate;
-
-    clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-    user.clientsocket = clientsocket;
-    user.clientevent = clientevent;
-
-    CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, SendSampleToSocket, &user);
-
-    MFCreateMemoryBuffer(framebytes, &pBuffer);
-    
-    pBuffer->Lock(&pDst, NULL, NULL);
-    memset(pDst + lumasize, zerochroma, chromasize);
-    pBuffer->Unlock();
-    pBuffer->SetCurrentLength(framebytes);
-
-    MFCreateSample(&pSample);
-
-    pSample->AddBuffer(pBuffer);
-    pSample->SetSampleDuration(duration);
-
-    sensor->OpenStream();
-
-    do
+    switch (mode)
     {
-    sensor->GetNextBuffer(&pSensorFrame); // block
-
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pVLCFrame));
-
-    pVLCFrame->GetBuffer(&pImage, &length);
-
-    pBuffer->Lock(&pDst, NULL, NULL);
-    memcpy(pDst, pImage, lumasize);
-    pBuffer->Unlock();
-
-    pSample->SetSampleTime(timestamp.HostTicks);
-    pSinkWriter->WriteSample(dwVideoIndex, pSample);
-
-    pVLCFrame->Release();
-    pSensorFrame->Release();
+    case 0: M0(sensor, clientsocket);                 break;
+    case 1: M1(sensor, clientsocket, locator, world); break;
+    case 2: M2(sensor, clientsocket);                 break;
     }
-    while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
-
-    sensor->CloseStream();
-
-    pSinkWriter->Flush(dwVideoIndex);
-
-    pSinkWriter->Release();
-    pSample->Release();
-    pBuffer->Release();
-
-    CloseHandle(clientevent);
-}
-
-// OK
-static void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    (void)sensor;
-    (void)clientsocket;
-
-    // Not supported yet
-}
-
-// OK
-static void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    int const width = 320;
-    int const height = 288;
-    int const pixels = width * height;
-    int const n32ByteVectors = (width * height * 4) / 32;
-    uint8_t const depthinvalid = 0x80;
-   
-    IResearchModeSensorFrame* pSensorFrame; // release
-    IResearchModeSensorDepthFrame* pDepthFrame; // release
-    ResearchModeSensorTimestamp timestamp;
-    BitmapPropertySet pngProperties;
-    BYTE const* pSigma;
-    size_t nSigmaCount;
-    UINT16* pDepth;
-    size_t nDepthCount;
-    UINT16 const* pAbImage;
-    size_t nAbCount;
-    BYTE* pixelBufferData;
-    UINT32 pixelBufferDataLength;
-    WSABUF wsaBuf[3];
-    bool ok;
-
-    pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(PngFilterMode::Paeth), winrt::Windows::Foundation::PropertyType::UInt8));
-    
-    sensor->OpenStream();
-
-    do
-    {
-    sensor->GetNextBuffer(&pSensorFrame); // block
-
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pDepthFrame));
-
-    pDepthFrame->GetSigmaBuffer(&pSigma, &nSigmaCount);
-    pDepthFrame->GetBuffer(const_cast<const UINT16**>(&pDepth), &nDepthCount);
-    pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
-
-    auto stream = InMemoryRandomAccessStream();
-    auto opEncoderCreate = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, pngProperties);
-
-    for (int i = 0; i < pixels; ++i) { if (pSigma[i] & depthinvalid) { pDepth[i] = 0; } }
-
-    auto softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Straight);
-    {
-    auto bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
-    auto spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
-    spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
-    PackUINT16toUINT32((BYTE*)pDepth, (BYTE*)pAbImage, pixelBufferData, n32ByteVectors);
-    }
-
-    auto encoder = opEncoderCreate.get();
-    encoder.SetSoftwareBitmap(softwareBitmap);
-    encoder.FlushAsync().get();
-
-    auto streamSize = (uint32_t)stream.Size();
-    auto streamBuf = Buffer(streamSize);
-    stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
-
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks; wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    wsaBuf[1].buf = (char*)&streamSize;          wsaBuf[1].len = sizeof(streamSize);
-    wsaBuf[2].buf = (char*)streamBuf.data();     wsaBuf[2].len = streamSize;
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    pDepthFrame->Release();
-    pSensorFrame->Release();
-    }
-    while (ok);
-
-    sensor->CloseStream();
-}
-
-// OK
-static void RM_ACC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    int const chunksize = 20;
-
-    IResearchModeSensorFrame* pSensorFrame; // release
-    IResearchModeAccelFrame* pSensorAccelFrame; // release
-    ResearchModeSensorTimestamp timestamp;
-    AccelDataStruct const* pAccelBuffer;
-    size_t nAccelSamples;
-    std::vector<BYTE> sampleBuffer;
-    int bufSize;
-    BYTE* pDst;
-    WSABUF wsaBuf[3];
-    bool ok;
-
-    sensor->OpenStream();
-    
-    do
-    {
-    sensor->GetNextBuffer(&pSensorFrame); // block
-
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pSensorAccelFrame));
-
-    pSensorAccelFrame->GetCalibratedAccelarationSamples(&pAccelBuffer, &nAccelSamples);
-
-    bufSize = (int)(nAccelSamples * chunksize);
-    if (sampleBuffer.size() < bufSize) { sampleBuffer.resize(bufSize); }
-    pDst = sampleBuffer.data();
-
-    for (int i = 0; i < (int)nAccelSamples; ++i) { memcpy(pDst + (i * chunksize), &(pAccelBuffer[i].SocTicks), chunksize); }
-
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks; wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    wsaBuf[1].buf = (char*)&bufSize;             wsaBuf[1].len = sizeof(bufSize);
-    wsaBuf[2].buf = (char*)pDst;                 wsaBuf[2].len = bufSize;
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    pSensorAccelFrame->Release();
-    pSensorFrame->Release();
-    }
-    while (ok);
-
-    sensor->CloseStream();
-}
-
-// OK
-static void RM_GYR_Stream(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    int const chunksize = 20;
-
-    IResearchModeSensorFrame* pSensorFrame; // release
-    IResearchModeGyroFrame* pSensorGyroFrame; // release
-    ResearchModeSensorTimestamp timestamp;
-    GyroDataStruct const* pGyroBuffer;
-    size_t nGyroSamples;
-    std::vector<BYTE> sampleBuffer;
-    int bufSize;
-    BYTE* pDst;
-    WSABUF wsaBuf[3];
-    bool ok;
-
-    sensor->OpenStream();
-
-    do
-    {
-    sensor->GetNextBuffer(&pSensorFrame); // block
-
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pSensorGyroFrame));
-
-    pSensorGyroFrame->GetCalibratedGyroSamples(&pGyroBuffer, &nGyroSamples);
-
-    bufSize = (int)(nGyroSamples * chunksize);
-    if (sampleBuffer.size() < bufSize) { sampleBuffer.resize(bufSize); }
-    pDst = sampleBuffer.data();
-
-    for (int i = 0; i < (int)nGyroSamples; ++i) { memcpy(pDst + (i * chunksize), &(pGyroBuffer[i].SocTicks), chunksize); }
-
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks; wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    wsaBuf[1].buf = (char*)&bufSize;             wsaBuf[1].len = sizeof(bufSize);
-    wsaBuf[2].buf = (char*)pDst;                 wsaBuf[2].len = bufSize;
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    pSensorGyroFrame->Release();
-    pSensorFrame->Release();
-    }
-    while (ok);
-
-    sensor->CloseStream();
-}
-
-// OK
-static void RM_MAG_Stream(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    int const chunksize = 20;
-
-    IResearchModeSensorFrame* pSensorFrame; // release
-    IResearchModeMagFrame* pSensorMagFrame; // release
-    ResearchModeSensorTimestamp timestamp;
-    MagDataStruct const* pMagBuffer;
-    size_t nMagSamples;
-    std::vector<BYTE> sampleBuffer;
-    int bufSize;
-    BYTE* pDst;
-    WSABUF wsaBuf[3];
-    bool ok;
-
-    sensor->OpenStream();
-
-    do
-    {
-    sensor->GetNextBuffer(&pSensorFrame); // block
-
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pSensorMagFrame));
-    pSensorMagFrame->GetMagnetometerSamples(&pMagBuffer, &nMagSamples);
-
-    bufSize = (int)(nMagSamples * chunksize);
-    if (sampleBuffer.size() < bufSize) { sampleBuffer.resize(bufSize); }
-    pDst = sampleBuffer.data();
-
-    for (int i = 0; i < (int)nMagSamples; ++i) { memcpy(pDst + (i * chunksize), &(pMagBuffer[i].SocTicks), chunksize); }
-
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks; wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    wsaBuf[1].buf = (char*)&bufSize;             wsaBuf[1].len = sizeof(bufSize);
-    wsaBuf[2].buf = (char*)pDst;                 wsaBuf[2].len = bufSize;
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    pSensorMagFrame->Release();
-    pSensorFrame->Release();
-    }
-    while (ok);
-
-    sensor->CloseStream();
 }
 
 // OK
 static DWORD WINAPI RM_EntryPoint(void* param)
 {
-    IResearchModeSensor* sensor;
-    ResearchModeSensorType type;
-    char const* port;
+    SpatialLocator locator = nullptr;
+    SpatialCoordinateSystem world = nullptr;
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    IResearchModeSensor* sensor;
+    ResearchModeSensorType type;
+    GUID nodeId;
+    char const* port;
     bool ok;
 
     sensor = (IResearchModeSensor*)param;
     type = sensor->GetSensorType();
+
     ShowMessage(L"RM%d (%s): Waiting for consent", type, sensor->GetFriendlyName());
 
-    switch (type)
-    {
-    case LEFT_FRONT:
-    case LEFT_LEFT:
-    case RIGHT_FRONT:
-    case RIGHT_RIGHT:      
-    case DEPTH_AHAT:       
-    case DEPTH_LONG_THROW: ok = ResearchModeWaitForCameraConsent();  break;
-    case IMU_ACCEL:        
-    case IMU_GYRO:         
-    case IMU_MAG:          ok = ResearchModeWaitForIMUConsent();     break;
-    default:               ok = false;
-    }
+    ok = ResearchMode_WaitForConsent(sensor);
+    if (!ok) { return false; }
 
-    if (!ok) { return 0; }
+    nodeId = ResearchMode_GetRigNodeId();
+    locator = SpatialGraphInteropPreview::CreateLocatorForNode(nodeId);
+    world = g_world;
 
     port = g_research_sensor_port[type];
     listensocket = CreateSocket(port);
+
     ShowMessage("RM%d: Listening at port %s", type, port);
     
     do
     {
     ShowMessage("RM%d: Waiting for client", type);
+
     clientsocket = accept(listensocket, NULL, NULL); // block
     if (clientsocket == INVALID_SOCKET) { break; }
+
     ShowMessage("RM%d: Client connected", type);
 
     switch (type)
@@ -398,110 +104,43 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     case LEFT_FRONT:
     case LEFT_LEFT:
     case RIGHT_FRONT:
-    case RIGHT_RIGHT:      RM_VLC_Stream(sensor, clientsocket); break;
-    case DEPTH_AHAT:       RM_ZHT_Stream(sensor, clientsocket); break;
-    case DEPTH_LONG_THROW: RM_ZLT_Stream(sensor, clientsocket); break;
-    case IMU_ACCEL:        RM_ACC_Stream(sensor, clientsocket); break;
-    case IMU_GYRO:         RM_GYR_Stream(sensor, clientsocket); break;
-    case IMU_MAG:          RM_MAG_Stream(sensor, clientsocket); break;
+    case RIGHT_RIGHT:      RM_Stream<RM_VLC_Stream_Mode0, RM_VLC_Stream_Mode1, RM_VLC_Stream_Mode2>(sensor, clientsocket, locator, world); break;
+    case DEPTH_AHAT:       RM_Stream<RM_ZHT_Stream_Mode0, RM_ZHT_Stream_Mode1, RM_ZHT_Stream_Mode2>(sensor, clientsocket, locator, world); break;
+    case DEPTH_LONG_THROW: RM_Stream<RM_ZLT_Stream_Mode0, RM_ZLT_Stream_Mode1, RM_ZLT_Stream_Mode2>(sensor, clientsocket, locator, world); break;
+    case IMU_ACCEL:        RM_Stream<RM_ACC_Stream_Mode0, RM_ACC_Stream_Mode1, RM_ACC_Stream_Mode2>(sensor, clientsocket, locator, world); break;
+    case IMU_GYRO:         RM_Stream<RM_GYR_Stream_Mode0, RM_GYR_Stream_Mode1, RM_GYR_Stream_Mode2>(sensor, clientsocket, locator, world); break;
+    case IMU_MAG:          RM_Stream<RM_MAG_Stream_Mode0, RM_MAG_Stream_Mode1, RM_MAG_Stream_Mode2>(sensor, clientsocket, locator, world); break;
     }
 
     closesocket(clientsocket);
+
     ShowMessage("RM%d: Client disconnected", type);
     }
     while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
   
     closesocket(listensocket);
+
     ShowMessage("RM%d: Closed", type);
 
     return 0;
 }
 
 // OK
-bool RM_GetCameraExtrinsics(ResearchModeSensorType type, DirectX::XMFLOAT4X4& extrinsics)
+void RM_SetWorldCoordinateSystem(SpatialCoordinateSystem const& world)
 {
-    IResearchModeSensor* sensor;
-    IResearchModeCameraSensor* pCameraSensor; // release
-    IResearchModeAccelSensor* pAccelSensor; // release
-    IResearchModeGyroSensor* pGyroSensor; // release
-
-    sensor = GetResearchModeSensor(type);
-
-    switch (type)
-    {
-    case LEFT_FRONT:
-    case LEFT_LEFT:
-    case RIGHT_FRONT:
-    case RIGHT_RIGHT:
-    case DEPTH_AHAT:
-    case DEPTH_LONG_THROW: sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor)); pCameraSensor->GetCameraExtrinsicsMatrix(&extrinsics); pCameraSensor->Release(); break;
-    case IMU_ACCEL:        sensor->QueryInterface(IID_PPV_ARGS(&pAccelSensor));  pAccelSensor->GetExtrinsicsMatrix(&extrinsics);        pAccelSensor->Release();  break;
-    case IMU_GYRO:         sensor->QueryInterface(IID_PPV_ARGS(&pGyroSensor));   pGyroSensor->GetExtrinsicsMatrix(&extrinsics);         pGyroSensor->Release();   break;
-    default:               return false;
-    }
-
-    return true;
-}
-
-// OK
-bool RM_GetCameraIntrinsics(ResearchModeSensorType type, std::vector<float> &uv2x, std::vector<float> &uv2y)
-{
-    IResearchModeCameraSensor* pCameraSensor; // release
-    int width;
-    int height;
-    float uv[2];
-    float xy[2];
-    float* lutx;
-    float* luty;
-    int elements;
-
-    switch (type)
-    {
-    case LEFT_FRONT:
-    case LEFT_LEFT:
-    case RIGHT_FRONT:
-    case RIGHT_RIGHT:      width = 640; height = 480; break;
-    case DEPTH_AHAT:       width = 512; height = 512; break;
-    case DEPTH_LONG_THROW: width = 320; height = 288; break;
-    default:               return false;
-    }
-
-    GetResearchModeSensor(type)->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
-
-    elements = width * height;
-
-    uv2x.resize(elements);
-    uv2y.resize(elements);
-
-    lutx = uv2x.data();
-    luty = uv2y.data();
-
-    for (int y = 0; y < height; ++y)
-    {
-    uv[1] = (float)y;
-    for (int x = 0; x < width;  ++x)
-    {
-    uv[0] = (float)x;
-
-    pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
-
-    *(lutx++) = xy[0];
-    *(luty++) = xy[1];
-    }
-    }
-
-    pCameraSensor->Release();
-    return true;
+    g_world = world;
 }
 
 // OK
 void RM_Initialize()
 {
+    ResearchModeSensorType const* sensortypes = ResearchMode_GetSensorTypes();
+    int const sensorcount = ResearchMode_GetSensorTypeCount();
+
     g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    int sensorcount = GetResearchModeSensorTypeCount();
-    ResearchModeSensorType const* sensortypes = GetResearchModeSensorTypes();
+    
     g_threads.resize(sensorcount);
-    for (int i = 0; i < sensorcount; ++i) { g_threads[i] = CreateThread(NULL, 0, RM_EntryPoint, GetResearchModeSensor(sensortypes[i]), NULL, NULL); }
+    for (int i = 0; i < sensorcount; ++i) { g_threads[i] = CreateThread(NULL, 0, RM_EntryPoint, ResearchMode_GetSensor(sensortypes[i]), NULL, NULL); }
 }
 
 // OK

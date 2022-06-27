@@ -139,7 +139,7 @@
     <ClInclude Include="Cannon\MixedReality.h" />
     <ClInclude Include="Cannon\RecordedValue.h" />
     <ClInclude Include="Cannon\TrackedHands.h" />
-    <ClInclude Include="custom_media_buffer.h" />
+    <ClInclude Include="custom_media_buffers.h" />
     <ClInclude Include="custom_media_sink.h" />
     <ClInclude Include="custom_media_types.h" />
     <ClInclude Include="custom_media_type_handler.h" />
@@ -157,6 +157,9 @@
     <ClInclude Include="research_mode.h" />
     <ClInclude Include="stream_rm.h" />
     <ClInclude Include="server.h" />
+    <ClInclude Include="stream_rm_zab.h" />
+    <ClInclude Include="stream_rm_imu.h" />
+    <ClInclude Include="stream_rm_vlc.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="utilities.h" />
   </ItemGroup>
@@ -168,7 +171,7 @@
     <ClCompile Include="Cannon\MixedReality.cpp" />
     <ClCompile Include="Cannon\RecordedValue.cpp" />
     <ClCompile Include="Cannon\TrackedHands.cpp" />
-    <ClCompile Include="custom_media_buffer.cpp" />
+    <ClCompile Include="custom_media_buffers.cpp" />
     <ClCompile Include="custom_media_sink.cpp" />
     <ClCompile Include="custom_media_types.cpp" />
     <ClCompile Include="custom_media_type_handler.cpp" />
@@ -184,6 +187,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp" />
+    <ClCompile Include="stream_rm_imu.cpp" />
+    <ClCompile Include="stream_rm_zab.cpp" />
+    <ClCompile Include="stream_rm_vlc.cpp" />
     <ClCompile Include="utilities.cpp" />
     <ClCompile Include="research_mode.cpp" />
     <ClCompile Include="stream_rm.cpp" />

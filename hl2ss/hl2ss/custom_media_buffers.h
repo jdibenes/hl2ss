@@ -41,8 +41,7 @@ public:
     HRESULT Unlock();
 };
 
-
-
+// OK
 class WrappedBuffer : public IMFMediaBuffer
 {
 private:
@@ -70,4 +69,3 @@ public:
     HRESULT SetCurrentLength(DWORD cbCurrentLength);
     HRESULT Unlock();
 };
-

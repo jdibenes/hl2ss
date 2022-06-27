@@ -1,11 +1,5 @@
 
 //#define ENABLE_QRCODE_API 1
-
-// TODO:
-// locate RM
-// Send RM intrinsics/extrinsics
-// 
-
 //#include "Cannon/MixedReality.h"
 //#include "Cannon/TrackedHands.h"
 #include "utilities.h"
@@ -21,14 +15,6 @@ static char const* const g_locatability_name[] = {
     "PositionalTrackingActive = 3",
     "PositionalTrackingInhibited = 4"
 };
-
-
-
-
-
-
-
-
 
 //ShowMessage("locatability changed %s", g_locatability_name[(int)g_locatability]);
 //ShowMessage("initialize locatability %s", g_locatability_name[(int)g_locatability]);
