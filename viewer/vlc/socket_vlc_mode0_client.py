@@ -1,3 +1,4 @@
+# OK
 
 import socket
 import cv2
@@ -6,12 +7,13 @@ import av
 import time
 import struct
 
+# hololens 2 address
 HOST = "192.168.1.15"
 
-# 3800 VLC0
-# 3801 VLC1
-# 3802 VLC2
-# 3803 VLC3
+# 3800 left front
+# 3801 left left
+# 3802 right front
+# 3803 right right
 PORT = 3800
 
 # camera parameters (ignored, always 640x480 30 FPS)
@@ -31,47 +33,51 @@ bitrate = 1*1024*1024
 
 # operating mode
 # 0: video
-# 1: video+pose
-# 2: calibration
+# 1: video + rig pose
+# 2: calibration (single transfer 640*480*2 + 16 floats (2,457,664 bytes))
 mode = 0
 
+# -----------------------------------------------------------------------------
+
+if (profile == 3):
+    codec_name = 'hevc'
+else:
+    codec_name = 'h264'
+
+codec = av.CodecContext.create(codec_name, 'r')
+tmpbuffer = bytearray()
+tmpstate = 0
+lastcaptime = None
+frames = 0
+chunk_size = 1024 # critical value
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    if (profile == 3):
-        codec_name = 'hevc'
-    else:
-        codec_name = 'h264'
-
-    codec = av.CodecContext.create(codec_name, 'r')
-    tmpbuffer = bytearray()
-    tmpstate = 0
-    lastcaptime = None
-    frames = 0
-
     s.connect((HOST, PORT))
     s.send(struct.pack('<BHHBBI', 0, width, height, framerate, profile, bitrate))
 
     while True:
-        chunk = s.recv(1024) # critical value: too high = lag, too low = lag
-        if (len(chunk) == 0): break
+        chunk = s.recv(chunk_size) 
+        if (len(chunk) == 0):
+            break
         tmpbuffer.extend(chunk)
 
         if (tmpstate == 0):
             if (len(tmpbuffer) >= 12):
                 header = struct.unpack('<QI', tmpbuffer[:12])
                 timestamp = header[0]
-                h264len = header[1]
-                packetlen = 12 + h264len
+                payload_length = header[1]
+                packetlen = 12 + payload_length
                 tmpstate = 1
             continue
         elif (tmpstate == 1):
             if (len(tmpbuffer) >= packetlen):
-                h264payload = tmpbuffer[12:packetlen]
+                payload = tmpbuffer[12:packetlen]
                 tmpbuffer = tmpbuffer[packetlen:]
                 tmpstate = 0
             else:
                 continue
 
-        packets = codec.parse(h264payload)
+        packets = codec.parse(payload)
 
         for packet in packets:
             for frame in codec.decode(packet):

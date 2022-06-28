@@ -39,18 +39,18 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pSensorIMUFrame));
 
-if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeAccelFrame>)
-{
+    if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeAccelFrame>)
+    {
     pSensorIMUFrame->GetCalibratedAccelarationSamples(&pIMUBuffer, &nIMUSamples);
-}
-else if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeGyroFrame>)
-{
+    }
+    else if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeGyroFrame>)
+    {
     pSensorIMUFrame->GetCalibratedGyroSamples(&pIMUBuffer, &nIMUSamples);
-}
-else if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeMagFrame>)
-{
+    }
+    else if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeMagFrame>)
+    {
     pSensorIMUFrame->GetMagnetometerSamples(&pIMUBuffer, &nIMUSamples);
-}
+    }
 
     bufSize = (int)(nIMUSamples * chunksize);
     if (sampleBuffer.size() < bufSize) { sampleBuffer.resize(bufSize); }
@@ -58,19 +58,22 @@ else if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeMagFrame>)
 
     for (int i = 0; i < (int)nIMUSamples; ++i) { memcpy(pDst + (i * chunksize), &(pIMUBuffer[i].SocTicks), chunksize); }
 
-if constexpr(ENABLE_LOCATION)
-{
+    wsaBuf[0].buf = (char*)&timestamp.HostTicks;
+    wsaBuf[0].len = sizeof(timestamp.HostTicks);
+    
+    wsaBuf[1].buf = (char*)&bufSize;
+    wsaBuf[1].len = sizeof(bufSize);
+    
+    wsaBuf[2].buf = (char*)pDst;
+    wsaBuf[2].len = bufSize;
+
+    if constexpr(ENABLE_LOCATION)
+    {
     pose = Locator_Locate(timestamp.HostTicks, locator, world);
-}
-
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks; wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    wsaBuf[1].buf = (char*)&bufSize;             wsaBuf[1].len = sizeof(bufSize);
-    wsaBuf[2].buf = (char*)pDst;                 wsaBuf[2].len = bufSize;
-
-if constexpr(ENABLE_LOCATION)
-{
-    wsaBuf[3].buf = (char*)&pose;                wsaBuf[3].len = sizeof(pose);
-}
+    
+    wsaBuf[3].buf = (char*)&pose;
+    wsaBuf[3].len = sizeof(pose);
+    }
 
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 
@@ -90,7 +93,8 @@ void RM_IMU_Extrinsics(IResearchModeSensor* sensor, SOCKET clientsocket)
 
     ResearchMode_GetExtrinsics(sensor, extrinsics);
 
-    wsaBuf[0].buf = (char*)&extrinsics.m[0][0]; wsaBuf[0].len = sizeof(extrinsics.m);
+    wsaBuf[0].buf = (char*)&extrinsics.m[0][0];
+    wsaBuf[0].len = sizeof(extrinsics.m);
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

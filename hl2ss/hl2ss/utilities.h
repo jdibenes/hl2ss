@@ -15,22 +15,10 @@ struct HookCallbackSocket
     HANDLE clientevent;
 };
 
-enum PVOperatingMode
-{
-    PVOperatingMode_Video,
-    PVOperatingMode_VideoAndLocation,
-    PVOperatingMode_Calibration
-};
-
-
-
-
-bool ReceivePVOperatingMode(SOCKET clientsocket, PVOperatingMode& mode);
 bool ReceiveAudioFormatAAC(SOCKET clientsocket, AACBitrate& bitrate);
 bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format);
 
 void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n32ByteVectors);
-void SendSampleToSocket(IMFSample* pSample, void* param);
 
 template <class T> void SafeRelease(T** ppT)
 {

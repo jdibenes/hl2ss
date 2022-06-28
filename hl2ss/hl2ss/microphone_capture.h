@@ -18,8 +18,6 @@ private:
 	HANDLE m_eventActivate; // CloseHandle
 	HANDLE m_eventData; // CloseHandle
 	UINT64 m_hnsSamplePeriod;
-	IMFSample* m_pSample; // release
-	IMFMediaBuffer* m_pBuffer; // release
 
 public:
 	MicrophoneCapture();

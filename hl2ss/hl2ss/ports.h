@@ -3,11 +3,6 @@
 
 // HostTicks can be correlated with PV timestamps and MIC timestamps
 
-//#define SCAN_DELAY_MS 20
-
-// Research Mode Sensors
-
-//
 #define PORT_RM_VLF "3800"
 #define PORT_RM_VLL "3801"
 #define PORT_RM_VRF "3802"
@@ -20,5 +15,3 @@
 
 #define PORT_PV "3810"
 #define PORT_MC "3811"
-
-#define PORT_RMQRY "3809"

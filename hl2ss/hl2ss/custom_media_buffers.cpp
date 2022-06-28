@@ -120,7 +120,7 @@ HRESULT SoftwareBitmapBuffer::CreateInstance(SoftwareBitmapBuffer** ppBuffer, Me
 {
     if (!ppBuffer) { return E_INVALIDARG; }
     SoftwareBitmapBuffer* pBuffer = new SoftwareBitmapBuffer(ref);
-    if (!pBuffer) { return E_OUTOFMEMORY; }
+    //if (!pBuffer) { return E_OUTOFMEMORY; }
     *ppBuffer = pBuffer;
     return S_OK;
 }

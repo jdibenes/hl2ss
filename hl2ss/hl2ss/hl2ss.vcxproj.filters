@@ -37,9 +37,6 @@
     <ClCompile Include="header_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stream_pv.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="research_mode.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
@@ -83,7 +80,13 @@
       <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="custom_media_buffers.cpp">
-      <Filter>Source Files\sink</Filter>
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="personal_video.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_pv.cpp">
+      <Filter>Source Files\streams</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -108,9 +111,6 @@
     <Image Include="Assets\LockScreenLogo.scale-200.png">
       <Filter>Assets</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <AppxManifest Include="Package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">
@@ -155,10 +155,17 @@
     <Filter Include="Libraries\Cannon\Common">
       <UniqueIdentifier>{38ae5f3b-a14a-421f-a756-a5dc0cf95772}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Metadata">
+      <UniqueIdentifier>{d9f6e53e-c543-4fca-b3c7-4ce0b1f00737}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="PropertySheet.props" />
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <Filter>Metadata</Filter>
+    </None>
+    <None Include="PropertySheet.props">
+      <Filter>Metadata</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stream_mr.h">
@@ -257,11 +264,19 @@
     <ClInclude Include="stream_mc.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
-    <ClInclude Include="custom_media_buffers.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
     <ClInclude Include="stream_pv.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
+    <ClInclude Include="custom_media_buffers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="personal_video.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest">
+      <Filter>Metadata</Filter>
+    </AppxManifest>
   </ItemGroup>
 </Project>

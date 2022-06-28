@@ -1,3 +1,4 @@
+# OK
 
 import socket
 import pyaudio
@@ -6,7 +7,10 @@ import queue
 import threading
 import av
 
+# hololens 2 address
 HOST = "192.168.1.15"
+
+# mc port
 PORT = 3811
 
 # bitrate
@@ -16,11 +20,14 @@ PORT = 3811
 # 3: 24000 bytes/s
 bitrate = 3
 
+#------------------------------------------------------------------------------
+
 pcmqueue = queue.Queue()
 tmpbuffer = bytearray()
 tmpstate = 0
 codec = av.CodecContext.create('aac', 'r')
 resampler = av.audio.resampler.AudioResampler(format='s16', layout='stereo', rate=48000)
+chunk_size = 1024
 
 def pcmworker():
     p = pyaudio.PyAudio()
@@ -32,13 +39,11 @@ def pcmworker():
 threading.Thread(target=pcmworker).start()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    prev_ts = None
-
     s.connect((HOST, PORT))
     s.send(struct.pack('<B', bitrate))
     
     while True:
-        chunk = s.recv(1024)
+        chunk = s.recv(chunk_size)
         if (len(chunk) == 0): break
 
         tmpbuffer.extend(chunk)
@@ -48,9 +53,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 if (len(tmpbuffer) >= 12):
                     header = struct.unpack('<QI', tmpbuffer[:12])
                     timestamp = header[0]
-                    if (prev_ts and timestamp <= prev_ts):
-                        print('Non-monotonic timestamps {ts} <= {prev_ts}'.format(ts=timestamp, prev_ts=prev_ts))
-                    prev_ts = timestamp
                     aaclen = header[1]
                     packetlen = 12 + aaclen
                     tmpstate = 1

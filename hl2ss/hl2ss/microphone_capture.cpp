@@ -21,9 +21,7 @@ MicrophoneCapture::MicrophoneCapture() :
 	m_wfx(nullptr),
 	m_eventActivate(NULL),
 	m_eventData(NULL),
-	m_hnsSamplePeriod(0),
-	m_pSample(NULL),
-	m_pBuffer(NULL)
+	m_hnsSamplePeriod(0)
 {
 }
 
@@ -35,8 +33,6 @@ MicrophoneCapture::~MicrophoneCapture()
 	if (m_wfx) { CoTaskMemFree(m_wfx); }
 	if (m_eventActivate) { CloseHandle(m_eventActivate); }
 	if (m_eventData) { CloseHandle(m_eventData); }
-	if (m_pBuffer) { m_pBuffer->Release(); }
-	if (m_pSample) { m_pSample->Release(); }
 }
 
 // OK
@@ -111,15 +107,6 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	if (FAILED(hr)) { return hr; }
 #endif
 
-	hr = MFCreateMemoryBuffer(4 * maxPeriodInFrames * wfe->Format.nBlockAlign, &m_pBuffer);
-	if (FAILED(hr)) { return hr; }
-
-	hr = MFCreateSample(&m_pSample);
-	if (FAILED(hr)) { return hr; }
-
-	hr = m_pSample->AddBuffer(m_pBuffer);
-	if (FAILED(hr)) { return hr; }
-
 	m_audioCaptureClient.capture(m_audioClient, &IAudioClient::GetService);
 
 	m_hnsSamplePeriod = HNS_BASE / samplerate;
@@ -152,6 +139,8 @@ void MicrophoneCapture::Stop()
 // OK
 void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioIndex)
 {
+	IMFSample* pSample; // Release
+	IMFMediaBuffer* pBuffer; // Release
 	UINT32 framesAvailable; // ReleaseBuffer
 	BYTE* data;
 	DWORD dwCaptureFlags;
@@ -167,16 +156,24 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 	{
 	bytes = framesAvailable * m_wfx->nBlockAlign;
 
-	m_pBuffer->Lock(&pDst, NULL, NULL);
+	MFCreateMemoryBuffer(bytes, &pBuffer);
+
+	pBuffer->Lock(&pDst, NULL, NULL);
 	memcpy(pDst, data, bytes);
 	m_audioCaptureClient->ReleaseBuffer(framesAvailable);
-	m_pBuffer->Unlock();
+	pBuffer->Unlock();
 
-	m_pBuffer->SetCurrentLength(bytes);
+	pBuffer->SetCurrentLength(bytes);
 
-	m_pSample->SetSampleDuration(framesAvailable * m_hnsSamplePeriod);
-	m_pSample->SetSampleTime(qpc);
+	MFCreateSample(&pSample);
 
-	pSinkWriter->WriteSample(dwAudioIndex, m_pSample);
+	pSample->AddBuffer(pBuffer);
+	pSample->SetSampleDuration(framesAvailable * m_hnsSamplePeriod);
+	pSample->SetSampleTime(qpc);
+
+	pSinkWriter->WriteSample(dwAudioIndex, pSample);
+
+	pBuffer->Release();
+	pSample->Release();
 	}
 }

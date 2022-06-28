@@ -12,12 +12,6 @@
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception::Spatial;
 
-struct HookCallbackSocketLocation : public HookCallbackSocket
-{
-    SpatialLocator const* locator;
-    SpatialCoordinateSystem const* world;
-};
-
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
@@ -32,29 +26,32 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
     DWORD cbData;
     WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     float4x4 pose;
-    HookCallbackSocketLocation* user;
+    HookCallbackSocket* user;
     bool ok;
 
-    user = (HookCallbackSocketLocation*)param;
+    user = (HookCallbackSocket*)param;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
 
-if constexpr(ENABLE_LOCATION)
-{
-    pose = Locator_Locate(sampletime, *user->locator, *user->world);
-}
-
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    wsaBuf[0].buf = (char*)&sampletime;	wsaBuf[0].len = sizeof(sampletime);
-    wsaBuf[1].buf = (char*)&cbData;     wsaBuf[1].len = sizeof(cbData);
-    wsaBuf[2].buf = (char*)pBytes;      wsaBuf[2].len = cbData;
+    wsaBuf[0].buf = (char*)&sampletime;
+    wsaBuf[0].len = sizeof(sampletime);
+    
+    wsaBuf[1].buf = (char*)&cbData;
+    wsaBuf[1].len = sizeof(cbData);
+    
+    wsaBuf[2].buf = (char*)pBytes;
+    wsaBuf[2].len = cbData;
 
-if constexpr(ENABLE_LOCATION)
-{
-    wsaBuf[3].buf = (char*)&pose;       wsaBuf[3].len = sizeof(pose);
-}
+    if constexpr(ENABLE_LOCATION)
+    {
+    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(pose), NULL);
+    
+    wsaBuf[3].buf = (char*)&pose;
+    wsaBuf[3].len = sizeof(pose);
+    }
 
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
@@ -68,13 +65,13 @@ if constexpr(ENABLE_LOCATION)
 template <bool ENABLE_LOCATION>
 void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
 {
-    uint32_t const width = RM_VLC_WIDTH;
-    uint32_t const height = RM_VLC_HEIGHT;
-    uint32_t const framerate = RM_VLC_FPS;
-    uint32_t const lumasize = width * height;
-    uint32_t const chromasize = (width * height) / 2;
+    uint32_t const width      = RM_VLC_WIDTH;
+    uint32_t const height     = RM_VLC_HEIGHT;
+    uint32_t const framerate  = RM_VLC_FPS;
+    uint32_t const lumasize   = width * height;
+    uint32_t const chromasize = lumasize / 2;
     uint32_t const framebytes = lumasize + chromasize;
-    LONGLONG const duration = HNS_BASE / framerate;
+    LONGLONG const duration   = HNS_BASE / framerate;
     uint8_t  const zerochroma = 0x80;
 
     IResearchModeSensorFrame* pSensorFrame; // Release
@@ -84,12 +81,13 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     IMFSample* pSample; // Release
     HANDLE clientevent; // CloseHandle
     H26xFormat format;    
-    HookCallbackSocketLocation user;
+    HookCallbackSocket user;
     ResearchModeSensorTimestamp timestamp;
     DWORD dwVideoIndex;
     BYTE const* pImage;
     size_t length;
     BYTE* pDst;
+    float4x4 pose;
     bool ok;
 
     ok = ReceiveVideoFormatH26x(clientsocket, format);
@@ -104,25 +102,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
 
-if constexpr(ENABLE_LOCATION)
-{
-    user.locator      = &locator;
-    user.world        = &world;
-}
-
     CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user);
-
-    MFCreateMemoryBuffer(framebytes, &pBuffer);
-    
-    pBuffer->Lock(&pDst, NULL, NULL);
-    memset(pDst + lumasize, zerochroma, chromasize);
-    pBuffer->Unlock();
-    pBuffer->SetCurrentLength(framebytes);
-
-    MFCreateSample(&pSample);
-
-    pSample->AddBuffer(pBuffer);
-    pSample->SetSampleDuration(duration);
 
     sensor->OpenStream();
 
@@ -135,15 +115,32 @@ if constexpr(ENABLE_LOCATION)
 
     pVLCFrame->GetBuffer(&pImage, &length);
 
+    MFCreateMemoryBuffer(framebytes, &pBuffer);
+
     pBuffer->Lock(&pDst, NULL, NULL);
     memcpy(pDst, pImage, lumasize);
+    memset(pDst + lumasize, zerochroma, chromasize);
     pBuffer->Unlock();
+    pBuffer->SetCurrentLength(framebytes);
 
+    MFCreateSample(&pSample);
+
+    pSample->AddBuffer(pBuffer);
+    pSample->SetSampleDuration(duration);
     pSample->SetSampleTime(timestamp.HostTicks);
+
+    if constexpr(ENABLE_LOCATION)
+    {
+    pose = Locator_Locate(timestamp.HostTicks, locator, world);
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
+    }
+
     pSinkWriter->WriteSample(dwVideoIndex, pSample);
 
     pVLCFrame->Release();
     pSensorFrame->Release();
+    pSample->Release();
+    pBuffer->Release();
     }
     while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
 
@@ -151,9 +148,6 @@ if constexpr(ENABLE_LOCATION)
 
     pSinkWriter->Flush(dwVideoIndex);
     pSinkWriter->Release();
-
-    pSample->Release();
-    pBuffer->Release();
 
     CloseHandle(clientevent);
 }
@@ -181,9 +175,14 @@ void RM_VLC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
     ResearchMode_GetIntrinsics(sensor, uv2x, uv2y);
     ResearchMode_GetExtrinsics(sensor, extrinsics);
 
-    wsaBuf[0].buf = (char*)uv2x.data();         wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-    wsaBuf[1].buf = (char*)uv2y.data();         wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-    wsaBuf[2].buf = (char*)&extrinsics.m[0][0]; wsaBuf[2].len = sizeof(extrinsics.m);
+    wsaBuf[0].buf = (char*)uv2x.data();
+    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
+    
+    wsaBuf[1].buf = (char*)uv2y.data();
+    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
+    
+    wsaBuf[2].buf = (char*)&extrinsics.m[0][0];
+    wsaBuf[2].len = sizeof(extrinsics.m);
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

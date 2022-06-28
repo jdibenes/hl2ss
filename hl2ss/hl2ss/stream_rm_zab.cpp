@@ -83,11 +83,6 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     PackUINT16toUINT32((BYTE*)pDepth, (BYTE*)pAbImage, pixelBufferData, n32ByteVectors);
     }
 
-if constexpr(ENABLE_LOCATION)
-{
-    pose = Locator_Locate(timestamp.HostTicks, locator, world);
-}
-
     auto encoder = opEncoderCreate.get();
 
     encoder.SetSoftwareBitmap(softwareBitmap);
@@ -98,14 +93,22 @@ if constexpr(ENABLE_LOCATION)
 
     stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
 
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks; wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    wsaBuf[1].buf = (char*)&streamSize;          wsaBuf[1].len = sizeof(streamSize);    
-    wsaBuf[2].buf = (char*)streamBuf.data();     wsaBuf[2].len = streamSize;
+    wsaBuf[0].buf = (char*)&timestamp.HostTicks;
+    wsaBuf[0].len = sizeof(timestamp.HostTicks);
+    
+    wsaBuf[1].buf = (char*)&streamSize;
+    wsaBuf[1].len = sizeof(streamSize);
 
-if constexpr(ENABLE_LOCATION)
-{
-    wsaBuf[3].buf = (char*)&pose;                wsaBuf[3].len = sizeof(pose);
-}
+    wsaBuf[2].buf = (char*)streamBuf.data();
+    wsaBuf[2].len = streamSize;
+
+    if constexpr(ENABLE_LOCATION)
+    {
+    pose = Locator_Locate(timestamp.HostTicks, locator, world);
+
+    wsaBuf[3].buf = (char*)&pose;
+    wsaBuf[3].len = sizeof(pose);
+    }
 
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 
@@ -142,10 +145,17 @@ void RM_ZLT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
     ResearchMode_GetIntrinsics(sensor, uv2x, uv2y);
     ResearchMode_GetExtrinsics(sensor, extrinsics);
 
-    wsaBuf[0].buf = (char*)uv2x.data();         wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-    wsaBuf[1].buf = (char*)uv2y.data();         wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-    wsaBuf[2].buf = (char*)&extrinsics.m[0][0]; wsaBuf[2].len = sizeof(extrinsics.m);
-    wsaBuf[3].buf = (char*)&scale;              wsaBuf[3].len = sizeof(scale);
+    wsaBuf[0].buf = (char*)uv2x.data();
+    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
+
+    wsaBuf[1].buf = (char*)uv2y.data();
+    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
+
+    wsaBuf[2].buf = (char*)&extrinsics.m[0][0];
+    wsaBuf[2].len = sizeof(extrinsics.m);
+
+    wsaBuf[3].buf = (char*)&scale;
+    wsaBuf[3].len = sizeof(scale);
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

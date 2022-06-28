@@ -71,26 +71,6 @@ bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format)
 	return true;
 }
 
-// OK
-bool ReceivePVOperatingMode(SOCKET clientsocket, PVOperatingMode &mode)
-{
-	bool ok;
-	uint8_t modeid;
-
-	ok = recv_u8(clientsocket, modeid);
-	if (!ok) { return false; }
-
-	switch (modeid)
-	{
-	case 0:  mode = PVOperatingMode::PVOperatingMode_Video;            break;
-	case 1:  mode = PVOperatingMode::PVOperatingMode_VideoAndLocation; break;
-	case 2:  mode = PVOperatingMode::PVOperatingMode_Calibration;      break;
-	default: return false;
-	}
-
-	return true;
-}
-
 //-----------------------------------------------------------------------------
 // Sink Writers
 //-----------------------------------------------------------------------------
@@ -112,34 +92,6 @@ void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n
     }
 }
 
-// OK
-void SendSampleToSocket(IMFSample* pSample, void* param)
-{
-	IMFMediaBuffer* pBuffer; // release
-	LONGLONG sampletime;
-	BYTE* pBytes;
-	DWORD cbData;
-	WSABUF wsaBuf[3];
-	HookCallbackSocket* user;
-	bool ok;
-
-	pSample->GetSampleTime(&sampletime);
-	pSample->ConvertToContiguousBuffer(&pBuffer);
-
-	pBuffer->Lock(&pBytes, NULL, &cbData);
-
-	wsaBuf[0].buf = (char*)&sampletime;	wsaBuf[0].len = sizeof(sampletime);
-	wsaBuf[1].buf = (char*)&cbData;     wsaBuf[1].len = sizeof(cbData);
-	wsaBuf[2].buf = (char*)pBytes;      wsaBuf[2].len = cbData;
-
-	user = (HookCallbackSocket*)param;
-	ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-	if (!ok) { SetEvent(user->clientevent); }
-
-	pBuffer->Unlock();
-
-	pBuffer->Release();
-}
 
 
 //-----------------------------------------------------------------------------

@@ -1,27 +1,35 @@
+# OK
 
 import socket
 import numpy as np
 import struct
 
+# hololens 2 address
 HOST = "192.168.1.15"
 
-# 3806 Accelerometer
-# 3807 Gyroscope
-# 3808 Magnetometer
-PORT = 3808
+# 3806 accelerometer
+# 3807 gyroscope
+# 3808 magnetometer
+PORT = 3806
 
-# 
+# operating mode
+# 0: samples
+# 1: samples + rig pose
+# 2: query extrinsics (single transfer 16 floats (64 bytes))
 mode = 0
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    data = bytearray()
-    state = 0
+#------------------------------------------------------------------------------
 
+data = bytearray()
+state = 0
+chunk_size = 1024
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
     s.send(struct.pack('<B', mode))
     
     while True:
-        chunk = s.recv(1024) 
+        chunk = s.recv(chunk_size) 
         if (len(chunk) == 0): break
         data.extend(chunk)
 
@@ -29,8 +37,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if (len(data) >= 12):
                 header = struct.unpack('<QI', data[:12])
                 timestamp = header[0]
-                accellen = header[1]
-                packetlen = 12 + accellen
+                payload_length = header[1]
+                packetlen = 12 + payload_length
                 state = 1
         elif (state == 1):
             if (len(data) >= packetlen):

@@ -11,10 +11,18 @@ using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
 static SpatialLocator g_locator = nullptr;
 static SpatialLocatability g_locatability = SpatialLocatability::Unavailable;
 static SpatialStationaryFrameOfReference g_referenceFrame = nullptr;
 static SpatialLocatorAttachedFrameOfReference g_attachedReferenceFrame = nullptr;
+
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
 
 // OK
 static void Locator_OnLocatabilityChanged(winrt::Windows::Perception::Spatial::SpatialLocator const& locator, winrt::Windows::Foundation::IInspectable const&)
@@ -49,6 +57,13 @@ float4x4 Locator_Locate(PerceptionTimestamp const& timestamp, SpatialLocator con
 float4x4 Locator_Locate(UINT64 qpctime, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
 {
     return Locator_Locate(Locator_QPCTimestampToPerceptionTimestamp(qpctime), locator, world);
+}
+
+// OK
+float4x4 Locator_GetTransformTo(SpatialCoordinateSystem const& src, SpatialCoordinateSystem const& dst)
+{
+    auto location = src.TryGetTransformTo(dst);
+    return location ? location.Value() : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 // OK

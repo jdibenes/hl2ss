@@ -18,6 +18,41 @@ static HANDLE g_quitevent = NULL; // CloseHandle
 //-----------------------------------------------------------------------------
 
 // OK
+void MC_SendSampleToSocket(IMFSample* pSample, void* param)
+{
+	IMFMediaBuffer* pBuffer; // release
+	LONGLONG sampletime;
+	BYTE* pBytes;
+	DWORD cbData;
+	WSABUF wsaBuf[3];
+	HookCallbackSocket* user;
+	bool ok;
+
+	user = (HookCallbackSocket*)param;
+
+	pSample->GetSampleTime(&sampletime);
+	pSample->ConvertToContiguousBuffer(&pBuffer);
+
+	pBuffer->Lock(&pBytes, NULL, &cbData);
+
+	wsaBuf[0].buf = (char*)&sampletime;
+	wsaBuf[0].len = sizeof(sampletime);
+
+	wsaBuf[1].buf = (char*)&cbData;
+	wsaBuf[1].len = sizeof(cbData);
+
+	wsaBuf[2].buf = (char*)pBytes;
+	wsaBuf[2].len = cbData;
+
+	ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+	if (!ok) { SetEvent(user->clientevent); }
+
+	pBuffer->Unlock();
+
+	pBuffer->Release();
+}
+
+// OK
 static void MC_Shoutcast(SOCKET clientsocket)
 {
 	uint32_t const channels = 2;
@@ -38,7 +73,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	user.clientsocket = clientsocket;
 	user.clientevent = clientevent;
 
-	CreateSinkWriterPCMToAAC(&pSinkWriter, &dwAudioIndex, channels, samplerate, aacbitrate, SendSampleToSocket, &user);
+	CreateSinkWriterPCMToAAC(&pSinkWriter, &dwAudioIndex, channels, samplerate, aacbitrate, MC_SendSampleToSocket, &user);
 
 	g_microphoneCapture->Start();
 	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
@@ -59,23 +94,28 @@ static DWORD WINAPI MC_EntryPoint(void*)
 	g_microphoneCapture->WaitActivate(INFINITE);
 
 	listensocket = CreateSocket(PORT_MC);
+
 	ShowMessage("MC: Listening at port %s", PORT_MC);
 
 	do
 	{
 	ShowMessage("MC: Waiting for client");
+
 	clientsocket = accept(listensocket, NULL, NULL); // block
-	if (clientsocket == INVALID_SOCKET) { break; }	
+	if (clientsocket == INVALID_SOCKET) { break; }
+
 	ShowMessage("MC: Client connected");
 
 	MC_Shoutcast(clientsocket);
 
 	closesocket(clientsocket);
+
 	ShowMessage("MC: Client disconnected");
 	}
 	while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
 
 	closesocket(listensocket);
+
 	ShowMessage("MC: Closed");
 
 	return 0;

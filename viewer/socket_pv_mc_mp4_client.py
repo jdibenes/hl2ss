@@ -1,3 +1,4 @@
+# OK
 
 from fractions import Fraction
 import socket
@@ -8,9 +9,13 @@ from collections import deque
 import queue
 import threading
 
+# hololens 2 address
 HOST = "192.168.1.15"
 
+# pv port
 PV_PORT = 3810
+
+# mc port
 MC_PORT = 3811
 
 # camera parameters (see pv_list.txt for supported formats)
@@ -36,7 +41,9 @@ h264bitrate = 5*1024*1024
 aacbitrate = 3
 
 # video length in seconds
-videolength = 60*15
+videolength = 60*60
+
+#------------------------------------------------------------------------------
 
 # (ok, state, buffer, timestamp, size, payload)
 def unpack_payload(state_tuple):
@@ -82,7 +89,7 @@ def recv_h264():
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_h264:
         socket_h264.connect((HOST, PV_PORT))
-        socket_h264.send(struct.pack('<HHBBIB', width, height, framerate, h264profile, h264bitrate, 0)) # PV operating mode 0
+        socket_h264.send(struct.pack('<BHHBBI', 0, width, height, framerate, h264profile, h264bitrate)) # pv operating mode 0
 
         while enable:
             chunk_h264 = socket_h264.recv(8192)
@@ -115,7 +122,7 @@ def recv_aac():
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_aac:
         socket_aac.connect((HOST, MC_PORT))    
-        socket_aac.send(struct.pack('<B', aacbitrate))
+        socket_aac.send(struct.pack('<B', aacbitrate))        
 
         while enable:
             chunk_aac = socket_aac.recv(256)
@@ -129,12 +136,13 @@ def recv_aac():
                 leave = not tsfirst
                 lock.release()
                 if (leave):
-                    continue;
+                    continue
                 tsqueue_aac.append(state_aac[3] - tsfirst)
                 packets = codec_aac.parse(state_aac[5])
                 for packet in packets:
+                    new_ts = tsqueue_aac.popleft()
                     packet.stream = stream_aac
-                    packet.pts = tsqueue_aac.popleft()
+                    packet.pts = new_ts
                     packet.dts = packet.pts
                     packet.time_base = Fraction(1, 10*1000*1000)
                     packetqueue.put((packet.pts, packet))

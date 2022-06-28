@@ -148,6 +148,7 @@
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
     <ClInclude Include="locator.h" />
+    <ClInclude Include="personal_video.h" />
     <ClInclude Include="researchmode\ResearchModeApi.h" />
     <ClInclude Include="stream_mc.h" />
     <ClInclude Include="microphone_capture.h" />
@@ -181,6 +182,7 @@
     <ClCompile Include="header_test.cpp" />
     <ClCompile Include="locator.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="personal_video.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="stream_mr.cpp">
