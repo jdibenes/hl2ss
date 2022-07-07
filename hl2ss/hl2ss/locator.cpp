@@ -41,22 +41,10 @@ void Locator_Initialize()
 }
 
 // OK
-PerceptionTimestamp Locator_QPCTimestampToPerceptionTimestamp(LONGLONG qpctime)
-{
-    return PerceptionTimestampHelper::FromSystemRelativeTargetTime(std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime));
-}
-
-// OK
 float4x4 Locator_Locate(PerceptionTimestamp const& timestamp, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
 {
     auto location = locator.TryLocateAtTimestamp(timestamp, world);
     return location ? (make_float4x4_from_quaternion(location.Orientation()) * make_float4x4_translation(location.Position())) : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-}
-
-// OK
-float4x4 Locator_Locate(UINT64 qpctime, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
-{
-    return Locator_Locate(Locator_QPCTimestampToPerceptionTimestamp(qpctime), locator, world);
 }
 
 // OK
@@ -69,5 +57,5 @@ float4x4 Locator_GetTransformTo(SpatialCoordinateSystem const& src, SpatialCoord
 // OK
 SpatialCoordinateSystem Locator_GetWorldCoordinateSystem()
 {
-    return (g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(Locator_QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimeHns()));
+    return (g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimeHns()));
 }

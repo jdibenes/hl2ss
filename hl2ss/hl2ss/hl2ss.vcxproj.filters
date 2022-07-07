@@ -4,12 +4,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stream_mr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="utilities.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="server.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -79,14 +73,23 @@
     <ClCompile Include="locator.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
-    <ClCompile Include="custom_media_buffers.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="personal_video.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp">
       <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="spatial_input.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_media_buffers.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_si.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="utilities.cpp">
+      <Filter>Source Files\utilities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -158,6 +161,9 @@
     <Filter Include="Metadata">
       <UniqueIdentifier>{d9f6e53e-c543-4fca-b3c7-4ce0b1f00737}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\utilities">
+      <UniqueIdentifier>{b1717619-c9e4-4b51-9150-698bc0766c05}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
@@ -168,16 +174,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stream_mr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ports.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="server.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Cannon\AnimatedVector.h">
@@ -267,11 +267,20 @@
     <ClInclude Include="stream_pv.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
-    <ClInclude Include="custom_media_buffers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="personal_video.h">
       <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="spatial_input.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_si.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_media_buffers.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="utilities.h">
+      <Filter>Header Files\utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

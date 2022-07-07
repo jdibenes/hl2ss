@@ -2,6 +2,7 @@
 #include "research_mode.h"
 #include "server.h"
 #include "locator.h"
+#include "utilities.h"
 
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception::Spatial;
@@ -69,7 +70,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_Locate(timestamp.HostTicks, locator, world);
+    pose = Locator_Locate(QPCTimestampToPerceptionTimestamp(timestamp.HostTicks), locator, world);
     
     wsaBuf[3].buf = (char*)&pose;
     wsaBuf[3].len = sizeof(pose);

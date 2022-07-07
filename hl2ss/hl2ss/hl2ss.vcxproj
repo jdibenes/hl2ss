@@ -150,9 +150,9 @@
     <ClInclude Include="locator.h" />
     <ClInclude Include="personal_video.h" />
     <ClInclude Include="researchmode\ResearchModeApi.h" />
+    <ClInclude Include="spatial_input.h" />
     <ClInclude Include="stream_mc.h" />
     <ClInclude Include="microphone_capture.h" />
-    <ClInclude Include="stream_mr.h" />
     <ClInclude Include="ports.h" />
     <ClInclude Include="stream_pv.h" />
     <ClInclude Include="research_mode.h" />
@@ -161,6 +161,7 @@
     <ClInclude Include="stream_rm_zab.h" />
     <ClInclude Include="stream_rm_imu.h" />
     <ClInclude Include="stream_rm_vlc.h" />
+    <ClInclude Include="stream_si.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="utilities.h" />
   </ItemGroup>
@@ -179,13 +180,14 @@
     <ClCompile Include="custom_sink_writers.cpp" />
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
+    <ClCompile Include="spatial_input.cpp" />
     <ClCompile Include="header_test.cpp" />
     <ClCompile Include="locator.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="personal_video.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
-    <ClCompile Include="stream_mr.cpp">
+    <ClCompile Include="stream_si.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp" />

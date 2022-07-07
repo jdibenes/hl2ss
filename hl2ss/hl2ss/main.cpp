@@ -9,22 +9,22 @@
 #include <iostream>
 #include <winsock2.h>
 
-//#include "Cannon/MixedReality.h"
-
 #include "research_mode.h"
 #include "server.h"
 #include "utilities.h"
 #include "stream_pv.h"
 #include "stream_rm.h"
 #include "stream_mc.h"
-//#include "stream_mr.h"
 #include "locator.h"
+#include "spatial_input.h"
+#include "stream_si.h"
+
+using namespace winrt::Windows::Perception;
+//using namespace winrt::Windows::Perception::People;
 
 struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFrameworkViewSource, winrt::Windows::ApplicationModel::Core::IFrameworkView>
 {
 	bool windowClosed = false;
-	//MixedReality m_mixedReality;
-	bool mixedInit = false;
 
 	winrt::Windows::ApplicationModel::Core::IFrameworkView CreateView()
 	{
@@ -33,28 +33,25 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 	
 	void Initialize(winrt::Windows::ApplicationModel::Core::CoreApplicationView const &applicationView)
 	{
-		//DrawCall::Initialize();
-
-		
-		
-
 		InitializeSockets();
 		MFStartup(MF_VERSION);
 		ResearchMode_Initialize();
-
 
 		Locator_Initialize();
 
 		winrt::Windows::Perception::Spatial::SpatialCoordinateSystem world = Locator_GetWorldCoordinateSystem();
 
+		SpatialInput_SetWorldCoordinateSystem(world);
 		PV_SetWorldFrame(world);
 		RM_SetWorldCoordinateSystem(world);
+
+		SpatialInput_Initialize();
 
 		RM_Initialize();
 		MC_Initialize();
 		PV_Initialize();
-		
-		
+
+		SI_Initialize();
 	}
 
 	void Load(winrt::hstring const&)
@@ -69,21 +66,6 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 	{
 		window.Closed({ this, &App::OnWindowClosed });
 		ShowMessage("SetWindowCalled");
-
-		if (mixedInit) { return; }
-
-		//m_mixedReality.EnableMixedReality();
-		//m_mixedReality.EnableSurfaceMapping();
-//g_mixedreality.EnableQRCodeTracking();
-		//m_mixedReality.EnableEyeTracking();
-
-		
-
-		//MR_Initialize();
-		//m_mixedReality = MixedReality();
-		
-		mixedInit = true;
-		
 	}
 
 	void Run()
@@ -94,12 +76,7 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 		while (!windowClosed)
 		{
 			winrt::Windows::UI::Core::CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(winrt::Windows::UI::Core::CoreProcessEventsOption::ProcessAllIfPresent);
-			//m_mixedReality.Update();
-			//MR_Update();
-			//m_mixedReality->Update();
-			//m_main->Update();
-			//m_main->Render();
-			Sleep(16);
+			Sleep(33);
 		}
 	}
 
@@ -108,7 +85,6 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 		windowClosed = true;
 	}
 };
-
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {

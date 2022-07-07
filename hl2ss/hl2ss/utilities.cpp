@@ -14,6 +14,7 @@
 using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
+using namespace winrt::Windows::Perception;
 
 //-----------------------------------------------------------------------------
 // Remote Configuration
@@ -72,10 +73,8 @@ bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format)
 }
 
 //-----------------------------------------------------------------------------
-// Sink Writers
+// Packing
 //-----------------------------------------------------------------------------
-
-
 
 void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n32ByteVectors)
 {
@@ -91,8 +90,6 @@ void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n
     dst32 += 32;
     }
 }
-
-
 
 //-----------------------------------------------------------------------------
 // Logging 
@@ -133,7 +130,7 @@ void ShowMessage(const wchar_t* format, ...)
 }
 
 //-----------------------------------------------------------------------------
-// Scoped Critical Section 
+// Critical Section 
 //-----------------------------------------------------------------------------
 
 CriticalSection::CriticalSection(void* pcs)
@@ -162,4 +159,10 @@ UINT64 GetCurrentQPCTimeHns()
 	lldiv_t qr = std::div(pc.QuadPart, pf.QuadPart);
 
 	return (qr.quot * HNS_BASE) + (qr.rem * HNS_BASE) / pf.QuadPart;
+}
+
+// OK
+PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime)
+{
+	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime));
 }

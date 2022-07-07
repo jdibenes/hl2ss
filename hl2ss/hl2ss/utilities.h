@@ -7,7 +7,7 @@
 #include "custom_media_types.h"
 #include "custom_sink_writers.h"
 
-
+#include <winrt/Windows.Perception.h>
 
 struct HookCallbackSocket
 {
@@ -43,5 +43,7 @@ void ShowMessage(const char* format, ...);
 void ShowMessage(const wchar_t* format, ...);
 
 UINT64 GetCurrentQPCTimeHns();
+winrt::Windows::Perception::PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime);
+
 
 //#define TRACE(format, params) ShowMessage("%s:%d %s>" format, __FILE__, __LINE__, __func__, params)

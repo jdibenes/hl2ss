@@ -131,7 +131,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_Locate(timestamp.HostTicks, locator, world);
+    pose = Locator_Locate(QPCTimestampToPerceptionTimestamp(timestamp.HostTicks), locator, world);
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
     }
 
