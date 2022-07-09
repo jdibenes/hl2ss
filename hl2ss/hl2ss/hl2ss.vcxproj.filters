@@ -91,6 +91,9 @@
     <ClCompile Include="utilities.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
+    <ClCompile Include="holographic_space.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -281,6 +284,9 @@
     </ClInclude>
     <ClInclude Include="utilities.h">
       <Filter>Header Files\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="holographic_space.h">
+      <Filter>Header Files\devices</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

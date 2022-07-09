@@ -18,13 +18,16 @@
 #include "locator.h"
 #include "spatial_input.h"
 #include "stream_si.h"
+#include "holographic_space.h"
+
 
 using namespace winrt::Windows::Perception;
-//using namespace winrt::Windows::Perception::People;
+using namespace winrt::Windows::Perception::People;
 
 struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFrameworkViewSource, winrt::Windows::ApplicationModel::Core::IFrameworkView>
 {
 	bool windowClosed = false;
+	bool m_init = false;
 
 	winrt::Windows::ApplicationModel::Core::IFrameworkView CreateView()
 	{
@@ -39,19 +42,13 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 
 		Locator_Initialize();
 
-		winrt::Windows::Perception::Spatial::SpatialCoordinateSystem world = Locator_GetWorldCoordinateSystem();
-
-		SpatialInput_SetWorldCoordinateSystem(world);
-		PV_SetWorldFrame(world);
+		winrt::Windows::Perception::Spatial::SpatialCoordinateSystem world = Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimeHns()));
+		//PV_SetWorldFrame(world);
 		RM_SetWorldCoordinateSystem(world);
-
-		SpatialInput_Initialize();
 
 		RM_Initialize();
 		MC_Initialize();
 		PV_Initialize();
-
-		SI_Initialize();
 	}
 
 	void Load(winrt::hstring const&)
@@ -65,7 +62,15 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 	void SetWindow(winrt::Windows::UI::Core::CoreWindow const& window)
 	{
 		window.Closed({ this, &App::OnWindowClosed });
-		ShowMessage("SetWindowCalled");
+
+		if (m_init) { return; }
+
+		HolographicSpace_Initialize();
+
+		SpatialInput_Initialize();
+		SI_Initialize();
+
+		m_init = true;
 	}
 
 	void Run()
@@ -76,7 +81,12 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 		while (!windowClosed)
 		{
 			winrt::Windows::UI::Core::CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(winrt::Windows::UI::Core::CoreProcessEventsOption::ProcessAllIfPresent);
-			Sleep(33);
+
+			HolographicSpace_Update();
+			SI_NotifyNextFrame();
+			HolographicSpace_Clear();
+			// Draw
+			HolographicSpace_Present();
 		}
 	}
 

@@ -78,7 +78,18 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="PropertySheet.props" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <PackageCertificateKeyFile>hl2ss_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
+    <AppxPackageDir>C:\Users\jcds\Documents\GitHub\hl2ss\release\</AppxPackageDir>
+    <GenerateTestArtifacts>True</GenerateTestArtifacts>
+    <AppxBundle>Always</AppxBundle>
+    <AppxBundlePlatforms>arm64</AppxBundlePlatforms>
+    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -147,6 +158,7 @@
     <ClInclude Include="custom_sink_writers.h" />
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
+    <ClInclude Include="holographic_space.h" />
     <ClInclude Include="locator.h" />
     <ClInclude Include="personal_video.h" />
     <ClInclude Include="researchmode\ResearchModeApi.h" />
@@ -180,6 +192,7 @@
     <ClCompile Include="custom_sink_writers.cpp" />
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
+    <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="spatial_input.cpp" />
     <ClCompile Include="header_test.cpp" />
     <ClCompile Include="locator.cpp" />

@@ -6,5 +6,7 @@ hl2ss/hl2ss/ARM64/
 hl2ss/hl2ss/Generated Files/
 hl2ss/hl2ss/code_bin.txt
 hl2ss/enc_temp_folder/
+hl2ss/hl2ss/BundleArtifacts/
+release/
 *.pfx
 *.user

@@ -9,7 +9,6 @@
 
 struct Frame
 {
-    bool valid;
     winrt::Windows::Foundation::Numerics::float3 position;
     winrt::Windows::Foundation::Numerics::float3 forward;
     winrt::Windows::Foundation::Numerics::float3 up;
@@ -17,15 +16,11 @@ struct Frame
 
 struct Ray
 {
-    bool valid;
     winrt::Windows::Foundation::Numerics::float3 origin;
     winrt::Windows::Foundation::Numerics::float3 direction;
 };
 
 bool SpatialInput_WaitForEyeConsent();
-void SpatialInput_SetWorldCoordinateSystem(winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& world);
 void SpatialInput_Initialize();
-void SpatialInput_GetHeadPoseAndEyeRay(winrt::Windows::Perception::PerceptionTimestamp const& ts, Frame& head_pose, Ray& eye_ray);
-
-// Hand Tracking is disabled for now
-//void SpatialInput_GetHandPose(winrt::Windows::Perception::PerceptionTimestamp const& ts, bool& left, winrt::Windows::Perception::People::JointPose *left_poses, bool& right, winrt::Windows::Perception::People::JointPose *right_poses);
+int SpatialInput_GetHeadPoseAndEyeRay(winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& world, winrt::Windows::Perception::PerceptionTimestamp const& ts, Frame& head_pose, Ray& eye_ray);
+int SpatialInput_GetHandPose(winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& world, winrt::Windows::Perception::PerceptionTimestamp const& ts, std::vector<winrt::Windows::Perception::People::JointPose>& left_poses, std::vector<winrt::Windows::Perception::People::JointPose>& right_poses);

@@ -32,7 +32,7 @@ static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
 
 // Mode: 1
-static SpatialCoordinateSystem g_world = nullptr;
+//static SpatialCoordinateSystem g_world = nullptr;
 
 // Mode: 2
 static HANDLE g_intrinsic_event = NULL; // alias
@@ -52,6 +52,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
     float4x4 pose;
+    int64_t timestamp;
 
     if (!frame) { return; }
 
@@ -59,13 +60,15 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
     MFCreateSample(&pSample);
 
+    timestamp = frame.SystemRelativeTime().Value().count();
+
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(frame.Duration().count());
-    pSample->SetSampleTime(frame.SystemRelativeTime().Value().count());
+    pSample->SetSampleTime(timestamp);
 
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_GetTransformTo(frame.CoordinateSystem(), g_world);
+    pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));//g_world);
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
     }
 
@@ -273,10 +276,10 @@ static DWORD WINAPI PV_EntryPoint(void *)
 }
 
 // OK
-void PV_SetWorldFrame(SpatialCoordinateSystem const& world)
-{
-    g_world = world;
-}
+//void PV_SetWorldFrame(SpatialCoordinateSystem const& world)
+//{
+    //g_world = world;
+//}
 
 // OK
 void PV_Initialize()
