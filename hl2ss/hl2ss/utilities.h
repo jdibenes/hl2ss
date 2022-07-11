@@ -1,7 +1,6 @@
 
 #pragma once
 
-
 #include "server.h"
 #include "custom_hook_callback.h"
 #include "custom_media_types.h"
@@ -9,18 +8,12 @@
 
 #include <winrt/Windows.Perception.h>
 
-struct HookCallbackSocket
-{
-    SOCKET clientsocket;
-    HANDLE clientevent;
-};
+//-----------------------------------------------------------------------------
+// COM
+//-----------------------------------------------------------------------------
 
-bool ReceiveAudioFormatAAC(SOCKET clientsocket, AACBitrate& bitrate);
-bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format);
-
-void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n32ByteVectors);
-
-template <class T> void SafeRelease(T** ppT)
+template <class T>
+void SafeRelease(T** ppT)
 {
     if (*ppT)
     {
@@ -28,6 +21,40 @@ template <class T> void SafeRelease(T** ppT)
         *ppT = 0;
     }
 }
+
+//-----------------------------------------------------------------------------
+// Media Sink
+//-----------------------------------------------------------------------------
+
+struct HookCallbackSocket
+{
+    SOCKET clientsocket;
+    HANDLE clientevent;
+};
+
+//-----------------------------------------------------------------------------
+// Remote Configuration
+//-----------------------------------------------------------------------------
+
+bool ReceiveAudioFormatAAC(SOCKET clientsocket, AACBitrate& bitrate);
+bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format);
+
+//-----------------------------------------------------------------------------
+// Packing
+//-----------------------------------------------------------------------------
+
+void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n32ByteVectors);
+
+//-----------------------------------------------------------------------------
+// Logging 
+//-----------------------------------------------------------------------------
+
+void ShowMessage(const char* format, ...);
+void ShowMessage(const wchar_t* format, ...);
+
+//-----------------------------------------------------------------------------
+// Critical Section 
+//-----------------------------------------------------------------------------
 
 class CriticalSection
 {
@@ -39,11 +66,9 @@ public:
     ~CriticalSection();
 };
 
-void ShowMessage(const char* format, ...);
-void ShowMessage(const wchar_t* format, ...);
+//-----------------------------------------------------------------------------
+// Time
+//-----------------------------------------------------------------------------
 
-UINT64 GetCurrentQPCTimeHns();
+UINT64 GetCurrentQPCTimestamp();
 winrt::Windows::Perception::PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime);
-
-
-//#define TRACE(format, params) ShowMessage("%s:%d %s>" format, __FILE__, __LINE__, __func__, params)

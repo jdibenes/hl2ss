@@ -4,71 +4,59 @@
 #include "utilities.h"
 #include "types.h"
 
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
 // OK
 bool InitializeSockets()
 {
 	WSADATA wsaData;
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (iResult == 0) { return true; }
-	ShowMessage("WSAStartup error %d", iResult);
-	return false;
+	return iResult == 0;
 }
 
+// OK
 SOCKET CreateSocket(char const* port)
 {
 	addrinfo hints;
 	addrinfo* result;
 	int iResult;
+	SOCKET listensocket;
 
 	ZeroMemory(&hints, sizeof(hints));
 
-	hints.ai_family = AF_INET;
+	hints.ai_family   = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_PASSIVE;
+	hints.ai_flags    = AI_PASSIVE;
 
 	iResult = getaddrinfo(NULL, port, &hints, &result);
-	if (iResult != 0)
-	{
-		ShowMessage("getaddrinfo error %d", iResult);
-		return INVALID_SOCKET;
-	}
+	if (iResult != 0) { return INVALID_SOCKET; }
 
-	SOCKET listensocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	if (listensocket == INVALID_SOCKET)
-	{
-		ShowMessage("socket error %d", WSAGetLastError());
-		freeaddrinfo(result);
-		return INVALID_SOCKET;
-	}
-
-	iResult = bind(listensocket, result->ai_addr, (int)(result->ai_addrlen));
+	listensocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+	if (listensocket != INVALID_SOCKET) { iResult = bind(listensocket, result->ai_addr, (int)(result->ai_addrlen)); }
 	freeaddrinfo(result);
-	if (iResult == SOCKET_ERROR)
-	{
-		ShowMessage("bind error %d", WSAGetLastError());
-		closesocket(listensocket);
-		return INVALID_SOCKET;
-	}
+	if (listensocket == INVALID_SOCKET) { return INVALID_SOCKET; }
+	if (iResult == SOCKET_ERROR) { goto _socket_error; }
 
 	iResult = listen(listensocket, SOMAXCONN);
-	if (iResult == SOCKET_ERROR)
-	{
-		ShowMessage("listen error %d", WSAGetLastError());
-		closesocket(listensocket);
-		return INVALID_SOCKET;
-	}
+	if (iResult == SOCKET_ERROR) { goto _socket_error; }
 
 	return listensocket;
+
+_socket_error:
+	closesocket(listensocket);
+	return INVALID_SOCKET;
 }
 
+// OK
 void CleanupSockets()
 {
 	WSACleanup();
 }
 
-
-
+// OK
 bool recv_u8(SOCKET socket, uint8_t& byte)
 {
 	v8 buf;
@@ -80,6 +68,7 @@ bool recv_u8(SOCKET socket, uint8_t& byte)
 	return true;
 }
 
+// OK
 bool recv_u16(SOCKET socket, uint16_t& word)
 {
 	v16 buf;
@@ -93,6 +82,7 @@ bool recv_u16(SOCKET socket, uint16_t& word)
 	return true;
 }
 
+// OK
 bool recv_u32(SOCKET socket, uint32_t& dword)
 {
 	v32 buf;
@@ -113,15 +103,14 @@ bool recv_u32(SOCKET socket, uint32_t& dword)
 bool send_multiple(SOCKET s, LPWSABUF buffers, DWORD dwBufferCount)
 {
 	int status;
-	DWORD dwBytesSent;
 	DWORD value;
 
 	value = FALSE;
 	setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char*)&value, sizeof(value));
-	for (int i = 0; i < dwBufferCount; ++i)
+	for (DWORD i = 0; i < dwBufferCount; ++i)
 	{
 		status = send(s, buffers[i].buf, buffers[i].len, 0);
-		if (status != buffers[i].len) { return false; }
+		if ((ULONG)status != buffers[i].len) { return false; }
 	}
 	value = TRUE;
 	setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char*)&value, sizeof(value));

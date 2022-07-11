@@ -14,7 +14,7 @@ using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Windows::Perception::Spatial::Preview;
 
 typedef void(*RM_MODE0)(IResearchModeSensor*, SOCKET);
-typedef void(*RM_MODE1)(IResearchModeSensor*, SOCKET, SpatialLocator const&, SpatialCoordinateSystem const&);
+typedef void(*RM_MODE1)(IResearchModeSensor*, SOCKET, SpatialLocator const&);
 typedef void(*RM_MODE2)(IResearchModeSensor*, SOCKET);
 
 //-----------------------------------------------------------------------------
@@ -34,7 +34,6 @@ static char const* const g_research_sensor_port[] =
     PORT_RM_MAG
 };
 
-static SpatialCoordinateSystem g_world = nullptr;
 static HANDLE g_quitevent = NULL; // CloseHandle
 static std::vector<HANDLE> g_threads; // CloseHandle
 
@@ -44,7 +43,7 @@ static std::vector<HANDLE> g_threads; // CloseHandle
 
 // OK
 template<RM_MODE0 M0, RM_MODE1 M1, RM_MODE2 M2>
-void RM_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
     uint8_t mode;
     bool ok;
@@ -54,9 +53,9 @@ void RM_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator 
 
     switch (mode)
     {
-    case 0: M0(sensor, clientsocket);                 break;
-    case 1: M1(sensor, clientsocket, locator, world); break;
-    case 2: M2(sensor, clientsocket);                 break;
+    case 0: M0(sensor, clientsocket);          break;
+    case 1: M1(sensor, clientsocket, locator); break;
+    case 2: M2(sensor, clientsocket);          break;
     }
 }
 
@@ -64,7 +63,6 @@ void RM_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator 
 static DWORD WINAPI RM_EntryPoint(void* param)
 {
     SpatialLocator locator = nullptr;
-    SpatialCoordinateSystem world = nullptr;
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
     IResearchModeSensor* sensor;
@@ -83,7 +81,6 @@ static DWORD WINAPI RM_EntryPoint(void* param)
 
     nodeId = ResearchMode_GetRigNodeId();
     locator = SpatialGraphInteropPreview::CreateLocatorForNode(nodeId);
-    world = g_world;
 
     port = g_research_sensor_port[type];
     listensocket = CreateSocket(port);
@@ -104,12 +101,12 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     case LEFT_FRONT:
     case LEFT_LEFT:
     case RIGHT_FRONT:
-    case RIGHT_RIGHT:      RM_Stream<RM_VLC_Stream_Mode0, RM_VLC_Stream_Mode1, RM_VLC_Stream_Mode2>(sensor, clientsocket, locator, world); break;
-    case DEPTH_AHAT:       RM_Stream<RM_ZHT_Stream_Mode0, RM_ZHT_Stream_Mode1, RM_ZHT_Stream_Mode2>(sensor, clientsocket, locator, world); break;
-    case DEPTH_LONG_THROW: RM_Stream<RM_ZLT_Stream_Mode0, RM_ZLT_Stream_Mode1, RM_ZLT_Stream_Mode2>(sensor, clientsocket, locator, world); break;
-    case IMU_ACCEL:        RM_Stream<RM_ACC_Stream_Mode0, RM_ACC_Stream_Mode1, RM_ACC_Stream_Mode2>(sensor, clientsocket, locator, world); break;
-    case IMU_GYRO:         RM_Stream<RM_GYR_Stream_Mode0, RM_GYR_Stream_Mode1, RM_GYR_Stream_Mode2>(sensor, clientsocket, locator, world); break;
-    case IMU_MAG:          RM_Stream<RM_MAG_Stream_Mode0, RM_MAG_Stream_Mode1, RM_MAG_Stream_Mode2>(sensor, clientsocket, locator, world); break;
+    case RIGHT_RIGHT:      RM_Stream<RM_VLC_Stream_Mode0, RM_VLC_Stream_Mode1, RM_VLC_Stream_Mode2>(sensor, clientsocket, locator); break;
+    case DEPTH_AHAT:       RM_Stream<RM_ZHT_Stream_Mode0, RM_ZHT_Stream_Mode1, RM_ZHT_Stream_Mode2>(sensor, clientsocket, locator); break;
+    case DEPTH_LONG_THROW: RM_Stream<RM_ZLT_Stream_Mode0, RM_ZLT_Stream_Mode1, RM_ZLT_Stream_Mode2>(sensor, clientsocket, locator); break;
+    case IMU_ACCEL:        RM_Stream<RM_ACC_Stream_Mode0, RM_ACC_Stream_Mode1, RM_ACC_Stream_Mode2>(sensor, clientsocket, locator); break;
+    case IMU_GYRO:         RM_Stream<RM_GYR_Stream_Mode0, RM_GYR_Stream_Mode1, RM_GYR_Stream_Mode2>(sensor, clientsocket, locator); break;
+    case IMU_MAG:          RM_Stream<RM_MAG_Stream_Mode0, RM_MAG_Stream_Mode1, RM_MAG_Stream_Mode2>(sensor, clientsocket, locator); break;
     }
 
     closesocket(clientsocket);
@@ -123,12 +120,6 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     ShowMessage("RM%d: Closed", type);
 
     return 0;
-}
-
-// OK
-void RM_SetWorldCoordinateSystem(SpatialCoordinateSystem const& world)
-{
-    g_world = world;
 }
 
 // OK

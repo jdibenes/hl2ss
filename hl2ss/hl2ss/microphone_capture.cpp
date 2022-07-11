@@ -6,8 +6,6 @@
 #include "utilities.h"
 #include "types.h"
 
-#define MC_USE_EVENT
-
 using namespace winrt::Windows::Media::Devices;
 
 //-----------------------------------------------------------------------------
@@ -57,12 +55,7 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	DWORD const samplerate = 48000;
 	WORD const channels = 2;
 	REFERENCE_TIME const buffersizehns = (HNS_BASE * 768ULL * 4ULL) / samplerate;
-	DWORD const streamFlags =
-#ifdef MC_USE_EVENT
-		AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
-#else
-		0;
-#endif
+	DWORD const streamFlags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
 
 	winrt::com_ptr<IUnknown> punkAudioInterface;
 	HRESULT activateStatus;
@@ -99,13 +92,11 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, streamFlags, buffersizehns, 0, m_wfx, NULL);
 	if (FAILED(hr)) { return hr; }
 
-#ifdef MC_USE_EVENT
 	m_eventData = CreateEvent(NULL, FALSE, FALSE, NULL);
 	if (!m_eventData) { return E_FAIL; }
 
 	hr = m_audioClient->SetEventHandle(m_eventData);
 	if (FAILED(hr)) { return hr; }
-#endif
 
 	m_audioCaptureClient.capture(m_audioClient, &IAudioClient::GetService);
 
@@ -148,9 +139,7 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 	BYTE* pDst;
 	UINT64 qpc;
 
-#ifdef MC_USE_EVENT
 	WaitForSingleObject(m_eventData, INFINITE);
-#endif
 	
 	while (m_audioCaptureClient->GetBuffer(&data, &framesAvailable, &dwCaptureFlags, NULL, &qpc) == S_OK)
 	{

@@ -20,7 +20,6 @@
 #include "stream_si.h"
 #include "holographic_space.h"
 
-
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::People;
 
@@ -36,15 +35,13 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 	
 	void Initialize(winrt::Windows::ApplicationModel::Core::CoreApplicationView const &applicationView)
 	{
+		(void)applicationView;
+
 		InitializeSockets();
 		MFStartup(MF_VERSION);
 		ResearchMode_Initialize();
 
 		Locator_Initialize();
-
-		winrt::Windows::Perception::Spatial::SpatialCoordinateSystem world = Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimeHns()));
-		//PV_SetWorldFrame(world);
-		RM_SetWorldCoordinateSystem(world);
 
 		RM_Initialize();
 		MC_Initialize();
@@ -92,6 +89,9 @@ struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFra
 
 	void OnWindowClosed(winrt::Windows::UI::Core::CoreWindow const& sender, winrt::Windows::UI::Core::CoreWindowEventArgs const& args)
 	{
+		(void)sender;
+		(void)args;
+
 		windowClosed = true;
 	}
 };

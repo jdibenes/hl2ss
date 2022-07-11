@@ -1,5 +1,4 @@
 
-#include <queue>
 #include <mfapi.h>
 #include "custom_media_sink.h"
 #include "custom_media_buffers.h"
@@ -11,7 +10,6 @@
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 #include <winrt/Windows.Media.Devices.Core.h>
-#include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
@@ -30,9 +28,6 @@ static HANDLE g_thread = NULL; // CloseHandle
 // Mode: 0, 1
 static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
-
-// Mode: 1
-//static SpatialCoordinateSystem g_world = nullptr;
 
 // Mode: 2
 static HANDLE g_intrinsic_event = NULL; // alias
@@ -68,7 +63,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));//g_world);
+    pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
     }
 
@@ -238,8 +233,10 @@ static void PV_Stream(MediaCapture const& mediaCapture, MediaFrameSource const& 
 }
 
 // OK
-static DWORD WINAPI PV_EntryPoint(void *)
-{      
+static DWORD WINAPI PV_EntryPoint(void *param)
+{
+    (void)param;
+
     MediaFrameSource videoSource = nullptr;
     MediaCapture mediaCapture;
     SOCKET listensocket; // closesocket
@@ -274,12 +271,6 @@ static DWORD WINAPI PV_EntryPoint(void *)
 
     return 0;
 }
-
-// OK
-//void PV_SetWorldFrame(SpatialCoordinateSystem const& world)
-//{
-    //g_world = world;
-//}
 
 // OK
 void PV_Initialize()

@@ -119,7 +119,7 @@ SoftwareBitmapBuffer::~SoftwareBitmapBuffer()
 HRESULT SoftwareBitmapBuffer::CreateInstance(SoftwareBitmapBuffer** ppBuffer, MediaFrameReference const& ref)
 {
     if (!ppBuffer) { return E_INVALIDARG; }
-    SoftwareBitmapBuffer* pBuffer = new SoftwareBitmapBuffer(ref);
+    SoftwareBitmapBuffer* pBuffer = new (std::nothrow) SoftwareBitmapBuffer(ref);
     //if (!pBuffer) { return E_OUTOFMEMORY; }
     *ppBuffer = pBuffer;
     return S_OK;
@@ -225,7 +225,7 @@ WrappedBuffer::~WrappedBuffer()
 HRESULT WrappedBuffer::CreateInstance(WrappedBuffer** ppBuffer, BYTE *pData, DWORD dwLength)
 {
     if (!ppBuffer) { return E_INVALIDARG; }
-    WrappedBuffer* pBuffer = new WrappedBuffer(pData, dwLength);
+    WrappedBuffer* pBuffer = new (std::nothrow) WrappedBuffer(pData, dwLength);
     if (!pBuffer) { return E_OUTOFMEMORY; }
     *ppBuffer = pBuffer;
     return S_OK;

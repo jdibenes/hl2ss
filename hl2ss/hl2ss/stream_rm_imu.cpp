@@ -4,7 +4,12 @@
 #include "locator.h"
 #include "utilities.h"
 
+#include <winrt/Windows.Foundation.Numerics.h>
+#include <winrt/Windows.Perception.h>
+#include <winrt/Windows.Perception.Spatial.h>
+
 using namespace winrt::Windows::Foundation::Numerics;
+using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
 //-----------------------------------------------------------------------------
@@ -15,10 +20,11 @@ using namespace winrt::Windows::Perception::Spatial;
 
 // OK
 template<class IResearchModeIMUFrame, class IMUDataStruct, bool ENABLE_LOCATION>
-void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
     int const chunksize = 20;
 
+    PerceptionTimestamp ts = nullptr;
     IResearchModeSensorFrame* pSensorFrame; // Release
     IResearchModeIMUFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -70,7 +76,8 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_Locate(QPCTimestampToPerceptionTimestamp(timestamp.HostTicks), locator, world);
+    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
     
     wsaBuf[3].buf = (char*)&pose;
     wsaBuf[3].len = sizeof(pose);
@@ -105,13 +112,13 @@ void RM_IMU_Extrinsics(IResearchModeSensor* sensor, SOCKET clientsocket)
 // OK
 void RM_ACC_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
-    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, false>(sensor, clientsocket, nullptr, nullptr);
+    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, false>(sensor, clientsocket, nullptr);
 }
 
 // OK
-void RM_ACC_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_ACC_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, true>(sensor, clientsocket, locator, world);
+    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, true>(sensor, clientsocket, locator);
 }
 
 // OK
@@ -125,13 +132,13 @@ void RM_ACC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 // OK
 void RM_GYR_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
-    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, false>(sensor, clientsocket, nullptr, nullptr);
+    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, false>(sensor, clientsocket, nullptr);
 }
 
 // OK
-void RM_GYR_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_GYR_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, true>(sensor, clientsocket, locator, world);
+    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, true>(sensor, clientsocket, locator);
 }
 
 // OK
@@ -145,13 +152,13 @@ void RM_GYR_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 // OK
 void RM_MAG_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
-    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, false>(sensor, clientsocket, nullptr, nullptr);
+    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, false>(sensor, clientsocket, nullptr);
 }
 
 // OK
-void RM_MAG_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_MAG_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, true>(sensor, clientsocket, locator, world);
+    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, true>(sensor, clientsocket, locator);
 }
 
 // OK

@@ -12,6 +12,7 @@
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.Storage.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Perception.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
 using namespace Windows::Foundation;
@@ -20,6 +21,7 @@ using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Graphics::Imaging;
 using namespace winrt::Windows::Storage;
 using namespace winrt::Windows::Storage::Streams;
+using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
 //-----------------------------------------------------------------------------
@@ -30,7 +32,7 @@ using namespace winrt::Windows::Perception::Spatial;
 
 // OK
 template<bool ENABLE_LOCATION>
-void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
     int     const width = RM_LT_WIDTH;
     int     const height = RM_LT_HEIGHT;
@@ -38,6 +40,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     int     const n32ByteVectors = (width * height * 4) / 32;
     uint8_t const depthinvalid = 0x80;
 
+    PerceptionTimestamp ts = nullptr;
     IResearchModeSensorFrame* pSensorFrame; // Release
     IResearchModeSensorDepthFrame* pDepthFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -104,7 +107,8 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_Locate(QPCTimestampToPerceptionTimestamp(timestamp.HostTicks), locator, world);
+    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
 
     wsaBuf[3].buf = (char*)&pose;
     wsaBuf[3].len = sizeof(pose);
@@ -123,13 +127,13 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 // OK
 void RM_ZLT_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
-    RM_ZLT_Stream<false>(sensor, clientsocket, nullptr, nullptr);
+    RM_ZLT_Stream<false>(sensor, clientsocket, nullptr);
 }
 
 // OK
-void RM_ZLT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_ZLT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    RM_ZLT_Stream<true>(sensor, clientsocket, locator, world);
+    RM_ZLT_Stream<true>(sensor, clientsocket, locator);
 }
 
 // OK
@@ -168,12 +172,11 @@ void RM_ZHT_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
     (void)clientsocket;
 }
 
-void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
     (void)sensor;
     (void)clientsocket;
     (void)locator;
-    (void)world;
 }
 
 void RM_ZHT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)

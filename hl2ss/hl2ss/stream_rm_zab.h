@@ -7,9 +7,9 @@
 #include <winrt/Windows.Perception.Spatial.h>
 
 void RM_ZLT_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket);
-void RM_ZLT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, winrt::Windows::Perception::Spatial::SpatialLocator const& locator, winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& world);
+void RM_ZLT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, winrt::Windows::Perception::Spatial::SpatialLocator const& locator);
 void RM_ZLT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket);
 
 void RM_ZHT_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket);
-void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, winrt::Windows::Perception::Spatial::SpatialLocator const& locator, winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& world);
+void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, winrt::Windows::Perception::Spatial::SpatialLocator const& locator);
 void RM_ZHT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket);

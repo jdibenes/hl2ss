@@ -76,6 +76,7 @@ bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format)
 // Packing
 //-----------------------------------------------------------------------------
 
+// OK
 void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n32ByteVectors)
 {
     uint16x8x2_t srcx;
@@ -95,6 +96,7 @@ void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n
 // Logging 
 //-----------------------------------------------------------------------------
 
+// OK
 void ShowMessage(const char* format, ...)
 {
 	char* text;
@@ -112,6 +114,7 @@ void ShowMessage(const char* format, ...)
 	free(text);
 }
 
+// OK
 void ShowMessage(const wchar_t* format, ...)
 {
 	wchar_t* text;
@@ -133,12 +136,14 @@ void ShowMessage(const wchar_t* format, ...)
 // Critical Section 
 //-----------------------------------------------------------------------------
 
+// OK
 CriticalSection::CriticalSection(void* pcs)
 {
 	m_pcs = pcs;
 	if (m_pcs) { EnterCriticalSection(static_cast<CRITICAL_SECTION*>(m_pcs)); }
 }
 
+// OK
 CriticalSection::~CriticalSection()
 {
 	if (m_pcs) { LeaveCriticalSection(static_cast<CRITICAL_SECTION*>(m_pcs)); }
@@ -148,7 +153,8 @@ CriticalSection::~CriticalSection()
 // Time
 //-----------------------------------------------------------------------------
 
-UINT64 GetCurrentQPCTimeHns()
+// OK
+UINT64 GetCurrentQPCTimestamp()
 {
 	LARGE_INTEGER pc;
 	LARGE_INTEGER pf;

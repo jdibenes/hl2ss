@@ -4,9 +4,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="server.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Cannon\AnimatedVector.cpp">
       <Filter>Libraries\Cannon</Filter>
     </ClCompile>
@@ -94,6 +91,9 @@
     <ClCompile Include="holographic_space.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
+    <ClCompile Include="server.cpp">
+      <Filter>Source Files\server</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -167,6 +167,12 @@
     <Filter Include="Source Files\utilities">
       <UniqueIdentifier>{b1717619-c9e4-4b51-9150-698bc0766c05}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\server">
+      <UniqueIdentifier>{c05be168-ec48-4b92-ac57-2ac604c70b94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\server">
+      <UniqueIdentifier>{f79784ea-758b-40b8-803d-418b1e1bc1b5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
@@ -177,12 +183,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ports.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="server.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Cannon\AnimatedVector.h">
       <Filter>Libraries\Cannon</Filter>
     </ClInclude>
@@ -287,6 +287,12 @@
     </ClInclude>
     <ClInclude Include="holographic_space.h">
       <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="server.h">
+      <Filter>Header Files\server</Filter>
+    </ClInclude>
+    <ClInclude Include="ports.h">
+      <Filter>Header Files\server</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -7,9 +7,11 @@
 #include "types.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
+#include <winrt/Windows.Perception.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
 using namespace winrt::Windows::Foundation::Numerics;
+using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
 //-----------------------------------------------------------------------------
@@ -63,7 +65,7 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
 // OK
 template <bool ENABLE_LOCATION>
-void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
     uint32_t const width      = RM_VLC_WIDTH;
     uint32_t const height     = RM_VLC_HEIGHT;
@@ -74,6 +76,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     LONGLONG const duration   = HNS_BASE / framerate;
     uint8_t  const zerochroma = 0x80;
 
+    PerceptionTimestamp ts = nullptr;
     IResearchModeSensorFrame* pSensorFrame; // Release
     IResearchModeSensorVLCFrame* pVLCFrame; // Release
     IMFSinkWriter* pSinkWriter; // Release
@@ -131,7 +134,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_Locate(QPCTimestampToPerceptionTimestamp(timestamp.HostTicks), locator, world);
+    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
     }
 
@@ -155,13 +159,13 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 // OK
 void RM_VLC_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
-    RM_VLC_Stream<false>(sensor, clientsocket, nullptr, nullptr);
+    RM_VLC_Stream<false>(sensor, clientsocket, nullptr);
 }
 
 // OK
-void RM_VLC_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
+void RM_VLC_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    RM_VLC_Stream<true>(sensor, clientsocket, locator, world);
+    RM_VLC_Stream<true>(sensor, clientsocket, locator);
 }
 
 // OK

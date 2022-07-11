@@ -1,8 +1,6 @@
 
 #pragma once
 
-// HostTicks can be correlated with PV timestamps and MIC timestamps
-
 #define PORT_RM_VLF "3800"
 #define PORT_RM_VLL "3801"
 #define PORT_RM_VRF "3802"

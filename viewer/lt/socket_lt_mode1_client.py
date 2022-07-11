@@ -20,7 +20,7 @@ start_qpc = 0
 frames = 0
 tmpstate = 0
 pngfull = np.zeros((288, 320), dtype=np.uint16)
-mode = 0
+mode = 1
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
@@ -36,12 +36,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 header = struct.unpack('<QI', packet[:12])
                 timestamp = header[0]
                 pngsize = header[1]
-                packetlen = 12 + pngsize
+                packetlen = 12 + pngsize + 64
                 tmpstate = 1
             continue
         elif (tmpstate == 1):
             if (len(packet) >= packetlen):
-                szdata = packet[12:packetlen]
+                szdata = packet[12:(packetlen - 64)]
+                posedata = packet[(packetlen - 64):packetlen]
                 packet = packet[packetlen:]
                 tmpstate = 0
             else:
@@ -63,4 +64,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if (frames >= 10):
                 print(frames/(time.perf_counter() - last_cap_time))
                 last_cap_time = time.perf_counter()
-                frames = 0     
+                frames = 0
+                pose = np.frombuffer(posedata, dtype=np.float32).reshape((4,4))
+                print(pose)
