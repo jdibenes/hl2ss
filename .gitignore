@@ -10,3 +10,4 @@ hl2ss/hl2ss/BundleArtifacts/
 release/
 *.pfx
 *.user
+viewer/__pycache__/

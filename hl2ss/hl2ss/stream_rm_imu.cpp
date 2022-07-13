@@ -22,7 +22,7 @@ using namespace winrt::Windows::Perception::Spatial;
 template<class IResearchModeIMUFrame, class IMUDataStruct, bool ENABLE_LOCATION>
 void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    int const chunksize = 20;
+    int const chunksize = 28;
 
     PerceptionTimestamp ts = nullptr;
     IResearchModeSensorFrame* pSensorFrame; // Release
@@ -63,7 +63,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     if (sampleBuffer.size() < bufSize) { sampleBuffer.resize(bufSize); }
     pDst = sampleBuffer.data();
 
-    for (int i = 0; i < (int)nIMUSamples; ++i) { memcpy(pDst + (i * chunksize), &(pIMUBuffer[i].SocTicks), chunksize); }
+    for (int i = 0; i < (int)nIMUSamples; ++i) { memcpy(pDst + (i * chunksize), &(pIMUBuffer[i]), chunksize); }
 
     wsaBuf[0].buf = (char*)&timestamp.HostTicks;
     wsaBuf[0].len = sizeof(timestamp.HostTicks);
