@@ -35,7 +35,7 @@ video_bitrate = 5*1024*1024
 audio_profile = hl2ss.AudioProfile.AAC_24000
 
 # Video length in seconds
-video_length = 60*20
+video_length = 60*10
 
 #------------------------------------------------------------------------------
 
@@ -93,8 +93,11 @@ def recv_mc():
             packet.time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
             packetqueue.put((packet.pts, packet))
 
-threading.Thread(target=recv_pv).start()
-threading.Thread(target=recv_mc).start()
+thread_pv = threading.Thread(target=recv_pv)
+thread_mc = threading.Thread(target=recv_mc)
+
+thread_pv.start()
+thread_mc.start()
 
 while enable:
     tuple = packetqueue.get()
@@ -104,3 +107,6 @@ while enable:
         enable = False
 
 container.close()
+
+thread_pv.join()
+thread_mc.join()
