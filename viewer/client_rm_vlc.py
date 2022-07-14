@@ -1,75 +1,71 @@
-# OK
+#------------------------------------------------------------------------------
+# This script receives encoded video from one of the HoloLens sideview
+# grayscale cameras and plays it. The camera resolution is 640x480 30 FPS. The
+# stream supports three operating modes: 0) video, 1) video + rig pose,
+# 2) query calibration (single transfer).
+#------------------------------------------------------------------------------
 
 import hl2ss
 import cv2
-import numpy as np
 import av
-import time
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
 host = "192.168.1.15"
 
-# Port number
+# Port
+# Options:
+# hl2ss.StreamPort.RM_VLC_LEFTFRONT
+# hl2ss.StreamPort.RM_VLC_LEFTLEFT
+# hl2ss.StreamPort.RM_VLC_RIGHTFRONT
+# hl2ss.StreamPort.RM_VLC_RIGHTRIGHT
 port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
 # Operating mode
 # 0: video
-# 1: video + pose
-# 2: calibration (single transfer 640*480*2 + 16 floats (2,457,664 bytes))
+# 1: video + rig pose
+# 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
 
-# Camera parameters (ignored, always 640x480 30 fps)
-width     = 640
-height    = 480
-framerate = 30
-
-# Encoding profile
+# Video encoding profile
 profile = hl2ss.VideoProfile.H265_MAIN
 
-# Encoded stream average bits per second (must be > 0)
+# Encoded stream average bits per second
+# Must be > 0
 bitrate = 1*1024*1024
-
-# Maximum number of bytes to read from the socket buffer per step
-# Use an appropriate power-of-two value
-chunk_size = 1024
-
-# Pose frequency
-# Display pose every 'pose_frequency' frames if streaming in mode 1
-pose_frequency = 30
 
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.get_mode2_rm_vlc(host, port)
-
+    data = hl2ss.download_calibration_rm_vlc(host, port)
+    print('Calibration data')
     print(data.uv2xy.shape)
     print(data.extrinsics)
-
     quit()
 
-
-client = hl2ss.gatherer()
 codec = av.CodecContext.create(hl2ss.get_video_codec_name(profile), 'r')
-frames = 0
+pose_printer = hl2ss.pose_printer(60)
+fps_counter = hl2ss.framerate_counter(60)
+glitch_detector = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS / hl2ss.Resolution_RM_VLC.FPS)
+client = hl2ss.connect_client_rm_vlc(host, port, 1024, mode, profile, bitrate)
 
-client.open(host, port, chunk_size, mode)
-client.configure(hl2ss.create_configuration_for_video(mode, width, height, framerate, profile, bitrate))
+try:
+    while True:
+        data = client.get_next_packet()
+        timestamp = data.timestamp
+        packets = codec.parse(data.payload)
+        for packet in packets:
+            for frame in codec.decode(packet):
+                image = frame.to_ndarray(format='bgr24')
 
-while True:
-    data = client.get_next_packet()
-    packets = codec.parse(data.payload)
+                glitch_detector.push(timestamp)
+                fps_counter.push()
+                pose_printer.push(timestamp, data.pose)
 
-    for packet in packets:
-        for frame in codec.decode(packet):
-            image = frame.to_ndarray(format='bgr24')
-            frames += 1
+                cv2.imshow('video', image)
+                cv2.waitKey(1)
+except:
+    pass
 
-            if (mode == hl2ss.StreamMode.MODE_1 and frames >= pose_frequency):
-                frames = 0
-                print('Pose at {timestamp}'.format(timestamp=data.timestamp))
-                print(data.pose)
-
-            cv2.imshow('video', image)
-            cv2.waitKey(1)
+client.close()
