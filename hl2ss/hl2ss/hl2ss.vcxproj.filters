@@ -25,9 +25,6 @@
     <ClCompile Include="Cannon\TrackedHands.cpp">
       <Filter>Libraries\Cannon</Filter>
     </ClCompile>
-    <ClCompile Include="header_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="research_mode.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>

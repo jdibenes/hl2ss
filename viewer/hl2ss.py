@@ -78,10 +78,6 @@ class TimeBase:
     HUNDREDS_OF_NANOSECONDS = 10*1000*1000
 
 
-class Hand:
-    LEFT = 0
-    RIGHT = 1 
-
 # Hand joints
 class HandJointKind:
     Palm = 0

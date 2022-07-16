@@ -100,25 +100,12 @@ bool recv_u32(SOCKET socket, uint32_t& dword)
 	return true;
 }
 
+// OK
 bool send_multiple(SOCKET s, LPWSABUF buffers, DWORD dwBufferCount)
 {
+	DWORD dwBytesSent;
 	int status;
-	DWORD value;
 
-	value = FALSE;
-	setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char*)&value, sizeof(value));
-	for (DWORD i = 0; i < dwBufferCount; ++i)
-	{
-		status = send(s, buffers[i].buf, buffers[i].len, 0);
-		if ((ULONG)status != buffers[i].len) { return false; }
-	}
-	value = TRUE;
-	setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char*)&value, sizeof(value));
-	send(s, NULL, 0, 0);
-
-	return true;
-
-	//code below does not work well for some reason
-	//status = WSASend(s, buffers, dwBufferCount, &dwBytesSent, 0, NULL, NULL);
-	//return status != SOCKET_ERROR;
+	status = WSASend(s, buffers, dwBufferCount, &dwBytesSent, 0, NULL, NULL);
+	return status != SOCKET_ERROR;
 }

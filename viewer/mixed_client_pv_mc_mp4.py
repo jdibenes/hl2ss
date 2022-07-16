@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # This script records video from the HoloLens front RGB camera and audio from
-# the HoloLens microphone in a mp4 file.
+# the HoloLens microphone to a mp4 file.
 #------------------------------------------------------------------------------
 
 import hl2ss

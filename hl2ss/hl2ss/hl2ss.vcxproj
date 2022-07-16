@@ -194,7 +194,6 @@
     <ClCompile Include="custom_hook_callback.cpp" />
     <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="spatial_input.cpp" />
-    <ClCompile Include="header_test.cpp" />
     <ClCompile Include="locator.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="personal_video.cpp" />
