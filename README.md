@@ -4,7 +4,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 
 **Supported streams**
 
-- Front Camera (1920x1080 @ 30 FPS, Color, H264 or HEVC encoded)
+- Front Camera (1920x1080 @ 30 FPS, H264 or HEVC encoded)
 - Microphone (2 channels, 48000 Hz, AAC encoded)
 - Spatial Input (60 Hz)
   - Head Tracking
@@ -21,7 +21,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 **Unsupported streams**
 
 - Research Mode Depth
-  - AHaT
+  - AHAT
   
 **Additional features**
 
@@ -69,12 +69,14 @@ The sample Python scripts depend on the following packages:
 
 ## Building
 
+Building requires a Windows 10 machine:
+
 1. Install the tools: https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools.
 2. Open the Visual Studio Solution (sln file in [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
 3. Build Release ARM64.
 4. In the Solution Explorer, right click the hl2ss project and select Properties.
 5. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-6. Run.
+6. Run. The application will remain installed on the HoloLens even after power off.
 
 ## Details
 
@@ -101,6 +103,16 @@ Spatial input and IMU streams are currently not supported.
     - Webcam
 6. Right click the project -> Properties -> Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
 7. Run.
+
+Support for creating primitives remotely using Python.
+
+Features:
+- Create Primitive (add primitive to Unity scene, primitives: sphere, capsule, cylinder, cube, plane, quad)
+- Set Transform (position, orientation, and scale of primitive) either in world space (meters) or attach as a HUD element in image space (pixels)
+- Set Active (hide or show primitive)
+- Set Color (rgba, semi-transparent primitives supported)
+- Set Texture (either png or jpg image)
+- Remove (remove primitive from Unity scene)
 
 ## References
 
