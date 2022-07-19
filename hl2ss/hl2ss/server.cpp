@@ -101,6 +101,22 @@ bool recv_u32(SOCKET socket, uint32_t& dword)
 }
 
 // OK
+bool recv(SOCKET clientsocket, char* buf, int bytes)
+{
+	int status;
+
+	while (bytes > 0)
+	{
+	status = recv(clientsocket, buf, bytes, 0);
+	if (status == SOCKET_ERROR) { return false; }
+	buf   += status;
+	bytes -= status;
+	}
+
+	return bytes == 0;
+}
+
+// OK
 bool send_multiple(SOCKET s, LPWSABUF buffers, DWORD dwBufferCount)
 {
 	DWORD dwBytesSent;
