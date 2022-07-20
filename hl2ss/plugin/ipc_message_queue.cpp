@@ -114,6 +114,7 @@ static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 	{
 	CriticalSection cs(&g_lock_so);
 	empty = g_queue_so.empty();
+	if (empty) { ResetEvent(g_event_so); }
 	}
 
 	if (empty && !MQ_SO_Wait()) { break; }
@@ -140,8 +141,8 @@ void MQ_SO_Push(uint32_t id)
 	{
 	CriticalSection cs(&g_lock_so);
 	g_queue_so.push(id);
-	}
 	SetEvent(g_event_so);
+	}
 }
 
 UNITY_API
@@ -223,7 +224,7 @@ void MQ_Initialize()
 {
 	g_event_quit    = CreateEvent(NULL, TRUE,  FALSE, NULL);
 	g_event_error   = CreateEvent(NULL, TRUE,  FALSE, NULL);
-	g_event_so      = CreateEvent(NULL, FALSE, FALSE, NULL);
+	g_event_so      = CreateEvent(NULL, TRUE,  FALSE, NULL);
 	g_event_restart = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	InitializeCriticalSection(&g_lock_so);

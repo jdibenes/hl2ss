@@ -17,7 +17,7 @@ ipc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ipc.connect((host, port_mq))
 
 rus.remove_all(ipc)
-rus.get_result(ipc)
+rus.get_results(ipc, 1)
 
 calib  = hl2ss.download_calibration_rm_depth(host, port_lt)
 client = hl2ss.connect_client_rm_depth(host, port_lt, 4096, hl2ss.StreamMode.MODE_1)
@@ -82,22 +82,23 @@ while True:
             rz = axis[0,2] * sin
             rw = cos
 
-            rus.create_primitive(ipc, rus.PrimitiveType.Quad)
-            key = rus.get_result(ipc)
-            print(key)
 
-            #left handed coordinate system
-            rus.set_world_transform(ipc, key, centroid[0], centroid[1], -centroid[2], rx, ry, rz, rw, 0.2, 0.2, 1)
-            ret = rus.get_result(ipc)
-            print(ret)
+            key = 0
 
-            rus.set_texture(ipc, key, image)
-            ret = rus.get_result(ipc)
-            print(ret)
+            rus.begin_display_list(ipc) # Begin sequence
+            rus.create_primitive(ipc, rus.PrimitiveType.Quad) # Create quad, returns id which can be used to modify its properties
+            rus.set_target_mode(ipc, 1) # Set server to use the last created object as target (this avoids waiting for the id)
+            rus.set_world_transform(ipc, key, centroid[0], centroid[1], -centroid[2], rx, ry, rz, rw, 0.2, 0.2, 1) # Set the quad's world transform
+            rus.set_texture(ipc, key, image) # Set the quad's texture
+            rus.set_active(ipc, key, 1) # Make the quad visible
+            rus.set_target_mode(ipc, 0) # Restore target mode
+            rus.end_display_list(ipc) # End sequence
 
-            rus.set_active(ipc, key, 1)
-            ret = rus.get_result(ipc)
-            print(ret)
+            results = rus.get_results(ipc, 8)
+            key = results[1]
+            print('Created quad with id {iid}'.format(iid=key))
+            print(results)
+
 
         state = True
     else:
