@@ -224,10 +224,10 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     for (int y = 0; y < height; ++y)
     {
-    uv[1] = (float)y;
+    uv[1] = (float)y + 0.5f;
     for (int x = 0; x < width;  ++x)
     {
-    uv[0] = (float)x;
+    uv[0] = (float)x + 0.5f;
 
     pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
 

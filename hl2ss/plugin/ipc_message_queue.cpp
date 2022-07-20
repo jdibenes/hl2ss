@@ -177,7 +177,7 @@ static void MQ_Procedure(SOCKET clientsocket)
 	
 	{
 	CriticalSection cs(&g_lock_so);
-	while (!g_queue_so.empty())	{ g_queue_so.pop(); }
+	while (!g_queue_so.empty()) { g_queue_so.pop(); }
 	}
 
 	ResetEvent(g_event_error);

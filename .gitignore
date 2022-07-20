@@ -11,4 +11,4 @@ release/
 *.pfx
 *.user
 viewer/__pycache__/
-unity/set_texture_test.jpg
+unity/__pycache__/
