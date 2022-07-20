@@ -33,7 +33,6 @@ public class hl2ss : MonoBehaviour
 
     private void MQ_SO_Push(uint id)
     {
-
     }
 
     private void MQ_SI_Pop(out uint command, byte[] data)
@@ -48,48 +47,163 @@ public class hl2ss : MonoBehaviour
 
     private void MQ_Restart()
     {
-
     }
 #endif
 
     public Material m_material;
     private Dictionary<int, GameObject> m_remote_objects;
-    //byte[] m_buffer;
+    byte[] m_buffer;
+    bool m_loop;
+    bool m_mode;
+    int m_last_key;
 
 
     // Start is called before the first frame update
     void Start()
     {
         m_remote_objects = new Dictionary<int, GameObject>();
-        //m_buffer = new byte[4 * 1024 * 1024];
+        m_buffer = new byte[8 * 1024 * 1024];
+        m_loop = false;
+        m_mode = false;
         InitializeStreams();
-
-        //uint key = CreateText_test();
-        //GameObject go = m_remote_objects[(int)key];
-        //go.transform.position = new Vector3(0, 0, 1);
     }
 
     // Update is called once per frame
     void Update()
     {
-        uint next_size = MQ_SI_Peek();
-        if (next_size == ~0U) { return; }
-        uint command;
-        byte[] data = (next_size > 0) ? new byte[next_size] : null;
-        MQ_SI_Pop(out command, data);
-        uint ret = ProcessMessage(command, data);
-        MQ_SO_Push(ret);
-        if (command == ~0U) { MQ_Restart(); }
+        do
+        {
+            uint size = MQ_SI_Peek();
+            if (size == ~0U) { return; }
+            uint command;
+            if (size > m_buffer.Length) { m_buffer = new byte[size]; }
+            MQ_SI_Pop(out command, m_buffer);
+            MQ_SO_Push(ProcessMessage(command, size, m_buffer));
+            if (command == ~0U) { MQ_Restart(); }
+        }
+        while (m_loop);
     }
 
-    uint CreatePrimitive(byte[] data)
+    uint ProcessMessage(uint command, uint size, byte[] data)
     {
-        if (data == null || data.Length != 4) { return 0; }
+        uint ret = 0;
 
-        uint type = BitConverter.ToUInt32(data, 0);
+        switch (command)
+        {
+        case   0: ret = MSG_CreatePrimitive(  size, data); break;
+        case   1: ret = MSG_SetActive(        size, data); break;
+        case   2: ret = MSG_SetWorldTransform(size, data); break;
+        case   3: ret = MSG_SetLocalTransform(size, data); break;
+        case   4: ret = MSG_SetColor(         size, data); break;
+        case   5: ret = MSG_SetTexture(       size, data); break;
+        case   6: ret = MSG_CreateText(       size, data); break;
+        case   7: ret = MSG_SetText(          size, data); break;
+
+        case  16: ret = MSG_Remove(           size, data); break;
+        case  17: ret = MSG_RemoveAll(        size, data); break;
+        case  18: ret = MSG_BeginDisplayList( size, data); break;
+        case  19: ret = MSG_EndDisplayList(   size, data); break;
+        case  20: ret = MSG_SetTargetMode(    size, data); break;
+        case ~0U: ret = MSG_Disconnect(       size, data); break;
+        }
+
+        return ret;
+    }
+
+    // OK
+    uint AddGameObject(GameObject go)
+    {
+        int key = go.GetInstanceID();
+        m_remote_objects.Add(key, go);
+        m_last_key = key;
+
+        return (uint)key;
+    }
+
+    // OK
+    int GetKey(byte[] data)
+    {
+        return m_mode ? m_last_key : BitConverter.ToInt32(data, 0);
+    }
+
+    // OK
+    void UnpackTransform(byte[] data, int offset, out Vector3 position, out Quaternion rotation, out Vector3 locscale)
+    {
+        float[] f = new float[10];
+        for (int i = 0; i < f.Length; ++i) { f[i] = BitConverter.ToSingle(data, offset + (i * 4)); }
+
+        position = new Vector3(f[0], f[1], f[2]);
+        rotation = new Quaternion(f[3], f[4], f[5], f[6]);
+        locscale = new Vector3(f[7], f[8], f[9]);
+    }
+
+    // OK
+    uint MSG_Remove(uint size, byte[] data)
+    {
+        if (size < 4) { return 0; }
+
+        GameObject go;
+        int key = GetKey(data);
+        if (!m_remote_objects.TryGetValue(key, out go)) { return 0; }    
+        
+        m_remote_objects.Remove(key);
+        Destroy(go);
+
+        return 1;
+    }
+
+    // OK
+    uint MSG_RemoveAll(uint size, byte[] data)
+    {
+        foreach (var go in m_remote_objects.Values) { Destroy(go); }
+        m_remote_objects.Clear();
+
+        return 1;
+    }
+
+    // OK
+    uint MSG_BeginDisplayList(uint size, byte[] data)
+    {
+        m_loop = true;
+
+        return 1;
+    }
+
+    // OK
+    uint MSG_EndDisplayList(uint size, byte[] data)
+    {
+        m_loop = false;
+
+        return 1;
+    }
+
+    // OK
+    uint MSG_SetTargetMode(uint size, byte[] data)
+    {
+        if (size < 4) { return 0; }
+
+        m_mode = BitConverter.ToUInt32(data, 0) != 0;
+
+        return 1;
+    }
+
+    // OK
+    uint MSG_Disconnect(uint size, byte[] data)
+    {
+        m_loop = false;
+        m_mode = false;
+        m_last_key = 0;
+
+        return ~0U;
+    }
+
+    // OK
+    uint MSG_CreatePrimitive(uint size, byte[] data)
+    {
+        if (size < 4) { return 0; }
+
         PrimitiveType t;
-
-        switch (type)
+        switch (BitConverter.ToUInt32(data, 0))
         {
         case 0:  t = PrimitiveType.Sphere;   break;
         case 1:  t = PrimitiveType.Capsule;  break;
@@ -99,182 +213,166 @@ public class hl2ss : MonoBehaviour
         default: t = PrimitiveType.Quad;     break;
         }
 
-        GameObject cube = GameObject.CreatePrimitive(t);
-        cube.transform.position = new Vector3(0, 0, 0);
-        cube.transform.rotation = new Quaternion(0, 0, 0, 1);
-        cube.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
-        cube.GetComponent<Renderer>().material = m_material;
-        cube.SetActive(true);
-        int key = cube.GetInstanceID();
-        m_remote_objects.Add(key, cube);
-        return (uint)key;
+        GameObject go = GameObject.CreatePrimitive(t);
+
+        go.GetComponent<Renderer>().material = m_material; // TODO new Material instead?
+        go.SetActive(false);
+
+        return AddGameObject(go);
     }
 
-    uint SetActive(byte[] data)
+    // OK
+    uint MSG_SetActive(uint size, byte[] data)
     {
-        if (data == null || data.Length != 8) { return 0; }
-
-        int key   = BitConverter.ToInt32(data, 0);
-        int state = BitConverter.ToInt32(data, 4);
-
+        if (size < 8) { return 0; }
+        
         GameObject go;
-        if (!m_remote_objects.TryGetValue(key, out go)) { return 0; }
-        go.SetActive(state != 0);
+        if (!m_remote_objects.TryGetValue(GetKey(data), out go)) { return 0; }
+
+        go.SetActive(BitConverter.ToInt32(data, 4) != 0);
 
         return 1;
     }
 
-    uint SetTransform(byte[] data)
+    // OK
+    uint MSG_SetWorldTransform(uint size, byte[] data)
     {
-        if (data == null || data.Length != 8 + (10 * 4)) { return 0; }
-
-        int key   = BitConverter.ToInt32(data, 0);
-        int space = BitConverter.ToInt32(data, 4);
-        float[] f = new float[10];
-        for (int i = 0; i < f.Length; ++i) { f[i] = BitConverter.ToSingle(data, 8 + (i * 4)); }
+        if (size < 44) { return 0; }
 
         GameObject go;
-        if (!m_remote_objects.TryGetValue(key, out go)) { return 0; }
+        if (!m_remote_objects.TryGetValue(GetKey(data), out go)) { return 0; }
 
-        var position = new Vector3(f[0], f[1], f[2]);
-        var rotation = new Quaternion(f[3], f[4], f[5], f[6]);
-        var scale = new Vector3(f[7], f[8], f[9]);
+        Vector3 position;
+        Quaternion rotation;
+        Vector3 locscale;
 
-        if (space == 0)
-        {
-            go.transform.parent = null;
+        UnpackTransform(data, 4, out position, out rotation, out locscale);
 
-            go.transform.SetPositionAndRotation(position, rotation);
-            go.transform.localScale = scale;
-        }
-        else
-        {
-            go.transform.parent = transform;
-
-            Camera cam = gameObject.GetComponent<Camera>();
-
-            var half = scale / 2;
-
-            var cc = cam.ScreenToWorldPoint(position);
-            var ul = cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y - half.y, cc.z));
-            var ur = cam.ScreenToWorldPoint(new Vector3(cc.x + half.x, cc.y - half.y, cc.z));
-            var bl = cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y + half.y, cc.z));
-
-            var dx = ul - ur;
-            var dy = ul - bl;
-
-            go.transform.localPosition = cc;
-            go.transform.localRotation = rotation;
-            go.transform.localScale = new Vector3(Mathf.Abs(dx.x), Mathf.Abs(dy.y), scale.z);
-        }
+        go.transform.parent = null;
+        go.transform.SetPositionAndRotation(position, rotation);
+        go.transform.localScale = locscale;
 
         return 1;
     }
 
-    uint SetColor(byte[] data)
+    // OK
+    uint MSG_SetLocalTransform(uint size, byte[] data)
     {
-        if (data == null || data.Length != 4+4*4) { return 0; }
-
-        int key = BitConverter.ToInt32(data, 0);
-        float r = BitConverter.ToSingle(data, 4);
-        float g = BitConverter.ToSingle(data, 8);
-        float b = BitConverter.ToSingle(data, 12);
-        float a = BitConverter.ToSingle(data, 16);
+        if (size < 44) { return 0; }
 
         GameObject go;
-        if (!m_remote_objects.TryGetValue(key, out go)) { return 0; }
+        if (!m_remote_objects.TryGetValue(GetKey(data), out go)) { return 0; }
 
-        go.GetComponent<Renderer>().material.color = new Color(r, g, b, a);
+        go.transform.parent = transform;
+
+        Vector3 position;
+        Quaternion rotation;
+        Vector3 locscale;
+
+        UnpackTransform(data, 4, out position, out rotation, out locscale);
+
+        Camera cam = gameObject.GetComponent<Camera>();
+
+        var half = locscale / 2;
+
+        var cc = transform.InverseTransformPoint(cam.ScreenToWorldPoint(position));
+        var ul = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y - half.y, cc.z)));
+        var ur = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x + half.x, cc.y - half.y, cc.z)));
+        var bl = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y + half.y, cc.z)));
+
+        var dx = ul - ur;
+        var dy = ul - bl;
+
+        go.transform.localPosition = cc;
+        go.transform.localRotation = rotation;
+        go.transform.localScale = new Vector3(Mathf.Abs(dx.x), Mathf.Abs(dy.y), locscale.z);
 
         return 1;
     }
 
-    uint SetTexture(byte[] data)
+    // OK
+    uint MSG_SetColor(uint size, byte[] data)
     {
-        if (data == null || data.Length < 4) { return 0; }
+        if (size < 20) { return 0; }
 
-        int key = BitConverter.ToInt32(data, 0);
         GameObject go;
-        if (!m_remote_objects.TryGetValue(key, out go)) { return 0; }
+        if (!m_remote_objects.TryGetValue(GetKey(data), out go)) { return 0; }
 
-        if (data.Length > 4)
+        go.GetComponent<Renderer>().material.color = new Color(BitConverter.ToSingle(data, 4), BitConverter.ToSingle(data, 8), BitConverter.ToSingle(data, 12), BitConverter.ToSingle(data, 16));
+
+        return 1;
+    }
+
+    // OK
+    uint MSG_SetTexture(uint size, byte[] data)
+    {
+        if (size < 4) { return 0; }
+
+        GameObject go;
+        if (!m_remote_objects.TryGetValue(GetKey(data), out go)) { return 0; }
+
+        Texture2D tex;
+        if (size > 4)
         {
-            Texture2D tex = new Texture2D(2, 2);
-            byte[] image = new byte[data.Length - 4];
+            tex = new Texture2D(2, 2);
+            byte[] image = new byte[size - 4];
             Array.Copy(data, 4, image, 0, image.Length);
             tex.LoadImage(image);
-
-            go.GetComponent<Renderer>().material.mainTexture = tex;
         }
         else
         {
-            go.GetComponent<Renderer>().material.mainTexture = null;
+            tex = null;
         }
+
+        go.GetComponent<Renderer>().material.mainTexture = tex;
+
         return 1;
     }
 
-    uint CreateText(byte[] data)
+    // OK
+    uint MSG_CreateText(uint size, byte[] data)
     {
-        if (data == null || data.Length <= 20) { return 0; }
-
-        float fontsize = BitConverter.ToSingle(data, 0);
-        float r = BitConverter.ToSingle(data, 4);
-        float g = BitConverter.ToSingle(data, 8);
-        float b = BitConverter.ToSingle(data, 12);
-        float a = BitConverter.ToSingle(data, 16);
-
-        byte[] str_bytes = new byte[data.Length - 20];
-        Array.Copy(data, 20, str_bytes, 0, str_bytes.Length);
-
-        string str;
-        try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
-
         GameObject go = new GameObject();
-        int key = go.GetInstanceID();
-        go.name = string.Format("IID_{0}", (uint)key);
-
         TextMeshPro tmp = go.AddComponent<TextMeshPro>();
+
+        go.SetActive(false);
+
         tmp.enableWordWrapping = false;
+        tmp.autoSizeTextContainer = true;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
-        tmp.text = str;
+        tmp.text = "";
 
-        tmp.fontSize = fontsize;
-        tmp.color = new Color(r, g, b, a);
-
-        m_remote_objects.Add(key, go);
-
-        return (uint)key;
+        return AddGameObject(go);
     }
 
-    uint Remove(byte[] data)
+    // OK
+    uint MSG_SetText(uint size, byte[] data)
     {
-        if (data.Length != 4) { return 0; }
-        int key = BitConverter.ToInt32(data, 0);
+        if (size < 24) { return 0; }
 
         GameObject go;
-        if (!m_remote_objects.TryGetValue(key, out go)) { return 0; }
-        m_remote_objects.Remove(key);
-        Destroy(go);
+        if (!m_remote_objects.TryGetValue(GetKey(data), out go)) { return 0; }
+        TextMeshPro tmp = go.GetComponent<TextMeshPro>();
+        if (tmp == null) { return 0; }
 
-        return 1;
-    }
+        tmp.fontSize = BitConverter.ToSingle(data, 4);
+        tmp.color = new Color(BitConverter.ToSingle(data, 8), BitConverter.ToSingle(data, 12), BitConverter.ToSingle(data, 16), BitConverter.ToSingle(data, 20));
 
-    uint ProcessMessage(uint command, byte[] data)
-    {
-        uint ret = 0;
-
-        switch (command)
+        string str;
+        if (size > 24)
         {
-        case 0: ret = CreatePrimitive(data); break;
-        case 1: ret = SetActive(data); break;
-        case 2: ret = SetTransform(data); break;
-        case 3: ret = SetColor(data);  break;
-        case 4: ret = SetTexture(data); break;
-        case 5: ret = Remove(data); break;
-        case 6: ret = CreateText(data); break;
+            byte[] str_bytes = new byte[size - 24];
+            Array.Copy(data, 24, str_bytes, 0, str_bytes.Length);
+            try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
+        }
+        else
+        {
+            str = "";
         }
 
-        return ret;
+        tmp.text = str;
+
+        return 1;
     }
 }

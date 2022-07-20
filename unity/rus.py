@@ -60,7 +60,7 @@ def create_text(s):
 
 def set_text(s, key, font_size, r, g, b, a, string):
     data = string.encode('utf-8')
-    s.send(struct.pack('<IIIfffff', 7, 24+len(data)), key, font_size, r, g, b, a)
+    s.send(struct.pack('<IIIfffff', 7, 24+len(data), key, font_size, r, g, b, a))
     s.send(data)
 
 

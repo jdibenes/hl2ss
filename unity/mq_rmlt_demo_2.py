@@ -13,6 +13,11 @@ port_lt = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 with open('set_texture_test.jpg', mode='rb') as jpg:
     image = jpg.read()
 
+with open('set_texture_test_2.jpg', mode='rb') as jpg:
+    image_1 = jpg.read()
+
+image_id = 0
+
 ipc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ipc.connect((host, port_mq))
 
@@ -84,12 +89,25 @@ while True:
 
 
             key = 0
+            if (image_id == 0):
+                tex=image
+                r = 1.0
+                g = 0.0
+                b = 1.0
+                a = 1.0
+            else:
+                tex=image_1
+                r = 0.0
+                g = 1.0
+                b = 0.0
+                a = 1.0
+            image_id = image_id ^ 1
 
             rus.begin_display_list(ipc) # Begin sequence
             rus.create_primitive(ipc, rus.PrimitiveType.Quad) # Create quad, returns id which can be used to modify its properties
             rus.set_target_mode(ipc, 1) # Set server to use the last created object as target (this avoids waiting for the id)
             rus.set_world_transform(ipc, key, centroid[0], centroid[1], -centroid[2], rx, ry, rz, rw, 0.2, 0.2, 1) # Set the quad's world transform
-            rus.set_texture(ipc, key, image) # Set the quad's texture
+            rus.set_texture(ipc, key, tex) # Set the quad's texture
             rus.set_active(ipc, key, 1) # Make the quad visible
             rus.set_target_mode(ipc, 0) # Restore target mode
             rus.end_display_list(ipc) # End sequence
@@ -106,3 +124,10 @@ while True:
 
     cv2.imshow('depth', images.depth*8)
     cv2.waitKey(1)
+
+
+            #rus.create_text(ipc)
+            #rus.set_text(ipc, key, 0.2, r, g, b, a, "HELLO")
+            #rus.set_world_transform(ipc, key, centroid[0], centroid[1], -centroid[2], rx, ry, rz, rw, 1, 1, 1)
+            #rus.set_local_transform(ipc, key, int(1440/2), int(936/2), 40, 0, 0, 0, 1, 256, 256, 1)
+            #rus.set_color(ipc, key, r, g, b, a)
