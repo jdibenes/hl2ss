@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using TMPro;
 
 public class hl2ss : MonoBehaviour
 {
@@ -37,7 +38,7 @@ public class hl2ss : MonoBehaviour
 
     private void MQ_SI_Pop(out uint command, byte[] data)
     {
-        command = 18;
+        command = 0;
     }
 
     private uint MQ_SI_Peek()
@@ -62,6 +63,10 @@ public class hl2ss : MonoBehaviour
         m_remote_objects = new Dictionary<int, GameObject>();
         //m_buffer = new byte[4 * 1024 * 1024];
         InitializeStreams();
+
+        //uint key = CreateText_test();
+        //GameObject go = m_remote_objects[(int)key];
+        //go.transform.position = new Vector3(0, 0, 1);
     }
 
     // Update is called once per frame
@@ -208,6 +213,40 @@ public class hl2ss : MonoBehaviour
         return 1;
     }
 
+    uint CreateText(byte[] data)
+    {
+        if (data == null || data.Length <= 20) { return 0; }
+
+        float fontsize = BitConverter.ToSingle(data, 0);
+        float r = BitConverter.ToSingle(data, 4);
+        float g = BitConverter.ToSingle(data, 8);
+        float b = BitConverter.ToSingle(data, 12);
+        float a = BitConverter.ToSingle(data, 16);
+
+        byte[] str_bytes = new byte[data.Length - 20];
+        Array.Copy(data, 20, str_bytes, 0, str_bytes.Length);
+
+        string str;
+        try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
+
+        GameObject go = new GameObject();
+        int key = go.GetInstanceID();
+        go.name = string.Format("IID_{0}", (uint)key);
+
+        TextMeshPro tmp = go.AddComponent<TextMeshPro>();
+        tmp.enableWordWrapping = false;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
+        tmp.text = str;
+
+        tmp.fontSize = fontsize;
+        tmp.color = new Color(r, g, b, a);
+
+        m_remote_objects.Add(key, go);
+
+        return (uint)key;
+    }
+
     uint Remove(byte[] data)
     {
         if (data.Length != 4) { return 0; }
@@ -233,6 +272,7 @@ public class hl2ss : MonoBehaviour
         case 3: ret = SetColor(data);  break;
         case 4: ret = SetTexture(data); break;
         case 5: ret = Remove(data); break;
+        case 6: ret = CreateText(data); break;
         }
 
         return ret;
