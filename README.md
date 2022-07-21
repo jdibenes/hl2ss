@@ -88,7 +88,7 @@ Multiple streams can be active at the same time but only one client per stream i
 
 For streaming sensor data from a Unity application and creating primitives remotely. Spatial input and IMU streams are currently not supported. Front Camera stream is currently disabled in order to use the Device Portal Mixed Reality capture for Hologram visualization.
 
-**Installation**
+**Using the plugin**
 
 1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) and add it to your Unity project (put the plugin in Assets/Plugins/WSA).
 2. In the Unity Editor, configure the plugin as UWP ARM64.
@@ -107,6 +107,12 @@ For streaming sensor data from a Unity application and creating primitives remot
 8. Run.
 
 The Python scripts in the [unity](https://github.com/jdibenes/hl2ss/tree/main/unity) directory show how to connect to the server and create primitives (e.g., cubes, textured quads) or 3D text objects via TCP.
+
+**Building the plugin**
+
+1. Open the Visual Studio solution.
+2. Build the plugin project.
+3. Add hl2ss.dll to your Unity project.
 
 ## References
 
