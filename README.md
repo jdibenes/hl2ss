@@ -86,14 +86,16 @@ Multiple streams can be active at the same time but only one client per stream i
 
 ## Unity plugin (preview)
 
-For streaming sensor data from a Unity application.
-Spatial input and IMU streams are currently not supported.
+For streaming sensor data from a Unity application and creating primitives remotely. Spatial input and IMU streams are currently not supported. Front Camera stream is currently disabled in order to use the Device Portal Mixed Reality capture for Hologram visualization.
 
-1. Unzip the [plugin](https://github.com/jdibenes/hl2ss/blob/main/unity/hl2ss_unity_plugin.zip) into your Unity project.
+**Installation**
+
+1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) and add it to your Unity project (put the plugin in Assets/Plugins/WSA).
 2. In the Unity Editor, configure the plugin as UWP ARM64.
-3. Build the project for UWP but do not run it yet.
-4. Navigate to the Build folder and open the Visual Studio solution.
-5. Open Package.appxmanifest and enable the following capabilities:
+3. Add the [hl2ss.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/hl2ss.cs) script to the Main Camera.
+4. Build the project for UWP but do not run it yet.
+5. Navigate to the Build folder and open the Visual Studio solution.
+6. Open Package.appxmanifest and enable the following capabilities:
     - Gaze Input
     - Internet (Client & Server)
     - Internet (Client)
@@ -101,33 +103,11 @@ Spatial input and IMU streams are currently not supported.
     - Private Networks (CLient & Server)
     - Spatial Perception
     - Webcam
-6. Right click the project -> Properties -> Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-7. Run.
+7. Right click the project -> Properties -> Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
+8. Run.
 
-Support for creating primitives remotely using Python.
-
-Features:
-- Create Primitive (add primitive to Unity scene, primitives: sphere, capsule, cylinder, cube, plane, quad)
-- Set Transform (position, orientation, and scale of primitive) either in world space (meters) or attach as a HUD element in image space (pixels)
-- Set Active (hide or show primitive)
-- Set Color (rgba, semi-transparent primitives supported)
-- Set Texture (either png or jpg image)
-- Remove (remove primitive from Unity scene)
+The Python scripts in the [unity](https://github.com/jdibenes/hl2ss/tree/main/unity) directory show how to connect to the server and create primitives (e.g., cubes, textured quads) or 3D text objects via TCP.
 
 ## References
 
-Hololens2ForCV github
-
-Universal Windows Platform Samples
-
-MediaFoundation Samples
-
-Classic Windows Samples
-
-PyAV cookbook
-
-Cannon library (included in the Visual Studio project)
-
-Research Mode API (included in the Visual Studio project)
-
-and others...
+This project uses the HoloLens 2 Research Mode API and the Cannon library, both available at https://github.com/microsoft/HoloLens2ForCV.
