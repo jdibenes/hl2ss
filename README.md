@@ -86,7 +86,7 @@ Multiple streams can be active at the same time but only one client per stream i
 
 ## Unity plugin (preview)
 
-For streaming sensor data from a Unity application and creating primitives remotely. Spatial input and IMU streams are currently not supported. Front Camera stream is currently disabled in order to use the Device Portal Mixed Reality capture for Hologram visualization.
+For streaming sensor data from a Unity application and creating primitives remotely. Spatial input and IMU streams are currently not supported. Front Camera stream is currently disabled in order to use the Device Portal Mixed Reality Capture for hologram visualization (debugging).
 
 **Using the plugin**
 
