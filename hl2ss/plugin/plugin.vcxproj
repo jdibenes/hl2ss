@@ -266,6 +266,7 @@
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
+    <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\utilities.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="ipc_message_queue.cpp" />
@@ -292,6 +293,7 @@
     <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zab.h" />
+    <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\types.h" />
     <ClInclude Include="..\hl2ss\utilities.h" />
     <ClInclude Include="plugin.h" />

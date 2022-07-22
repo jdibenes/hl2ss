@@ -20,6 +20,8 @@ using namespace winrt::Windows::Perception::People;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static PerceptionTimestamp g_ts = nullptr;
+static CRITICAL_SECTION g_lock; // DeleteCriticalSection
 static HANDLE g_thread = NULL; // CloseHandle
 static HANDLE g_quitevent = NULL; // CloseHandle
 static HANDLE g_dataevent = NULL; // CloseHandle
@@ -50,13 +52,17 @@ static void SI_Stream(SOCKET clientsocket)
     left_poses.resize(HAND_JOINTS);
     right_poses.resize(HAND_JOINTS);
 
-    WaitForSingleObject(g_dataevent, INFINITE);
+    WaitForSingleObject(g_dataevent, 0);
 
     do
     {
     WaitForSingleObject(g_dataevent, INFINITE);
 
-    ts = HolographicSpace_GetTimestamp();
+    {
+    CriticalSection cs(&g_lock);
+    ts = g_ts;
+    }
+
     world = Locator_GetWorldCoordinateSystem(ts);
 
     status1 = SpatialInput_GetHeadPoseAndEyeRay(world, ts, head_pose, eye_ray);
@@ -134,6 +140,8 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 // OK
 void SI_Initialize()
 {
+    InitializeCriticalSection(&g_lock);
+
     g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_dataevent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
@@ -141,8 +149,10 @@ void SI_Initialize()
 }
 
 // OK
-void SI_NotifyNextFrame()
+void SI_NotifyNextFrame(PerceptionTimestamp const& ts)
 {
+    CriticalSection cs(&g_lock);
+    g_ts = ts;
     SetEvent(g_dataevent);
 }
 
@@ -164,4 +174,6 @@ void SI_Cleanup()
     g_thread = NULL;
     g_quitevent = NULL;
     g_dataevent = NULL;
+
+    DeleteCriticalSection(&g_lock);
 }

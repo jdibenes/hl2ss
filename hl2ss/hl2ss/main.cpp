@@ -72,7 +72,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		window.Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
 		HolographicSpace_Update();
-		SI_NotifyNextFrame();
+		SI_NotifyNextFrame(HolographicSpace_GetTimestamp());
 		HolographicSpace_Clear();
 		// Draw
 		HolographicSpace_Present();

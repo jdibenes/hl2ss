@@ -193,6 +193,7 @@
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
     <ClCompile Include="holographic_space.cpp" />
+    <ClCompile Include="research_mode.cpp" />
     <ClCompile Include="spatial_input.cpp" />
     <ClCompile Include="locator.cpp" />
     <ClCompile Include="main.cpp" />
@@ -207,7 +208,6 @@
     <ClCompile Include="stream_rm_zab.cpp" />
     <ClCompile Include="stream_rm_vlc.cpp" />
     <ClCompile Include="utilities.cpp" />
-    <ClCompile Include="research_mode.cpp" />
     <ClCompile Include="stream_rm.cpp" />
     <ClCompile Include="server.cpp" />
   </ItemGroup>

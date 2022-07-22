@@ -25,9 +25,6 @@
     <ClCompile Include="Cannon\TrackedHands.cpp">
       <Filter>Libraries\Cannon</Filter>
     </ClCompile>
-    <ClCompile Include="research_mode.cpp">
-      <Filter>Source Files\devices</Filter>
-    </ClCompile>
     <ClCompile Include="stream_rm.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
@@ -90,6 +87,9 @@
     </ClCompile>
     <ClCompile Include="server.cpp">
       <Filter>Source Files\server</Filter>
+    </ClCompile>
+    <ClCompile Include="research_mode.cpp">
+      <Filter>Source Files\devices</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

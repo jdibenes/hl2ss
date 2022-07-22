@@ -16,19 +16,21 @@ struct MQ_MSG
 // Global Variables
 //-----------------------------------------------------------------------------
 
-HANDLE g_event_restart;
-HANDLE g_event_so;
-HANDLE g_event_error;
-HANDLE g_event_quit;
-CRITICAL_SECTION g_lock_si;
-CRITICAL_SECTION g_lock_so;
-std::queue<MQ_MSG> g_queue_si;
-std::queue<uint32_t> g_queue_so;
+static HANDLE g_thread;
+static HANDLE g_event_restart;
+static HANDLE g_event_so;
+static HANDLE g_event_error;
+static HANDLE g_event_quit;
+static CRITICAL_SECTION g_lock_si;
+static CRITICAL_SECTION g_lock_so;
+static std::queue<MQ_MSG> g_queue_si;
+static std::queue<uint32_t> g_queue_so;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
+// OK
 static DWORD WINAPI MQ_EntryPoint_Receive(void *param)
 {
 	SOCKET clientsocket = *((SOCKET*)param);
@@ -68,6 +70,7 @@ static DWORD WINAPI MQ_EntryPoint_Receive(void *param)
 	return 0;
 }
 
+// OK
 UNITY_API
 uint32_t MQ_SI_Peek()
 {
@@ -75,6 +78,7 @@ uint32_t MQ_SI_Peek()
 	return g_queue_si.empty() ? ~0UL : g_queue_si.front().size;
 }
 
+// OK
 UNITY_API
 void MQ_SI_Pop(uint32_t& command, uint8_t* data)
 {
@@ -92,6 +96,7 @@ void MQ_SI_Pop(uint32_t& command, uint8_t* data)
 	free(msg.data);
 }
 
+// OK
 static bool MQ_SO_Wait()
 {
 	HANDLE events[2];
@@ -102,6 +107,7 @@ static bool MQ_SO_Wait()
 	return WaitForMultipleObjects(sizeof(events) / sizeof(HANDLE), events, FALSE, INFINITE) == WAIT_OBJECT_0;
 }
 
+// OK
 static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 {
 	SOCKET clientsocket = *((SOCKET*)param);
@@ -135,6 +141,7 @@ static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 	return 0;
 }
 
+// OK
 UNITY_API
 void MQ_SO_Push(uint32_t id)
 {
@@ -145,12 +152,14 @@ void MQ_SO_Push(uint32_t id)
 	}
 }
 
+// OK
 UNITY_API
 void MQ_Restart()
 {
 	SetEvent(g_event_restart);
 }
 
+// OK
 static void MQ_Procedure(SOCKET clientsocket)
 {
 	HANDLE threads[2];
@@ -187,6 +196,7 @@ static void MQ_Procedure(SOCKET clientsocket)
 	ShowMessage("MQ: Restart signal received");
 }
 
+// OK
 static DWORD WINAPI MQ_EntryPoint(void* param)
 {
 	(void)param;
@@ -220,15 +230,37 @@ static DWORD WINAPI MQ_EntryPoint(void* param)
 	return 0;
 }
 
+// OK
 void MQ_Initialize()
 {
+	InitializeCriticalSection(&g_lock_so);
+	InitializeCriticalSection(&g_lock_si);
+
 	g_event_quit    = CreateEvent(NULL, TRUE,  FALSE, NULL);
 	g_event_error   = CreateEvent(NULL, TRUE,  FALSE, NULL);
 	g_event_so      = CreateEvent(NULL, TRUE,  FALSE, NULL);
 	g_event_restart = CreateEvent(NULL, FALSE, FALSE, NULL);
+	
+	g_thread = CreateThread(NULL, 0, MQ_EntryPoint, NULL, 0, NULL);
+}
 
-	InitializeCriticalSection(&g_lock_so);
-	InitializeCriticalSection(&g_lock_si);
+// OK
+void MQ_Quit()
+{
+	SetEvent(g_event_quit);
+}
 
-	CreateThread(NULL, 0, MQ_EntryPoint, NULL, 0, NULL);
+// OK
+void MQ_Cleanup()
+{
+	WaitForSingleObject(g_thread, INFINITE);
+
+	CloseHandle(g_thread);
+	CloseHandle(g_event_restart);
+	CloseHandle(g_event_so);
+	CloseHandle(g_event_error);
+	CloseHandle(g_event_quit);
+
+	DeleteCriticalSection(&g_lock_si);
+	DeleteCriticalSection(&g_lock_so);
 }

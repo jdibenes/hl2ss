@@ -81,6 +81,9 @@
     <ClCompile Include="ipc_message_queue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_si.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -157,6 +160,9 @@
     </ClInclude>
     <ClInclude Include="plugin.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_si.h">
+      <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
