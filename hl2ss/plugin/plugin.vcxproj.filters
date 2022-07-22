@@ -78,7 +78,7 @@
     <ClCompile Include="plugin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ipc_message_queue.cpp">
+    <ClCompile Include="ipc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\hl2ss\stream_si.cpp">

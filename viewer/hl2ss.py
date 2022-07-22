@@ -663,3 +663,4 @@ class continuity_analyzer:
             drop = delta > (1.75 * self._period)
             if (drop):
                 print('Warning: frame drop detected')
+

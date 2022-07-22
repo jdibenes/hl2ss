@@ -269,7 +269,7 @@
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\utilities.cpp" />
     <ClCompile Include="plugin.cpp" />
-    <ClCompile Include="ipc_message_queue.cpp" />
+    <ClCompile Include="ipc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h" />
