@@ -4,6 +4,7 @@
 #include "../hl2ss/server.h"
 #include "../hl2ss/utilities.h"
 #include "plugin.h"
+#include "ports.h"
 
 struct MQ_MSG
 {
@@ -16,13 +17,13 @@ struct MQ_MSG
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_thread;
-static HANDLE g_event_restart;
-static HANDLE g_event_so;
-static HANDLE g_event_error;
-static HANDLE g_event_quit;
-static CRITICAL_SECTION g_lock_si;
-static CRITICAL_SECTION g_lock_so;
+static HANDLE g_thread; // CloseHandle
+static HANDLE g_event_restart; // CloseHandle
+static HANDLE g_event_so; // CloseHandle
+static HANDLE g_event_error; // CloseHandle
+static HANDLE g_event_quit; // CloseHandle
+static CRITICAL_SECTION g_lock_si; // DeleteCriticalSection
+static CRITICAL_SECTION g_lock_so; // DeleteCriticalSection
 static std::queue<MQ_MSG> g_queue_si;
 static std::queue<uint32_t> g_queue_so;
 
@@ -71,7 +72,7 @@ static DWORD WINAPI MQ_EntryPoint_Receive(void *param)
 }
 
 // OK
-UNITY_API
+UNITY_EXPORT
 uint32_t MQ_SI_Peek()
 {
 	CriticalSection cs(&g_lock_si);
@@ -79,7 +80,7 @@ uint32_t MQ_SI_Peek()
 }
 
 // OK
-UNITY_API
+UNITY_EXPORT
 void MQ_SI_Pop(uint32_t& command, uint8_t* data)
 {
 	MQ_MSG msg;
@@ -142,7 +143,7 @@ static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 }
 
 // OK
-UNITY_API
+UNITY_EXPORT
 void MQ_SO_Push(uint32_t id)
 {
 	{
@@ -153,7 +154,7 @@ void MQ_SO_Push(uint32_t id)
 }
 
 // OK
-UNITY_API
+UNITY_EXPORT
 void MQ_Restart()
 {
 	SetEvent(g_event_restart);

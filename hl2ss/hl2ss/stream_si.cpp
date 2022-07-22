@@ -52,8 +52,6 @@ static void SI_Stream(SOCKET clientsocket)
     left_poses.resize(HAND_JOINTS);
     right_poses.resize(HAND_JOINTS);
 
-    WaitForSingleObject(g_dataevent, 0);
-
     do
     {
     WaitForSingleObject(g_dataevent, INFINITE);
@@ -61,6 +59,7 @@ static void SI_Stream(SOCKET clientsocket)
     {
     CriticalSection cs(&g_lock);
     ts = g_ts;
+    ResetEvent(g_dataevent);
     }
 
     world = Locator_GetWorldCoordinateSystem(ts);
@@ -143,7 +142,7 @@ void SI_Initialize()
     InitializeCriticalSection(&g_lock);
 
     g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_dataevent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    g_dataevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     g_thread = CreateThread(NULL, 0, SI_EntryPoint, NULL, 0, NULL);
 }

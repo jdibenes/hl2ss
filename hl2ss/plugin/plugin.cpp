@@ -9,10 +9,20 @@
 #include "../hl2ss/stream_pv.h"
 #include "../hl2ss/stream_si.h"
 #include "../hl2ss/utilities.h"
-#include "ipc_message_queue.h"
+#include "ipc.h"
 #include "plugin.h"
 
-UNITY_API
+#define ENABLE_RM 1
+#define ENABLE_MC 2
+#define ENABLE_PV 4
+#define ENABLE_SI 8
+
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
+// OK
+UNITY_EXPORT
 void InitializeStreams(uint32_t enable)
 {
     InitializeSockets();
@@ -31,13 +41,15 @@ void InitializeStreams(uint32_t enable)
     MQ_Initialize();
 }
 
-UNITY_API
+// OK
+UNITY_EXPORT
 void DebugMessage(char const* str)
 {
     ShowMessage("%s", str);
 }
 
-UNITY_API
+// OK
+UNITY_EXPORT
 void SI_Update()
 {
     SI_NotifyNextFrame(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp()));

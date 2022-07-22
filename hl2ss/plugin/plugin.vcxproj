@@ -296,8 +296,10 @@
     <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\types.h" />
     <ClInclude Include="..\hl2ss\utilities.h" />
+    <ClInclude Include="hl2ss.h" />
     <ClInclude Include="plugin.h" />
-    <ClInclude Include="ipc_message_queue.h" />
+    <ClInclude Include="ipc.h" />
+    <ClInclude Include="ports.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

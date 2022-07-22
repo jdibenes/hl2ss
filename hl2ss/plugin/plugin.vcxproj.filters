@@ -155,7 +155,7 @@
     <ClInclude Include="..\hl2ss\utilities.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
-    <ClInclude Include="ipc_message_queue.h">
+    <ClInclude Include="ipc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="plugin.h">
@@ -163,6 +163,12 @@
     </ClInclude>
     <ClInclude Include="..\hl2ss\stream_si.h">
       <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="ports.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2ss.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
