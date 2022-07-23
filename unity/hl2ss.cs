@@ -10,7 +10,7 @@ public class hl2ss : MonoBehaviour
 #if WINDOWS_UWP
 
     [DllImport("hl2ss")]
-    private static extern void InitializeStreams();
+    private static extern void InitializeStreams(uint enable);
     [DllImport("hl2ss")]
     private static extern void DebugMessage(string str);
     [DllImport("hl2ss")]
@@ -21,8 +21,10 @@ public class hl2ss : MonoBehaviour
     private static extern uint MQ_SI_Peek();
     [DllImport("hl2ss")]
     private static extern void MQ_Restart();
+    [DllImport("hl2ss")]
+    private static extern void SI_Update();
 #else
-    private void InitializeStreams()
+    private void InitializeStreams(uint enable)
     {
     }
 
@@ -48,15 +50,35 @@ public class hl2ss : MonoBehaviour
     private void MQ_Restart()
     {
     }
+
+    private void SI_Update()
+    {
+    }
 #endif
 
-    public Material m_material;
-    private Dictionary<int, GameObject> m_remote_objects;
-    byte[] m_buffer;
-    bool m_loop;
-    bool m_mode;
-    int m_last_key;
+    [Tooltip("Must be enabled if InitializeStreams is called from the cpp code and disabled otherwise.")]
+    public bool skipInitialization = false;
 
+    [Tooltip("Enable Research Mode sensors streams. Has no effect if InitializeStreams is called from the cpp code.")]
+    public bool enableRM = true;
+
+    [Tooltip("Enable Microphone stream. Has no effect if InitializeStreams is called from the cpp code.")]
+    public bool enableMC = true;
+
+    [Tooltip("Enable Front Camera stream. Has no effect if InitializeStreams is called from the cpp code.")]
+    public bool enablePV = true;
+
+    [Tooltip("Enable Spatial Input stream. Allowed only if InitializeStreams is called from the cpp code and must be disabled otherwise.")]
+    public bool enableSI = false;
+
+    [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
+    public Material m_material;
+
+    private Dictionary<int, GameObject> m_remote_objects;
+    private byte[] m_buffer;
+    private bool m_loop;
+    private bool m_mode;
+    private int m_last_key;
 
     // Start is called before the first frame update
     void Start()
@@ -65,12 +87,14 @@ public class hl2ss : MonoBehaviour
         m_buffer = new byte[8 * 1024 * 1024];
         m_loop = false;
         m_mode = false;
-        InitializeStreams();
+
+        if (!skipInitialization) { InitializeStreams((enableRM ? 1U : 0U) | (enableMC ? 2U : 0U) | (enablePV ? 4U : 0U)); }
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (enableSI) { SI_Update(); }
         do
         {
             uint size = MQ_SI_Peek();
