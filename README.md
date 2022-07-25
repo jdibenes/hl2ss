@@ -89,8 +89,8 @@ This process also builds the Unity plugin.
 ## Unity plugin
 
 For streaming sensor data from a Unity application.
-All streams are supported except for Spatial Input.
-To enable Spatial Input stream support, the plugin must be initialized from the UI thread.
+All streams are supported.
+However, to enable Spatial Input stream support, the plugin must be initialized from the UI thread.
 This process is described later in this section.
 
 **Using the plugin**
