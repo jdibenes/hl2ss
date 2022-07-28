@@ -12,3 +12,4 @@ release/
 *.user
 viewer/__pycache__/
 unity/__pycache__/
+client/__pycache__/
