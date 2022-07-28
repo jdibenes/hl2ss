@@ -173,7 +173,7 @@ def ipc_rx(target, args, elements, din, dout, event_ipc, lock):
     rx_process.start()
 
     while (enabled):
-        event_ipc.wait()
+        event_ipc.wait() # TODO: LOOP WHILE THERE IS DATA IN EITHER QUEUE, DO NOT JUST WAIT HERE
         lock.acquire()
 
         try:
