@@ -134,7 +134,7 @@ class client:
     def recv(self, chunk_size):
         chunk = self._socket.recv(chunk_size)
         if (len(chunk) <= 0):
-            raise('connection closed')
+            raise Exception('connection closed')
         return chunk
 
     def download(self, total, chunk_size):
@@ -151,7 +151,7 @@ class client:
                 chunk_size = total
 
         if (total != 0):
-            raise('download failed')
+            raise Exception('download failed')
 
         return data
 
