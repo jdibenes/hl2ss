@@ -26,7 +26,7 @@ client = hl2ss.connect_client_si(host, port, 1024)
 try:
     while (True):
         data = client.get_next_packet()
-        si = hl2ss.unpacker_si(data.payload)
+        si = hl2ss.unpack_si(data.payload)
 
         frames += 1
         if (frames < print_period):

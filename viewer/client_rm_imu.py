@@ -32,12 +32,12 @@ mode = hl2ss.StreamMode.MODE_1
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_imu(host, port)
-    if (data is None):
-        print('This stream does not support mode 2')
-    else:
+    try:
+        data = hl2ss.download_calibration_rm_imu(host, port)
         print('Calibration data')
         print(data.extrinsics)
+    except:
+        print('This stream does not support mode 2')
     quit()
 
 pose_printer = hl2ss.pose_printer(24)
@@ -47,7 +47,7 @@ try:
     while True:
         data = client.get_next_packet()
         timestamp = data.timestamp
-        imu_data = hl2ss.unpacker_rm_imu(data.payload)
+        imu_data = hl2ss.unpack_rm_imu(data.payload)
 
         pose_printer.push(timestamp, data.pose)
 

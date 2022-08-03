@@ -4,6 +4,7 @@ import socket
 import struct
 import time
 import cv2
+import av
 
 # Stream Ports
 class StreamPort:
@@ -274,7 +275,7 @@ class RM_IMU_Sample:
         self.z = z
 
 
-class unpacker_rm_imu:
+class unpack_rm_imu:
     def __init__(self, payload):
         self._count = int(len(payload) / 28)
         self._batch = payload
@@ -290,6 +291,13 @@ class unpacker_rm_imu:
 #------------------------------------------------------------------------------
 # SI Unpacker
 #------------------------------------------------------------------------------
+
+class _SI_Field:
+    HEAD  = 1
+    EYE   = 2
+    LEFT  = 4
+    RIGHT = 8
+
 
 class SI_HeadPose:
     def __init__(self, position, forward, up):
@@ -343,7 +351,7 @@ class _Mode0Layout_SI:
     END_HAND_RIGHT      = BEGIN_HAND_RIGHT + HandJointKind.TOTAL * _Mode0Layout_SI_Hand.BYTE_COUNT
 
 
-class unpacker_si_hand:
+class unpack_si_hand:
     def __init__(self, payload):
         self._data = payload
 
@@ -360,22 +368,22 @@ class unpacker_si_hand:
         return SI_HandJointPose(orientation, position, radius, accuracy)
 
 
-class unpacker_si:
+class unpack_si:
     def __init__(self, payload):
         self._data  = payload
         self._valid = np.frombuffer(payload[_Mode0Layout_SI.BEGIN_VALID : _Mode0Layout_SI.END_VALID], dtype=np.uint8)
 
     def is_valid_head_pose(self):
-        return (self._valid & 0x01) != 0
+        return (self._valid & _SI_Field.HEAD) != 0
 
     def is_valid_eye_ray(self):
-        return (self._valid & 0x02) != 0
+        return (self._valid & _SI_Field.EYE) != 0
 
     def is_valid_hand_left(self):
-        return (self._valid & 0x04) != 0
+        return (self._valid & _SI_Field.LEFT) != 0
 
     def is_valid_hand_right(self):
-        return (self._valid & 0x08) != 0
+        return (self._valid & _SI_Field.RIGHT) != 0
 
     def get_head_pose(self):
         position = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_POSITION : _Mode0Layout_SI.END_HEAD_POSITION], dtype=np.float32)
@@ -391,10 +399,10 @@ class unpacker_si:
         return SI_EyeRay(origin, direction)
 
     def get_hand_left(self):
-        return unpacker_si_hand(self._data[_Mode0Layout_SI.BEGIN_HAND_LEFT : _Mode0Layout_SI.END_HAND_LEFT])
+        return unpack_si_hand(self._data[_Mode0Layout_SI.BEGIN_HAND_LEFT : _Mode0Layout_SI.END_HAND_LEFT])
 
     def get_hand_right(self):
-        return unpacker_si_hand(self._data[_Mode0Layout_SI.BEGIN_HAND_RIGHT : _Mode0Layout_SI.END_HAND_RIGHT])
+        return unpack_si_hand(self._data[_Mode0Layout_SI.BEGIN_HAND_RIGHT : _Mode0Layout_SI.END_HAND_RIGHT])
 
 
 #------------------------------------------------------------------------------
@@ -402,29 +410,44 @@ class unpacker_si:
 #------------------------------------------------------------------------------
 
 def get_video_codec_name(profile):
-    if (profile == VideoProfile.H265_MAIN):
+    if   (profile == VideoProfile.H264_BASE):
+        return 'h264'
+    elif (profile == VideoProfile.H264_MAIN):
+        return 'h264'
+    elif (profile == VideoProfile.H264_HIGH):
+        return 'h264'
+    elif (profile == VideoProfile.H265_MAIN):
         return 'hevc'
     else:
-        return 'h264'
+        return None
 
 
 def get_audio_codec_name(profile):
-    return 'aac'
+    if   (profile == AudioProfile.AAC_12000):
+        return 'aac'
+    elif (profile == AudioProfile.AAC_16000):
+        return 'aac'
+    elif (profile == AudioProfile.AAC_20000):
+        return 'aac'
+    elif (profile == AudioProfile.AAC_24000):
+        return 'aac'
+    else:
+        return None
 
 
 #------------------------------------------------------------------------------
 # Stream Configuration
 #------------------------------------------------------------------------------
 
-def create_configuration_for_mode(mode):
+def _create_configuration_for_mode(mode):
     return struct.pack('<B', mode)
 
 
-def create_configuration_for_video(mode, width, height, framerate, profile, bitrate):
+def _create_configuration_for_video(mode, width, height, framerate, profile, bitrate):
     return struct.pack('<BHHBBI', mode, width, height, framerate, profile, bitrate)
 
 
-def create_configuration_for_audio(profile):
+def _create_configuration_for_audio(profile):
     return struct.pack('<B', profile)
 
 
@@ -435,35 +458,35 @@ def create_configuration_for_audio(profile):
 def connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
-    c.sendall(create_configuration_for_video(mode, Resolution_RM_VLC.WIDTH, Resolution_RM_VLC.HEIGHT, Resolution_RM_VLC.FPS, profile, bitrate))
+    c.sendall(_create_configuration_for_video(mode, Resolution_RM_VLC.WIDTH, Resolution_RM_VLC.HEIGHT, Resolution_RM_VLC.FPS, profile, bitrate))
     return c
 
 
 def connect_client_rm_depth(host, port, chunk_size, mode):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
-    c.sendall(create_configuration_for_mode(mode))
+    c.sendall(_create_configuration_for_mode(mode))
     return c
 
 
 def connect_client_rm_imu(host, port, chunk_size, mode):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
-    c.sendall(create_configuration_for_mode(mode))
+    c.sendall(_create_configuration_for_mode(mode))
     return c
 
 
 def connect_client_pv(host, port, chunk_size, mode, width, height, framerate, profile, bitrate):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
-    c.sendall(create_configuration_for_video(mode, width, height, framerate, profile, bitrate))
+    c.sendall(_create_configuration_for_video(mode, width, height, framerate, profile, bitrate))
     return c
 
 
 def connect_client_mc(host, port, chunk_size, profile):
     c = gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
-    c.sendall(create_configuration_for_audio(profile))
+    c.sendall(_create_configuration_for_audio(profile))
     return c
 
 
@@ -558,7 +581,7 @@ def _download_mode2_data(host, port, configuration, bytes):
 
 
 def download_calibration_rm_vlc(host, port):
-    data   = _download_mode2_data(host, port, create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2X       : _Mode2Layout_RM_VLC.END_UV2X].reshape(Resolution_RM_VLC.SHAPE)
@@ -569,10 +592,7 @@ def download_calibration_rm_vlc(host, port):
 
 
 def download_calibration_rm_depth(host, port):
-    if (port == StreamPort.RM_DEPTH_AHAT):
-        return None
-
-    data   = _download_mode2_data(host, port, create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2X].reshape(Resolution_RM_DEPTH_LONGTHROW.SHAPE)
@@ -584,10 +604,7 @@ def download_calibration_rm_depth(host, port):
 
 
 def download_calibration_rm_imu(host, port):
-    if (port == StreamPort.RM_IMU_MAGNETOMETER):
-        return None
-
-    data   = _download_mode2_data(host, port, create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_IMU.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_IMU.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     extrinsics = floats[_Mode2Layout_RM_IMU.BEGIN_EXTRINSICS : _Mode2Layout_RM_IMU.END_EXTRINSICS].reshape((4, 4))
@@ -596,7 +613,7 @@ def download_calibration_rm_imu(host, port):
 
 
 def download_calibration_pv(host, port, width, height, framerate, profile, bitrate):
-    data   = _download_mode2_data(host, port, create_configuration_for_video(StreamMode.MODE_2, width, height, framerate, profile, bitrate), _Mode2Layout_PV.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_video(StreamMode.MODE_2, width, height, framerate, profile, bitrate), _Mode2Layout_PV.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     focal_length          = floats[_Mode2Layout_PV.BEGIN_FOCALLENGTH          : _Mode2Layout_PV.END_FOCALLENGTH]
@@ -613,6 +630,144 @@ def download_calibration_pv(host, port, width, height, framerate, profile, bitra
     projection[3,1] = 0
 
     return Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection)
+
+
+#------------------------------------------------------------------------------
+# Wrappers
+#------------------------------------------------------------------------------
+
+class rx_rm_vlc:
+    def __init__(self, host, port, chunk, mode, profile, bitrate, format):
+        self.host = host
+        self.port = port
+        self.chunk = chunk
+        self.mode = mode
+        self.profile = profile
+        self.bitrate = bitrate
+        self.format = format
+
+    def open(self):
+        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+        self._client = connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
+        self.get_next_frame()
+
+    def get_next_frame(self):
+        data = self._client.get_next_packet()
+        packets = self._codec.parse(data.payload)
+        for packet in packets:
+            for frame in self._codec.decode(packet):
+                data.payload = frame.to_ndarray(format=self.format)
+        return data
+
+    def close(self):
+        self._client.close()
+
+
+class rx_rm_depth:
+    def __init__(self, host, port, chunk, mode):
+        self.host  = host
+        self.port  = port
+        self.chunk = chunk
+        self.mode  = mode
+
+    def open(self):
+        self._client = connect_client_rm_depth(self.host, self.port, self.chunk, self.mode)
+
+    def get_next_frame(self):
+        data = self._client.get_next_packet()
+        data.payload = unpack_rm_depth(data.payload)
+        return data
+
+    def close(self):
+        self._client.close()
+
+
+class rx_rm_imu:
+    def __init__(self, host, port, chunk, mode):
+        self.host  = host
+        self.port  = port
+        self.chunk = chunk
+        self.mode  = mode
+
+    def open(self):
+        self._client = connect_client_rm_imu(self.host, self.port, self.chunk, self.mode)
+
+    def get_next_frame(self):
+        data = self._client.get_next_packet()
+        return data
+
+    def close(self):
+        self._client.close()
+
+
+class rx_pv:
+    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
+        self.host      = host
+        self.port      = port
+        self.chunk     = chunk
+        self.mode      = mode
+        self.width     = width
+        self.height    = height
+        self.framerate = framerate
+        self.profile   = profile
+        self.bitrate   = bitrate
+        self.format    = format
+
+    def open(self):
+        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+        self._client = connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.profile, self.bitrate)
+        self.get_next_frame()
+
+    def get_next_frame(self):
+        data = self._client.get_next_packet()
+        packets = self._codec.parse(data.payload)
+        for packet in packets:
+            for frame in self._codec.decode(packet):
+                data.payload = frame.to_ndarray(format=self.format)
+        return data
+
+    def close(self):
+        self._client.close()
+
+
+class rx_mc:
+    def __init__(self, host, port, chunk, profile):
+        self.host    = host
+        self.port    = port
+        self.chunk   = chunk
+        self.profile = profile
+
+    def open(self):
+        self._codec = av.CodecContext.create(get_audio_codec_name(self.profile), 'r')
+        self._client = connect_client_mc(self.host, StreamPort.MICROPHONE, self.chunk, self.profile)
+
+    def get_next_frame(self):
+        data = self._client.get_next_packet()
+        packets = self._codec.parse(data.payload)
+        for packet in packets:
+            for frame in self._codec.decode(packet):
+                data.payload = frame.to_ndarray()
+        return data
+
+    def close(self):
+        self._client.close()
+
+
+class rx_si:
+    def __init__(self, host, port, chunk):
+        self.host  = host
+        self.port  = port
+        self.chunk = chunk
+
+    def open(self):
+        self._client = connect_client_si(self.host, self.port, self.chunk)
+
+    def get_next_frame(self):
+        data = self._client.get_next_packet()
+        return data
+
+    def close(self):
+        self._client.close()
 
 
 #------------------------------------------------------------------------------

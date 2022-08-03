@@ -82,7 +82,7 @@ def recv_si():
 
     while (enable):
         data = client.get_next_packet()
-        si = hl2ss.unpacker_si(data.payload)
+        si = hl2ss.unpack_si(data.payload)
 
         if (si.is_valid_hand_left()):
             last_left = si.get_hand_left()
