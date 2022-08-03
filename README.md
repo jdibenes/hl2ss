@@ -121,7 +121,7 @@ This process is described later in this section.
     - Internet (Client & Server)
     - Internet (Client)
     - Microphone
-    - Private Networks (CLient & Server)
+    - Private Networks (Client & Server)
     - Spatial Perception
     - Webcam
 7. Right click Package.appxmanifest, select Open With, and select HTML Editor. Edit Package.appxmanifest as follows:
