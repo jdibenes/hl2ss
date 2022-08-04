@@ -739,7 +739,7 @@ class rx_mc:
 
     def open(self):
         self._codec = av.CodecContext.create(get_audio_codec_name(self.profile), 'r')
-        self._client = connect_client_mc(self.host, StreamPort.MICROPHONE, self.chunk, self.profile)
+        self._client = connect_client_mc(self.host, self.port, self.chunk, self.profile)
 
     def get_next_frame(self):
         data = self._client.get_next_packet()
