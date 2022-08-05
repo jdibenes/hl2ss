@@ -66,8 +66,7 @@ def recv_pv():
     while (enable):
         data = client.get_next_packet()
         last_pose = data.pose
-        packets = codec_h264.parse(data.payload)
-        for packet in packets:
+        for packet in codec_h264.parse(data.payload):
             for frame in codec_h264.decode(packet):
                 last_frame = frame
 

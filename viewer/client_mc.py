@@ -27,11 +27,11 @@ profile = hl2ss.AudioProfile.AAC_24000
 enable = True
 pcmqueue = queue.Queue()
 codec = av.CodecContext.create(hl2ss.get_audio_codec_name(profile), 'r')
-resampler = av.audio.resampler.AudioResampler(format='s16', layout='stereo', rate=48000)
+resampler = av.audio.resampler.AudioResampler(format='s16', layout=hl2ss.Parameters_MC.LAYOUT, rate=hl2ss.Parameters_MC.SAMPLE_RATE)
 
 def pcmworker():
     p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paInt16, channels=2, rate=48000, output=True)
+    stream = p.open(format=pyaudio.paInt16, channels=hl2ss.Parameters_MC.CHANNELS, rate=hl2ss.Parameters_MC.SAMPLE_RATE, output=True)
     stream.start_stream()
     while enable:
         stream.write(pcmqueue.get())
@@ -46,8 +46,7 @@ client = hl2ss.connect_client_mc(host, port, 512, profile)
 try:
     while True: 
         data = client.get_next_packet()
-        packets = codec.parse(data.payload)
-        for packet in packets:
+        for packet in codec.parse(data.payload):
             # Decoded audio format is float32
             for frame in codec.decode(packet): 
                 # Convert to int16

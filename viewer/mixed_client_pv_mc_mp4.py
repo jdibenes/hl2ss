@@ -35,7 +35,7 @@ video_bitrate = 5*1024*1024
 audio_profile = hl2ss.AudioProfile.AAC_24000
 
 # Video length in seconds
-video_length = 60*10
+video_length = 60*1
 
 #------------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ audio_codec_name = hl2ss.get_audio_codec_name(audio_profile)
 
 container = av.open('video.mp4', 'w')
 stream_video = container.add_stream(video_codec_name, rate=framerate)
-stream_audio = container.add_stream(audio_codec_name, rate=48000)
+stream_audio = container.add_stream(audio_codec_name, rate=hl2ss.Parameters_MC.SAMPLE_RATE)
 codec_video = av.CodecContext.create(video_codec_name, 'r')
 codec_audio = av.CodecContext.create(audio_codec_name, 'r')
 
@@ -65,8 +65,7 @@ def recv_pv():
         if (not tsfirst):
             tsfirst = data.timestamp
         lock.release()
-        packets = codec_video.parse(data.payload)
-        for packet in packets:
+        for packet in codec_video.parse(data.payload):
             packet.stream = stream_video
             packet.pts = data.timestamp - tsfirst
             packet.dts = packet.pts
@@ -85,8 +84,7 @@ def recv_mc():
         lock.release()
         if (leave):
             continue
-        packets = codec_audio.parse(data.payload)
-        for packet in packets:
+        for packet in codec_audio.parse(data.payload):
             packet.stream = stream_audio
             packet.pts = data.timestamp - tsfirst
             packet.dts = packet.pts

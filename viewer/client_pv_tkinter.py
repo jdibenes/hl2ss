@@ -1,3 +1,4 @@
+# Workaround for the opencv imshow issue in some Ubuntu installations
 #------------------------------------------------------------------------------
 # This script receives encoded video from the HoloLens front RGB camera and
 # plays it. The camera support various resolutions and framerates. See
@@ -7,8 +8,9 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
-import cv2
+import tkinter
 import av
+from PIL import ImageTk, Image
 
 # Settings --------------------------------------------------------------------
 
@@ -25,8 +27,8 @@ port = hl2ss.StreamPort.PERSONAL_VIDEO
 mode = hl2ss.StreamMode.MODE_1
 
 # Camera parameters
-width     = 1920
-height    = 1080
+width     = 1280
+height    = 720
 framerate = 30
 
 # Video encoding profile
@@ -48,6 +50,10 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.projection)
     quit()
 
+root = tkinter.Tk()
+label = tkinter.Label(root)
+label.place(x=0, y=0)
+
 codec = av.CodecContext.create(hl2ss.get_video_codec_name(profile), 'r')
 pose_printer = hl2ss.pose_printer(60)
 fps_counter = hl2ss.framerate_counter(60)
@@ -60,14 +66,17 @@ try:
         timestamp = data.timestamp
         for packet in codec.parse(data.payload):
             for frame in codec.decode(packet):
-                image = frame.to_ndarray(format='bgr24')
+                image = frame.to_ndarray(format='rgb24')
 
                 glitch_detector.push(timestamp)
                 fps_counter.push()
                 pose_printer.push(timestamp, data.pose)
 
-                cv2.imshow('Video', image)
-                cv2.waitKey(1)
+                test = ImageTk.PhotoImage(image=Image.fromarray(image))
+                label.configure(image=test)
+                
+                root.update_idletasks()
+                root.update()
 except:
     pass
 

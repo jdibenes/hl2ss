@@ -1,12 +1,15 @@
 
+import io
 import numpy as np
 import socket
 import struct
 import time
 import cv2
 import av
+import os
+import tarfile
 
-# Stream Ports
+# Stream TCP Ports
 class StreamPort:
     RM_VLC_LEFTFRONT     = 3800
     RM_VLC_LEFTLEFT      = 3801
@@ -56,22 +59,36 @@ class AudioProfile:
     AAC_24000 = 3
 
 
-# RM VLC Resolution
-class Resolution_RM_VLC:
+# RM VLC Parameters
+class Parameters_RM_VLC:
     WIDTH  = 640
     HEIGHT = 480
     FPS    = 30
     PIXELS = WIDTH * HEIGHT
     SHAPE  = (HEIGHT, WIDTH)
+    FORMAT = 'yuv420p'
 
 
-# RM Depth Long Throw Resolution
-class Resolution_RM_DEPTH_LONGTHROW:
+# RM Depth Long Throw Parameters
+class Parameters_RM_DEPTH_LONGTHROW:
     WIDTH  = 320
     HEIGHT = 288
     FPS    = 5
     PIXELS = WIDTH * HEIGHT
     SHAPE  = (HEIGHT, WIDTH)
+
+
+# PV Parameters
+class Parameters_PV:
+    FORMAT = 'yuv420p'
+
+
+# MC Parameters
+class Parameters_MC:
+    SAMPLE_RATE = 48000
+    CHANNELS    = 2
+    FORMAT      = 'f32'
+    LAYOUT      = 'stereo'
 
 
 # Time base for all timestamps
@@ -164,6 +181,21 @@ class client:
 # Packet Unpacker
 #------------------------------------------------------------------------------
 
+class packet:
+    def __init__(self, timestamp, payload, pose):
+        self.timestamp = timestamp
+        self.payload   = payload
+        self.pose      = pose
+
+    def pack(self):
+        buffer = bytearray()
+        buffer.extend(struct.pack('<QI', self.timestamp, len(self.payload)))
+        buffer.extend(self.payload)
+        if (self.pose is not None):
+            buffer.extend(self.pose.tobytes())
+        return buffer
+
+
 class unpacker:
     def __init__(self, mode):
         self._mode = mode
@@ -174,8 +206,10 @@ class unpacker:
         self._payload = None
         self._pose = None
 
-    def unpack(self, chunk):
+    def extend(self, chunk):
         self._buffer.extend(chunk)
+
+    def unpack(self):        
         length = len(self._buffer)
         
         while True:
@@ -192,38 +226,22 @@ class unpacker:
                 if (length >= self._size):
                     if (self._mode == StreamMode.MODE_1):
                         payload_end = self._size - 64
+                        self._pose = np.frombuffer(self._buffer[payload_end:self._size], dtype=np.float32).reshape((4, 4))
                     else:
                         payload_end = self._size
                     self._payload = self._buffer[12:payload_end]
-                    self._pose = self._buffer[payload_end:self._size]
                     self._buffer = self._buffer[self._size:]
                     self._state = 0
                     return True
             return False
 
-    def get_timestamp(self):
-        return self._timestamp
-
-    def get_payload(self):
-        return self._payload
-
-    def get_pose(self):
-        if (self._mode == StreamMode.MODE_1):
-            return np.frombuffer(self._pose, dtype=np.float32).reshape((4, 4))
-        else:
-            return None
+    def get(self):
+        return packet(self._timestamp, self._payload, self._pose)
 
 
 #------------------------------------------------------------------------------
 # Packet Gatherer
 #------------------------------------------------------------------------------
-
-class packet:
-    def __init__(self, timestamp, payload, pose):
-        self.timestamp = timestamp
-        self.payload   = payload
-        self.pose      = pose
-
 
 class gatherer:
     def open(self, host, port, chunk_size, mode):
@@ -238,8 +256,9 @@ class gatherer:
 
     def get_next_packet(self):
         while True:
-            if (self._unpacker.unpack(self._client.recv(self._chunk_size))):
-                return packet(self._unpacker.get_timestamp(), self._unpacker.get_payload(), self._unpacker.get_pose())
+            self._unpacker.extend(self._client.recv(self._chunk_size))
+            if (self._unpacker.unpack()):
+                return self._unpacker.get()
 
     def close(self):
         self._client.close()
@@ -458,7 +477,7 @@ def _create_configuration_for_audio(profile):
 def connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
-    c.sendall(_create_configuration_for_video(mode, Resolution_RM_VLC.WIDTH, Resolution_RM_VLC.HEIGHT, Resolution_RM_VLC.FPS, profile, bitrate))
+    c.sendall(_create_configuration_for_video(mode, Parameters_RM_VLC.WIDTH, Parameters_RM_VLC.HEIGHT, Parameters_RM_VLC.FPS, profile, bitrate))
     return c
 
 
@@ -502,24 +521,24 @@ def connect_client_si(host, port, chunk_size):
 
 class _Mode2Layout_RM_VLC:
     BEGIN_UV2X       = 0
-    END_UV2X         = BEGIN_UV2X + Resolution_RM_VLC.PIXELS
+    END_UV2X         = BEGIN_UV2X + Parameters_RM_VLC.PIXELS
     BEGIN_UV2Y       = END_UV2X
-    END_UV2Y         = BEGIN_UV2Y + Resolution_RM_VLC.PIXELS
+    END_UV2Y         = BEGIN_UV2Y + Parameters_RM_VLC.PIXELS
     BEGIN_EXTRINSICS = END_UV2Y
     END_EXTRINSICS   = BEGIN_EXTRINSICS + 16
-    FLOAT_COUNT      = 2*Resolution_RM_VLC.PIXELS + 16
+    FLOAT_COUNT      = 2*Parameters_RM_VLC.PIXELS + 16
 
 
 class _Mode2Layout_RM_DEPTH_LONGTHROW:
     BEGIN_UV2X       = 0
-    END_UV2X         = BEGIN_UV2X + Resolution_RM_DEPTH_LONGTHROW.PIXELS
+    END_UV2X         = BEGIN_UV2X + Parameters_RM_DEPTH_LONGTHROW.PIXELS
     BEGIN_UV2Y       = END_UV2X
-    END_UV2Y         = BEGIN_UV2Y + Resolution_RM_DEPTH_LONGTHROW.PIXELS
+    END_UV2Y         = BEGIN_UV2Y + Parameters_RM_DEPTH_LONGTHROW.PIXELS
     BEGIN_EXTRINSICS = END_UV2Y
     END_EXTRINSICS   = BEGIN_EXTRINSICS + 16
     BEGIN_SCALE      = END_EXTRINSICS
     END_SCALE        = BEGIN_SCALE + 1
-    FLOAT_COUNT      = 2*Resolution_RM_DEPTH_LONGTHROW.PIXELS + 16 + 1
+    FLOAT_COUNT      = 2*Parameters_RM_DEPTH_LONGTHROW.PIXELS + 16 + 1
 
 
 class _Mode2Layout_RM_IMU:
@@ -584,8 +603,8 @@ def download_calibration_rm_vlc(host, port):
     data   = _download_mode2_data(host, port, _create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
-    uv2x       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2X       : _Mode2Layout_RM_VLC.END_UV2X].reshape(Resolution_RM_VLC.SHAPE)
-    uv2y       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2Y       : _Mode2Layout_RM_VLC.END_UV2Y].reshape(Resolution_RM_VLC.SHAPE)
+    uv2x       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2X       : _Mode2Layout_RM_VLC.END_UV2X].reshape(Parameters_RM_VLC.SHAPE)
+    uv2y       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2Y       : _Mode2Layout_RM_VLC.END_UV2Y].reshape(Parameters_RM_VLC.SHAPE)
     extrinsics = floats[_Mode2Layout_RM_VLC.BEGIN_EXTRINSICS : _Mode2Layout_RM_VLC.END_EXTRINSICS].reshape((4, 4))
 
     return Mode2_RM_VLC(np.dstack((uv2x, uv2y)), extrinsics)
@@ -595,8 +614,8 @@ def download_calibration_rm_depth(host, port):
     data   = _download_mode2_data(host, port, _create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
-    uv2x       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2X].reshape(Resolution_RM_DEPTH_LONGTHROW.SHAPE)
-    uv2y       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2Y       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2Y].reshape(Resolution_RM_DEPTH_LONGTHROW.SHAPE)
+    uv2x       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2X].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+    uv2y       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2Y       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2Y].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
     extrinsics = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_EXTRINSICS : _Mode2Layout_RM_DEPTH_LONGTHROW.END_EXTRINSICS].reshape((4, 4))
     scale      = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_SCALE      : _Mode2Layout_RM_DEPTH_LONGTHROW.END_SCALE]
 
@@ -653,8 +672,7 @@ class rx_rm_vlc:
 
     def get_next_frame(self):
         data = self._client.get_next_packet()
-        packets = self._codec.parse(data.payload)
-        for packet in packets:
+        for packet in self._codec.parse(data.payload):
             for frame in self._codec.decode(packet):
                 data.payload = frame.to_ndarray(format=self.format)
         return data
@@ -720,8 +738,7 @@ class rx_pv:
 
     def get_next_frame(self):
         data = self._client.get_next_packet()
-        packets = self._codec.parse(data.payload)
-        for packet in packets:
+        for packet in self._codec.parse(data.payload):
             for frame in self._codec.decode(packet):
                 data.payload = frame.to_ndarray(format=self.format)
         return data
@@ -743,8 +760,7 @@ class rx_mc:
 
     def get_next_frame(self):
         data = self._client.get_next_packet()
-        packets = self._codec.parse(data.payload)
-        for packet in packets:
+        for packet in self._codec.parse(data.payload):
             for frame in self._codec.decode(packet):
                 data.payload = frame.to_ndarray()
         return data
@@ -768,6 +784,155 @@ class rx_si:
 
     def close(self):
         self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Writers
+#------------------------------------------------------------------------------
+
+class wr_rm_vlc:
+    def __init__(self, path, name, profile, bitrate, format):
+        self.path = path
+        self.name = name
+        self.profile = profile
+        self.bitrate = bitrate
+        self.format = format
+
+    def open(self):
+        self._ancillary = open(os.path.join(self.path, 'rm_vlc_' + self.name + '_ancillary.bin'), 'wb')
+        self._frames = av.open(os.path.join(self.path, 'rm_vlc_' + self.name + '.mp4'), mode='w')
+        self._stream = self._frames.add_stream(get_video_codec_name(self.profile), rate=Parameters_RM_VLC.FPS)
+        self._stream.width = Parameters_RM_VLC.WIDTH
+        self._stream.height = Parameters_RM_VLC.HEIGHT
+        self._stream.pix_fmt = Parameters_RM_VLC.FORMAT
+        self._stream.bit_rate = self.bitrate
+
+    def write(self, data):
+        self._ancillary.write(struct.pack('<Q', data.timestamp))
+        if (data.pose is not None):
+            self._ancillary.write(data.pose.tobytes())
+        f = av.VideoFrame.from_ndarray(data.payload, format=self.format)
+        for packet in self._stream.encode(f):
+            self._frames.mux(packet)
+
+    def close(self):
+        self._frames.close()
+        self._ancillary.close()
+
+
+class wr_rm_depth:
+    def __init__(self, path, name):
+        self.path = path
+        self.name = name
+
+    def open(self):
+        self._ancillary = open(os.path.join(self.path, 'rm_depth_' + self.name + '_ancillary.bin'), 'wb')
+        self._frames = tarfile.open(os.path.join(self.path, 'rm_depth_' + self.name + '.tar'), 'w')
+        self._id = 0
+
+    def write(self, data):
+        self._ancillary.write(struct.pack('<Q', data.timestamp))
+        if (data.pose is not None):
+            self._ancillary.write(data.pose.tobytes())
+
+        depth = cv2.imencode('.png', data.payload.depth)[1]
+        ab = cv2.imencode('.png', data.payload.ab)[1]
+
+        depth_file = tarfile.TarInfo('depth_' + self._id + '.png')
+        depth_file.size = len(depth)
+        self._frames.addfile(depth_file, io.BytesIO(initial_bytes=depth))
+        
+        ab_file = tarfile.TarInfo('ab_' + self._id + '.png')
+        ab_file.size = len(ab)
+        self._frames.addfile(ab_file, io.BytesIO(initial_bytes=ab))
+
+        self._id += 1
+
+    def close(self):
+        self._frames.close()
+        self._ancillary.close()
+
+
+class wr_rm_imu:
+    def __init__(self, path, name):
+        self.path = path
+        self.name = name
+
+    def open(self):
+        self._data = open(os.path.join(self.path, 'rm_imu_' + self.name + '.bin'), 'wb')
+
+    def write(self, data):
+        self._data.write(data.pack())
+
+    def close(self):
+        self._data.close()
+
+
+class wr_pv:
+    def __init__(self, path, width, height, framerate, profile, bitrate, format):
+        self.path = path
+        self.width = width
+        self.height = height
+        self.framerate = framerate
+        self.profile = profile
+        self.bitrate = bitrate
+        self.format = format
+
+    def open(self):
+        self._ancillary = open(os.path.join(self.path, 'pv_ancillary.bin'), 'wb')
+        self._frames = av.open(os.path.join(self.path, 'pv.mp4'), mode='w')
+        self._stream = self._frames.add_stream(get_video_codec_name(self.profile), rate=self.framerate)
+        self._stream.width = self.width
+        self._stream.height = self.height
+        self._stream.pix_fmt = Parameters_PV.FORMAT
+        self._stream.bit_rate = self.bitrate
+
+    def write(self, data):
+        self._ancillary.write(struct.pack('<Q', data.timestamp))
+        if (data.pose is not None):
+            self._ancillary.write(data.pose.tobytes())
+        f = av.VideoFrame.from_ndarray(data.payload, format=self.format)
+        for packet in self._stream.encode(f):
+            self._frames.mux(packet)
+
+    def close(self):
+        self._frames.close()
+        self._ancillary.close()
+
+
+class wr_mc:
+    def __init__(self, path, profile):
+        self.path = path
+        self.profile = profile
+
+    def open(self):
+        self._ancillary = open(os.path.join(self.path, 'mc_ancillary.bin'), 'wb')
+        self._frames = av.open(os.path.join(self.path, 'mc.mp4'), mode='w')
+        self._stream = self._frames.add_stream(get_audio_codec_name(self.profile), rate=Parameters_MC.SAMPLE_RATE)
+
+    def write(self, data):
+        self._ancillary.write(struct.pack('<Q', data.timestamp))
+        f = av.AudioFrame.from_ndarray(data.payload, format=Parameters_MC.FORMAT, layout=Parameters_MC.LAYOUT)
+        for packet in self._stream.encode(f):
+            self._frames.mux(packet)
+
+    def close(self):
+        self._frames.close()
+        self._ancillary.close()
+
+
+class wr_si:
+    def __init__(self, path):
+        self.path = path
+
+    def open(self):
+        self._data = open(os.path.join(self.path, 'si.bin'), 'wb')
+
+    def write(self, data):
+        self._data.write(data.pack())
+
+    def close(self):
+        self._data.close()
 
 
 #------------------------------------------------------------------------------

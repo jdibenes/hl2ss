@@ -37,7 +37,7 @@ if (mode == hl2ss.StreamMode.MODE_2):
 
 pose_printer = hl2ss.pose_printer(10)
 fps_counter = hl2ss.framerate_counter(10)
-glitch_detector = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS / hl2ss.Resolution_RM_DEPTH_LONGTHROW.FPS)
+glitch_detector = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS / hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
 client = hl2ss.connect_client_rm_depth(host, port, 4096, mode)
 
 try:

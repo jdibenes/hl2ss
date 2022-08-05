@@ -47,15 +47,14 @@ if (mode == hl2ss.StreamMode.MODE_2):
 codec = av.CodecContext.create(hl2ss.get_video_codec_name(profile), 'r')
 pose_printer = hl2ss.pose_printer(60)
 fps_counter = hl2ss.framerate_counter(60)
-glitch_detector = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS / hl2ss.Resolution_RM_VLC.FPS)
+glitch_detector = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS / hl2ss.Parameters_RM_VLC.FPS)
 client = hl2ss.connect_client_rm_vlc(host, port, 1024, mode, profile, bitrate)
 
 try:
     while True:
         data = client.get_next_packet()
         timestamp = data.timestamp
-        packets = codec.parse(data.payload)
-        for packet in packets:
+        for packet in codec.parse(data.payload):
             for frame in codec.decode(packet):
                 image = frame.to_ndarray(format='bgr24')
 

@@ -66,8 +66,8 @@ try:
                 camera2world = np.linalg.inv(calib.extrinsics) @ data.pose
 
                 # Get the 3D points corresponding to the 7x7 patch in the center of the depth image
-                u0 = int(hl2ss.Resolution_RM_DEPTH_LONGTHROW.WIDTH  / 2)
-                v0 = int(hl2ss.Resolution_RM_DEPTH_LONGTHROW.HEIGHT / 2)
+                u0 = int(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  / 2)
+                v0 = int(hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT / 2)
 
                 points = np.array([]).reshape((0, 4))
                 for dv in range(-3, 4):
