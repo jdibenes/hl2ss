@@ -1,0 +1,14 @@
+BackBuffer Width              1440
+BackBuffer Height             936
+BackBuffer MipLevels          1
+BackBuffer ArraySize          2
+BackBuffer Format             87
+BackBuffer SampleDesc.Count   1
+BackBuffer SampleDesc.Quality 0
+BackBuffer Usage              0
+BackBuffer BindFlags          40
+BackBuffer CPUAccessFlags     0
+BackBuffer MiscFlags          2050
+
+[0]: left eye
+[1]: right eye
