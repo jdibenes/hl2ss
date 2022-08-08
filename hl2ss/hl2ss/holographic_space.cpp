@@ -34,8 +34,8 @@ static ID3D11DeviceContext* g_context = NULL;
 // OK
 static void HolographicSpace_CreateMarkerTexture()
 {
-    int const line_thickness = 8;
-    UINT32 const line_color = 0xFF0000FF;
+    int const line_thickness = 16;
+    UINT32 const line_color = 0xFFFFFFFF;
 
     int const buffer_width = 1440;
     int const buffer_height = 936;
