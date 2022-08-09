@@ -24,7 +24,7 @@ path = os.path.join('.', 'data')
 wr_frames = 0
 rd_frames = 0
 
-wr = hl2ss.wr_rm_vlc(path, name, mode, profile, bitrate, frame_format)
+wr = hl2ss.wr_rm_vlc(path, name, mode, hl2ss.get_video_codec_name(profile), bitrate, frame_format)
 rx = hl2ss.rx_rm_vlc(host, port, chunk_size, mode, profile, bitrate, frame_format)
 
 wr.open()

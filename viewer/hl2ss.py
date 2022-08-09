@@ -806,10 +806,10 @@ class rx_si:
 #------------------------------------------------------------------------------
 
 class wr_rm_vlc:
-    def __init__(self, path, name, mode, profile, bitrate, format):
+    def __init__(self, path, name, mode, codec, bitrate, format):
         self.path = path
         self.name = name
-        self.profile = profile
+        self.codec = codec
         self.bitrate = bitrate
         self.format = format
         self.mode = mode
@@ -822,7 +822,7 @@ class wr_rm_vlc:
         self._ancillary = open(os.path.join(self.path, 'rm_vlc_' + self.name + '_ancillary.bin'), 'wb')
         self._frames = av.open(os.path.join(self.path, 'rm_vlc_' + self.name + '.mp4'), mode='w')
 
-        self._stream = self._frames.add_stream(get_video_codec_name(self.profile), rate=Parameters_RM_VLC.FPS)
+        self._stream = self._frames.add_stream(self.codec, rate=Parameters_RM_VLC.FPS)
         self._stream.width = Parameters_RM_VLC.WIDTH
         self._stream.height = Parameters_RM_VLC.HEIGHT
         self._stream.pix_fmt = Parameters_RM_VLC.FORMAT
@@ -894,13 +894,13 @@ class wr_rm_imu:
 
 
 class wr_pv:
-    def __init__(self, path, mode, width, height, framerate, profile, bitrate, format):
+    def __init__(self, path, mode, width, height, framerate, codec, bitrate, format):
         self.path = path
         self.mode = mode
         self.width = width
         self.height = height
         self.framerate = framerate
-        self.profile = profile
+        self.codec = codec
         self.bitrate = bitrate
         self.format = format
 
@@ -912,7 +912,7 @@ class wr_pv:
         self._ancillary = open(os.path.join(self.path, 'pv_ancillary.bin'), 'wb')
         self._frames = av.open(os.path.join(self.path, 'pv.mp4'), mode='w')
 
-        self._stream = self._frames.add_stream(get_video_codec_name(self.profile), rate=self.framerate)
+        self._stream = self._frames.add_stream(self.codec, rate=self.framerate)
         self._stream.width = self.width
         self._stream.height = self.height
         self._stream.pix_fmt = Parameters_PV.FORMAT
@@ -1256,7 +1256,8 @@ class continuity_analyzer:
     def push(self, timestamp):
         if (self._last is not None):
             delta = timestamp - self._last
-            drop = delta > (1.75 * self._period)
+            drop = delta > (1.5 * self._period)
             if (drop):
                 print('Warning: frame drop detected')
+        self._last = timestamp
 
