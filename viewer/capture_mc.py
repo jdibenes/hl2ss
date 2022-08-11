@@ -39,6 +39,7 @@ audio = pyaudio.PyAudio()
 stream = audio.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MC.CHANNELS, rate=hl2ss.Parameters_MC.SAMPLE_RATE, output=True)
 stream.start_stream()
 
+ca = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS * hl2ss.Parameters_MC.PERIOD)
 rd = hl2ss.rd_mc(path)
 rd.open()
 
@@ -55,6 +56,10 @@ while (True):
     stream.write(sound.tobytes())
     print('{f}:{ts}'.format(f=rd_frames, ts=data.timestamp))
     rd_frames += 1
+
+    state = ca.push(data.timestamp)
+    if (state != 0):
+        raise Exception('discontinuous frame')
 
 rd.close()
 

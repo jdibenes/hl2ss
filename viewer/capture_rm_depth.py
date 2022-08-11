@@ -41,6 +41,7 @@ while (wr_frames < frames):
 rx.close()
 wr.close()
 
+ca = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS * hl2ss.Parameters_RM_DEPTH_LONGTHROW.PERIOD)
 rd = hl2ss.rd_rm_depth(path, name)
 rd.open()
 
@@ -57,6 +58,12 @@ while (True):
     cv2.waitKey(1000 // hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
 
     rd_frames += 1
+
+    state = ca.push(data.timestamp)
+    if (state != 0):
+        raise Exception('discontinuous frame')
+
+rd.close()
 
 print('written frames {v}'.format(v=wr_frames))
 print('read frames {v}'.format(v=rd_frames))

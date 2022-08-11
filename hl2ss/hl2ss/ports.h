@@ -11,6 +11,7 @@
 #define PORT_RM_GYR "3807"
 #define PORT_RM_MAG "3808"
 
+#define PORT_RC "3809"
 #define PORT_PV "3810"
 #define PORT_MC "3811"
 #define PORT_SI "3812"

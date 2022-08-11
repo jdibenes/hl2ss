@@ -3,6 +3,7 @@
 #include "research_mode.h"
 #include "server.h"
 #include "utilities.h"
+#include "stream_rc.h"
 #include "stream_pv.h"
 #include "stream_rm.h"
 #include "stream_mc.h"
@@ -58,6 +59,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		MC_Initialize();
 		PV_Initialize();
 		SI_Initialize();
+		RC_Initialize();
 
 		m_init = true;
 	}

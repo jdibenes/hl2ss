@@ -91,6 +91,9 @@
     <ClCompile Include="research_mode.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
+    <ClCompile Include="stream_rc.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -290,6 +293,9 @@
     </ClInclude>
     <ClInclude Include="ports.h">
       <Filter>Header Files\server</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rc.h">
+      <Filter>Header Files\streams</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

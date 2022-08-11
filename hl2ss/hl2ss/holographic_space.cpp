@@ -24,12 +24,20 @@ static HolographicSpace g_space = nullptr;
 static HolographicFrame g_frame = nullptr;
 static HolographicFramePrediction g_prediction = nullptr;
 static Microsoft::WRL::ComPtr<ID3D11Device> g_device = nullptr;
-static ID3D11Texture2D* g_texture = NULL;
 static ID3D11DeviceContext* g_context = NULL;
+static ID3D11Texture2D* g_texture_marker = NULL;
+static ID3D11Texture2D* g_texture_empty = NULL;
+static bool g_enable_marker = false;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
+
+// OK
+void HolographicSpace_EnableMarker(bool state)
+{
+    g_enable_marker = state;
+}
 
 // OK
 static void HolographicSpace_CreateMarkerTexture()
@@ -60,10 +68,7 @@ static void HolographicSpace_CreateMarkerTexture()
     dtd.MiscFlags          = 2050;
 
     data = new BYTE[buffer_size];
-    memset(data, 0, buffer_size);
-
-    for (int y = y0 - line_thickness; y < (y0 + line_thickness); ++y) { for (int x = 0; x < buffer_width; ++x) { ((UINT32*)data)[y * buffer_width + x] = line_color; } }
-
+    
     for (int i = 0; i < (sizeof(dsd) / sizeof(D3D11_SUBRESOURCE_DATA)); ++i)
     {
     dsd[i].pSysMem = data;
@@ -71,8 +76,14 @@ static void HolographicSpace_CreateMarkerTexture()
     dsd[i].SysMemSlicePitch = 0;
     }
 
-    g_device->CreateTexture2D(&dtd, dsd, &g_texture);
+    memset(data, 0, buffer_size);
 
+    g_device->CreateTexture2D(&dtd, dsd, &g_texture_empty);
+
+    for (int y = y0 - line_thickness; y < (y0 + line_thickness); ++y) { for (int x = 0; x < buffer_width; ++x) { ((UINT32*)data)[y * buffer_width + x] = line_color; } }
+
+    g_device->CreateTexture2D(&dtd, dsd, &g_texture_marker);
+   
     delete[] data;
 }
 
@@ -118,7 +129,7 @@ void HolographicSpace_Clear()
     {
     auto rp = g_frame.GetRenderingParameters(pose);
     rp.Direct3D11BackBuffer().as<IDirect3DDxgiInterfaceAccess>()->GetInterface(IID_PPV_ARGS(&d3dBackBuffer));
-    g_context->CopyResource(d3dBackBuffer.Get(), g_texture);
+    g_context->CopyResource(d3dBackBuffer.Get(), g_enable_marker ? g_texture_marker : g_texture_empty);
     }
 }
 
