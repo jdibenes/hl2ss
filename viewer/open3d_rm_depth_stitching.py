@@ -13,7 +13,7 @@ import numpy as np
 host = '192.168.1.15'
 
 # Voxel size
-voxel_size = 0.001
+voxel_size = 0.02
 
 #------------------------------------------------------------------------------
 
@@ -42,14 +42,18 @@ try:
         d = images.depth.reshape((pixels, 1)) / calibration.scale
         xyz1 = np.hstack((v * d, np.ones((pixels, 1))))
         camera2world = np.linalg.inv(calibration.extrinsics) @ data.pose
-        xyz1 = xyz1[d.reshape((pixels,)) > 0] @ camera2world
+        xyz1 = xyz1[(d.reshape((pixels,)) > 0) & (d.reshape((pixels,)) < 1.5)] @ camera2world
 
         pcd_next = o3d.geometry.PointCloud()
         pcd_next.points = o3d.utility.Vector3dVector(xyz1[:, 0:3])
 
-        pcd_all += pcd_next.voxel_down_sample(voxel_size=voxel_size)
+        pcd_all += pcd_next
+        vis.remove_geometry(pcd_all)
+        pcd_all = pcd_all.voxel_down_sample(voxel_size=voxel_size)
 
-        vis.update_geometry(pcd_all) if (frames > 0) else vis.add_geometry(pcd_all)        
+        #vis.update_geometry(pcd_all) if (frames > 0) else vis.add_geometry(pcd_all)
+        
+        vis.add_geometry(pcd_all) 
         vis.poll_events()
         vis.update_renderer()
 
