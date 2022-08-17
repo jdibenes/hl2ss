@@ -7,6 +7,7 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
+import hl2ss_utilities
 import cv2
 import av
 
@@ -36,6 +37,10 @@ profile = hl2ss.VideoProfile.H265_MAIN
 # Must be > 0
 bitrate = 5*1024*1024
 
+# Print period
+# Print camera pose every period frames
+period = 60
+
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -49,23 +54,18 @@ if (mode == hl2ss.StreamMode.MODE_2):
     quit()
 
 codec = av.CodecContext.create(hl2ss.get_video_codec_name(profile), 'r')
-pose_printer = hl2ss.pose_printer(60)
-fps_counter = hl2ss.framerate_counter(60)
-glitch_detector = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS / framerate)
-client = hl2ss.connect_client_pv(host, port, 4096, mode, width, height, framerate, profile, bitrate)
+pose_printer = hl2ss_utilities.pose_printer(period)
+client = hl2ss.rx_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate)
+client.open()
 
 try:
     while True:
         data = client.get_next_packet()
         timestamp = data.timestamp
+        pose_printer.push(timestamp, data.pose)
         for packet in codec.parse(data.payload):
             for frame in codec.decode(packet):
                 image = frame.to_ndarray(format='bgr24')
-
-                glitch_detector.push(timestamp)
-                fps_counter.push()
-                pose_printer.push(timestamp, data.pose)
-
                 cv2.imshow('Video', image)
                 cv2.waitKey(1)
 except:

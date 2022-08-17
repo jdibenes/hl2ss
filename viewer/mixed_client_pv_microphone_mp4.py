@@ -3,8 +3,9 @@
 # the HoloLens microphone to a mp4 file.
 #------------------------------------------------------------------------------
 
-import hl2ss
 from fractions import Fraction
+
+import hl2ss
 import av
 import queue
 import threading
@@ -13,10 +14,6 @@ import threading
 
 # HoloLens address
 host = "192.168.1.15"
-
-# Ports
-port_pv = hl2ss.StreamPort.PERSONAL_VIDEO
-port_mc = hl2ss.StreamPort.MICROPHONE
 
 # Camera parameters
 # See etc/hl2_capture_formats.txt for a list of supported formats.
@@ -34,6 +31,9 @@ video_bitrate = 5*1024*1024
 # Audio encoding profile
 audio_profile = hl2ss.AudioProfile.AAC_24000
 
+# Video filename
+video_filename = 'video.mp4'
+
 # Video length in seconds
 video_length = 60*1
 
@@ -42,9 +42,9 @@ video_length = 60*1
 video_codec_name = hl2ss.get_video_codec_name(video_profile)
 audio_codec_name = hl2ss.get_audio_codec_name(audio_profile)
 
-container = av.open('video.mp4', 'w')
+container = av.open(video_filename, 'w')
 stream_video = container.add_stream(video_codec_name, rate=framerate)
-stream_audio = container.add_stream(audio_codec_name, rate=hl2ss.Parameters_MC.SAMPLE_RATE)
+stream_audio = container.add_stream(audio_codec_name, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
 codec_video = av.CodecContext.create(video_codec_name, 'r')
 codec_audio = av.CodecContext.create(audio_codec_name, 'r')
 
@@ -58,7 +58,11 @@ def recv_pv():
     global tsfirst
     global enable
 
-    client = hl2ss.connect_client_pv(host, port_pv, 8192, hl2ss.StreamMode.MODE_0, width, height, framerate, video_profile, video_bitrate)
+    time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
+
+    client = hl2ss.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, video_profile, video_bitrate)
+    client.open()
+
     while (enable):
         data = client.get_next_packet()
         lock.acquire()
@@ -69,14 +73,20 @@ def recv_pv():
             packet.stream = stream_video
             packet.pts = data.timestamp - tsfirst
             packet.dts = packet.pts
-            packet.time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
+            packet.time_base = time_base
             packetqueue.put((packet.pts, packet))
+
+    client.close()
 
 def recv_mc():
     global tsfirst
     global enable
 
-    client = hl2ss.connect_client_mc(host, port_mc, 256, audio_profile)
+    time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
+
+    client = hl2ss.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, hl2ss.ChunkSize.MICROPHONE, audio_profile)
+    client.open()
+
     while (enable):
         data = client.get_next_packet()
         lock.acquire()
@@ -88,8 +98,10 @@ def recv_mc():
             packet.stream = stream_audio
             packet.pts = data.timestamp - tsfirst
             packet.dts = packet.pts
-            packet.time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
+            packet.time_base = time_base
             packetqueue.put((packet.pts, packet))
+
+    client.close()
 
 thread_pv = threading.Thread(target=recv_pv)
 thread_mc = threading.Thread(target=recv_mc)

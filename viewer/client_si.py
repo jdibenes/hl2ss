@@ -1,7 +1,8 @@
 #------------------------------------------------------------------------------
 # This script receives spatial input data from the HoloLens, which comprises:
 # 1) Head pose, 2) Eye ray, 3) Hand tracking. The HoloLens sends this data at
-# 60 Hz.
+# display framerate (60 Hz). If the display framerate drops, so does this
+# stream.
 #------------------------------------------------------------------------------
 
 import hl2ss
@@ -21,7 +22,8 @@ print_period = 120
 #------------------------------------------------------------------------------
 
 frames = 0
-client = hl2ss.connect_client_si(host, port, 1024)
+client = hl2ss.rx_si(host, port, hl2ss.ChunkSize.SPATIAL_INPUT)
+client.open()
 
 try:
     while (True):

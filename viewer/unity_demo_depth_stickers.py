@@ -52,8 +52,9 @@ ipc.push(command_buffer)
 results = ipc.pop(command_buffer)
 
 state  = False
-calib  = hl2ss.download_calibration_rm_depth(host, port_lt)
-client = hl2ss.connect_client_rm_depth(host, port_lt, 4096, hl2ss.StreamMode.MODE_1)
+calib  = hl2ss.download_calibration_rm_depth_longthrow(host, port_lt)
+client = hl2ss.rx_rm_depth(host, port_lt, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1)
+client.open()
 
 try:
     while True:

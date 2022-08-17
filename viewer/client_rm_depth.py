@@ -5,7 +5,8 @@
 # 2) query calibration (single transfer).
 #------------------------------------------------------------------------------
 
-import hl2ss 
+import hl2ss
+import hl2ss_utilities
 import cv2
 
 # Settings --------------------------------------------------------------------
@@ -25,20 +26,23 @@ mode = hl2ss.StreamMode.MODE_1
 # Scaling factor for visibility
 brightness = 8
 
+# Print period
+# Print rig pose every period frames
+period = 10
+
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_depth(host, port)
+    data = hl2ss.download_calibration_rm_depth_longthrow(host, port)
     print('Calibration data')
     print(data.uv2xy.shape)
     print(data.extrinsics)
     print(data.scale)
     quit()
 
-pose_printer = hl2ss.pose_printer(10)
-fps_counter = hl2ss.framerate_counter(10)
-glitch_detector = hl2ss.continuity_analyzer(hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS / hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
-client = hl2ss.connect_client_rm_depth(host, port, 4096, mode)
+pose_printer = hl2ss_utilities.pose_printer(period)
+client = hl2ss.rx_rm_depth(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode)
+client.open()
 
 try:
     while True:
@@ -48,8 +52,6 @@ try:
         depth     = images.depth
         ab        = images.ab
 
-        glitch_detector.push(timestamp)
-        fps_counter.push()
         pose_printer.push(timestamp, data.pose)
         
         cv2.imshow('depth', depth*brightness)

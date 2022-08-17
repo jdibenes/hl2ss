@@ -22,10 +22,6 @@ import cv2
 # HoloLens 2 address
 host = "192.168.1.15"
 
-# Ports
-port_pv = hl2ss.StreamPort.PERSONAL_VIDEO
-port_si = hl2ss.StreamPort.SPATIAL_INPUT
-
 # Camera parameters
 # See etc/hl2_capture_formats.txt for a list of supported formats
 width     = 1920
@@ -42,7 +38,7 @@ bitrate = 5*1024*1024
 #------------------------------------------------------------------------------
 # Connect in mode 2 to query camera intrinsics
 
-data = hl2ss.download_calibration_pv(host, port_pv, width, height, framerate, profile, bitrate)
+data = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
 K = data.projection
 
 #------------------------------------------------------------------------------
@@ -61,7 +57,8 @@ def recv_pv():
     global last_pose
 
     codec_h264 = av.CodecContext.create(hl2ss.get_video_codec_name(profile), 'r')
-    client = hl2ss.connect_client_pv(host, port_pv, 8192, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate)
+    client = hl2ss.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate)
+    client.open()
 
     while (enable):
         data = client.get_next_packet()
@@ -77,7 +74,8 @@ def recv_si():
     global last_left
     global last_right
 
-    client = hl2ss.connect_client_si(host, port_si, 2048)
+    client = hl2ss.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    client.open()
 
     while (enable):
         data = client.get_next_packet()
@@ -108,7 +106,7 @@ def render_hand(image, hand, P):
         point = np.concatenate([point, np.array([1]).reshape((1,1))], axis=1)
         pixel = np.matmul(point, P)
         pixel = pixel / pixel[0,2]
-        image = cv2.circle(image, (int(pixel[0,0]), (int(pixel[0,1]))), 5, (0, 0, 255), 3)
+        image = cv2.circle(image, (int(pixel[0,0]), (int(pixel[0,1]))), 5, (255, 255, 0), 3)
     return image
 
 try:
@@ -121,7 +119,7 @@ try:
         next_left  = last_left
         next_right = last_right
 
-        image = next_frame.to_ndarray(format='bgra')
+        image = next_frame.to_ndarray(format='bgr24')
         P = np.matmul(np.linalg.inv(next_pose), K)
 
         if (next_left is not None):
@@ -130,7 +128,7 @@ try:
         if (next_right is not None):
             image = render_hand(image, next_right, P)
 
-        cv2.imshow('video', image)
+        cv2.imshow('Video', image)
         cv2.waitKey(1)
 except:
     pass
