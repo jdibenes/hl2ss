@@ -1,5 +1,34 @@
 
 import multiprocessing
+import hl2ss
+
+
+#------------------------------------------------------------------------------
+# Stream Sync Slots
+#------------------------------------------------------------------------------
+
+def get_sync_slot_rm_vlc():
+    return hl2ss.Parameters_RM_VLC.FPS
+
+
+def get_sync_slot_rm_depth():
+    return 1
+
+
+def get_sync_slot_rm_imu():
+    return 1
+
+
+def get_sync_slot_pv(framerate):
+    return framerate
+
+
+def get_sync_slot_microphone():
+    return 1
+
+
+def get_sync_slot_si():
+    return 1
 
 
 #------------------------------------------------------------------------------
@@ -31,7 +60,7 @@ class RingBuffer:
 
     def append(self, x):
         self.data.append(x)
-        if len(self.data) == self.max:
+        if (len(self.data) == self.max):
             self.cur = 0
             self.__class__ = self.__Full
 
@@ -39,7 +68,7 @@ class RingBuffer:
         return self.data
 
     def last(self):
-        if len(self.data) == 0:
+        if (len(self.data) == 0):
             return None
         return self.get()[-1]
 
@@ -223,17 +252,21 @@ class net_sink:
 
 
 class sink:
-    def __init__(self, synchronize_interval, sink_wires, interconnect_wires):
-        self._synchronize_interval = synchronize_interval
+    def __init__(self, sync_slot, sink_wires, interconnect_wires):
+        self._sync_slot = sync_slot
         self._sink_din = sink_wires.sink_din
         self._sink_dout = sink_wires.sink_dout
         self._sink_semaphore = sink_wires.sink_semaphore
         self._interconnect_semaphore = interconnect_wires.interconnect_semaphore
 
     def get_attach_response(self):
-        key = self._sink_din.get()
-        frame_stamp = self._sink_din.get() + 1
-        return (key, frame_stamp, frame_stamp + ((self._synchronize_interval - (frame_stamp % self._synchronize_interval)) % self._synchronize_interval))
+        self._key = self._sink_din.get()
+        self.initial_frame_stamp = self._sink_din.get() + 1
+        self.frame_stamp = self.initial_frame_stamp + ((self._sync_slot - (self.initial_frame_stamp % self._sync_slot)) % self._sync_slot)
+
+    def wait_for_sync(self):
+        for _ in range(0, self.frame_stamp - self.initial_frame_stamp + 1):
+            self.wait_for_data()
 
     def wait_for_data(self):
         self._sink_semaphore.acquire()
@@ -241,9 +274,9 @@ class sink:
     def skip_wait(self):
         self._sink_semaphore.release()
 
-    def detach(self, key):
+    def detach(self):
         self._sink_dout.put(interconnect.IPC_SINK_DETACH)
-        self._sink_dout.put(key)
+        self._sink_dout.put(self._key)
         self._interconnect_semaphore.release()
 
     def get_frame_stamp(self):
@@ -271,8 +304,8 @@ def create_interface_sink(manager, parallel_sink_wires):
     return net_sink(manager.Queue(), manager.Queue(), manager.Semaphore(0) if (parallel_sink_wires is None) else parallel_sink_wires.sink_semaphore)
 
 
-def create_sink(synchronize_interval, sink_wires, interconnect_wires):
-    return sink(synchronize_interval, sink_wires, interconnect_wires)
+def create_sink(sync_slot, sink_wires, interconnect_wires):
+    return sink(sync_slot, sink_wires, interconnect_wires)
 
 
 #------------------------------------------------------------------------------
@@ -290,9 +323,9 @@ class producer:
         self._interconnect.start()
         self._source.start()
 
-    def create_sink(self, synchronize_interval, manager, parallel_sink_wires):
-        sink_wires = create_interface_sink(manager, parallel_sink_wires)
-        sink = create_sink(synchronize_interval, sink_wires, self._interconnect.get_interface())
+    def create_sink(self, sync_slot, manager, parallel_sink):
+        sink_wires = create_interface_sink(manager, None if (parallel_sink is None) else parallel_sink.get_interface())
+        sink = create_sink(sync_slot, sink_wires, self._interconnect.get_interface())
         self._interconnect.attach_sink(sink_wires)
         return sink
 

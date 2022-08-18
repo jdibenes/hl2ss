@@ -227,7 +227,7 @@ class unpacker:
     def unpack(self):        
         length = len(self._buffer)
         
-        while True:
+        while (True):
             if (self._state == 0):
                 if (length >= 12):
                     header = struct.unpack('<QI', self._buffer[:12])
@@ -270,7 +270,7 @@ class gatherer:
         self._client.sendall(data)
 
     def get_next_packet(self):
-        while True:
+        while (True):
             self._unpacker.extend(self._client.recv(self._chunk_size))
             if (self._unpacker.unpack()):
                 return self._unpacker.get()

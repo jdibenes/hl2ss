@@ -61,9 +61,7 @@ try:
         data = client.get_next_packet()
         timestamp = data.timestamp
         imu_data = hl2ss.unpack_rm_imu(data.payload)
-
         pose_printer.push(timestamp, data.pose)
-
         sample = imu_data.get_sample(0)
         print('Got {count} samples at time {ts}, first sample is (ticks = {st}, x = {x}, y = {y}, z = {z})'.format(count=imu_data.get_count(), ts=timestamp, st=sample.sensor_ticks_ns, x=sample.x, y=sample.y, z=sample.z))
 except:
