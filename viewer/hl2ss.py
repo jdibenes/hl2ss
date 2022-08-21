@@ -16,10 +16,14 @@ class StreamPort:
     RM_IMU_ACCELEROMETER = 3806
     RM_IMU_GYROSCOPE     = 3807
     RM_IMU_MAGNETOMETER  = 3808
-    REMOTE_CONFIGURATION = 3809
     PERSONAL_VIDEO       = 3810
     MICROPHONE           = 3811
     SPATIAL_INPUT        = 3812
+
+
+# IPC TCP Ports
+class IPCPort:
+    REMOTE_CONFIGURATION = 3809
 
 
 # Default Chunk Sizes
@@ -88,11 +92,6 @@ class Parameters_RM_DEPTH_LONGTHROW:
     PIXELS = WIDTH * HEIGHT
     SHAPE  = (HEIGHT, WIDTH)
     PERIOD = 1 / FPS
-
-
-# Personal Video Parameters
-class Parameters_PV:
-    pass
 
 
 # Microphone Parameters
@@ -210,6 +209,9 @@ class packet:
             buffer.extend(self.pose.tobytes())
         return buffer
 
+    def is_valid_pose(self):
+        return self.pose[3, 3] != 0
+
 
 class unpacker:
     def __init__(self, mode):
@@ -279,17 +281,6 @@ class gatherer:
         self._client.close()
 
 
-class packet_stream:
-    def __init__(self, client):
-        self._client = client
-    
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-
-    def close(self):
-        return self._client.close()
-
-
 #------------------------------------------------------------------------------
 # File I/O
 #------------------------------------------------------------------------------
@@ -345,7 +336,7 @@ def unpack_rm_depth(payload):
     h, w, _ = composite.shape
     interleaved = composite.view(np.uint16).reshape((h, w, 2))
     depth, ab = np.dsplit(interleaved, 2)
-    return RM_Depth_Frame(depth, ab)
+    return RM_Depth_Frame(depth.reshape((h, w)), ab.reshape((h, w)))
 
 
 #------------------------------------------------------------------------------
@@ -557,41 +548,41 @@ def connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_video(mode, Parameters_RM_VLC.WIDTH, Parameters_RM_VLC.HEIGHT, Parameters_RM_VLC.FPS, profile, bitrate))
-    return packet_stream(c)
+    return c
 
 
 def connect_client_rm_depth(host, port, chunk_size, mode):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_mode(mode))
-    return packet_stream(c)
+    return c
 
 
 def connect_client_rm_imu(host, port, chunk_size, mode):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_mode(mode))
-    return packet_stream(c)
+    return c
 
 
 def connect_client_pv(host, port, chunk_size, mode, width, height, framerate, profile, bitrate):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_video(mode, width, height, framerate, profile, bitrate))
-    return packet_stream(c)
+    return c
 
 
 def connect_client_microphone(host, port, chunk_size, profile):
     c = gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
     c.sendall(_create_configuration_for_audio(profile))
-    return packet_stream(c)
+    return c
 
 
 def connect_client_si(host, port, chunk_size):
     c = gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
-    return packet_stream(c)
+    return c
 
 
 #------------------------------------------------------------------------------
@@ -659,12 +650,13 @@ class Mode2_RM_IMU:
 
 
 class Mode2_PV:
-    def __init__(self, focal_length, principal_point, radial_distortion, tangential_distortion, projection):
+    def __init__(self, focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics):
         self.focal_length          = focal_length
         self.principal_point       = principal_point
         self.radial_distortion     = radial_distortion
         self.tangential_distortion = tangential_distortion
         self.projection            = projection
+        self.intrinsics            = intrinsics
 
 
 def _download_mode2_data(host, port, configuration, bytes):
@@ -720,14 +712,9 @@ def download_calibration_pv(host, port, width, height, framerate, profile, bitra
     tangential_distortion = floats[_Mode2Layout_PV.BEGIN_TANGENTIALDISTORTION : _Mode2Layout_PV.END_TANGENTIALDISTORTION]
     projection            = floats[_Mode2Layout_PV.BEGIN_PROJECTION           : _Mode2Layout_PV.END_PROJECTION].reshape((4, 4))
 
-    projection[0,0] = -projection[0,0]
-    projection[1,1] = -projection[1,1]
-    projection[2,0] = width  - projection[3,0]
-    projection[2,1] = height - projection[3,1]
-    projection[3,0] = 0
-    projection[3,1] = 0
+    intrinsics = np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
-    return Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection)
+    return Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics)
 
 
 #------------------------------------------------------------------------------
