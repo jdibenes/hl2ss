@@ -1,0 +1,35 @@
+ExposureControl
+Supported: 1
+Auto: 1
+Min: 1000
+Max: 660000
+Step: 10
+Value: 1000
+
+ExposurePriorityVideoControl
+Supported: 1
+Enabled: 0
+
+FocusControl
+Supported: 1
+Min: 170
+Max: 10000
+Step: 1
+Value: 0
+Mode: 2
+Preset: 3
+
+VideoTemporalDenoisingControl
+Supported: 1
+Mode: 1
+SupportedModes
+0
+1
+
+WhiteBalanceControl
+Max: 7500
+Min: 2300
+Preset: 0
+Step: 25
+Supported: 1
+Value: 2300

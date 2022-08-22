@@ -39,7 +39,7 @@ bitrate = 5*1024*1024
 # Connect in mode 2 to query camera intrinsics
 
 data = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
-K = data.projection
+K = data.intrinsics
 
 #------------------------------------------------------------------------------
 # Open PV stream in mode 1 to obtain camera poses and open SI stream to obtain
