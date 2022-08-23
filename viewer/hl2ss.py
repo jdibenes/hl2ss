@@ -544,42 +544,42 @@ def _create_configuration_for_audio(profile):
 # Mode 0 and Mode 1 Data Acquisition
 #------------------------------------------------------------------------------
 
-def connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
+def _connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_video(mode, Parameters_RM_VLC.WIDTH, Parameters_RM_VLC.HEIGHT, Parameters_RM_VLC.FPS, profile, bitrate))
     return c
 
 
-def connect_client_rm_depth(host, port, chunk_size, mode):
+def _connect_client_rm_depth(host, port, chunk_size, mode):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_mode(mode))
     return c
 
 
-def connect_client_rm_imu(host, port, chunk_size, mode):
+def _connect_client_rm_imu(host, port, chunk_size, mode):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_mode(mode))
     return c
 
 
-def connect_client_pv(host, port, chunk_size, mode, width, height, framerate, profile, bitrate):
+def _connect_client_pv(host, port, chunk_size, mode, width, height, framerate, profile, bitrate):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_video(mode, width, height, framerate, profile, bitrate))
     return c
 
 
-def connect_client_microphone(host, port, chunk_size, profile):
+def _connect_client_microphone(host, port, chunk_size, profile):
     c = gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
     c.sendall(_create_configuration_for_audio(profile))
     return c
 
 
-def connect_client_si(host, port, chunk_size):
+def _connect_client_si(host, port, chunk_size):
     c = gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
     return c
@@ -731,7 +731,7 @@ class rx_rm_vlc:
         self.bitrate = bitrate
 
     def open(self):
-        self._client = connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
+        self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -748,7 +748,7 @@ class rx_rm_depth:
         self.mode = mode
 
     def open(self):
-        self._client = connect_client_rm_depth(self.host, self.port, self.chunk, self.mode)
+        self._client = _connect_client_rm_depth(self.host, self.port, self.chunk, self.mode)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -765,7 +765,7 @@ class rx_rm_imu:
         self.mode = mode
 
     def open(self):
-        self._client = connect_client_rm_imu(self.host, self.port, self.chunk, self.mode)
+        self._client = _connect_client_rm_imu(self.host, self.port, self.chunk, self.mode)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -787,7 +787,7 @@ class rx_pv:
         self.bitrate = bitrate
 
     def open(self):
-        self._client = connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.profile, self.bitrate)
+        self._client = _connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.profile, self.bitrate)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -805,7 +805,7 @@ class rx_microphone:
         self.profile = profile
 
     def open(self):
-        self._client = connect_client_microphone(self.host, self.port, self.chunk, self.profile)
+        self._client = _connect_client_microphone(self.host, self.port, self.chunk, self.profile)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -822,7 +822,7 @@ class rx_si:
         self.mode = StreamMode.MODE_0
 
     def open(self):
-        self._client = connect_client_si(self.host, self.port, self.chunk)
+        self._client = _connect_client_si(self.host, self.port, self.chunk)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
