@@ -26,10 +26,6 @@ mode = hl2ss.StreamMode.MODE_1
 # Scaling factor for visibility
 brightness = 8
 
-# Print period
-# Print rig pose every period frames
-period = 10
-
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -40,22 +36,16 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.scale)
     quit()
 
-pose_printer = hl2ss_utilities.pose_printer(period)
-client = hl2ss.rx_rm_depth(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode)
+client = hl2ss_utilities.rx_decoded_rm_depth(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode)
 client.open()
 
 try:
-    while True:
-        data      = client.get_next_packet()
-        timestamp = data.timestamp
-        images    = hl2ss.unpack_rm_depth(data.payload)
-        depth     = images.depth
-        ab        = images.ab
-
-        pose_printer.push(timestamp, data.pose)
-        
-        cv2.imshow('depth', depth*brightness)
-        cv2.imshow('ab', ab*brightness)
+    while (True):
+        data = client.get_next_packet()
+        print('Pose at time {ts}'.format(ts=data.timestamp))
+        print(data.pose)
+        cv2.imshow('depth', data.payload.depth*brightness)
+        cv2.imshow('ab', data.payload.ab*brightness)
         cv2.waitKey(1)
 except:
     pass

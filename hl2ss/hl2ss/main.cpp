@@ -53,7 +53,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		HolographicSpace_Initialize();
 		Locator_Initialize();
 		ResearchMode_Initialize();
-		SpatialInput_Initialize();		
+		SpatialInput_Initialize();
 
 		RM_Initialize();
 		MC_Initialize();

@@ -8,14 +8,12 @@
 #include "ports.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Media.Devices.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 #include <winrt/Windows.Media.Devices.Core.h>
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
-using namespace winrt::Windows::Media::Devices;
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
 using namespace winrt::Windows::Foundation::Numerics;
@@ -203,8 +201,8 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
 }
 
 // OK
-static void PV_Stream(MediaCapture const& mediaCapture, MediaFrameSource const& videoSource, SOCKET clientsocket)
-{    
+static void PV_Stream(SOCKET clientsocket)
+{
     MediaFrameReader videoFrameReader = nullptr;
     HANDLE clientevent; // CloseHandle
     H26xFormat format;
@@ -217,12 +215,12 @@ static void PV_Stream(MediaCapture const& mediaCapture, MediaFrameSource const& 
     ok = ReceiveVideoFormatH26x(clientsocket, format);
     if (!ok) { return; }
 
-    ok = PersonalVideo_SetFormat(videoSource, format.width, format.height, format.framerate);
+    ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
     if (!ok) { return; }
     
     clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-    videoFrameReader = mediaCapture.CreateFrameReaderAsync(videoSource).get();
+    videoFrameReader = PersonalVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
     switch (mode)
@@ -232,6 +230,7 @@ static void PV_Stream(MediaCapture const& mediaCapture, MediaFrameSource const& 
     case 2: PV_Intrinsics(   clientsocket, clientevent, videoFrameReader);         break;
     }
 
+    videoFrameReader.Close();
     CloseHandle(clientevent);
 }
 
@@ -240,87 +239,10 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 {
     (void)param;
 
-    MediaFrameSource videoSource = nullptr;
-    MediaCapture mediaCapture;
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
 
-    PersonalVideo_Initialize(mediaCapture, videoSource);
-
-
-
-    ExposureControl ec = mediaCapture.VideoDeviceController().ExposureControl();
-
-    ShowMessage("ExposureControl");
-    ShowMessage("Supported: %d", (int)ec.Supported());
-    ShowMessage("Auto: %d", (int)ec.Auto());
-    ShowMessage("Min: %lld", ec.Min().count());
-    ShowMessage("Max: %lld", ec.Max().count());    
-    ShowMessage("Step: %lld", ec.Step().count());    
-    ShowMessage("Value: %lld", ec.Value().count());
-
-    mediaCapture.VideoDeviceController().ExposureControl().SetAutoAsync(false).get();
-
-    ExposurePriorityVideoControl ep = mediaCapture.VideoDeviceController().ExposurePriorityVideoControl();
-
-    ShowMessage("ExposurePriorityVideoControl");
-    ShowMessage("Supported: %d", (int)ep.Supported());
-    ShowMessage("Enabled: %d", (int)ep.Enabled());
-
-    mediaCapture.VideoDeviceController().ExposurePriorityVideoControl().Enabled(false);
-
-    FocusControl fc = mediaCapture.VideoDeviceController().FocusControl();
-
-    ShowMessage("FocusControl");
-    ShowMessage("Supported: %d", (int)fc.Supported());
-    ShowMessage("Min: %d", fc.Min());
-    ShowMessage("Max: %d", fc.Max());
-    ShowMessage("Step: %d", fc.Step());
-    ShowMessage("Value: %d", fc.Value());
-    ShowMessage("Mode: %d", (int)fc.Mode());
-    ShowMessage("Preset: %d", (int)fc.Preset());
-
-    FocusSettings fs;
-    fs.Mode(FocusMode::Manual);
-    fs.Value(170);
-    fs.DisableDriverFallback(true);
-    mediaCapture.VideoDeviceController().FocusControl().Configure(fs);
-    mediaCapture.VideoDeviceController().FocusControl().FocusAsync().get();
-
-    ShowMessage("Current FOCUS_MODE %d", (int)mediaCapture.VideoDeviceController().FocusControl().Mode());
-    ShowMessage("Current FOCUS_VALUE %d", (int)mediaCapture.VideoDeviceController().FocusControl().Value());
-
-    //double tilt;
-    //mediaCapture.VideoDeviceController().Tilt().TrySetValue(20.0); // Not supported
-    //mediaCapture.VideoDeviceController().Tilt().TryGetValue(tilt);
-    //ShowMessage("Tilt %f", tilt);
-
-    VideoTemporalDenoisingControl vd = mediaCapture.VideoDeviceController().VideoTemporalDenoisingControl();
-
-    ShowMessage("VideoTemporalDenoisingControl");
-    ShowMessage("Supported: %d", (int)vd.Supported());
-    ShowMessage("Mode: %d", (int)vd.Mode());
-    ShowMessage("SupportedModes");
-    for (auto mode : vd.SupportedModes()) { ShowMessage("%d", (int)mode); }
-
-    mediaCapture.VideoDeviceController().VideoTemporalDenoisingControl().Mode(VideoTemporalDenoisingMode::Off);
-    ShowMessage("New TD Mode: %d", (int)mediaCapture.VideoDeviceController().VideoTemporalDenoisingControl().Mode());
-
-    WhiteBalanceControl wb = mediaCapture.VideoDeviceController().WhiteBalanceControl();
-
-    ShowMessage("WhiteBalanceControl");
-    ShowMessage("Max: %d", wb.Max());
-    ShowMessage("Min: %d", wb.Min());
-    ShowMessage("Preset: %d", (int)wb.Preset());
-    ShowMessage("Step: %d", wb.Step());
-    ShowMessage("Supported: %d", (int)wb.Supported());
-    ShowMessage("Value: %d", wb.Value());
-
-    mediaCapture.VideoDeviceController().WhiteBalanceControl().SetPresetAsync(ColorTemperaturePreset::Manual).get();
-
-
-
-
+    PersonalVideo_Initialize();
 
     listensocket = CreateSocket(PORT_PV);
 
@@ -335,7 +257,7 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 
     ShowMessage("PV: Client connected");
 
-    PV_Stream(mediaCapture, videoSource, clientsocket);
+    PV_Stream(clientsocket);
 
     closesocket(clientsocket);
 

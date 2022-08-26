@@ -1,5 +1,6 @@
 
 import multiprocessing as mp
+import hl2ss
 
 
 #------------------------------------------------------------------------------
@@ -318,6 +319,26 @@ def create_interface_sink(sink_din, sink_dout, sink_semaphore):
 
 def create_sink(sink_wires, interconnect_wires):
     return sink(sink_wires, interconnect_wires)
+
+
+#------------------------------------------------------------------------------
+# Stream Sync Period
+#------------------------------------------------------------------------------
+
+def get_sync_period_independent():
+    return 1
+
+
+def get_sync_period_rm_vlc():
+    return hl2ss.Parameters_RM_VLC.FPS
+
+
+def get_sync_period_pv(framerate):
+    return framerate
+
+
+def get_sync_frame_stamp(frame_stamp, sync_period):
+    return frame_stamp + ((sync_period - (frame_stamp % sync_period)) % sync_period)
 
 
 #------------------------------------------------------------------------------

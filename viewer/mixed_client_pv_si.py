@@ -12,8 +12,7 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
-import numpy as np
-import av
+import hl2ss_utilities
 import threading
 import cv2
 
@@ -35,15 +34,14 @@ profile = hl2ss.VideoProfile.H265_MAIN
 # Must be > 0
 bitrate = 5*1024*1024
 
-#------------------------------------------------------------------------------
-# Connect in mode 2 to query camera intrinsics
+# Marker properties
+radius = 5
+color = (255, 255, 0)
+thickness = 3
 
-data = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
-K = data.intrinsics
-
 #------------------------------------------------------------------------------
-# Open PV stream in mode 1 to obtain camera poses and open SI stream to obtain
-# hand tracking data
+
+calibration = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
 
 enable     = True
 last_frame = None
@@ -56,17 +54,12 @@ def recv_pv():
     global last_frame
     global last_pose
 
-    codec_h264 = av.CodecContext.create(hl2ss.get_video_codec_name(profile), 'r')
-    client = hl2ss.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate)
+    client = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
     client.open()
-
     while (enable):
         data = client.get_next_packet()
         last_pose = data.pose
-        for packet in codec_h264.parse(data.payload):
-            for frame in codec_h264.decode(packet):
-                last_frame = frame
-
+        last_frame = data.payload
     client.close()
 
 def recv_si():
@@ -76,21 +69,11 @@ def recv_si():
 
     client = hl2ss.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
     client.open()
-
     while (enable):
         data = client.get_next_packet()
         si = hl2ss.unpack_si(data.payload)
-
-        if (si.is_valid_hand_left()):
-            last_left = si.get_hand_left()
-        else:
-            last_left = None
-
-        if (si.is_valid_hand_right()):
-            last_right = si.get_hand_right()
-        else:
-            last_right = None
-
+        last_left  = si.get_hand_left()  if (si.is_valid_hand_left())  else None
+        last_right = si.get_hand_right() if (si.is_valid_hand_right()) else None
     client.close()
 
 thread_pv = threading.Thread(target=recv_pv)
@@ -99,34 +82,29 @@ thread_si = threading.Thread(target=recv_si)
 thread_pv.start()
 thread_si.start()
 
-def render_hand(image, hand, P):
-    for joint in range(0, hl2ss.HandJointKind.TOTAL):
-        pose = hand.get_joint_pose(joint)
-        point = pose.position.reshape((1,3))
-        point = np.concatenate([point, np.array([1]).reshape((1,1))], axis=1)
-        pixel = np.matmul(point, P)
-        pixel = pixel / pixel[0,2]
-        image = cv2.circle(image, (int(pixel[0,0]), (int(pixel[0,1]))), 5, (255, 255, 0), 3)
-    return image
+def render_hand(image, hand, P, radius, color, thickness):
+    _, _, positions, _, _ = hl2ss_utilities.si_unpack_hand(hand)
+    ipoints, _ = hl2ss_utilities.project_to_image(hl2ss_utilities.to_homogeneous(positions), P)
+    for x, y in ipoints:
+        cv2.circle(image, (int(x), (int(y))), radius, color, thickness)
 
 try:
-    while True:
+    while (True):
         if (last_frame is None):
             continue
 
-        next_frame = last_frame
+        image = last_frame
         next_pose  = last_pose
         next_left  = last_left
         next_right = last_right
 
-        image = next_frame.to_ndarray(format='bgr24')
-        P = np.matmul(np.linalg.inv(next_pose), K)
+        P = hl2ss_utilities.projection(calibration.intrinsics, hl2ss_utilities.pv_world_to_camera(next_pose))
 
         if (next_left is not None):
-            image = render_hand(image, next_left, P)
+            render_hand(image, next_left, P, radius, color, thickness)
 
         if (next_right is not None):
-            image = render_hand(image, next_right, P)
+            render_hand(image, next_right, P, radius, color, thickness)
 
         cv2.imshow('Video', image)
         cv2.waitKey(1)

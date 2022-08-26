@@ -113,7 +113,7 @@ class TimeBase:
     HUNDREDS_OF_NANOSECONDS = 10*1000*1000
 
 
-# Hand joints
+# Hand Joints
 class HandJointKind:
     Palm = 0
     Wrist = 1
@@ -142,6 +142,81 @@ class HandJointKind:
     LittleDistal = 24
     LittleTip = 25
     TOTAL = 26
+
+
+# Display Marker
+class MarkerState:
+    Disable = 0
+    Enable = 1
+
+
+# Focus Modes
+class FocusMode:
+    Auto = 0
+    Single = 1
+    Continuous = 2
+    Manual = 3
+
+
+# Auto Focus Range
+class AutoFocusRange:
+    FullRange = 0
+    Macro = 1
+    Normal = 2
+
+
+# Manual Focus Distance
+class ManualFocusDistance:
+    Infinity = 0
+    Nearest = 2
+
+
+# Minimum and maximum allowed focus values
+class FocusValue:
+    Min = 170
+    Max = 10000
+
+
+# Driver configuration for auto focus
+class DriverFallback:
+    Enable = 0
+    Disable = 1
+
+
+# Video Temporal Denoising
+class VideoTemporalDenoisingMode:
+    Off = 0
+    On = 1
+
+
+# White Balance Presets
+class ColorTemperaturePreset:
+    Auto = 0
+    Manual = 1
+    Cloudy = 2
+    Daylight = 3
+    Flash = 4
+    Fluorescent = 5
+    Tungsten = 6
+    Candlelight = 7
+
+
+# Minimum and maximum allowed values for white balance
+class WhiteBalanceValue:
+    Min = 2300 // 25
+    Max = 7500 // 25
+
+
+# Exposure mode
+class ExposureMode:
+    Manual = 0
+    Auto = 1
+    
+
+# Minimum and maximum allowed values for exposure
+class ExposureValue:
+    Min = 1000 // 10
+    Max = 660000 // 10
 
 
 #------------------------------------------------------------------------------
@@ -829,4 +904,57 @@ class rx_si:
 
     def close(self):
         self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Remote Configuration
+#------------------------------------------------------------------------------
+
+class tx_rc:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def _open(self):
+        self._client = client()
+        self._client.open(self.host, self.port)
+
+    def _close(self):
+        self._client.close()
+
+    def set_marker_state(self, state):
+        self._open()
+        command = struct.pack('<BI', 0, state)
+        self._client.sendall(command)
+        self._close()
+
+    def set_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
+        self._open()
+        command = struct.pack('<BIIIII', 1, focusmode, autofocusrange, distance, value, driverfallback)
+        self._client.sendall(command)
+        self._close()
+
+    def set_video_temporal_denoising(self, mode):
+        self._open()
+        command = struct.pack('<BI', 2, mode)
+        self._client.sendall(command)
+        self._close()
+
+    def set_white_balance_preset(self, preset):
+        self._open()
+        command = struct.pack('<BI', 3, preset)
+        self._client.sendall(command)
+        self._close()
+
+    def set_white_balance_value(self, value):
+        self._open()
+        command = struct.pack('<BI', 4, value)
+        self._client.sendall(command)
+        self._close()
+
+    def set_exposure(self, mode, value):
+        self._open()
+        command = struct.pack('<BII', 5, mode, value)
+        self._client.sendall(command)
+        self._close()
 

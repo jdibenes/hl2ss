@@ -1,11 +1,20 @@
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
+#include <winrt/Windows.Media.Devices.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 
+using namespace winrt::Windows::Media::Devices;
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+static MediaCapture g_mediaCapture = nullptr;
+static MediaFrameSource g_videoSource = nullptr;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -67,7 +76,7 @@ static bool PersonalVideo_FindVideoFormat(MediaFrameSource const& videoSource, u
 }
 
 // OK
-void PersonalVideo_Initialize(MediaCapture const& mediaCapture, MediaFrameSource& videoSource)
+void PersonalVideo_Initialize()
 {
     uint32_t const width     = 1920;
     uint32_t const height    = 1080;
@@ -77,6 +86,8 @@ void PersonalVideo_Initialize(MediaCapture const& mediaCapture, MediaFrameSource
     MediaCaptureVideoProfile profile = nullptr;
     MediaCaptureVideoProfileMediaDescription description = nullptr;
     MediaCaptureInitializationSettings settings;
+
+    g_mediaCapture = MediaCapture();
 
     PersonalVideo_FindMediaSourceGroup(width, height, framerate, sourceGroup, profile, description);
 
@@ -89,20 +100,125 @@ void PersonalVideo_Initialize(MediaCapture const& mediaCapture, MediaFrameSource
     settings.SourceGroup(sourceGroup);
     settings.MediaCategory(MediaCategory::Media);
 
-    mediaCapture.InitializeAsync(settings).get();
+    g_mediaCapture.InitializeAsync(settings).get();
 
-    PersonalVideo_FindVideoSource(mediaCapture, videoSource);
+    PersonalVideo_FindVideoSource(g_mediaCapture, g_videoSource);
 }
 
 // OK
-bool PersonalVideo_SetFormat(MediaFrameSource const& videoSource, uint32_t width, uint32_t height, uint32_t framerate)
+bool PersonalVideo_SetFormat(uint32_t width, uint32_t height, uint32_t framerate)
 {
     MediaFrameFormat selectedFormat = nullptr;
     bool ok;
 
-    ok = PersonalVideo_FindVideoFormat(videoSource, width, height, framerate, selectedFormat);
+    ok = PersonalVideo_FindVideoFormat(g_videoSource, width, height, framerate, selectedFormat);
     if (!ok) { return false; }
 
-    videoSource.SetFormatAsync(selectedFormat).get();
+    g_videoSource.SetFormatAsync(selectedFormat).get();
     return true;
+}
+
+// OK
+MediaFrameReader PersonalVideo_CreateFrameReader()
+{
+    return g_mediaCapture.CreateFrameReaderAsync(g_videoSource).get();
+}
+
+// OK
+void PersonalVideo_SetFocus(uint32_t focusmode, uint32_t autofocusrange, uint32_t distance, uint32_t value, uint32_t disabledriverfallback)
+{
+    AutoFocusRange afr;
+    ManualFocusDistance mfd;
+    FocusMode fm;
+    FocusSettings fs;
+
+    switch (focusmode)
+    {
+    case 0:  fm = FocusMode::Auto;       break;
+    case 1:  fm = FocusMode::Single;     break;
+    case 2:  fm = FocusMode::Continuous; break;
+    case 3:  fm = FocusMode::Manual;     break;
+    default: return;
+    }
+
+    switch (autofocusrange)
+    {
+    case 0:  afr = AutoFocusRange::FullRange; break;
+    case 1:  afr = AutoFocusRange::Macro;     break;
+    case 2:  afr = AutoFocusRange::Normal;    break;
+    default: return;
+    }
+
+    switch (distance)
+    {
+    case 0:  mfd = ManualFocusDistance::Infinity; break;
+    case 2:  mfd = ManualFocusDistance::Nearest;  break;
+    default: return;
+    }
+
+    if ((value < 170) || (value > 10000)) { return; }
+
+    fs.Mode(fm);
+    fs.AutoFocusRange(afr);
+    fs.Distance(mfd);
+    fs.Value(value);
+    fs.DisableDriverFallback(disabledriverfallback != 0);
+
+    g_mediaCapture.VideoDeviceController().FocusControl().Configure(fs);
+    g_mediaCapture.VideoDeviceController().FocusControl().FocusAsync().get();
+}
+
+// OK
+void PersonalVideo_SetVideoTemporalDenoising(uint32_t mode)
+{
+    VideoTemporalDenoisingMode vtdm;
+
+    switch (mode)
+    {
+    case 0:  vtdm = VideoTemporalDenoisingMode::Off; break;
+    case 1:  vtdm = VideoTemporalDenoisingMode::On;  break;
+    default: return;
+    }
+
+    g_mediaCapture.VideoDeviceController().VideoTemporalDenoisingControl().Mode(vtdm);
+}
+
+// OK
+void PersonalVideo_SetWhiteBalance_Preset(uint32_t preset)
+{
+    ColorTemperaturePreset ctp;
+
+    switch (preset)
+    {
+    case 0:  ctp = ColorTemperaturePreset::Auto;        break;
+    case 1:  ctp = ColorTemperaturePreset::Manual;      break;
+    case 2:  ctp = ColorTemperaturePreset::Cloudy;      break;
+    case 3:  ctp = ColorTemperaturePreset::Daylight;    break;
+    case 4:  ctp = ColorTemperaturePreset::Flash;       break;
+    case 5:  ctp = ColorTemperaturePreset::Fluorescent; break;
+    case 6:  ctp = ColorTemperaturePreset::Tungsten;    break;
+    case 7:  ctp = ColorTemperaturePreset::Candlelight; break;
+    default: return;
+    }
+
+    g_mediaCapture.VideoDeviceController().WhiteBalanceControl().SetPresetAsync(ctp).get();
+}
+
+// OK
+void PersonalVideo_SetWhiteBalance_Value(uint32_t value)
+{
+    uint32_t temperature = value * 25;
+    if ((temperature < 2300) || (temperature > 7500)) { return; }
+    g_mediaCapture.VideoDeviceController().WhiteBalanceControl().SetValueAsync(temperature).get();
+}
+
+// OK
+void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
+{
+    uint32_t exposure = value * 10;
+    bool mode = setauto != 0;
+    if ((exposure < 1000) || (exposure > 660000)) { return; }
+    g_mediaCapture.VideoDeviceController().ExposureControl().SetAutoAsync(mode).get();
+    if (mode) { return; }
+    g_mediaCapture.VideoDeviceController().ExposureControl().SetValueAsync(winrt::Windows::Foundation::TimeSpan(exposure)).get();
 }

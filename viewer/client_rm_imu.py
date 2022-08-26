@@ -10,7 +10,6 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
-import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -37,10 +36,6 @@ chunk_size = hl2ss.ChunkSize.RM_IMU_ACCELEROMETER
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
 
-# Print period
-# Print rig pose every period frames
-period = 24
-
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -52,18 +47,17 @@ if (mode == hl2ss.StreamMode.MODE_2):
         print('This stream does not support mode 2')
     quit()
 
-pose_printer = hl2ss_utilities.pose_printer(period)
 client = hl2ss.rx_rm_imu(host, port, chunk_size, mode)
 client.open()
 
 try:
     while True:
         data = client.get_next_packet()
-        timestamp = data.timestamp
+        print('Pose at time {ts}'.format(ts=data.timestamp))
+        print(data.pose)
         imu_data = hl2ss.unpack_rm_imu(data.payload)
-        pose_printer.push(timestamp, data.pose)
         sample = imu_data.get_sample(0)
-        print('Got {count} samples at time {ts}, first sample is (ticks = {st}, x = {x}, y = {y}, z = {z})'.format(count=imu_data.get_count(), ts=timestamp, st=sample.sensor_ticks_ns, x=sample.x, y=sample.y, z=sample.z))
+        print('Got {count} samples at time {ts}, first sample is (ticks = {st}, x = {x}, y = {y}, z = {z})'.format(count=imu_data.get_count(), ts=data.timestamp, st=sample.sensor_ticks_ns, x=sample.x, y=sample.y, z=sample.z))
 except:
     pass
 

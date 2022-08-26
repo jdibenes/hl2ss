@@ -8,6 +8,7 @@
 #include "../hl2ss/stream_mc.h"
 #include "../hl2ss/stream_pv.h"
 #include "../hl2ss/stream_si.h"
+#include "../hl2ss/stream_rc.h"
 #include "../hl2ss/utilities.h"
 #include "ipc.h"
 #include "plugin.h"
@@ -37,6 +38,8 @@ void InitializeStreams(uint32_t enable)
     if (enable & ENABLE_MC) { MC_Initialize(); }
     if (enable & ENABLE_PV) { PV_Initialize(); }
     if (enable & ENABLE_SI) { SI_Initialize(); }
+
+    if (enable & ENABLE_PV) { RC_Initialize(); }
 
     MQ_Initialize();
 }

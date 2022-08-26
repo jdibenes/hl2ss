@@ -237,7 +237,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -262,12 +262,14 @@
     <ClCompile Include="..\hl2ss\spatial_input.cpp" />
     <ClCompile Include="..\hl2ss\stream_mc.cpp" />
     <ClCompile Include="..\hl2ss\stream_pv.cpp" />
+    <ClCompile Include="..\hl2ss\stream_rc.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\utilities.cpp" />
+    <ClCompile Include="holographic_space_stub.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="ipc.cpp" />
   </ItemGroup>
@@ -289,6 +291,7 @@
     <ClInclude Include="..\hl2ss\spatial_input.h" />
     <ClInclude Include="..\hl2ss\stream_mc.h" />
     <ClInclude Include="..\hl2ss\stream_pv.h" />
+    <ClInclude Include="..\hl2ss\stream_rc.h" />
     <ClInclude Include="..\hl2ss\stream_rm.h" />
     <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />

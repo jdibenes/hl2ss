@@ -6,10 +6,10 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
+import hl2ss_utilities
 import pyaudio
 import queue
 import threading
-import av
 
 # Settings --------------------------------------------------------------------
 
@@ -26,14 +26,12 @@ profile = hl2ss.AudioProfile.AAC_24000
 
 enable = True
 pcmqueue = queue.Queue()
-codec = av.CodecContext.create(hl2ss.get_audio_codec_name(profile), 'r')
-resampler = av.audio.resampler.AudioResampler(format='s16', layout='stereo', rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
 
 def pcmworker():
     p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paInt16, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
+    stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
     stream.start_stream()
-    while enable:
+    while (enable):
         stream.write(pcmqueue.get())
     stream.stop_stream()
     stream.close()
@@ -41,18 +39,14 @@ def pcmworker():
 thread = threading.Thread(target=pcmworker)
 thread.start()
 
-client = hl2ss.rx_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile)
+client = hl2ss_utilities.rx_decoded_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile)
 client.open()
 
 try:
-    while True: 
+    while (True): 
         data = client.get_next_packet()
-        for packet in codec.parse(data.payload):
-            # Decoded audio format is float32
-            for frame in codec.decode(packet):
-                # Convert to int16
-                for audio in resampler.resample(frame): 
-                    pcmqueue.put(audio.to_ndarray().tobytes())
+        audio = hl2ss_utilities.microphone_planar_to_packed(data.payload)
+        pcmqueue.put(audio.tobytes())
 except:
     pass
 

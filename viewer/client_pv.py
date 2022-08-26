@@ -9,7 +9,6 @@
 import hl2ss
 import hl2ss_utilities
 import cv2
-import av
 
 # Settings --------------------------------------------------------------------
 
@@ -37,10 +36,6 @@ profile = hl2ss.VideoProfile.H265_MAIN
 # Must be > 0
 bitrate = 5*1024*1024
 
-# Print period
-# Print camera pose every period frames
-period = 60
-
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -51,23 +46,19 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.radial_distortion)
     print(data.tangential_distortion)
     print(data.projection)
+    print(data.intrinsics)
     quit()
 
-codec = av.CodecContext.create(hl2ss.get_video_codec_name(profile), 'r')
-pose_printer = hl2ss_utilities.pose_printer(period)
-client = hl2ss.rx_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate)
+client = hl2ss_utilities.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, 'bgr24')
 client.open()
 
 try:
-    while True:
+    while (True):
         data = client.get_next_packet()
-        timestamp = data.timestamp
-        pose_printer.push(timestamp, data.pose)
-        for packet in codec.parse(data.payload):
-            for frame in codec.decode(packet):
-                image = frame.to_ndarray(format='bgr24')
-                cv2.imshow('Video', image)
-                cv2.waitKey(1)
+        print('Pose at time {ts}'.format(ts=data.timestamp))
+        print(data.pose)
+        cv2.imshow('Video', data.payload)
+        cv2.waitKey(1)
 except:
     pass
 

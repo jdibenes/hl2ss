@@ -84,6 +84,12 @@
     <ClCompile Include="..\hl2ss\stream_si.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rc.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="holographic_space_stub.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -169,6 +175,9 @@
     </ClInclude>
     <ClInclude Include="hl2ss.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rc.h">
+      <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
