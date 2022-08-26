@@ -5,6 +5,10 @@
 #include "holographic_space.h"
 #include "personal_video.h"
 
+#include <winrt/Windows.ApplicationModel.h>
+
+using namespace winrt::Windows::ApplicationModel;
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -104,6 +108,19 @@ static void RC_SetExposure(SOCKET clientsocket)
 }
 
 // OK
+static void RC_GetVersion(SOCKET clientsocket)
+{
+    PackageVersion version = Package::Current().Id().Version();
+    uint16_t data[4] = { version.Major, version.Minor, version.Build, version.Revision };
+    WSABUF wsaBuf;
+
+    wsaBuf.buf = (char*)data;
+    wsaBuf.len = sizeof(data);
+  
+    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
+// OK
 static void RC_Translate(SOCKET clientsocket)
 {
     uint8_t state;
@@ -120,6 +137,7 @@ static void RC_Translate(SOCKET clientsocket)
     case 3: RC_SetWhiteBalance_Preset(clientsocket);    break;
     case 4: RC_SetWhiteBalance_Value(clientsocket);     break;
     case 5: RC_SetExposure(clientsocket);               break;
+    case 6: RC_GetVersion(clientsocket);                break;
     }
 }
 

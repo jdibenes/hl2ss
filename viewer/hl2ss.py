@@ -225,6 +225,7 @@ class ExposureValue:
 
 class _SIZEOF:
     BYTE = 1
+    SHORT = 2
     INT = 4
     FLOAT = 4
     LONGLONG = 8
@@ -957,4 +958,13 @@ class tx_rc:
         command = struct.pack('<BII', 5, mode, value)
         self._client.sendall(command)
         self._close()
+
+    def get_version(self):
+        self._open()
+        command = struct.pack('<B', 6)
+        self._client.sendall(command)
+        data = self._client.download(_SIZEOF.SHORT * 4, ChunkSize.SINGLE_TRANSFER)
+        version = struct.unpack('<HHHH', data)
+        self._close()
+        return version
 
