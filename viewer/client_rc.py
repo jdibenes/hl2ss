@@ -52,6 +52,7 @@ client = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 
 version = client.get_version()
 print(version)
+
 client.set_marker_state(marker_state)
 client.set_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)
 client.set_video_temporal_denoising(video_temporal_denoising)
