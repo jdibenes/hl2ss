@@ -95,13 +95,12 @@ class rx_decoded_microphone:
 #------------------------------------------------------------------------------
 
 def to_homogeneous(array):
-    return np.hstack((array, np.ones((array.shape[0], 1), dtype=array.dtype)))
+    return np.concatenate((array, np.ones(array.shape[0:-1] + (1,), dtype=array.dtype)), axis=-1)
 
 
 def to_inhomogeneous(array):
-    end = array.shape[1] - 1
-    z = array[:, end].reshape((-1, 1))
-    return (array[:, 0:end] / z, z)
+    w = array[..., -1, np.newaxis]
+    return (array[..., 0:-1] / w, w)
 
 
 def projection(intrinsics, world_to_camera):
@@ -123,7 +122,7 @@ class RM_Pinhole_Model:
         self.uv2xy      = uv2xy
 
 
-def rm_load_pinhole_model(path, width, height):
+def _rm_load_pinhole_model(path, width, height):
     intrinsics = np.fromfile(os.path.join(path, 'intrinsics.bin'), dtype=np.float32).reshape((4, 4))
     map = np.fromfile(os.path.join(path, 'map.bin'), dtype=np.float32).reshape((height, width, 2))
     uv2xy = np.fromfile(os.path.join(path, 'uv2xy.bin'), dtype=np.float32).reshape((height, width, 2))
@@ -138,12 +137,16 @@ def rm_world_to_camera(extrinsics, pose):
     return np.linalg.inv(pose) @ extrinsics
 
 
+def rm_camera_to_camera(extrinsics_source, extrinsics_destination):
+    return np.linalg.inv(extrinsics_source) @ extrinsics_destination
+
+
 #------------------------------------------------------------------------------
 # RM VLC
 #------------------------------------------------------------------------------
 
 def rm_vlc_load_pinhole_model(path):
-    return rm_load_pinhole_model(path, hl2ss.Parameters_RM_VLC.WIDTH, hl2ss.Parameters_RM_VLC.HEIGHT)
+    return _rm_load_pinhole_model(path, hl2ss.Parameters_RM_VLC.WIDTH, hl2ss.Parameters_RM_VLC.HEIGHT)
 
 
 def rm_vlc_undistort(image, map):
@@ -155,40 +158,66 @@ def rm_vlc_undistort(image, map):
 #------------------------------------------------------------------------------
 
 def rm_depth_longthrow_load_pinhole_model(path):
-    return rm_load_pinhole_model(path, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
+    return _rm_load_pinhole_model(path, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
+
+
+def rm_depth_ab_to_float(ab):
+    return ab.astype(np.float32) / 65535
+
+
+def rm_depth_ab_to_uint8(ab):
+    return (rm_depth_ab_to_float(ab) * 255).astype(np.uint8)
 
 
 def rm_depth_get_normalizer(uv2xy, scale):
-    uv2x = uv2xy[:, :, 0]
-    uv2y = uv2xy[:, :, 1]
-    return np.sqrt(uv2x**2 + uv2y**2 + 1) * scale
+    return np.sqrt(uv2xy[:, :, 0]**2 + uv2xy[:, :, 1]**2 + 1) * scale
 
 
 def rm_depth_to_points(depth, uv2xy):
-    x = uv2xy[:, :, 0] * depth
-    y = uv2xy[:, :, 1] * depth
-    z = depth
-    return np.hstack((x.reshape((-1, 1)), y.reshape((-1, 1)), z.reshape((-1, 1))))
+    xyz = uv2xy * depth[:, :, np.newaxis]
+    return np.hstack((xyz[:, :, 0].reshape((-1, 1)), xyz[:, :, 1].reshape((-1, 1)), depth.reshape((-1, 1))))
 
 
 def rm_depth_undistort(depth, map):
     return cv2.remap(depth, map[:, :, 0], map[:, :, 1], cv2.INTER_NEAREST)
 
 
-def rm_depth_generate_rgbd(rgb, depth, rgb_projection, depth_uv2xy, depth_camera_to_world):
-    uv, _ = project_to_image(to_homogeneous(rm_depth_to_points(depth, depth_uv2xy)) @ depth_camera_to_world, rgb_projection)
+def rm_depth_generate_rgbd(ab, depth, depth_map, depth_scale):
+    ab = rm_depth_undistort(ab, depth_map)
+    depth = rm_depth_undistort(depth, depth_map) / depth_scale
+    return (rm_depth_ab_to_uint8(ab), depth)
+
+
+def rm_depth_generate_rgbd_from_pv(pv, depth, pv_intrinsics, pv_extrinsics, depth_map, depth_scale, depth_uv2xy, depth_extrinsics):
+    depth = rm_depth_undistort(depth, depth_map) / depth_scale
+    uv, _ = project_to_image(to_homogeneous(rm_depth_to_points(depth, depth_uv2xy)), projection(pv_intrinsics, rm_camera_to_camera(depth_extrinsics, pv_extrinsics)))
     u = uv[:, 0].reshape(depth.shape)
     v = uv[:, 1].reshape(depth.shape)
-    aligned_rgb = cv2.remap(rgb, u, v, cv2.INTER_LINEAR)
-    depth[(u < 0) | (u > (rgb.shape[1] - 1)) | (v < 0) | (v > (rgb.shape[0] - 1))] = 0    
-    return (aligned_rgb, depth)
+    depth[(u < 0) | (u > (pv.shape[1] - 1)) | (v < 0) | (v > (pv.shape[0] - 1))] = 0
+    pv = cv2.remap(pv, u, v, cv2.INTER_LINEAR)
+    return (pv, depth)
+
+
+def rm_depth_generate_rgbd_from_rm_vlc(vlc, depth, vlc_map, vlc_intrinsics, vlc_extrinsics, depth_map, depth_scale, depth_uv2xy, depth_extrinsics):
+    vlc = rm_vlc_undistort(vlc, vlc_map)
+    depth = rm_depth_undistort(depth, depth_map) / depth_scale
+    uv, _ = project_to_image(to_homogeneous(rm_depth_to_points(depth, depth_uv2xy)), projection(vlc_intrinsics, rm_camera_to_camera(depth_extrinsics, vlc_extrinsics)))
+    u = uv[:, 0].reshape(depth.shape)
+    v = uv[:, 1].reshape(depth.shape)
+    depth[(u < 0) | (u > (vlc.shape[1] - 1)) | (v < 0) | (v > (vlc.shape[0] - 1))] = 0
+    vlc = cv2.remap(vlc, u, v, cv2.INTER_LINEAR)
+    return (vlc, depth)
 
 
 #------------------------------------------------------------------------------
 # PV
 #------------------------------------------------------------------------------
 
-def pv_camera_to_word(pose):
+def pv_load_extrinsics(path):
+    return np.fromfile(os.path.join(path, 'rm_extrinsics.bin'), dtype=np.float32).reshape((4, 4))
+
+
+def pv_camera_to_world(pose):
     return pose
 
 
