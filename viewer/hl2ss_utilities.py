@@ -313,13 +313,29 @@ def microphone_packed_to_planar(array):
 # SI
 #------------------------------------------------------------------------------
 
+class SI_Hand:
+    def __init__(self, poses, orientations, positions, radii, accuracies):
+        self.poses = poses
+        self.orientations = orientations
+        self.positions = positions
+        self.radii = radii
+        self.accuracies = accuracies
+
+
 def si_unpack_hand(hand):
     poses = [hand.get_joint_pose(joint) for joint in range(0, hl2ss.HandJointKind.TOTAL)]
     orientations = np.array([pose.orientation for pose in poses])
     positions = np.array([pose.position for pose in poses])
     radii = np.array([pose.radius for pose in poses])
     accuracies = np.array([pose.accuracy for pose in poses])
-    return (poses, orientations, positions, radii, accuracies)
+    return SI_Hand(poses, orientations, positions, radii, accuracies)
+
+
+def si_head_pose_rotation_matrix(head_pose):
+    y = head_pose.up
+    z = -head_pose.forward
+    x = np.cross(y, z)
+    return np.hstack((x, y, z)).reshape((3, 3)).transpose()
 
 
 #------------------------------------------------------------------------------
