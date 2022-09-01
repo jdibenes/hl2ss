@@ -43,11 +43,10 @@ max_depth = 3.0
 settings = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 settings.set_focus(hl2ss.FocusMode.Manual, hl2ss.AutoFocusRange.Normal, hl2ss.ManualFocusDistance.Infinity, pv_focus, hl2ss.DriverFallback.Disable)
 
-calibration_depth = hl2ss.download_calibration_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 calibration_pv = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate)
-pv_extrinsics = hl2ss_utilities.pv_load_extrinsics(model_pv_path)
+pv_extrinsics = hl2ss_utilities.pv_load_rm_extrinsics(model_pv_path)
 model_depth = hl2ss_utilities.rm_depth_longthrow_load_pinhole_model(model_depth_path)
-depth_scale = hl2ss_utilities.rm_depth_get_normalizer(model_depth.uv2xy, calibration_depth.scale)
+depth_scale = hl2ss_utilities.rm_depth_get_normalizer(model_depth.uv2xy)
 
 client = hl2ss_utilities.rx_decoded_rm_depth(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1)
 client.open()
@@ -59,8 +58,8 @@ client.open()
 data_pv = client.get_next_packet()
 client.close()
 
-rgb, depth = hl2ss_utilities.rm_depth_generate_rgbd_from_pv(data_pv.payload, data_depth.payload.depth, calibration_pv.intrinsics, pv_extrinsics, model_depth.map, depth_scale, model_depth.uv2xy, calibration_depth.extrinsics)
-world_to_camera_depth = hl2ss_utilities.rm_world_to_camera(calibration_depth.extrinsics, data_depth.pose)
+rgb, depth = hl2ss_utilities.rm_depth_generate_rgbd_from_pv(data_pv.payload, data_depth.payload.depth, calibration_pv.intrinsics, pv_extrinsics, model_depth.map, depth_scale, model_depth.uv2xy, model_depth.extrinsics)
+world_to_camera_depth = hl2ss_utilities.rm_world_to_camera(model_depth.extrinsics, data_depth.pose)
 
 o3d_rgb = o3d.geometry.Image(rgb)
 o3d_depth = o3d.geometry.Image(depth)

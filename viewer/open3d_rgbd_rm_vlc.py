@@ -35,11 +35,9 @@ max_depth = 3.0
 
 #------------------------------------------------------------------------------
 
-calibration_depth = hl2ss.download_calibration_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
-calibration_vlc = hl2ss.download_calibration_rm_vlc(host, port)
 model_vlc = hl2ss_utilities.rm_vlc_load_pinhole_model(model_vlc_path)
 model_depth = hl2ss_utilities.rm_depth_longthrow_load_pinhole_model(model_depth_path)
-depth_scale = hl2ss_utilities.rm_depth_get_normalizer(model_depth.uv2xy, calibration_depth.scale)
+depth_scale = hl2ss_utilities.rm_depth_get_normalizer(model_depth.uv2xy)
 
 client = hl2ss_utilities.rx_decoded_rm_depth(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1)
 client.open()
@@ -51,8 +49,8 @@ client.open()
 data_vlc = client.get_next_packet()
 client.close()
 
-rgb, depth = hl2ss_utilities.rm_depth_generate_rgbd_from_rm_vlc(data_vlc.payload, data_depth.payload.depth, model_vlc.map, model_vlc.intrinsics, calibration_vlc.extrinsics, model_depth.map, depth_scale, model_depth.uv2xy, calibration_depth.extrinsics)
-world_to_camera_depth = hl2ss_utilities.rm_world_to_camera(calibration_depth.extrinsics, data_depth.pose)
+rgb, depth = hl2ss_utilities.rm_depth_generate_rgbd_from_rm_vlc(data_vlc.payload, data_depth.payload.depth, model_vlc.map, model_vlc.intrinsics, model_vlc.extrinsics, model_depth.map, depth_scale, model_depth.uv2xy, model_depth.extrinsics)
+world_to_camera_depth = hl2ss_utilities.rm_world_to_camera(model_depth.extrinsics, data_depth.pose)
 
 o3d_rgb = o3d.geometry.Image(np.dstack((rgb, rgb, rgb)))
 o3d_depth = o3d.geometry.Image(depth)

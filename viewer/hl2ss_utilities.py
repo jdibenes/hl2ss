@@ -5,6 +5,68 @@ import cv2
 import time
 import av
 import hl2ss
+import hl2ss_mp
+
+
+#------------------------------------------------------------------------------
+# Version
+#------------------------------------------------------------------------------
+
+class _RANGEOF:
+    U8_MAX = 255
+    U16_MAX = 65535
+
+
+def get_server_version(host):
+    settings = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    return settings.get_version()
+
+
+#------------------------------------------------------------------------------
+# Decoders
+#------------------------------------------------------------------------------
+
+class decoder_vlc:
+    def __init__(self, profile):
+        self.profile = profile
+
+    def create(self):
+        self._codec = av.CodecContext.create(hl2ss.get_video_codec_name(self.profile), 'r')
+
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
+                return frame.to_ndarray(format='bgr24')[:, :, 0]
+        return None
+
+
+class decoder_pv:
+    def __init__(self, profile, format):
+        self.profile = profile
+        self.format = format
+
+    def create(self):
+        self._codec = av.CodecContext.create(hl2ss.get_video_codec_name(self.profile), 'r')
+
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
+                return frame.to_ndarray(format=self.format)
+        return None
+
+
+class decoder_microphone:
+    def __init__(self, profile):
+        self.profile = profile
+
+    def create(self):
+        self._codec = av.CodecContext.create(hl2ss.get_audio_codec_name(self.profile), 'r')
+
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
+                return frame.to_ndarray()
+        return None
 
 
 #------------------------------------------------------------------------------
@@ -14,18 +76,16 @@ import hl2ss
 class rx_decoded_rm_vlc:
     def __init__(self, host, port, chunk, mode, profile, bitrate):
         self._client = hl2ss.rx_rm_vlc(host, port, chunk, mode, profile, bitrate)
-        self._codec_name = hl2ss.get_video_codec_name(profile)
+        self._codec = decoder_vlc(profile)
 
     def open(self):
-        self._codec = av.CodecContext.create(self._codec_name, 'r')
+        self._codec.create()
         self._client.open()
         self.get_next_packet()
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        for packet in self._codec.parse(data.payload):
-            for frame in self._codec.decode(packet):
-                data.payload = frame.to_ndarray(format='bgr24')[:, :, 0]
+        data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -51,19 +111,16 @@ class rx_decoded_rm_depth:
 class rx_decoded_pv:
     def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
         self._client = hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate)
-        self._codec_name = hl2ss.get_video_codec_name(profile)
-        self._format = format
+        self._codec = decoder_pv(profile, format)
 
-    def open(self):
-        self._codec = av.CodecContext.create(self._codec_name, 'r')
+    def open(self):        
+        self._codec.create()
         self._client.open()
         self.get_next_packet()
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        for packet in self._codec.parse(data.payload):
-            for frame in self._codec.decode(packet):
-                data.payload = frame.to_ndarray(format=self._format)
+        data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -73,17 +130,15 @@ class rx_decoded_pv:
 class rx_decoded_microphone:
     def __init__(self, host, port, chunk, profile):
         self._client = hl2ss.rx_microphone(host, port, chunk, profile)
-        self._codec_name = hl2ss.get_audio_codec_name(profile)
-
+        self._codec = decoder_microphone(profile)
+        
     def open(self):
-        self._codec = av.CodecContext.create(self._codec_name, 'r')
+        self._codec.create()
         self._client.open()
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        for packet in self._codec.parse(data.payload):
-            for frame in self._codec.decode(packet):
-                data.payload = frame.to_ndarray()
+        data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -116,17 +171,19 @@ def project_to_image(hwpoints, projection):
 #------------------------------------------------------------------------------
 
 class RM_Pinhole_Model:
-    def __init__(self, map, intrinsics, uv2xy):
+    def __init__(self, map, uv2xy, intrinsics, extrinsics):
         self.map        = map
-        self.intrinsics = intrinsics
         self.uv2xy      = uv2xy
+        self.intrinsics = intrinsics
+        self.extrinsics = extrinsics
 
 
 def _rm_load_pinhole_model(path, width, height):
-    intrinsics = np.fromfile(os.path.join(path, 'intrinsics.bin'), dtype=np.float32).reshape((4, 4))
     map = np.fromfile(os.path.join(path, 'map.bin'), dtype=np.float32).reshape((height, width, 2))
     uv2xy = np.fromfile(os.path.join(path, 'uv2xy.bin'), dtype=np.float32).reshape((height, width, 2))
-    return RM_Pinhole_Model(map, intrinsics, uv2xy)
+    intrinsics = np.fromfile(os.path.join(path, 'intrinsics.bin'), dtype=np.float32).reshape((4, 4))
+    extrinsics = np.fromfile(os.path.join(path, 'extrinsics.bin'), dtype=np.float32).reshape((4, 4))
+    return RM_Pinhole_Model(map, uv2xy, intrinsics, extrinsics)
 
 
 def rm_camera_to_world(extrinsics, pose):
@@ -162,15 +219,15 @@ def rm_depth_longthrow_load_pinhole_model(path):
 
 
 def rm_depth_ab_to_float(ab):
-    return ab.astype(np.float32) / 65535
+    return ab.astype(np.float32) / _RANGEOF.U16_MAX
 
 
 def rm_depth_ab_to_uint8(ab):
-    return (rm_depth_ab_to_float(ab) * 255).astype(np.uint8)
+    return (rm_depth_ab_to_float(ab) * _RANGEOF.U8_MAX).astype(np.uint8)
 
 
-def rm_depth_get_normalizer(uv2xy, scale):
-    return np.sqrt(uv2xy[:, :, 0]**2 + uv2xy[:, :, 1]**2 + 1) * scale
+def rm_depth_get_normalizer(uv2xy):
+    return np.sqrt(uv2xy[:, :, 0]**2 + uv2xy[:, :, 1]**2 + 1) * hl2ss.Parameters_RM_DEPTH_LONGTHROW.SCALE
 
 
 def rm_depth_to_points(depth, uv2xy):
@@ -213,7 +270,16 @@ def rm_depth_generate_rgbd_from_rm_vlc(vlc, depth, vlc_map, vlc_intrinsics, vlc_
 # PV
 #------------------------------------------------------------------------------
 
-def pv_load_extrinsics(path):
+def pv_optimize_for_cv(host, focus, exposure, color_preset):
+    settings = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+
+    settings.set_video_temporal_denoising(hl2ss.VideoTemporalDenoisingMode.Off)
+    settings.set_focus(hl2ss.FocusMode.Manual, hl2ss.AutoFocusRange.Normal, hl2ss.ManualFocusDistance.Infinity, focus, hl2ss.DriverFallback.Disable)
+    settings.set_exposure(hl2ss.ExposureMode.Manual, exposure)
+    settings.set_white_balance_preset(color_preset)
+
+
+def pv_load_rm_extrinsics(path):
     return np.fromfile(os.path.join(path, 'rm_extrinsics.bin'), dtype=np.float32).reshape((4, 4))
 
 
@@ -262,6 +328,76 @@ def si_unpack_hand(hand):
 
 def clamp(v, min, max):
     return min if (v < min) else max if (v > max) else v
+
+
+#------------------------------------------------------------------------------
+# Producer
+#------------------------------------------------------------------------------
+
+class producer:
+    def __init__(self):
+        self._producer = dict()
+
+    def _add(self, producer, port):
+        self._producer[port] = producer
+
+    def initialize_rm_vlc(self, buffer_size, host, port, chunk, mode, profile, bitrate):
+        self._add(hl2ss_mp.producer(hl2ss.rx_rm_vlc(host, port, chunk, mode, profile, bitrate), buffer_size), port)
+        
+    def initialize_rm_depth(self, buffer_size, host, port, chunk, mode):
+        self._add(hl2ss_mp.producer(hl2ss.rx_rm_depth(host, port, chunk, mode), buffer_size), port)
+
+    def initialize_rm_imu(self, buffer_size, host, port, chunk, mode):
+        self._add(hl2ss_mp.producer(hl2ss.rx_rm_imu(host, port, chunk, mode), buffer_size), port)
+
+    def initialize_pv(self, buffer_size, host, port, chunk, mode, width, height, framerate, profile, bitrate):        
+        self._add(hl2ss_mp.producer(hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate), buffer_size), port)
+
+    def initialize_microphone(self, buffer_size, host, port, chunk, profile):
+        self._add(hl2ss_mp.producer(hl2ss.rx_microphone(host, port, chunk, profile), buffer_size), port)
+
+    def initialize_si(self, buffer_size, host, port, chunk):
+        self._add(hl2ss_mp.producer(hl2ss.rx_si(host, port, chunk), buffer_size), port)
+
+    def initialize_decoded_rm_vlc(self, buffer_size, host, port, chunk, mode, profile, bitrate):
+        self._add(hl2ss_mp.producer(rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate), buffer_size), port)
+
+    def initialize_decoded_rm_depth(self, buffer_size, host, port, chunk, mode):
+        self._add(hl2ss_mp.producer(rx_decoded_rm_depth(host, port, chunk, mode), buffer_size), port)
+
+    def initialize_decoded_pv(self, buffer_size, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
+        self._add(hl2ss_mp.producer(rx_decoded_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, format), buffer_size), port)
+
+    def initialize_decoded_microphone(self, buffer_size, host, port, chunk, profile):
+        self._add(hl2ss_mp.producer(rx_decoded_microphone(host, port, chunk, profile), buffer_size), port)
+
+    def start(self):
+        for producer in self._producer.values():
+            producer.start()
+
+    def stop(self):
+        for producer in self._producer.values():
+            producer.stop()
+
+    def create_sink(self, port, sink_din, sink_dout, sink_semaphore):
+        return self._producer[port].create_sink(sink_din, sink_dout, sink_semaphore)
+
+
+#------------------------------------------------------------------------------
+# Consumer
+#------------------------------------------------------------------------------
+
+class consumer:
+    def __init__(self):
+        self._sink = dict()
+        self._sink_semaphore = dict()
+
+    def create_sink(self, producer, port, manager, semaphore):
+        sink_semaphore = None if (semaphore is None) else manager.Semaphore(hl2ss_mp.interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else self._sink_semaphore[semaphore]
+        sink = producer.create_sink(port, manager.Queue(), manager.Queue(), sink_semaphore)
+        self._sink[port] = sink
+        self._sink_semaphore[port] = sink_semaphore
+        return sink
 
 
 

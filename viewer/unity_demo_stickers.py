@@ -49,7 +49,7 @@ results = ipc.pop(command_buffer)
 
 previous  = False
 calib  = hl2ss.download_calibration_rm_depth_longthrow(host, port_lt)
-scaler = hl2ss_utilities.rm_depth_get_normalizer(calib.uv2xy, calib.scale)
+scaler = hl2ss_utilities.rm_depth_get_normalizer(calib.uv2xy)
 
 u0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  // 2
 v0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT // 2

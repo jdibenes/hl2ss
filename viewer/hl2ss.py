@@ -89,6 +89,7 @@ class Parameters_RM_DEPTH_LONGTHROW:
     WIDTH  = 320
     HEIGHT = 288
     FPS    = 5
+    SCALE  = 1000
     PIXELS = WIDTH * HEIGHT
     SHAPE  = (HEIGHT, WIDTH)
     PERIOD = 1 / FPS
@@ -429,7 +430,7 @@ class RM_IMU_Sample:
 
 class unpack_rm_imu:
     def __init__(self, payload):
-        self._count = int(len(payload) / 28)
+        self._count = len(payload) // 28
         self._batch = payload
 
     def get_count(self):

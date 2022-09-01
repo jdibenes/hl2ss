@@ -19,7 +19,7 @@ max_depth = 3.0
 
 calibration = hl2ss.download_calibration_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 rx_depth = hl2ss_utilities.rx_decoded_rm_depth(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0)
-depth_scale = hl2ss_utilities.rm_depth_get_normalizer(calibration.uv2xy, calibration.scale)
+depth_scale = hl2ss_utilities.rm_depth_get_normalizer(calibration.uv2xy)
 
 rx_depth.open()
 data = rx_depth.get_next_packet()

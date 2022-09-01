@@ -272,6 +272,12 @@ class sink:
         self._sink_semaphore = sink_wires.sink_semaphore
         self._interconnect_semaphore = interconnect_wires.interconnect_semaphore
 
+    def acquire(self):
+        self._sink_semaphore.acquire()
+
+    def release(self):
+        self._sink_semaphore.release()
+
     def get_attach_response(self):
         self._key = self._sink_din.get()
         frame_stamp = self._sink_din.get()
