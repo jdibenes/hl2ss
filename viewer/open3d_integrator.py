@@ -1,11 +1,12 @@
 #------------------------------------------------------------------------------
-# RGBD integration using Open3D.
+# RGBD integration using Open3D. Press space to stop.
 #------------------------------------------------------------------------------
+
+from pynput import keyboard
 
 import multiprocessing as mp
 import open3d as o3d
 import numpy as np
-import keyboard
 import hl2ss
 import hl2ss_utilities
 
@@ -28,6 +29,16 @@ max_depth = 3.0
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+    enable = True
+
+    def on_press(key):
+        global enable
+        enable = key != keyboard.Key.space
+        return enable
+
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
+
     model_depth = hl2ss_utilities.rm_depth_longthrow_load_pinhole_model(model_depth_path)
     depth_scale = hl2ss_utilities.rm_depth_get_normalizer(model_depth.uv2xy)
     
@@ -49,7 +60,7 @@ if __name__ == '__main__':
     
     [sink.get_attach_response() for sink in sinks]
 
-    while (not keyboard.is_pressed('space')):
+    while (enable):
         sink_depth.acquire()
 
         data_depth = sink_depth.get_most_recent_frame()
@@ -77,5 +88,6 @@ if __name__ == '__main__':
 
     [sink.detach() for sink in sinks]
     producer.stop()
+    listener.join()
 
     vis.run()

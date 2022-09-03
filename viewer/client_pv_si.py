@@ -1,19 +1,18 @@
 #------------------------------------------------------------------------------
 # This script receives video frames and hand tracking data from the HoloLens.
-# Then, it projects the latest received hand joint positions onto the latest
-# video frame. First, the intrinsics of the camera are obtained from a mode 2
-# transfer. Then, the video stream is set to mode 1 to include the camera pose.
-# The camera pose of the frame is used to project the hand joints. The streams
-# are independent and run at different frame rates. Hand tracking data is sent
-# at 60 Hz and video frames are sent at 30 Hz. Due to the different latencies
-# of the streams and the lazy synchronization used in this implementation, the 
-# video lags behind hand motion. As future work, the timestamps of both streams
-# should be used to generate proper composite frames.
+# It projects the received hand joint positions onto the video frame. First,
+# the intrinsics of the camera are obtained from a mode 2 transfer. Then, the 
+# video stream is set to mode 1 to include the camera pose. The camera pose of
+# the frame is used to project the hand joints. The streams are independent and
+# run at different frame rates. Hand tracking data is sent at 60 Hz and video
+# frames are sent at 30 Hz. Press esc to stop.
 #------------------------------------------------------------------------------
 
+from pynput import keyboard
+
+import multiprocessing as mp
 import hl2ss
 import hl2ss_utilities
-import threading
 import cv2
 
 # Settings --------------------------------------------------------------------
@@ -28,7 +27,7 @@ height    = 1080
 framerate = 30
 
 # Video Encoding profiles
-profile = hl2ss.VideoProfile.H265_MAIN
+profile = hl2ss.VideoProfile.H264_BASE
 
 # Encoded stream average bits per second
 # Must be > 0
@@ -39,78 +38,57 @@ radius = 5
 color = (255, 255, 0)
 thickness = 3
 
+# Buffer length in seconds
+buffer_length = 5
+
 #------------------------------------------------------------------------------
 
-calibration = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
+if __name__ == '__main__':
+    enable = True
 
-enable     = True
-last_frame = None
-last_pose  = None
-last_left  = None
-last_right = None
+    def project_points(image, P, points, radius, color, thickness):
+        for x, y in hl2ss_utilities.project_to_image(hl2ss_utilities.to_homogeneous(points), P)[0]:
+            cv2.circle(image, (int(x), (int(y))), radius, color, thickness)
 
-def recv_pv():
-    global enable
-    global last_frame
-    global last_pose
+    def on_press(key):
+        global enable
+        enable = key != keyboard.Key.esc
+        return enable
 
-    client = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
-    client.open()
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
+
+    calibration = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
+
+    producer = hl2ss_utilities.producer()
+    producer.initialize_si(hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length, host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.start()
+
+    consumer = hl2ss_utilities.consumer()
+    sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, mp.Manager(), None)
+    sink_si.get_attach_response()
+
+    client_pv = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
+    client_pv.open()
+
     while (enable):
-        data = client.get_next_packet()
-        last_pose = data.pose
-        last_frame = data.payload
-    client.close()
+        data_pv = client_pv.get_next_packet()
+        data_si = sink_si.get_nearest(data_pv.timestamp)[1]
 
-def recv_si():
-    global enable
-    global last_left
-    global last_right
+        image = data_pv.payload
 
-    client = hl2ss.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
-    client.open()
-    while (enable):
-        data = client.get_next_packet()
-        si = hl2ss.unpack_si(data.payload)
-        last_left  = si.get_hand_left()  if (si.is_valid_hand_left())  else None
-        last_right = si.get_hand_right() if (si.is_valid_hand_right()) else None
-    client.close()
-
-thread_pv = threading.Thread(target=recv_pv)
-thread_si = threading.Thread(target=recv_si)
-
-thread_pv.start()
-thread_si.start()
-
-def render_hand(image, hand, P, radius, color, thickness):
-    _, _, positions, _, _ = hl2ss_utilities.si_unpack_hand(hand)
-    ipoints, _ = hl2ss_utilities.project_to_image(hl2ss_utilities.to_homogeneous(positions), P)
-    for x, y in ipoints:
-        cv2.circle(image, (int(x), (int(y))), radius, color, thickness)
-
-try:
-    while (True):
-        if (last_frame is None):
-            continue
-
-        image = last_frame
-        next_pose  = last_pose
-        next_left  = last_left
-        next_right = last_right
-
-        P = hl2ss_utilities.projection(calibration.intrinsics, hl2ss_utilities.pv_world_to_camera(next_pose))
-
-        if (next_left is not None):
-            render_hand(image, next_left, P, radius, color, thickness)
-
-        if (next_right is not None):
-            render_hand(image, next_right, P, radius, color, thickness)
+        if (data_pv.is_valid_pose() and (data_si is not None)):
+            projection = hl2ss_utilities.projection(calibration.intrinsics, hl2ss_utilities.pv_world_to_camera(data_pv.pose))
+            si = hl2ss.unpack_si(data_si.payload)
+            if (si.is_valid_hand_left()):
+                project_points(image, projection, hl2ss_utilities.si_unpack_hand(si.get_hand_left()).positions, radius, color, thickness)
+            if (si.is_valid_hand_right()):
+                project_points(image, projection, hl2ss_utilities.si_unpack_hand(si.get_hand_right()).positions, radius, color, thickness)
 
         cv2.imshow('Video', image)
         cv2.waitKey(1)
-except:
-    pass
 
-enable = False
-thread_pv.join()
-thread_si.join()
+    client_pv.close()
+    sink_si.detach()
+    producer.stop()
+    listener.join()

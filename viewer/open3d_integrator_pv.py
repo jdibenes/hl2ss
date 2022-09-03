@@ -1,11 +1,12 @@
 #------------------------------------------------------------------------------
 # RGBD integration using Open3D. Color information comes from the front RGB
-# camera.
+# camera. Press space to stop.
 #------------------------------------------------------------------------------
+
+from pynput import keyboard
 
 import multiprocessing as mp
 import open3d as o3d
-import keyboard
 import hl2ss
 import hl2ss_utilities
 
@@ -37,6 +38,16 @@ max_depth = 3.0
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+    enable = True
+
+    def on_press(key):
+        global enable
+        enable = key != keyboard.Key.space
+        return enable
+
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
+
     hl2ss_utilities.pv_optimize_for_cv(host, focus, exposure, white_balance)
 
     calibration_pv = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
@@ -64,7 +75,7 @@ if __name__ == '__main__':
 
     [sink.get_attach_response() for sink in sinks]
 
-    while (not keyboard.is_pressed('space')):
+    while (enable):
         sink_depth.acquire()
 
         data_depth = sink_depth.get_most_recent_frame()
@@ -96,5 +107,7 @@ if __name__ == '__main__':
 
     [sink.detach() for sink in sinks]
     producer.stop()
+    listener.join()
 
     vis.run()
+    

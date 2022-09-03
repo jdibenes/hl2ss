@@ -1,11 +1,12 @@
 #------------------------------------------------------------------------------
-# RGBD integration + Spatial Input visualization.
+# RGBD integration + Spatial Input visualization. Press space to stop.
 #------------------------------------------------------------------------------
+
+from pynput import keyboard
 
 import multiprocessing as mp
 import numpy as np
 import open3d as o3d
-import keyboard
 import hl2ss
 import hl2ss_utilities
 
@@ -34,13 +35,27 @@ voxel_length = 2/100
 sdf_trunc = 0.04
 max_depth = 3.0
 
+# Geometry parameters
+head_frame_size = 0.1
+eye_pointer_radius = 0.02
 eye_pointer_color = np.array([0, 1, 0])
+hand_joint_radius = 0.01
 hand_joints_color = np.array([1, 0, 1])
 hide_position = np.array([0, -20, 0], dtype=np.float32)
 
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+    enable = True
+
+    def on_press(key):
+        global enable
+        enable = key != keyboard.Key.space
+        return enable
+
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
+
     hl2ss_utilities.pv_optimize_for_cv(host, focus, exposure, white_balance)
 
     calibration_pv = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
@@ -54,20 +69,26 @@ if __name__ == '__main__':
     vis.create_window()
     first_pcd = True
 
-    head_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1, origin=np.array([0.0, 0.0, 0.0]))
+    head_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=head_frame_size, origin=np.array([0.0, 0.0, 0.0]))
     head_previous_rotation = np.eye(3, 3)
-    eye_octo = o3d.geometry.TriangleMesh.create_octahedron(radius=0.02)
-    left_hand_octo = [o3d.geometry.TriangleMesh.create_octahedron(radius=0.01) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
-    right_hand_octo = [o3d.geometry.TriangleMesh.create_octahedron(radius=0.01) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
-    
-    eye_octo.paint_uniform_color(eye_pointer_color)
-    vis.add_geometry(head_frame, False)
-    vis.add_geometry(eye_octo, False)    
+
+    eye_pointer = o3d.geometry.TriangleMesh.create_octahedron(radius=eye_pointer_radius)
+    eye_pointer.paint_uniform_color(eye_pointer_color)
+
+    left_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
+    right_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
+
     for i in range(0, hl2ss.HandJointKind.TOTAL):
-        left_hand_octo[i].paint_uniform_color(hand_joints_color)
-        right_hand_octo[i].paint_uniform_color(hand_joints_color)
-        vis.add_geometry(left_hand_octo[i], False)
-        vis.add_geometry(right_hand_octo[i], False)
+        left_hand_joints[i].paint_uniform_color(hand_joints_color)
+        right_hand_joints[i].paint_uniform_color(hand_joints_color)
+
+    vis.add_geometry(head_frame, False)
+    vis.add_geometry(eye_pointer, False)    
+    for i in range(0, hl2ss.HandJointKind.TOTAL):        
+        vis.add_geometry(left_hand_joints[i], False)
+        vis.add_geometry(right_hand_joints[i], False)
+
+    view_initialized = False
 
     producer = hl2ss_utilities.producer()
     producer.initialize_decoded_pv(framerate * buffer_length, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, profile, bitrate, 'rgb24')
@@ -85,7 +106,7 @@ if __name__ == '__main__':
 
     [sink.get_attach_response() for sink in sinks]
 
-    while (not keyboard.is_pressed('space')):
+    while (enable):
         sink_depth.acquire()
 
         data_depth = sink_depth.get_most_recent_frame()
@@ -108,6 +129,14 @@ if __name__ == '__main__':
             head_rotation = hl2ss_utilities.si_head_pose_rotation_matrix(head_pose)
             head_frame.rotate(head_rotation @ head_previous_rotation.transpose())
             head_previous_rotation = head_rotation
+
+            if (not view_initialized):
+                vis.reset_view_point(True)
+                vc = vis.get_view_control()
+                vc.set_up(np.array([0,1,0]))
+                vc.set_front(np.array([0,0,1]))
+                vc.camera_local_translate(head_pose.position[2], head_pose.position[0], head_pose.position[1])
+                view_initialized = True
         else:
             head_frame.translate(hide_position, False)
         
@@ -122,35 +151,36 @@ if __name__ == '__main__':
                 rc = rs.cast_rays(ray)
                 d = rc['t_hit'].numpy()
                 if (not np.isinf(d)):
-                    eye_octo.translate(ray[0, 0:3] + d*ray[0, 3:6], False)
+                    eye_point = ray[0, 0:3] + d*ray[0, 3:6]
+                    eye_pointer.translate(eye_point, False)
                 else:
-                    eye_octo.translate(hide_position, False)
+                    eye_pointer.translate(hide_position, False)
             else:
-                eye_octo.translate(hide_position, False)
+                eye_pointer.translate(hide_position, False)
         else:
-            eye_octo.translate(hide_position, False)
+            eye_pointer.translate(hide_position, False)
 
         if (si.is_valid_hand_left()):            
             left_hand = hl2ss_utilities.si_unpack_hand(si.get_hand_left())
             for i in range(0, hl2ss.HandJointKind.TOTAL):
-                left_hand_octo[i].translate(left_hand.positions[i, :], False)
+                left_hand_joints[i].translate(left_hand.positions[i, :], False)
         else:
             for i in range(0, hl2ss.HandJointKind.TOTAL):
-                left_hand_octo[i].translate(hide_position, False)
+                left_hand_joints[i].translate(hide_position, False)
 
         if (si.is_valid_hand_right()):
             right_hand = hl2ss_utilities.si_unpack_hand(si.get_hand_right())
             for i in range(0, hl2ss.HandJointKind.TOTAL):
-                right_hand_octo[i].translate(right_hand.positions[i, :], False)
+                right_hand_joints[i].translate(right_hand.positions[i, :], False)
         else:
             for i in range(0, hl2ss.HandJointKind.TOTAL):
-                right_hand_octo[i].translate(hide_position, False)
+                right_hand_joints[i].translate(hide_position, False)
 
         vis.update_geometry(head_frame)
-        vis.update_geometry(eye_octo)
+        vis.update_geometry(eye_pointer)
         for i in range(0, hl2ss.HandJointKind.TOTAL):
-            vis.update_geometry(left_hand_octo[i])
-            vis.update_geometry(right_hand_octo[i])
+            vis.update_geometry(left_hand_joints[i])
+            vis.update_geometry(right_hand_joints[i])
 
         hands = si.is_valid_hand_left() or si.is_valid_hand_right()
 
@@ -174,5 +204,6 @@ if __name__ == '__main__':
 
     [sink.detach() for sink in sinks]
     producer.stop()
+    listener.join()
 
     vis.run()

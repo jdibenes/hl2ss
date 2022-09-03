@@ -1,9 +1,12 @@
 #------------------------------------------------------------------------------
-# This script adds a 3D TextMeshPro object to the Unity scene.
+# This script adds a 3D TextMeshPro object to the Unity scene. Press esc to
+# stop.
 #------------------------------------------------------------------------------
 
-from time import sleep
+from pynput import keyboard
+
 import rus
+import threading
 
 # Settings --------------------------------------------------------------------
 
@@ -30,6 +33,17 @@ rgba = [1, 1, 1, 1]
 
 #------------------------------------------------------------------------------
 
+stop_event = threading.Event()
+
+def on_press(key):
+    if (key == keyboard.Key.esc):
+        stop_event.set()
+        return False
+    return True
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
+
 ipc = rus.connect_client_mq(host, port)
 key = 0
 
@@ -49,11 +63,7 @@ key = results[2] # Get the text object id, created by the 3rd command in the lis
 
 print('Created text object with id {iid}'.format(iid=key))
 
-try:
-    while True:
-        sleep(0.02)
-except:
-    pass
+stop_event.wait()
 
 command_buffer = rus.create_command_buffer()
 command_buffer.remove(key) # Destroy text object
@@ -61,3 +71,5 @@ ipc.push(command_buffer)
 results = ipc.pop(command_buffer)
 
 ipc.close()
+
+listener.join()

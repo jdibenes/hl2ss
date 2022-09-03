@@ -4,7 +4,10 @@
 # etc/hl2_capture_formats.txt for a list of supported formats. The default
 # configuration is 1080p 30 FPS. The stream supports three operating modes:
 # 0) video, 1) video + camera pose, 2) query calibration (single transfer).
+# Press esc to stop.
 #------------------------------------------------------------------------------
+
+from pynput import keyboard
 
 import hl2ss
 import hl2ss_utilities
@@ -49,17 +52,25 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.intrinsics)
     quit()
 
+enable = True
+
+def on_press(key):
+    global enable
+    enable = key != keyboard.Key.esc
+    return enable
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
+
 client = hl2ss_utilities.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, 'bgr24')
 client.open()
 
-try:
-    while (True):
-        data = client.get_next_packet()
-        print('Pose at time {ts}'.format(ts=data.timestamp))
-        print(data.pose)
-        cv2.imshow('Video', data.payload)
-        cv2.waitKey(1)
-except:
-    pass
+while (enable):
+    data = client.get_next_packet()
+    print('Pose at time {ts}'.format(ts=data.timestamp))
+    print(data.pose)
+    cv2.imshow('Video', data.payload)
+    cv2.waitKey(1)
 
 client.close()
+listener.join()

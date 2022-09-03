@@ -1,9 +1,12 @@
 #------------------------------------------------------------------------------
-# This script adds a textured quad to the Unity scene in image space.
+# This script adds a textured quad to the Unity scene in image space. Press esc
+# to stop.
 #------------------------------------------------------------------------------
 
-from time import sleep
+from pynput import keyboard
+
 import rus
+import threading
 
 # Settings --------------------------------------------------------------------
 
@@ -31,6 +34,17 @@ texture_file = 'texture.jpg'
 
 #------------------------------------------------------------------------------
 
+stop_event = threading.Event()
+
+def on_press(key):
+    if (key == keyboard.Key.esc): 
+        stop_event.set()
+        return False
+    return True
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
+
 with open(texture_file, mode='rb') as file:
     texture = file.read()
 
@@ -51,11 +65,7 @@ ipc.push(display_list) # Send commands to server
 results = ipc.pop(display_list) # Get results from server
 key = results[2] # Get the quad id, created by the 3rd command in the list
 
-try:
-    while True:
-        sleep(0.02)
-except:
-    pass
+stop_event.wait()
 
 command_buffer = rus.create_command_buffer()
 command_buffer.remove(key) # Destroy quad
@@ -63,3 +73,5 @@ ipc.push(command_buffer)
 results = ipc.pop(command_buffer)
 
 ipc.close()
+
+listener.join()

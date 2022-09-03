@@ -1,8 +1,10 @@
 #------------------------------------------------------------------------------
 # This script records video from the HoloLens front RGB camera and audio from
-# the HoloLens microphone to a mp4 file.
+# the HoloLens microphone to a mp4 file. Press space to start recording and esc
+# to stop.
 #------------------------------------------------------------------------------
 
+from pynput import keyboard
 from fractions import Fraction
 
 import hl2ss
@@ -34,32 +36,17 @@ audio_profile = hl2ss.AudioProfile.AAC_24000
 # Video filename
 video_filename = 'video.mp4'
 
-# Video length in seconds
-video_length = 60*1
-
 #------------------------------------------------------------------------------
-
-video_codec_name = hl2ss.get_video_codec_name(video_profile)
-audio_codec_name = hl2ss.get_audio_codec_name(audio_profile)
-
-container = av.open(video_filename, 'w')
-stream_video = container.add_stream(video_codec_name, rate=framerate)
-stream_audio = container.add_stream(audio_codec_name, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
-codec_video = av.CodecContext.create(video_codec_name, 'r')
-codec_audio = av.CodecContext.create(audio_codec_name, 'r')
-
-packetqueue = queue.PriorityQueue()
-lock = threading.Lock()
 
 tsfirst = None
 enable = True
+start_event = threading.Event()
 
-def recv_pv():
+def recv_pv(stream_video, lock, packetqueue, time_base, host, width, height, framerate, video_profile, video_bitrate):
     global tsfirst
     global enable
 
-    time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
-
+    codec_video = av.CodecContext.create(hl2ss.get_video_codec_name(video_profile), 'r')
     client = hl2ss.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, video_profile, video_bitrate)
     client.open()
 
@@ -78,12 +65,11 @@ def recv_pv():
 
     client.close()
 
-def recv_mc():
+def recv_mc(stream_audio, lock, packetqueue, time_base, host, audio_profile):
     global tsfirst
     global enable
 
-    time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
-
+    codec_audio = av.CodecContext.create(hl2ss.get_audio_codec_name(audio_profile), 'r')
     client = hl2ss.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, hl2ss.ChunkSize.MICROPHONE, audio_profile)
     client.open()
 
@@ -103,20 +89,48 @@ def recv_mc():
 
     client.close()
 
-thread_pv = threading.Thread(target=recv_pv)
-thread_mc = threading.Thread(target=recv_mc)
+def on_press(key):
+    global start_event
+    global enable
+
+    if (key == keyboard.Key.space):
+        start_event.set()
+    elif (key == keyboard.Key.esc):
+        enable = False
+
+    return enable
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
+
+print('Press space to start recording')
+start_event.wait()
+print('Recording started')
+print('Press esc to stop')
+
+container = av.open(video_filename, 'w')
+stream_video = container.add_stream(hl2ss.get_video_codec_name(video_profile), rate=framerate)
+stream_audio = container.add_stream(hl2ss.get_audio_codec_name(audio_profile), rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
+
+lock = threading.Lock()
+packetqueue = queue.PriorityQueue()
+time_base = Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
+
+thread_pv = threading.Thread(target=recv_pv, args=(stream_video, lock, packetqueue, time_base, host, width, height, framerate, video_profile, video_bitrate))
+thread_mc = threading.Thread(target=recv_mc, args=(stream_audio, lock, packetqueue, time_base, host, audio_profile))
 
 thread_pv.start()
 thread_mc.start()
 
-while enable:
+while (enable):
     tuple = packetqueue.get()
     ts = tuple[0]
     container.mux(tuple[1])
-    if (ts >= (hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS * video_length)):
-        enable = False
 
 container.close()
 
 thread_pv.join()
 thread_mc.join()
+listener.join()
+
+print('Recording stopped')
