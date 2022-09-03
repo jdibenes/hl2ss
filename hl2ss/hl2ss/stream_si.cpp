@@ -1,4 +1,5 @@
 
+#include <queue>
 #include "server.h"
 #include "holographic_space.h"
 #include "locator.h"
@@ -20,11 +21,12 @@ using namespace winrt::Windows::Perception::People;
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static PerceptionTimestamp g_ts = nullptr;
+static std::queue<PerceptionTimestamp> g_queue;
+static bool g_enable = false;
+static HANDLE g_semaphore = NULL; // CloseHandle
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
 static HANDLE g_thread = NULL; // CloseHandle
 static HANDLE g_quitevent = NULL; // CloseHandle
-static HANDLE g_dataevent = NULL; // CloseHandle
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -52,14 +54,17 @@ static void SI_Stream(SOCKET clientsocket)
     left_poses.resize(HAND_JOINTS);
     right_poses.resize(HAND_JOINTS);
 
+    g_semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
+    g_enable = true;
+
     do
     {
-    WaitForSingleObject(g_dataevent, INFINITE);
+    WaitForSingleObject(g_semaphore, INFINITE);
 
     {
     CriticalSection cs(&g_lock);
-    ts = g_ts;
-    ResetEvent(g_dataevent);
+    ts = g_queue.front();
+    g_queue.pop();
     }
 
     world = Locator_GetWorldCoordinateSystem(ts);
@@ -94,6 +99,12 @@ static void SI_Stream(SOCKET clientsocket)
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     }
     while (ok);
+
+    g_enable = false;
+    CriticalSection cs(&g_lock);
+    g_queue = {};
+    CloseHandle(g_semaphore);
+    g_semaphore = NULL;
 }
 
 // OK
@@ -140,19 +151,17 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 void SI_Initialize()
 {
     InitializeCriticalSection(&g_lock);
-
     g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_dataevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
     g_thread = CreateThread(NULL, 0, SI_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
 void SI_NotifyNextFrame(PerceptionTimestamp const& ts)
 {
-    CriticalSection cs(&g_lock);
-    g_ts = ts;
-    SetEvent(g_dataevent);
+    if (!g_enable) { return; }
+    CriticalSection cs(&g_lock);    
+    g_queue.push(ts);
+    ReleaseSemaphore(g_semaphore, 1, NULL);
 }
 
 // OK
@@ -168,11 +177,9 @@ void SI_Cleanup()
 
     CloseHandle(g_thread);
     CloseHandle(g_quitevent);
-    CloseHandle(g_dataevent);
 
     g_thread = NULL;
     g_quitevent = NULL;
-    g_dataevent = NULL;
 
     DeleteCriticalSection(&g_lock);
 }
