@@ -1,6 +1,4 @@
 
-// TODO: 5 channels
-
 #include <mfapi.h>
 #include "microphone_capture.h"
 #include "utilities.h"
@@ -18,8 +16,7 @@ MicrophoneCapture::MicrophoneCapture() :
 	m_audioCaptureClient(nullptr),
 	m_wfx(nullptr),
 	m_eventActivate(NULL),
-	m_eventData(NULL),
-	m_hnsSamplePeriod(0)
+	m_eventData(NULL)
 {
 }
 
@@ -54,17 +51,12 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	WORD const bitspersample = 16;
 	DWORD const samplerate = 48000;
 	WORD const channels = 2;
-	REFERENCE_TIME const buffersizehns = (HNS_BASE * 768ULL * 4ULL) / samplerate;
-	DWORD const streamFlags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
+	REFERENCE_TIME const buffersizehns = (HNS_BASE * 16000ULL * 3ULL) / samplerate;
 
 	winrt::com_ptr<IUnknown> punkAudioInterface;
 	HRESULT activateStatus;
 	HRESULT hr;
 	WAVEFORMATEXTENSIBLE* wfe;
-	UINT32 defaultPeriodInFrame;
-	UINT32 fundamentalPeriodInFrames;
-	UINT32 minPeriodInFrames;
-	UINT32 maxPeriodInFrames;
 	BOOL ok;
 
 	hr = operation->GetActivateResult(&activateStatus, punkAudioInterface.put());
@@ -86,10 +78,7 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	wfe->Format.nAvgBytesPerSec = wfe->Format.nBlockAlign * wfe->Format.nSamplesPerSec;
 	wfe->Samples.wValidBitsPerSample = wfe->Format.wBitsPerSample;
 
-	hr = m_audioClient->GetSharedModeEnginePeriod(m_wfx, &defaultPeriodInFrame, &fundamentalPeriodInFrames, &minPeriodInFrames, &maxPeriodInFrames);
-	if (FAILED(hr)) { return hr; }
-
-	hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, streamFlags, buffersizehns, 0, m_wfx, NULL);
+	hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, buffersizehns, 0, m_wfx, NULL);
 	if (FAILED(hr)) { return hr; }
 
 	m_eventData = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -99,8 +88,6 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	if (FAILED(hr)) { return hr; }
 
 	m_audioCaptureClient.capture(m_audioClient, &IAudioClient::GetService);
-
-	m_hnsSamplePeriod = HNS_BASE / samplerate;
 
 	ok = SetEvent(m_eventActivate);
 	if (!ok) { return E_FAIL; }
@@ -130,6 +117,9 @@ void MicrophoneCapture::Stop()
 // OK
 void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioIndex)
 {
+	int const frame_duration_num = 625; // 10,000,000
+	int const frame_duration_den = 3;   //     48,000
+
 	IMFSample* pSample; // Release
 	IMFMediaBuffer* pBuffer; // Release
 	UINT32 framesAvailable; // ReleaseBuffer
@@ -140,7 +130,7 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 	UINT64 qpc;
 
 	WaitForSingleObject(m_eventData, INFINITE);
-	
+
 	while (m_audioCaptureClient->GetBuffer(&data, &framesAvailable, &dwCaptureFlags, NULL, &qpc) == S_OK)
 	{
 	bytes = framesAvailable * m_wfx->nBlockAlign;
@@ -148,16 +138,16 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 	MFCreateMemoryBuffer(bytes, &pBuffer);
 
 	pBuffer->Lock(&pDst, NULL, NULL);
-	memcpy(pDst, data, bytes);
-	m_audioCaptureClient->ReleaseBuffer(framesAvailable);
+	if (dwCaptureFlags & AUDCLNT_BUFFERFLAGS_SILENT) { memset(pDst, 0, bytes); } else { memcpy(pDst, data, bytes); }
 	pBuffer->Unlock();
-
 	pBuffer->SetCurrentLength(bytes);
+
+	m_audioCaptureClient->ReleaseBuffer(framesAvailable);
 
 	MFCreateSample(&pSample);
 
 	pSample->AddBuffer(pBuffer);
-	pSample->SetSampleDuration(framesAvailable * m_hnsSamplePeriod);
+	pSample->SetSampleDuration((framesAvailable * frame_duration_num) / frame_duration_den);
 	pSample->SetSampleTime(qpc);
 
 	pSinkWriter->WriteSample(dwAudioIndex, pSample);

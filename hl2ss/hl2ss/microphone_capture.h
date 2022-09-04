@@ -17,7 +17,6 @@ private:
 	WAVEFORMATEX* m_wfx; // CoTaskMemFree
 	HANDLE m_eventActivate; // CloseHandle
 	HANDLE m_eventData; // CloseHandle
-	UINT64 m_hnsSamplePeriod;
 
 public:
 	MicrophoneCapture();
