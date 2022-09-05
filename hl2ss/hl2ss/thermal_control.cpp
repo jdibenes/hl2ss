@@ -8,7 +8,7 @@ using namespace Microsoft::MixedReality::PowerThermalNotification;
 
 void ThermalControl_SuppressPlatformMitigation(uint8_t flags)
 {
-    auto ptn = PowerThermalNotification::GetForCurrentProcess();
-    ptn->SetSuppressedPlatformMitigationForPeripherals((PowerThermalPeripheralFlags)(flags & PTPF_MASK));
-    ShowMessage("ThermalControl: Suppression flags set to %d", flags);
+    //auto ptn = PowerThermalNotification::GetForCurrentProcess();
+    //ptn->SetSuppressedPlatformMitigationForPeripherals((PowerThermalPeripheralFlags)(flags & PTPF_MASK));
+    //ShowMessage("ThermalControl: Suppression flags set to %d", flags);
 }
