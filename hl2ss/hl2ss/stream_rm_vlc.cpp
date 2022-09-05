@@ -77,6 +77,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint8_t  const zerochroma = 0x80;
 
     PerceptionTimestamp ts = nullptr;
+    bool ok = true;
     IResearchModeSensorFrame* pSensorFrame; // Release
     IResearchModeSensorVLCFrame* pVLCFrame; // Release
     IMFSinkWriter* pSinkWriter; // Release
@@ -91,7 +92,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     size_t length;
     BYTE* pDst;
     float4x4 pose;
-    bool ok;
+    HRESULT hr;
 
     ok = ReceiveVideoFormatH26x(clientsocket, format);
     if (!ok) { return; }
@@ -111,7 +112,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     do
     {
-    sensor->GetNextBuffer(&pSensorFrame); // block
+    try { hr = sensor->GetNextBuffer(&pSensorFrame); } catch (...) { ShowMessage("RM%d: SEH", sensor->GetSensorType()); continue;} // block
+    if (FAILED(hr)) { continue; }
 
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pVLCFrame));

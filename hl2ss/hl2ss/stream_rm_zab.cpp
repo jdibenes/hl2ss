@@ -41,6 +41,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint8_t const depthinvalid = 0x80;
 
     PerceptionTimestamp ts = nullptr;
+    bool ok = true;
     IResearchModeSensorFrame* pSensorFrame; // Release
     IResearchModeSensorDepthFrame* pDepthFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -56,7 +57,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t streamSize;
     WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     float4x4 pose;
-    bool ok;
+    HRESULT hr;
 
     pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(PngFilterMode::Adaptive), winrt::Windows::Foundation::PropertyType::UInt8));
     
@@ -64,7 +65,9 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     do
     {
-    sensor->GetNextBuffer(&pSensorFrame); // block
+    // https://github.com/microsoft/HoloLens2ForCV/issues/142
+    try { hr = sensor->GetNextBuffer(&pSensorFrame); } catch (...) { hr = E_FAIL; ShowMessage("RM%d: SEH", sensor->GetSensorType()); continue; } // block
+    if (FAILED(hr)) { continue; }
 
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pDepthFrame));

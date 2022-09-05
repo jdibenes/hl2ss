@@ -220,6 +220,17 @@ class ExposureValue:
     Max = 660000 // 10
 
 
+# Suppressed Platform Mitigation for Peripherals
+class PowerThermalPeripheralFlags:
+    Cpu = 1
+    Gpu = 2
+    Network = 4
+    Display = 8
+    PhotoVideoCamera = 16
+    Dram = 32
+    Battery = 64
+
+
 #------------------------------------------------------------------------------
 # Network Client
 #------------------------------------------------------------------------------
@@ -926,7 +937,7 @@ class tx_rc:
 
     def set_marker_state(self, state):
         self._open()
-        command = struct.pack('<BI', 0, state)
+        command = struct.pack('<BB', 0, state)
         self._client.sendall(command)
         self._close()
 
@@ -968,4 +979,10 @@ class tx_rc:
         version = struct.unpack('<HHHH', data)
         self._close()
         return version
+
+    def suppress_platform_mitigation(self, flags):
+        self._open()
+        command = struct.pack('<BB', 7, flags)
+        self._client.sendall(command)
+        self._close()
 

@@ -25,6 +25,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     int const chunksize = 28;
 
     PerceptionTimestamp ts = nullptr;
+    bool ok = true;
     IResearchModeSensorFrame* pSensorFrame; // Release
     IResearchModeIMUFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -35,13 +36,14 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     BYTE* pDst;
     WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     float4x4 pose;
-    bool ok;
+    HRESULT hr;
 
     sensor->OpenStream();
 
     do
     {
-    sensor->GetNextBuffer(&pSensorFrame); // block
+    try { hr = sensor->GetNextBuffer(&pSensorFrame); } catch (...) { hr = E_FAIL; ShowMessage("RM%d: SEH", sensor->GetSensorType()); continue; } // block
+    if (FAILED(hr)) { continue; }
 
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pSensorIMUFrame));

@@ -12,11 +12,13 @@
 #include "stream_si.h"
 #include "holographic_space.h"
 
+#include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.UI.Core.h>
 
-using namespace winrt::Windows::UI::Core;
+using namespace winrt::Windows::ApplicationModel;
 using namespace winrt::Windows::ApplicationModel::Core;
+using namespace winrt::Windows::UI::Core;
 
 struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 {
@@ -27,10 +29,20 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 	{
 		return *this;
 	}
+
+	void OnSuspending(IInspectable const& sender, SuspendingEventArgs const& args)
+	{
+		(void)sender;
+		(void)args;
+
+		m_windowClosed = true; // Suspending is not supported
+	}
 	
 	void Initialize(CoreApplicationView const &applicationView)
 	{
 		(void)applicationView;
+
+		CoreApplication::Suspending({ this, &App::OnSuspending });
 
 		InitializeSockets();
 		MFStartup(MF_VERSION);
