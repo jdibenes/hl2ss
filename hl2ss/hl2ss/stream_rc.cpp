@@ -124,8 +124,15 @@ static void RC_GetVersion(SOCKET clientsocket)
 
 static void RC_GetUTCOffset(SOCKET clientsocket)
 {
-    UINT64 offset = GetQPCToUTCOffset();
+    bool ok;
+    uint32_t samples;
+    UINT64 offset;
     WSABUF wsaBuf;
+    
+    ok = recv_u32(clientsocket, samples);
+    if (!ok) { return; }
+
+    offset = GetQPCToUTCOffset(samples);
 
     wsaBuf.buf = (char*)&offset;
     wsaBuf.len = sizeof(offset);

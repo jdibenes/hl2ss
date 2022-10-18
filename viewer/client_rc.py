@@ -53,7 +53,7 @@ client = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 version = client.get_version()
 print(version)
 
-utc_offset = client.get_utc_offset()
+utc_offset = client.get_utc_offset(32)
 print(utc_offset)
 
 quit()

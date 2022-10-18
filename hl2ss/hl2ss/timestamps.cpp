@@ -69,6 +69,15 @@ UINT64 GetQPCToUTCOffset()
 }
 
 // OK
+UINT64 GetQPCToUTCOffset(int samples)
+{
+	u64 offset = GetQPCToUTCOffset();
+	u64 next;
+	for (int i = 0; i < samples; ++i) { if ((next = GetQPCToUTCOffset()) < offset) { offset = next; } }
+	return offset;
+}
+
+// OK
 PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime)
 {
 	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime));

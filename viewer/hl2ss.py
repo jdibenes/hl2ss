@@ -980,9 +980,9 @@ class tx_rc:
         self._close()
         return version
 
-    def get_utc_offset(self):
+    def get_utc_offset(self, samples):
         self._open()
-        command = struct.pack('<B', 7)
+        command = struct.pack('<BI', 7, samples)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
         self._close()

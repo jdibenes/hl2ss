@@ -10,4 +10,5 @@ UINT64 FTToU64(FILETIME const& ft);
 UINT64 GetCurrentQPCTimestamp();
 UINT64 GetCurrentUTCTimestamp();
 UINT64 GetQPCToUTCOffset();
+UINT64 GetQPCToUTCOffset(int samples);
 winrt::Windows::Perception::PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime);
