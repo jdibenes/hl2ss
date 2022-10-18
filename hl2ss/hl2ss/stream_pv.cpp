@@ -75,7 +75,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 }
 
 // OK
-static void PV_OnVideoFrameArrived_Instrinsics(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
+static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
 {
     (void)args;
 
@@ -185,7 +185,7 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
 
     g_intrinsic_event = clientevent;
 
-    reader.FrameArrived(PV_OnVideoFrameArrived_Instrinsics);
+    reader.FrameArrived(PV_OnVideoFrameArrived_Intrinsics);
 
     reader.StartAsync().get();
     WaitForSingleObject(g_intrinsic_event, INFINITE);
@@ -231,6 +231,7 @@ static void PV_Stream(SOCKET clientsocket)
     }
 
     videoFrameReader.Close();
+
     CloseHandle(clientevent);
 }
 

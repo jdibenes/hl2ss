@@ -268,7 +268,6 @@
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
-    <ClCompile Include="..\hl2ss\thermal_control.cpp" />
     <ClCompile Include="..\hl2ss\utilities.cpp" />
     <ClCompile Include="holographic_space_stub.cpp" />
     <ClCompile Include="plugin.cpp" />
@@ -298,7 +297,6 @@
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zab.h" />
     <ClInclude Include="..\hl2ss\stream_si.h" />
-    <ClInclude Include="..\hl2ss\thermal_control.h" />
     <ClInclude Include="..\hl2ss\types.h" />
     <ClInclude Include="..\hl2ss\utilities.h" />
     <ClInclude Include="hl2ss.h" />
@@ -306,17 +304,6 @@
     <ClInclude Include="ipc.h" />
     <ClInclude Include="ports.h" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\Microsoft.MixedReality.PowerThermalNotification.0.2.1\build\native\Microsoft.MixedReality.PowerThermalNotification.targets" Condition="Exists('..\packages\Microsoft.MixedReality.PowerThermalNotification.0.2.1\build\native\Microsoft.MixedReality.PowerThermalNotification.targets')" />
-  </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.PowerThermalNotification.0.2.1\build\native\Microsoft.MixedReality.PowerThermalNotification.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.PowerThermalNotification.0.2.1\build\native\Microsoft.MixedReality.PowerThermalNotification.targets'))" />
-  </Target>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

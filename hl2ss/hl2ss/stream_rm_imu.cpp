@@ -42,7 +42,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     do
     {
-    try { hr = sensor->GetNextBuffer(&pSensorFrame); } catch (...) { hr = E_FAIL; ShowMessage("RM%d: SEH", sensor->GetSensorType()); continue; } // block
+    hr = sensor->GetNextBuffer(&pSensorFrame); // block
     if (FAILED(hr)) { continue; }
 
     pSensorFrame->GetTimeStamp(&timestamp);

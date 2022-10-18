@@ -94,9 +94,6 @@
     <ClCompile Include="stream_rc.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
-    <ClCompile Include="thermal_control.cpp">
-      <Filter>Source Files\devices</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -299,9 +296,6 @@
     </ClInclude>
     <ClInclude Include="stream_rc.h">
       <Filter>Header Files\streams</Filter>
-    </ClInclude>
-    <ClInclude Include="thermal_control.h">
-      <Filter>Header Files\devices</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

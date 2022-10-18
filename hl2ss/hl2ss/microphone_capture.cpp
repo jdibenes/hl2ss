@@ -51,7 +51,7 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	WORD const bitspersample = 16;
 	DWORD const samplerate = 48000;
 	WORD const channels = 2;
-	REFERENCE_TIME const buffersizehns = (HNS_BASE * 16000ULL * 3ULL) / samplerate;
+	REFERENCE_TIME const buffersizehns = (HNS_BASE * 16000ULL * 3ULL) / samplerate; // 1 second
 
 	winrt::com_ptr<IUnknown> punkAudioInterface;
 	HRESULT activateStatus;
@@ -111,7 +111,7 @@ void MicrophoneCapture::Start()
 void MicrophoneCapture::Stop()
 {
 	m_audioClient->Stop();
-	m_audioClient->Reset();
+	//m_audioClient->Reset();
 }
 
 // OK

@@ -21,12 +21,12 @@ using namespace winrt::Windows::Perception::People;
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static std::queue<PerceptionTimestamp> g_queue;
 static bool g_enable = false;
-static HANDLE g_semaphore = NULL; // CloseHandle
+static std::queue<PerceptionTimestamp> g_queue;
+static HANDLE g_semaphore; // CloseHandle
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
-static HANDLE g_thread = NULL; // CloseHandle
-static HANDLE g_quitevent = NULL; // CloseHandle
+static HANDLE g_thread; // CloseHandle
+static HANDLE g_quitevent; // CloseHandle
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -54,27 +54,6 @@ static void SI_Stream(SOCKET clientsocket)
     left_poses.resize(HAND_JOINTS);
     right_poses.resize(HAND_JOINTS);
 
-    g_semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
-    g_enable = true;
-
-    do
-    {
-    WaitForSingleObject(g_semaphore, INFINITE);
-
-    {
-    CriticalSection cs(&g_lock);
-    ts = g_queue.front();
-    g_queue.pop();
-    }
-
-    world = Locator_GetWorldCoordinateSystem(ts);
-
-    status1 = SpatialInput_GetHeadPoseAndEyeRay(world, ts, head_pose, eye_ray);
-    status2 = SpatialInput_GetHandPose(world, ts, left_poses, right_poses);
-
-    qpc = ts.SystemRelativeTargetTime().count();
-    valid = (status1 | (status2 << 2)) & 0x0F;
-
     wsaBuf[0].buf = (char*)&qpc;
     wsaBuf[0].len = (ULONG)sizeof(qpc);
 
@@ -96,15 +75,36 @@ static void SI_Stream(SOCKET clientsocket)
     wsaBuf[6].buf = (char*)right_poses.data();
     wsaBuf[6].len = hand_size;
 
+    {
+    CriticalSection cs(&g_lock);
+    g_enable = true;
+    g_semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);    
+    }
+
+    do
+    {
+    WaitForSingleObject(g_semaphore, INFINITE);
+
+    {
+    CriticalSection cs(&g_lock);
+    ts = g_queue.front();
+    g_queue.pop();
+    }
+
+    world = Locator_GetWorldCoordinateSystem(ts);
+    status1 = SpatialInput_GetHeadPoseAndEyeRay(world, ts, head_pose, eye_ray);
+    status2 = SpatialInput_GetHandPose(world, ts, left_poses, right_poses);
+    qpc = ts.SystemRelativeTargetTime().count();
+    valid = (status1 | (status2 << 2)) & 0x0F;
+
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     }
     while (ok);
 
-    g_enable = false;
     CriticalSection cs(&g_lock);
+    g_enable = false;
     g_queue = {};
     CloseHandle(g_semaphore);
-    g_semaphore = NULL;
 }
 
 // OK
@@ -148,20 +148,20 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 }
 
 // OK
+void SI_NotifyNextFrame(PerceptionTimestamp const& ts)
+{
+    CriticalSection cs(&g_lock);
+    if (!g_enable) { return; }
+    g_queue.push(ts);
+    ReleaseSemaphore(g_semaphore, 1, NULL);
+}
+
+// OK
 void SI_Initialize()
 {
     InitializeCriticalSection(&g_lock);
     g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, SI_EntryPoint, NULL, 0, NULL);
-}
-
-// OK
-void SI_NotifyNextFrame(PerceptionTimestamp const& ts)
-{
-    if (!g_enable) { return; }
-    CriticalSection cs(&g_lock);    
-    g_queue.push(ts);
-    ReleaseSemaphore(g_semaphore, 1, NULL);
 }
 
 // OK
@@ -177,9 +177,6 @@ void SI_Cleanup()
 
     CloseHandle(g_thread);
     CloseHandle(g_quitevent);
-
-    g_thread = NULL;
-    g_quitevent = NULL;
 
     DeleteCriticalSection(&g_lock);
 }

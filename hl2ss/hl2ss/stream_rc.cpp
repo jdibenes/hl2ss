@@ -4,7 +4,6 @@
 #include "utilities.h"
 #include "holographic_space.h"
 #include "personal_video.h"
-#include "thermal_control.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 
@@ -122,18 +121,6 @@ static void RC_GetVersion(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SuppressPlatformMitigation(SOCKET clientsocket)
-{
-    bool ok;
-    uint8_t flags;
-
-    ok = recv_u8(clientsocket, flags);
-    if (!ok) { return; }
-
-    ThermalControl_SuppressPlatformMitigation(flags);
-}
-
-// OK
 static void RC_Translate(SOCKET clientsocket)
 {
     uint8_t state;
@@ -144,14 +131,13 @@ static void RC_Translate(SOCKET clientsocket)
 
     switch (state)
     {
-    case 0: RC_EnableMarker(clientsocket);               break;
-    case 1: RC_SetFocus(clientsocket);                   break;
-    case 2: RC_SetVideoTemporalDenoising(clientsocket);  break;
-    case 3: RC_SetWhiteBalance_Preset(clientsocket);     break;
-    case 4: RC_SetWhiteBalance_Value(clientsocket);      break;
-    case 5: RC_SetExposure(clientsocket);                break;
-    case 6: RC_GetVersion(clientsocket);                 break;
-    case 7: RC_SuppressPlatformMitigation(clientsocket); break;
+    case 0: RC_EnableMarker(clientsocket);              break;
+    case 1: RC_SetFocus(clientsocket);                  break;
+    case 2: RC_SetVideoTemporalDenoising(clientsocket); break;
+    case 3: RC_SetWhiteBalance_Preset(clientsocket);    break;
+    case 4: RC_SetWhiteBalance_Value(clientsocket);     break;
+    case 5: RC_SetExposure(clientsocket);               break;
+    case 6: RC_GetVersion(clientsocket);                break;
     }
 }
 

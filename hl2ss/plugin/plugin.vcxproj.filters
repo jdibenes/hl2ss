@@ -13,9 +13,6 @@
     <Filter Include="Header Files">
       <UniqueIdentifier>{b1ce91d2-71a5-4b7a-8315-c160291ada0b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Metadata">
-      <UniqueIdentifier>{43d50b70-5ed8-4641-b2d1-d4f89ee884d6}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\hl2ss\custom_hook_callback.cpp">
@@ -92,9 +89,6 @@
     </ClCompile>
     <ClCompile Include="holographic_space_stub.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\thermal_control.cpp">
-      <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -185,13 +179,5 @@
     <ClInclude Include="..\hl2ss\stream_rc.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\thermal_control.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config">
-      <Filter>Metadata</Filter>
-    </None>
   </ItemGroup>
 </Project>
