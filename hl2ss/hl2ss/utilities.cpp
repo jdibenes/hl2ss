@@ -4,6 +4,7 @@
 #include <mfreadwrite.h>
 #include "custom_media_sink.h"
 #include "utilities.h"
+#include "timestamps.h"
 #include "types.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
@@ -14,7 +15,6 @@
 using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
-using namespace winrt::Windows::Perception;
 
 //-----------------------------------------------------------------------------
 // Remote Configuration
@@ -147,28 +147,4 @@ CriticalSection::CriticalSection(void* pcs)
 CriticalSection::~CriticalSection()
 {
 	if (m_pcs) { LeaveCriticalSection(static_cast<CRITICAL_SECTION*>(m_pcs)); }
-}
-
-//-----------------------------------------------------------------------------
-// Time
-//-----------------------------------------------------------------------------
-
-// OK
-UINT64 GetCurrentQPCTimestamp()
-{
-	LARGE_INTEGER pc;
-	LARGE_INTEGER pf;
-
-	QueryPerformanceCounter(&pc);
-	QueryPerformanceFrequency(&pf);
-
-	lldiv_t qr = std::div(pc.QuadPart, pf.QuadPart);
-
-	return (qr.quot * HNS_BASE) + (qr.rem * HNS_BASE) / pf.QuadPart;
-}
-
-// OK
-PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime)
-{
-	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime));
 }

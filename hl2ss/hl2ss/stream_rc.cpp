@@ -4,6 +4,7 @@
 #include "utilities.h"
 #include "holographic_space.h"
 #include "personal_video.h"
+#include "timestamps.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 
@@ -120,6 +121,18 @@ static void RC_GetVersion(SOCKET clientsocket)
     send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
+
+static void RC_GetUTCOffset(SOCKET clientsocket)
+{
+    UINT64 offset = GetQPCToUTCOffset();
+    WSABUF wsaBuf;
+
+    wsaBuf.buf = (char*)&offset;
+    wsaBuf.len = sizeof(offset);
+
+    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
 // OK
 static void RC_Translate(SOCKET clientsocket)
 {
@@ -138,6 +151,7 @@ static void RC_Translate(SOCKET clientsocket)
     case 4: RC_SetWhiteBalance_Value(clientsocket);     break;
     case 5: RC_SetExposure(clientsocket);               break;
     case 6: RC_GetVersion(clientsocket);                break;
+    case 7: RC_GetUTCOffset(clientsocket);              break;
     }
 }
 

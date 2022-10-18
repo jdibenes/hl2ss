@@ -10,6 +10,7 @@
 #include "../hl2ss/stream_si.h"
 #include "../hl2ss/stream_rc.h"
 #include "../hl2ss/utilities.h"
+#include "../hl2ss/timestamps.h"
 #include "ipc.h"
 #include "plugin.h"
 

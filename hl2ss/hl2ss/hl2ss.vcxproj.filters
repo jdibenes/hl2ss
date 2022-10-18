@@ -94,6 +94,9 @@
     <ClCompile Include="stream_rc.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
+    <ClCompile Include="timestamps.cpp">
+      <Filter>Source Files\server</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -296,6 +299,9 @@
     </ClInclude>
     <ClInclude Include="stream_rc.h">
       <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="timestamps.h">
+      <Filter>Header Files\server</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

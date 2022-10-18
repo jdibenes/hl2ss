@@ -9,7 +9,7 @@ import hl2ss
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.15'
+host = '192.168.1.7'
 
 # Display marker state
 marker_state = hl2ss.MarkerState.Enable
@@ -52,6 +52,11 @@ client = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 
 version = client.get_version()
 print(version)
+
+utc_offset = client.get_utc_offset()
+print(utc_offset)
+
+quit()
 
 client.set_marker_state(marker_state)
 client.set_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)

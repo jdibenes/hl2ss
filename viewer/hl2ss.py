@@ -980,9 +980,11 @@ class tx_rc:
         self._close()
         return version
 
-    def suppress_platform_mitigation(self, flags):
+    def get_utc_offset(self):
         self._open()
-        command = struct.pack('<BB', 7, flags)
+        command = struct.pack('<B', 7)
         self._client.sendall(command)
+        data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
         self._close()
+        return struct.unpack('<Q', data)[0]
 

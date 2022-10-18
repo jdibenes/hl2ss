@@ -6,6 +6,7 @@
 #include "server.h"
 #include "utilities.h"
 #include "locator.h"
+#include "timestamps.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.Numerics.h>

@@ -176,6 +176,7 @@
     <ClInclude Include="stream_rm_imu.h" />
     <ClInclude Include="stream_rm_vlc.h" />
     <ClInclude Include="stream_si.h" />
+    <ClInclude Include="timestamps.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="utilities.h" />
   </ItemGroup>
@@ -210,6 +211,7 @@
     <ClCompile Include="stream_rm_imu.cpp" />
     <ClCompile Include="stream_rm_zab.cpp" />
     <ClCompile Include="stream_rm_vlc.cpp" />
+    <ClCompile Include="timestamps.cpp" />
     <ClCompile Include="utilities.cpp" />
     <ClCompile Include="stream_rm.cpp" />
     <ClCompile Include="server.cpp" />

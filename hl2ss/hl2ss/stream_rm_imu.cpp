@@ -3,6 +3,7 @@
 #include "server.h"
 #include "locator.h"
 #include "utilities.h"
+#include "timestamps.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>

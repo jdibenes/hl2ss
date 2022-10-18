@@ -6,8 +6,6 @@
 #include "custom_media_types.h"
 #include "custom_sink_writers.h"
 
-#include <winrt/Windows.Perception.h>
-
 //-----------------------------------------------------------------------------
 // COM
 //-----------------------------------------------------------------------------
@@ -65,10 +63,3 @@ public:
     CriticalSection(void* pcs);
     ~CriticalSection();
 };
-
-//-----------------------------------------------------------------------------
-// Time
-//-----------------------------------------------------------------------------
-
-UINT64 GetCurrentQPCTimestamp();
-winrt::Windows::Perception::PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime);

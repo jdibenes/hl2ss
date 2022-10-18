@@ -6,6 +6,7 @@
 #include "locator.h"
 #include "utilities.h"
 #include "ports.h"
+#include "timestamps.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.h>
