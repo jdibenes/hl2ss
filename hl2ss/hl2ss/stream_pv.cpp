@@ -182,7 +182,7 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 // OK
 static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader)
 {
-    WSABUF data[1];
+    WSABUF wsaBuf;
 
     g_intrinsic_event = clientevent;
 
@@ -192,10 +192,10 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
     WaitForSingleObject(g_intrinsic_event, INFINITE);
     reader.StopAsync().get();
 
-    data[0].buf = (char*)g_intrinsics;
-    data[0].len = sizeof(g_intrinsics);
+    wsaBuf.buf = (char*)g_intrinsics;
+    wsaBuf.len = sizeof(g_intrinsics);
 
-    send_multiple(clientsocket, data, sizeof(data) / sizeof(WSABUF));
+    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 
     g_intrinsic_event = NULL;
     memset(g_intrinsics, 0, sizeof(g_intrinsics));

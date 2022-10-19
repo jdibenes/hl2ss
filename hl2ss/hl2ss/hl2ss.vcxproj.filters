@@ -95,7 +95,7 @@
       <Filter>Source Files\streams</Filter>
     </ClCompile>
     <ClCompile Include="timestamps.cpp">
-      <Filter>Source Files\server</Filter>
+      <Filter>Source Files\utilities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -301,7 +301,7 @@
       <Filter>Header Files\streams</Filter>
     </ClInclude>
     <ClInclude Include="timestamps.h">
-      <Filter>Header Files\server</Filter>
+      <Filter>Header Files\utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

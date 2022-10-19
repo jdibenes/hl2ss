@@ -100,14 +100,14 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 void RM_IMU_Extrinsics(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
     DirectX::XMFLOAT4X4 extrinsics;
-    WSABUF wsaBuf[1];
+    WSABUF wsaBuf;
 
     ResearchMode_GetExtrinsics(sensor, extrinsics);
 
-    wsaBuf[0].buf = (char*)&extrinsics.m[0][0];
-    wsaBuf[0].len = sizeof(extrinsics.m);
+    wsaBuf.buf = (char*)&extrinsics.m[0][0];
+    wsaBuf.len = sizeof(extrinsics.m);
 
-    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // ACC ************************************************************************

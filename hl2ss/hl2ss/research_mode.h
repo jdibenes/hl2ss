@@ -27,7 +27,7 @@ IResearchModeSensor* ResearchMode_GetSensor(ResearchModeSensorType type);
 ResearchModeSensorType const* ResearchMode_GetSensorTypes();
 int ResearchMode_GetSensorTypeCount();
 
-bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y);
+bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y, std::vector<float>& mapx, std::vector<float>& mapy, float K[4]);
 bool ResearchMode_GetExtrinsics(IResearchModeSensor* sensor, DirectX::XMFLOAT4X4& extrinsics);
 
 GUID ResearchMode_GetRigNodeId();

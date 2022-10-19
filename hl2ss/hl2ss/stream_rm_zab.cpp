@@ -147,10 +147,13 @@ void RM_ZLT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 
     std::vector<float> uv2x;
     std::vector<float> uv2y;
+    std::vector<float> mapx;
+    std::vector<float> mapy;
+    float K[4];
     DirectX::XMFLOAT4X4 extrinsics;
-    WSABUF wsaBuf[4];
+    WSABUF wsaBuf[7];
 
-    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y);
+    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
     ResearchMode_GetExtrinsics(sensor, extrinsics);
 
     wsaBuf[0].buf = (char*)uv2x.data();
@@ -164,6 +167,15 @@ void RM_ZLT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 
     wsaBuf[3].buf = (char*)&scale;
     wsaBuf[3].len = sizeof(scale);
+
+    wsaBuf[4].buf = (char*)mapx.data();
+    wsaBuf[4].len = (ULONG)(mapx.size() * sizeof(float));
+
+    wsaBuf[5].buf = (char*)mapy.data();
+    wsaBuf[5].len = (ULONG)(mapy.size() * sizeof(float));
+
+    wsaBuf[6].buf = (char*)K;
+    wsaBuf[6].len = sizeof(K);
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

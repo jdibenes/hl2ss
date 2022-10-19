@@ -220,17 +220,6 @@ class ExposureValue:
     Max = 660000 // 10
 
 
-# Suppressed Platform Mitigation for Peripherals
-class PowerThermalPeripheralFlags:
-    Cpu = 1
-    Gpu = 2
-    Network = 4
-    Display = 8
-    PhotoVideoCamera = 16
-    Dram = 32
-    Battery = 64
-
-
 #------------------------------------------------------------------------------
 # Network Client
 #------------------------------------------------------------------------------
@@ -684,7 +673,13 @@ class _Mode2Layout_RM_VLC:
     END_UV2Y         = BEGIN_UV2Y + Parameters_RM_VLC.PIXELS
     BEGIN_EXTRINSICS = END_UV2Y
     END_EXTRINSICS   = BEGIN_EXTRINSICS + 16
-    FLOAT_COUNT      = 2*Parameters_RM_VLC.PIXELS + 16
+    BEGIN_MAPX       = END_EXTRINSICS
+    END_MAPX         = BEGIN_MAPX + Parameters_RM_VLC.PIXELS
+    BEGIN_MAPY       = END_MAPX
+    END_MAPY         = BEGIN_MAPY + Parameters_RM_VLC.PIXELS
+    BEGIN_K          = END_MAPY
+    END_K            = BEGIN_K + 4
+    FLOAT_COUNT      = 4*Parameters_RM_VLC.PIXELS + 16 + 4
 
 
 class _Mode2Layout_RM_DEPTH_LONGTHROW:
@@ -696,7 +691,13 @@ class _Mode2Layout_RM_DEPTH_LONGTHROW:
     END_EXTRINSICS   = BEGIN_EXTRINSICS + 16
     BEGIN_SCALE      = END_EXTRINSICS
     END_SCALE        = BEGIN_SCALE + 1
-    FLOAT_COUNT      = 2*Parameters_RM_DEPTH_LONGTHROW.PIXELS + 16 + 1
+    BEGIN_MAPX       = END_SCALE
+    END_MAPX         = BEGIN_MAPX + Parameters_RM_DEPTH_LONGTHROW.PIXELS
+    BEGIN_MAPY       = END_MAPX
+    END_MAPY         = BEGIN_MAPY + Parameters_RM_DEPTH_LONGTHROW.PIXELS
+    BEGIN_K          = END_MAPY
+    END_K            = BEGIN_K + 4
+    FLOAT_COUNT      = 4*Parameters_RM_DEPTH_LONGTHROW.PIXELS + 16 + 1 + 4
 
 
 class _Mode2Layout_RM_IMU:
@@ -720,16 +721,20 @@ class _Mode2Layout_PV:
 
 
 class Mode2_RM_VLC:
-    def __init__(self, uv2xy, extrinsics):
-        self.uv2xy      = uv2xy
-        self.extrinsics = extrinsics
+    def __init__(self, uv2xy, extrinsics, undistort_map, intrinsics):
+        self.uv2xy         = uv2xy
+        self.extrinsics    = extrinsics
+        self.undistort_map = undistort_map
+        self.intrinsics    = intrinsics
 
 
 class Mode2_RM_DEPTH:
-    def __init__(self, uv2xy, extrinsics, scale):
-        self.uv2xy      = uv2xy
-        self.extrinsics = extrinsics
-        self.scale      = scale
+    def __init__(self, uv2xy, extrinsics, scale, undistort_map, intrinsics):
+        self.uv2xy         = uv2xy
+        self.extrinsics    = extrinsics
+        self.scale         = scale
+        self.undistort_map = undistort_map
+        self.intrinsics    = intrinsics
 
 
 class Mode2_RM_IMU:
@@ -762,23 +767,33 @@ def download_calibration_rm_vlc(host, port):
     data   = _download_mode2_data(host, port, _create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
-    uv2x       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2X       : _Mode2Layout_RM_VLC.END_UV2X].reshape(Parameters_RM_VLC.SHAPE)
-    uv2y       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2Y       : _Mode2Layout_RM_VLC.END_UV2Y].reshape(Parameters_RM_VLC.SHAPE)
+    uv2x       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2X       : _Mode2Layout_RM_VLC.END_UV2X      ].reshape(Parameters_RM_VLC.SHAPE)
+    uv2y       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2Y       : _Mode2Layout_RM_VLC.END_UV2Y      ].reshape(Parameters_RM_VLC.SHAPE)
     extrinsics = floats[_Mode2Layout_RM_VLC.BEGIN_EXTRINSICS : _Mode2Layout_RM_VLC.END_EXTRINSICS].reshape((4, 4))
+    mapx       = floats[_Mode2Layout_RM_VLC.BEGIN_MAPX       : _Mode2Layout_RM_VLC.END_MAPX      ].reshape(Parameters_RM_VLC.SHAPE)
+    mapy       = floats[_Mode2Layout_RM_VLC.BEGIN_MAPY       : _Mode2Layout_RM_VLC.END_MAPY      ].reshape(Parameters_RM_VLC.SHAPE)
+    k          = floats[_Mode2Layout_RM_VLC.BEGIN_K          : _Mode2Layout_RM_VLC.END_K         ].reshape((4,))
 
-    return Mode2_RM_VLC(np.dstack((uv2x, uv2y)), extrinsics)
+    intrinsics = np.array([[k[0], 0, 0, 0], [0, k[1], 0, 0], [k[2], k[3], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
+    
+    return Mode2_RM_VLC(np.dstack((uv2x, uv2y)), extrinsics, np.dstack((mapx, mapy)), intrinsics)
 
 
 def download_calibration_rm_depth_longthrow(host, port):
     data   = _download_mode2_data(host, port, _create_configuration_for_mode(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
-    uv2x       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2X].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
-    uv2y       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2Y       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2Y].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+    uv2x       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2X      ].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+    uv2y       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2Y       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2Y      ].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
     extrinsics = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_EXTRINSICS : _Mode2Layout_RM_DEPTH_LONGTHROW.END_EXTRINSICS].reshape((4, 4))
-    scale      = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_SCALE      : _Mode2Layout_RM_DEPTH_LONGTHROW.END_SCALE]
+    scale      = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_SCALE      : _Mode2Layout_RM_DEPTH_LONGTHROW.END_SCALE     ]
+    mapx       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_MAPX       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_MAPX      ].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+    mapy       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_MAPY       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_MAPY      ].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+    k          = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_K          : _Mode2Layout_RM_DEPTH_LONGTHROW.END_K         ]
 
-    return Mode2_RM_DEPTH(np.dstack((uv2x, uv2y)), extrinsics, scale)
+    intrinsics = np.array([[k[0], 0, 0, 0], [0, k[1], 0, 0], [k[2], k[3], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
+
+    return Mode2_RM_DEPTH(np.dstack((uv2x, uv2y)), extrinsics, scale, np.dstack((mapx, mapy)), intrinsics)
 
 
 def download_calibration_rm_imu(host, port):
@@ -794,11 +809,11 @@ def download_calibration_pv(host, port, width, height, framerate, profile, bitra
     data   = _download_mode2_data(host, port, _create_configuration_for_video(StreamMode.MODE_2, width, height, framerate, profile, bitrate), _Mode2Layout_PV.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
-    focal_length          = floats[_Mode2Layout_PV.BEGIN_FOCALLENGTH          : _Mode2Layout_PV.END_FOCALLENGTH]
-    principal_point       = floats[_Mode2Layout_PV.BEGIN_PRINCIPALPOINT       : _Mode2Layout_PV.END_PRINCIPAL_POINT]
-    radial_distortion     = floats[_Mode2Layout_PV.BEGIN_RADIALDISTORTION     : _Mode2Layout_PV.END_RADIALDISTORTION]
+    focal_length          = floats[_Mode2Layout_PV.BEGIN_FOCALLENGTH          : _Mode2Layout_PV.END_FOCALLENGTH         ]
+    principal_point       = floats[_Mode2Layout_PV.BEGIN_PRINCIPALPOINT       : _Mode2Layout_PV.END_PRINCIPAL_POINT     ]
+    radial_distortion     = floats[_Mode2Layout_PV.BEGIN_RADIALDISTORTION     : _Mode2Layout_PV.END_RADIALDISTORTION    ]
     tangential_distortion = floats[_Mode2Layout_PV.BEGIN_TANGENTIALDISTORTION : _Mode2Layout_PV.END_TANGENTIALDISTORTION]
-    projection            = floats[_Mode2Layout_PV.BEGIN_PROJECTION           : _Mode2Layout_PV.END_PROJECTION].reshape((4, 4))
+    projection            = floats[_Mode2Layout_PV.BEGIN_PROJECTION           : _Mode2Layout_PV.END_PROJECTION          ].reshape((4, 4))
 
     intrinsics = np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 

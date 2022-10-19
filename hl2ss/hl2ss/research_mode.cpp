@@ -190,16 +190,30 @@ int ResearchMode_GetSensorTypeCount()
 }
 
 // OK
-bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y)
+bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y, std::vector<float>& mapx, std::vector<float>& mapy, float K[4])
 {
     IResearchModeCameraSensor* pCameraSensor; // Release
     int width;
     int height;
+	int elements;
+	float* lutx;
+	float* luty;
     float uv[2];
     float xy[2];
-    float* lutx;
-    float* luty;
-    int elements;
+	float x;
+	float y;    
+	float min_x;
+	float max_x;
+	float min_y;
+	float max_y;
+	float span_x;
+	float span_y;
+	float span_u;
+	float span_v;
+	float fx;
+	float fy;
+	float cx;
+	float cy;
 
     switch (sensor->GetSensorType())
     {
@@ -218,23 +232,68 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     uv2x.resize(elements);
     uv2y.resize(elements);
+	mapx.resize(elements);
+	mapy.resize(elements);
 
-    lutx = uv2x.data();
-    luty = uv2y.data();
+	min_x =  std::numeric_limits<float>::infinity();
+	max_x = -std::numeric_limits<float>::infinity();
+	min_y =  std::numeric_limits<float>::infinity();
+	max_y = -std::numeric_limits<float>::infinity();
 
-    for (int y = 0; y < height; ++y)
+	lutx = uv2x.data();
+	luty = uv2y.data();
+
+    for (int v = 0; v < height; ++v)
     {
-    uv[1] = (float)y + 0.5f;
-    for (int x = 0; x < width;  ++x)
+    for (int u = 0; u < width;  ++u)
     {
-    uv[0] = (float)x + 0.5f;
+    uv[0] = (float)u + 0.5f;
+	uv[1] = (float)v + 0.5f;
 
     pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
 
-    *(lutx++) = xy[0];
-    *(luty++) = xy[1];
+	x = xy[0];
+	y = xy[1];
+
+    *(lutx++) = x;
+    *(luty++) = y;
+
+	if (x < min_x) { min_x = x; } else if (x > max_x) { max_x = x; }
+	if (y < min_y) { min_y = y; } else if (y > max_y) { max_y = y; }
     }
     }
+
+	span_x = max_x - min_x;
+	span_y = max_y - min_y;
+	span_u = (float)(width - 1);
+	span_v = (float)(height - 1);
+
+	fx = span_x / span_u;
+	fy = span_y / span_v;
+	cx = min_x;
+	cy = min_y;
+
+	lutx = mapx.data();
+	luty = mapy.data();
+
+	for (int v = 0; v < height; ++v)
+	{	
+	for (int u = 0; u < width; ++u)
+	{
+	xy[0] = fx * u + cx;
+	xy[1] = fy * v + cy;
+
+	pCameraSensor->MapCameraSpaceToImagePoint(xy, uv);
+
+	*(lutx++) = uv[0];
+	*(luty++) = uv[1];
+	}
+	}
+
+	K[0] = span_u / span_x;
+	K[1] = span_v / span_y;
+	K[2] = -min_x * K[0];
+	K[3] = -min_y * K[1];
 
     pCameraSensor->Release();
     return true;
