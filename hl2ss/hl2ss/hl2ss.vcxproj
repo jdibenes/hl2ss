@@ -161,6 +161,7 @@
     <ClInclude Include="custom_hook_callback.h" />
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="locator.h" />
+    <ClInclude Include="nfo.h" />
     <ClInclude Include="personal_video.h" />
     <ClInclude Include="stream_rc.h" />
     <ClInclude Include="researchmode\ResearchModeApi.h" />
@@ -196,6 +197,7 @@
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
     <ClCompile Include="holographic_space.cpp" />
+    <ClCompile Include="nfo.cpp" />
     <ClCompile Include="research_mode.cpp" />
     <ClCompile Include="spatial_input.cpp" />
     <ClCompile Include="locator.cpp" />
