@@ -5,10 +5,7 @@
 #include "holographic_space.h"
 #include "personal_video.h"
 #include "timestamps.h"
-
-#include <winrt/Windows.ApplicationModel.h>
-
-using namespace winrt::Windows::ApplicationModel;
+#include "nfo.h"
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -109,11 +106,12 @@ static void RC_SetExposure(SOCKET clientsocket)
 }
 
 // OK
-static void RC_GetVersion(SOCKET clientsocket)
+static void RC_GetApplicationVersion(SOCKET clientsocket)
 {
-    PackageVersion version = Package::Current().Id().Version();
-    uint16_t data[4] = { version.Major, version.Minor, version.Build, version.Revision };
+    uint16_t data[4];
     WSABUF wsaBuf;
+
+    GetApplicationVersion(data);    
 
     wsaBuf.buf = (char*)data;
     wsaBuf.len = sizeof(data);
@@ -121,7 +119,7 @@ static void RC_GetVersion(SOCKET clientsocket)
     send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
-
+// OK
 static void RC_GetUTCOffset(SOCKET clientsocket)
 {
     bool ok;
@@ -157,7 +155,7 @@ static void RC_Translate(SOCKET clientsocket)
     case 3: RC_SetWhiteBalance_Preset(clientsocket);    break;
     case 4: RC_SetWhiteBalance_Value(clientsocket);     break;
     case 5: RC_SetExposure(clientsocket);               break;
-    case 6: RC_GetVersion(clientsocket);                break;
+    case 6: RC_GetApplicationVersion(clientsocket);     break;
     case 7: RC_GetUTCOffset(clientsocket);              break;
     }
 }

@@ -256,6 +256,7 @@
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
     <ClCompile Include="..\hl2ss\locator.cpp" />
     <ClCompile Include="..\hl2ss\microphone_capture.cpp" />
+    <ClCompile Include="..\hl2ss\nfo.cpp" />
     <ClCompile Include="..\hl2ss\personal_video.cpp" />
     <ClCompile Include="..\hl2ss\research_mode.cpp" />
     <ClCompile Include="..\hl2ss\server.cpp" />
@@ -285,6 +286,7 @@
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
     <ClInclude Include="..\hl2ss\locator.h" />
     <ClInclude Include="..\hl2ss\microphone_capture.h" />
+    <ClInclude Include="..\hl2ss\nfo.h" />
     <ClInclude Include="..\hl2ss\personal_video.h" />
     <ClInclude Include="..\hl2ss\ports.h" />
     <ClInclude Include="..\hl2ss\research_mode.h" />
