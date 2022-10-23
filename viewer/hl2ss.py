@@ -84,12 +84,21 @@ class Parameters_RM_VLC:
     PERIOD = 1 / FPS
 
 
+# RM Depth AHaT Parameters
+class Parameters_RM_DEPTH_AHAT:
+    WIDTH  = 512
+    HEIGHT = 512
+    FPS    = 45
+    PIXELS = WIDTH * HEIGHT
+    SHAPE  = (HEIGHT, WIDTH)
+    PERIOD = 1 / FPS
+
+
 # RM Depth Long Throw Parameters
 class Parameters_RM_DEPTH_LONGTHROW:
     WIDTH  = 320
     HEIGHT = 288
     FPS    = 5
-    SCALE  = 1000
     PIXELS = WIDTH * HEIGHT
     SHAPE  = (HEIGHT, WIDTH)
     PERIOD = 1 / FPS
@@ -225,11 +234,24 @@ class ExposureValue:
 #------------------------------------------------------------------------------
 
 class _SIZEOF:
-    BYTE = 1
-    SHORT = 2
-    INT = 4
-    FLOAT = 4
+    CHAR     = 1
+    BYTE     = 1
+    SHORT    = 2
+    WORD     = 2
+    HALF     = 2
+    INT      = 4
+    DWORD    = 4
+    FLOAT    = 4
     LONGLONG = 8
+    QWORD    = 8
+    DOUBLE   = 8
+
+
+class _RANGEOF:
+    U8_MAX  = 0xFF
+    U16_MAX = 0xFFFF
+    U32_MAX = 0xFFFFFFFF
+    U64_MAX = 0xFFFFFFFFFFFFFFFF
 
 
 class client:
@@ -563,42 +585,42 @@ class unpack_si:
 #------------------------------------------------------------------------------
 
 def get_video_codec_name(profile):
-    if   (profile == VideoProfile.H264_BASE):
+    if (profile == VideoProfile.H264_BASE):
         return 'h264'
-    elif (profile == VideoProfile.H264_MAIN):
+    if (profile == VideoProfile.H264_MAIN):
         return 'h264'
-    elif (profile == VideoProfile.H264_HIGH):
+    if (profile == VideoProfile.H264_HIGH):
         return 'h264'
-    elif (profile == VideoProfile.H265_MAIN):
+    if (profile == VideoProfile.H265_MAIN):
         return 'hevc'
-    else:
-        return None
+
+    return None
 
 
 def get_audio_codec_name(profile):
-    if   (profile == AudioProfile.AAC_12000):
+    if (profile == AudioProfile.AAC_12000):
         return 'aac'
-    elif (profile == AudioProfile.AAC_16000):
+    if (profile == AudioProfile.AAC_16000):
         return 'aac'
-    elif (profile == AudioProfile.AAC_20000):
+    if (profile == AudioProfile.AAC_20000):
         return 'aac'
-    elif (profile == AudioProfile.AAC_24000):
+    if (profile == AudioProfile.AAC_24000):
         return 'aac'
-    else:
-        return None
+    
+    return None
 
 
 def get_audio_codec_bitrate(profile):
-    if   (profile == AudioProfile.AAC_12000):
+    if (profile == AudioProfile.AAC_12000):
         return 12000*8
-    elif (profile == AudioProfile.AAC_16000):
+    if (profile == AudioProfile.AAC_16000):
         return 16000*8
-    elif (profile == AudioProfile.AAC_20000):
+    if (profile == AudioProfile.AAC_20000):
         return 20000*8
-    elif (profile == AudioProfile.AAC_24000):
+    if (profile == AudioProfile.AAC_24000):
         return 24000*8
-    else:
-        return None
+    
+    return None
 
 
 #------------------------------------------------------------------------------
@@ -728,7 +750,7 @@ class Mode2_RM_VLC:
         self.intrinsics    = intrinsics
 
 
-class Mode2_RM_DEPTH:
+class Mode2_RM_DEPTH_LONGTHROW:
     def __init__(self, uv2xy, extrinsics, scale, undistort_map, intrinsics):
         self.uv2xy         = uv2xy
         self.extrinsics    = extrinsics
@@ -772,11 +794,15 @@ def download_calibration_rm_vlc(host, port):
     extrinsics = floats[_Mode2Layout_RM_VLC.BEGIN_EXTRINSICS : _Mode2Layout_RM_VLC.END_EXTRINSICS].reshape((4, 4))
     mapx       = floats[_Mode2Layout_RM_VLC.BEGIN_MAPX       : _Mode2Layout_RM_VLC.END_MAPX      ].reshape(Parameters_RM_VLC.SHAPE)
     mapy       = floats[_Mode2Layout_RM_VLC.BEGIN_MAPY       : _Mode2Layout_RM_VLC.END_MAPY      ].reshape(Parameters_RM_VLC.SHAPE)
-    k          = floats[_Mode2Layout_RM_VLC.BEGIN_K          : _Mode2Layout_RM_VLC.END_K         ].reshape((4,))
+    k          = floats[_Mode2Layout_RM_VLC.BEGIN_K          : _Mode2Layout_RM_VLC.END_K         ]
 
     intrinsics = np.array([[k[0], 0, 0, 0], [0, k[1], 0, 0], [k[2], k[3], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
     
     return Mode2_RM_VLC(np.dstack((uv2x, uv2y)), extrinsics, np.dstack((mapx, mapy)), intrinsics)
+
+
+def download_calibration_rm_depth_ahat(host, port):
+    return None # Not implemented in server
 
 
 def download_calibration_rm_depth_longthrow(host, port):
@@ -793,7 +819,7 @@ def download_calibration_rm_depth_longthrow(host, port):
 
     intrinsics = np.array([[k[0], 0, 0, 0], [0, k[1], 0, 0], [k[2], k[3], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
-    return Mode2_RM_DEPTH(np.dstack((uv2x, uv2y)), extrinsics, scale, np.dstack((mapx, mapy)), intrinsics)
+    return Mode2_RM_DEPTH_LONGTHROW(np.dstack((uv2x, uv2y)), extrinsics, scale, np.dstack((mapx, mapy)), intrinsics)
 
 
 def download_calibration_rm_imu(host, port):
@@ -935,6 +961,22 @@ class rx_si:
 
 
 #------------------------------------------------------------------------------
+# Port Information
+#------------------------------------------------------------------------------
+
+class PortName:
+    OF = ['rm_vlc_leftfront', 'rm_vlc_leftleft', 'rm_vlc_rightfront', 'rm_vlc_rightright', 'rm_depth_ahat', 'rm_depth_longthrow', 'rm_imu_accelerometer', 'rm_imu_gyroscope', 'rm_imu_magnetometer', 'remote_configuration', 'personal_video', 'microphone', 'spatial_input']
+
+
+def get_port_index(port):
+    return port - StreamPort.RM_VLC_LEFTFRONT
+
+
+def get_port_name(port):
+    return PortName.OF[get_port_index(port)]
+
+
+#------------------------------------------------------------------------------
 # Remote Configuration
 #------------------------------------------------------------------------------
 
@@ -956,37 +998,37 @@ class tx_rc:
         self._client.sendall(command)
         self._close()
 
-    def set_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
+    def set_pv_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
         self._open()
         command = struct.pack('<BIIIII', 1, focusmode, autofocusrange, distance, value, driverfallback)
         self._client.sendall(command)
         self._close()
 
-    def set_video_temporal_denoising(self, mode):
+    def set_pv_video_temporal_denoising(self, mode):
         self._open()
         command = struct.pack('<BI', 2, mode)
         self._client.sendall(command)
         self._close()
 
-    def set_white_balance_preset(self, preset):
+    def set_pv_white_balance_preset(self, preset):
         self._open()
         command = struct.pack('<BI', 3, preset)
         self._client.sendall(command)
         self._close()
 
-    def set_white_balance_value(self, value):
+    def set_pv_white_balance_value(self, value):
         self._open()
         command = struct.pack('<BI', 4, value)
         self._client.sendall(command)
         self._close()
 
-    def set_exposure(self, mode, value):
+    def set_pv_exposure(self, mode, value):
         self._open()
         command = struct.pack('<BII', 5, mode, value)
         self._client.sendall(command)
         self._close()
 
-    def get_version(self):
+    def get_application_version(self):
         self._open()
         command = struct.pack('<B', 6)
         self._client.sendall(command)
