@@ -12,7 +12,7 @@ import hl2ss
 host = '192.168.1.7'
 
 # Display marker state
-marker_state = hl2ss.MarkerState.Enable
+marker_state = hl2ss.MarkerState.Disable
 
 # Focus Mode
 # Presets:
@@ -50,16 +50,16 @@ exposure_value = 10000
 
 client = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 
-version = client.get_version()
+version = client.get_application_version()
+print('Installed HL2SS version')
 print(version)
 
 utc_offset = client.get_utc_offset(32)
+print('QPC timestamp to UTC offset')
 print(utc_offset)
 
-quit()
-
 client.set_marker_state(marker_state)
-client.set_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)
-client.set_video_temporal_denoising(video_temporal_denoising)
-client.set_white_balance_preset(white_balance_preset)
-client.set_exposure(exposure_mode, exposure_value)
+client.set_pv_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)
+client.set_pv_video_temporal_denoising(video_temporal_denoising)
+client.set_pv_white_balance_preset(white_balance_preset)
+client.set_pv_exposure(exposure_mode, exposure_value)

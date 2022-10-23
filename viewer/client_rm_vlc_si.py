@@ -14,18 +14,16 @@ import multiprocessing as mp
 import numpy as np
 import hl2ss
 import hl2ss_utilities
+import hl2ss_3dcv
 import cv2
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens 2 address
-host = "192.168.1.15"
+host = "192.168.1.7"
 
 # Port
 port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
-
-# Pinhole model path
-model_path = '../calibration/rm_vlc_leftfront'
 
 # Video Encoding profiles
 profile = hl2ss.VideoProfile.H265_MAIN
@@ -48,7 +46,7 @@ if __name__ == '__main__':
     enable = True
 
     def project_points(image, P, points, radius, color, thickness):
-        for x, y in hl2ss_utilities.project_to_image(hl2ss_utilities.to_homogeneous(points), P)[0]:
+        for x, y in hl2ss_3dcv.project_to_image(hl2ss_3dcv.to_homogeneous(points), P)[0]:
             cv2.circle(image, (int(x), (int(y))), radius, color, thickness)
 
     def on_press(key):
@@ -59,7 +57,7 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    model_vlc = hl2ss_utilities.rm_vlc_load_pinhole_model(model_path)
+    model_vlc = hl2ss.download_calibration_rm_vlc(host, port)
 
     producer = hl2ss_utilities.producer()
     producer.initialize_si(hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length, host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
@@ -76,11 +74,11 @@ if __name__ == '__main__':
         data_vlc = client_vlc.get_next_packet()
         data_si = sink_si.get_nearest(data_vlc.timestamp)[1]
 
-        image = hl2ss_utilities.rm_vlc_undistort(data_vlc.payload, model_vlc.map)
+        image = cv2.remap(data_vlc.payload, model_vlc.undistort_map[:, :, 0], model_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         image = np.dstack((image, image, image))
 
         if (data_vlc.is_valid_pose() and (data_si is not None)):
-            projection = hl2ss_utilities.projection(model_vlc.intrinsics, hl2ss_utilities.rm_world_to_camera(model_vlc.extrinsics, data_vlc.pose))
+            projection = hl2ss_3dcv.projection(model_vlc.intrinsics, hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(model_vlc.extrinsics))
             si = hl2ss.unpack_si(data_si.payload)
             if (si.is_valid_hand_left()):
                 project_points(image, projection, hl2ss_utilities.si_unpack_hand(si.get_hand_left()).positions, radius, color, thickness)

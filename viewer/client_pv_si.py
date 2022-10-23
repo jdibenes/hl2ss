@@ -13,6 +13,7 @@ from pynput import keyboard
 import multiprocessing as mp
 import hl2ss
 import hl2ss_utilities
+import hl2ss_3dcv
 import cv2
 
 # Settings --------------------------------------------------------------------
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     enable = True
 
     def project_points(image, P, points, radius, color, thickness):
-        for x, y in hl2ss_utilities.project_to_image(hl2ss_utilities.to_homogeneous(points), P)[0]:
+        for x, y in hl2ss_3dcv.project_to_image(hl2ss_3dcv.to_homogeneous(points), P)[0]:
             cv2.circle(image, (int(x), (int(y))), radius, color, thickness)
 
     def on_press(key):
@@ -78,7 +79,7 @@ if __name__ == '__main__':
         image = data_pv.payload
 
         if (data_pv.is_valid_pose() and (data_si is not None)):
-            projection = hl2ss_utilities.projection(calibration.intrinsics, hl2ss_utilities.pv_world_to_camera(data_pv.pose))
+            projection = hl2ss_3dcv.projection(calibration.intrinsics, hl2ss_3dcv.world_to_reference(data_pv.pose))
             si = hl2ss.unpack_si(data_si.payload)
             if (si.is_valid_hand_left()):
                 project_points(image, projection, hl2ss_utilities.si_unpack_hand(si.get_hand_left()).positions, radius, color, thickness)

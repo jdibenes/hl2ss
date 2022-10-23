@@ -2,11 +2,13 @@
 # This script receives encoded video from the HoloLens depth camera and plays
 # it. Only long throw mode is supported. The resolution is 320x288 5 FPS. The
 # stream supports three operating modes: 0) video, 1) video + rig pose,
-# 2) query calibration (single transfer). Press esc to stop.
+# 2) query calibration (single transfer). Press esc to stop. Depth and AB
+# data are scaled for visibility.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
 
+import numpy as np
 import hl2ss
 import hl2ss_utilities
 import cv2
@@ -14,7 +16,7 @@ import cv2
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = "192.168.1.15"
+host = "192.168.1.7"
 
 # Port
 port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
@@ -24,9 +26,6 @@ port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 # 1: video + rig pose
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
-
-# Scaling factor for visibility
-brightness = 8
 
 #------------------------------------------------------------------------------
 
@@ -55,8 +54,8 @@ while (enable):
     data = client.get_next_packet()
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
-    cv2.imshow('depth', data.payload.depth*brightness)
-    cv2.imshow('ab', data.payload.ab*brightness)
+    cv2.imshow('depth', data.payload.depth / np.max(data.payload.depth)) # Depth scaled for visibility
+    cv2.imshow('ab', data.payload.ab / np.max(data.payload.ab)) # AB scaled for visibility
     cv2.waitKey(1)
 
 client.close()
