@@ -9,19 +9,13 @@ import numpy as np
 
 host = '192.168.1.7'
 port_left  = hl2ss.StreamPort.RM_VLC_LEFTFRONT
+port_right = hl2ss.StreamPort.RM_VLC_RIGHTFRONT
 calibration_path = '../calibration'
-
-focus = 1000
-pv_width = 640
-pv_height = 360
-pv_framerate = 30
-pv_profile = hl2ss.VideoProfile.H264_BASE
-pv_bitrate = 2*1024*1024
 
 vlc_profile = hl2ss.VideoProfile.H264_BASE
 vlc_bitrate = 2*1024*1024
 
-shape = (640,640)
+shape = hl2ss.Parameters_RM_VLC.SHAPE
 
 line_start = 10
 line_offset = 20
@@ -33,24 +27,23 @@ line_thickness = 1
 # Get camera calibrations
 
 calibration_lf = hl2ss_3dcv.get_calibration_rm(host, port_left, calibration_path)
-
-hl2ss_3dcv.pv_optimize_for_cv(host, focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.ColorTemperaturePreset.Auto)
-calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, True)
+calibration_rf = hl2ss_3dcv.get_calibration_rm(host, port_right, calibration_path)
 
 rotation_lf = hl2ss_3dcv.rm_vlc_get_rotation(port_left)
+rotation_rf = hl2ss_3dcv.rm_vlc_get_rotation(port_right)
 
 K1, Rt1 = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_lf.intrinsics, calibration_lf.extrinsics, rotation_lf)
-K2, Rt2, X1 = hl2ss_3dcv.pv_fix_calibration(calibration_rf.intrinsics, calibration_rf.extrinsics)
+K2, Rt2 = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_rf.intrinsics, calibration_rf.extrinsics, rotation_rf)
 
 # Get calibration and rectify
 
-stereo_calibration   = hl2ss_3dcv.rm_vlc_stereo_calibrate(K1, K2, Rt1, Rt2)
+stereo_calibration = hl2ss_3dcv.rm_vlc_stereo_calibrate(K1, K2, Rt1, Rt2)
 stereo_rectification = hl2ss_3dcv.rm_vlc_stereo_rectify(K1, K2, stereo_calibration.R, stereo_calibration.t, shape)
 
 # Show rectified images
 
 client_lf = hl2ss_utilities.rx_decoded_rm_vlc(host, port_left,  hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, vlc_profile, vlc_bitrate)
-client_rf = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'bgr24')
+client_rf = hl2ss_utilities.rx_decoded_rm_vlc(host, port_right, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, vlc_profile, vlc_bitrate)
 
 client_lf.open()
 data_lf = client_lf.get_next_packet()
@@ -61,7 +54,7 @@ data_rf = client_rf.get_next_packet()
 client_rf.close()
 
 image_l = hl2ss_3dcv.rm_vlc_to_rgb(hl2ss_3dcv.rm_vlc_rotate_image(cv2.remap(data_lf.payload, calibration_lf.undistort_map[:,:,0], calibration_lf.undistort_map[:,:,1], cv2.INTER_LINEAR), rotation_lf))
-image_r = data_rf.payload
+image_r = hl2ss_3dcv.rm_vlc_to_rgb(hl2ss_3dcv.rm_vlc_rotate_image(cv2.remap(data_rf.payload, calibration_rf.undistort_map[:,:,0], calibration_rf.undistort_map[:,:,1], cv2.INTER_LINEAR), rotation_rf))
 
 r1 = cv2.remap(image_l, stereo_rectification.map1[:, :, 0], stereo_rectification.map1[:, :, 1], cv2.INTER_LINEAR)
 r2 = cv2.remap(image_r, stereo_rectification.map2[:, :, 0], stereo_rectification.map2[:, :, 1], cv2.INTER_LINEAR)
