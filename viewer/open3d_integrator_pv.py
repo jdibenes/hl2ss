@@ -7,25 +7,28 @@ from pynput import keyboard
 
 import multiprocessing as mp
 import open3d as o3d
+import cv2
 import hl2ss
 import hl2ss_utilities
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.15'
+host = '192.168.1.7'
+
+calibration_path = '../calibration'
 
 # Camera parameters
+focus = 1000
 width = 640
 height = 360
 framerate = 30
 profile = hl2ss.VideoProfile.H265_MAIN
 bitrate = 5*1024*1024
-focus = 1000
-exposure = hl2ss.ExposureValue.Max // 2
-white_balance = hl2ss.ColorTemperaturePreset.Manual
-model_depth_path = '../calibration/rm_depth_longthrow'
-model_pv_path = '../calibration/pv'
+exposure_mode = hl2ss.ExposureMode.Auto
+exposure = hl2ss.ExposureValue.Max // 4
+white_balance = hl2ss.ColorTemperaturePreset.Auto
 
 # Buffer length in seconds
 buffer_length = 10
@@ -48,15 +51,17 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    hl2ss_utilities.pv_optimize_for_cv(host, focus, exposure, white_balance)
+    hl2ss_3dcv.pv_optimize_for_cv(host, focus, exposure_mode, exposure, white_balance)
 
-    calibration_pv = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
-    extrinsics_pv = hl2ss_utilities.pv_load_rm_extrinsics(model_pv_path)
-    model_depth = hl2ss_utilities.rm_depth_longthrow_load_pinhole_model(model_depth_path)
-    depth_scale = hl2ss_utilities.rm_depth_get_normalizer(model_depth.uv2xy)
-    
+    calibration_pv = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, width, height, framerate, profile, bitrate, True)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+
+    uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
+    xy1, scale, depth_to_pv_image = hl2ss_3dcv.rm_depth_registration(uv2xy, calibration_lt.scale, calibration_lt.extrinsics, calibration_pv.intrinsics, calibration_pv.extrinsics)
+
     volume = o3d.pipelines.integration.ScalableTSDFVolume(voxel_length=voxel_length, sdf_trunc=sdf_trunc, color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
-    intrinsics_depth = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT, model_depth.intrinsics[0, 0], model_depth.intrinsics[1, 1], model_depth.intrinsics[2, 0], model_depth.intrinsics[2, 1])
+    intrinsics_depth = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT, calibration_lt.intrinsics[0, 0], calibration_lt.intrinsics[1, 1], calibration_lt.intrinsics[2, 0], calibration_lt.intrinsics[2, 1])
+
     vis = o3d.visualization.Visualizer()
     vis.create_window()
     first_pcd = True
@@ -74,22 +79,23 @@ if __name__ == '__main__':
     sinks = [sink_pv, sink_depth]
 
     [sink.get_attach_response() for sink in sinks]
-
+ 
     while (enable):
         sink_depth.acquire()
 
-        data_depth = sink_depth.get_most_recent_frame()
-        if (not data_depth.is_valid_pose()):
+        data_lt = sink_depth.get_most_recent_frame()
+        if (not data_lt.is_valid_pose()):
             continue
 
-        _, data_pv = sink_pv.get_nearest(data_depth.timestamp)
+        _, data_pv = sink_pv.get_nearest(data_lt.timestamp)
         if (data_pv is None):
             continue
 
-        depth_world_to_camera = hl2ss_utilities.rm_world_to_camera(model_depth.extrinsics, data_depth.pose)
-        rgb, depth = hl2ss_utilities.rm_depth_generate_rgbd_from_pv(data_pv.payload, data_depth.payload.depth, calibration_pv.intrinsics, extrinsics_pv, model_depth.map, depth_scale, model_depth.uv2xy, model_depth.extrinsics)
+        depth = hl2ss_3dcv.rm_depth_normalize(data_lt.payload.depth, calibration_lt.undistort_map, scale)
+        rgb, depth = hl2ss_3dcv.rm_depth_rgbd_registered(depth, data_pv.payload, xy1, depth_to_pv_image, cv2.INTER_LINEAR)
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
-        
+        depth_world_to_camera = hl2ss_3dcv.world_to_reference(data_lt.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
+
         volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())
         pcd_tmp = volume.extract_point_cloud()
 
@@ -110,4 +116,3 @@ if __name__ == '__main__':
     listener.join()
 
     vis.run()
-    
