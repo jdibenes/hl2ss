@@ -26,9 +26,9 @@ height = 360
 framerate = 30
 profile = hl2ss.VideoProfile.H265_MAIN
 bitrate = 5*1024*1024
-exposure_mode = hl2ss.ExposureMode.Auto
+exposure_mode = hl2ss.ExposureMode.Manual
 exposure = hl2ss.ExposureValue.Max // 4
-white_balance = hl2ss.ColorTemperaturePreset.Auto
+white_balance = hl2ss.ColorTemperaturePreset.Manual
 
 # Buffer length in seconds
 buffer_length = 10

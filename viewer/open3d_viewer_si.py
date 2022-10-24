@@ -7,33 +7,36 @@ from pynput import keyboard
 import multiprocessing as mp
 import numpy as np
 import open3d as o3d
+import cv2
 import hl2ss
 import hl2ss_utilities
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.15'
+host = '192.168.1.7'
+calibration_path = '../calibration'
 
 # Camera parameters
-width = 640
-height = 360
+width = 1280
+height = 720
 framerate = 30
 profile = hl2ss.VideoProfile.H265_MAIN
 bitrate = 5*1024*1024
 focus = 1000
+exposure_mode = hl2ss.ExposureMode.Manual
 exposure = hl2ss.ExposureValue.Max // 2
 white_balance = hl2ss.ColorTemperaturePreset.Manual
-model_depth_path = '../calibration/rm_depth_longthrow'
-model_pv_path = '../calibration/pv'
+
 
 # Buffer length in seconds
 buffer_length = 10
 
 # Integration parameters
-voxel_length = 2/100
+voxel_length = 0.25/100
 sdf_trunc = 0.04
-max_depth = 3.0
+max_depth = 1.0
 
 # Geometry parameters
 head_frame_size = 0.1
@@ -50,21 +53,24 @@ if __name__ == '__main__':
 
     def on_press(key):
         global enable
-        enable = key != keyboard.Key.space
+        if (key == keyboard.Key.space):
+            enable = False
+        print('key pressed')
         return enable
 
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    hl2ss_utilities.pv_optimize_for_cv(host, focus, exposure, white_balance)
+    hl2ss_3dcv.pv_optimize_for_cv(host, focus, exposure_mode, exposure, white_balance)
 
-    calibration_pv = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
-    extrinsics_pv = hl2ss_utilities.pv_load_rm_extrinsics(model_pv_path)
-    model_depth = hl2ss_utilities.rm_depth_longthrow_load_pinhole_model(model_depth_path)
-    depth_scale = hl2ss_utilities.rm_depth_get_normalizer(model_depth.uv2xy)
+    calibration_pv = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, width, height, framerate, profile, bitrate, True)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+
+    uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
+    xy1, scale, depth_to_pv_image = hl2ss_3dcv.rm_depth_registration(uv2xy, calibration_lt.scale, calibration_lt.extrinsics, calibration_pv.intrinsics, calibration_pv.extrinsics)
     
     volume = o3d.pipelines.integration.ScalableTSDFVolume(voxel_length=voxel_length, sdf_trunc=sdf_trunc, color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
-    intrinsics_depth = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT, model_depth.intrinsics[0, 0], model_depth.intrinsics[1, 1], model_depth.intrinsics[2, 0], model_depth.intrinsics[2, 1])
+    intrinsics_depth = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT, calibration_lt.intrinsics[0, 0], calibration_lt.intrinsics[1, 1], calibration_lt.intrinsics[2, 0], calibration_lt.intrinsics[2, 1])
     vis = o3d.visualization.Visualizer()
     vis.create_window()
     first_pcd = True
@@ -75,20 +81,17 @@ if __name__ == '__main__':
     eye_pointer = o3d.geometry.TriangleMesh.create_octahedron(radius=eye_pointer_radius)
     eye_pointer.paint_uniform_color(eye_pointer_color)
 
+    eye_line = o3d.geometry.LineSet()
+    eye_line.colors = o3d.utility.Vector3dVector(np.array([0, 1, 0]).reshape((1, 3)))
+    eye_line.points = o3d.utility.Vector3dVector(np.array([[0, 0, 0], [0, 1, 0]]).reshape((2, 3)))
+    eye_line.lines = o3d.utility.Vector2iVector(np.array([0, 1]).reshape((1,2)))
+
     left_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
     right_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
 
     for i in range(0, hl2ss.HandJointKind.TOTAL):
         left_hand_joints[i].paint_uniform_color(hand_joints_color)
         right_hand_joints[i].paint_uniform_color(hand_joints_color)
-
-    vis.add_geometry(head_frame, False)
-    vis.add_geometry(eye_pointer, False)    
-    for i in range(0, hl2ss.HandJointKind.TOTAL):        
-        vis.add_geometry(left_hand_joints[i], False)
-        vis.add_geometry(right_hand_joints[i], False)
-
-    view_initialized = False
 
     producer = hl2ss_utilities.producer()
     producer.initialize_decoded_pv(framerate * buffer_length, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, profile, bitrate, 'rgb24')
@@ -100,7 +103,7 @@ if __name__ == '__main__':
     consumer = hl2ss_utilities.consumer()
     sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
     sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
-    sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, None)
+    sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, ...)
 
     sinks = [sink_pv, sink_depth, sink_si]
 
@@ -117,9 +120,49 @@ if __name__ == '__main__':
         if (data_pv is None):
             continue
 
-        _, data_si = sink_si.get_nearest(data_depth.timestamp)
-        if (data_si is None):
-            continue
+        depth_world_to_camera = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
+
+        depth = hl2ss_3dcv.rm_depth_normalize(data_depth.payload.depth, calibration_lt.undistort_map, scale)
+        rgb, depth = hl2ss_3dcv.rm_depth_rgbd_registered(depth, data_pv.payload, xy1, depth_to_pv_image, cv2.INTER_LINEAR)
+        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
+        
+        volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())
+        pcd_tmp = volume.extract_point_cloud()
+        if (first_pcd):
+            first_pcd = False
+            pcd = pcd_tmp
+            vis.add_geometry(pcd)
+        else:
+            pcd.points = pcd_tmp.points
+            pcd.colors = pcd_tmp.colors
+            vis.update_geometry(pcd)
+
+        vis.poll_events()
+        vis.update_renderer()
+
+    listener.stop()
+
+    triangles = volume.extract_triangle_mesh()
+    mesh = o3d.t.geometry.TriangleMesh.from_legacy(triangles)
+    rs = o3d.t.geometry.RaycastingScene()
+    rs.add_triangles(mesh)
+
+    vis.add_geometry(head_frame, False)
+    vis.add_geometry(eye_pointer, False)
+    vis.add_geometry(eye_line, False)
+    for i in range(0, hl2ss.HandJointKind.TOTAL):        
+        vis.add_geometry(left_hand_joints[i], False)
+        vis.add_geometry(right_hand_joints[i], False)
+
+    enable = True
+
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
+
+    while(enable):
+        sink_si.acquire()
+
+        data_si = sink_si.get_most_recent_frame()
 
         si = hl2ss.unpack_si(data_si.payload)
 
@@ -129,36 +172,25 @@ if __name__ == '__main__':
             head_rotation = hl2ss_utilities.si_head_pose_rotation_matrix(head_pose)
             head_frame.rotate(head_rotation @ head_previous_rotation.transpose())
             head_previous_rotation = head_rotation
-
-            if (not view_initialized):
-                vis.reset_view_point(True)
-                vc = vis.get_view_control()
-                vc.set_up(np.array([0,1,0]))
-                vc.set_front(np.array([0,0,1]))
-                vc.camera_local_translate(head_pose.position[2], head_pose.position[0], head_pose.position[1])
-                view_initialized = True
         else:
             head_frame.translate(hide_position, False)
         
         if (si.is_valid_eye_ray()):
             eye_ray = si.get_eye_ray()
             ray = np.hstack((eye_ray.origin.reshape((1, -1)), eye_ray.direction.reshape((1,-1))))
-            triangles = volume.extract_triangle_mesh()
-            if (not triangles.is_empty()):
-                mesh = o3d.t.geometry.TriangleMesh.from_legacy(triangles)
-                rs = o3d.t.geometry.RaycastingScene()
-                rs.add_triangles(mesh)
-                rc = rs.cast_rays(ray)
-                d = rc['t_hit'].numpy()
-                if (not np.isinf(d)):
-                    eye_point = ray[0, 0:3] + d*ray[0, 3:6]
-                    eye_pointer.translate(eye_point, False)
-                else:
-                    eye_pointer.translate(hide_position, False)
+
+            rc = rs.cast_rays(ray)
+            d = rc['t_hit'].numpy()
+            if (not np.isinf(d)):
+                eye_point = ray[0, 0:3] + d*ray[0, 3:6]
+                eye_pointer.translate(eye_point, False)
+                eye_line.points = o3d.utility.Vector3dVector(np.array([eye_point, ray[0, 0:3]]).reshape((2, 3)))
             else:
                 eye_pointer.translate(hide_position, False)
+                eye_line.translate(hide_position, False)
         else:
             eye_pointer.translate(hide_position, False)
+            eye_line.translate(hide_position, False)
 
         if (si.is_valid_hand_left()):            
             left_hand = hl2ss_utilities.si_unpack_hand(si.get_hand_left())
@@ -178,26 +210,10 @@ if __name__ == '__main__':
 
         vis.update_geometry(head_frame)
         vis.update_geometry(eye_pointer)
+        vis.update_geometry(eye_line)
         for i in range(0, hl2ss.HandJointKind.TOTAL):
             vis.update_geometry(left_hand_joints[i])
             vis.update_geometry(right_hand_joints[i])
-
-        hands = si.is_valid_hand_left() or si.is_valid_hand_right()
-
-        if (not hands):
-            depth_world_to_camera = hl2ss_utilities.rm_world_to_camera(model_depth.extrinsics, data_depth.pose)
-            rgb, depth = hl2ss_utilities.rm_depth_generate_rgbd_from_pv(data_pv.payload, data_depth.payload.depth, calibration_pv.intrinsics, extrinsics_pv, model_depth.map, depth_scale, model_depth.uv2xy, model_depth.extrinsics)
-            rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
-            volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())
-            pcd_tmp = volume.extract_point_cloud()
-            if (first_pcd):
-                first_pcd = False
-                pcd = pcd_tmp
-                vis.add_geometry(pcd)
-            else:
-                pcd.points = pcd_tmp.points
-                pcd.colors = pcd_tmp.colors
-                vis.update_geometry(pcd)
 
         vis.poll_events()
         vis.update_renderer()
