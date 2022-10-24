@@ -48,6 +48,8 @@ stereo_calibration   = hl2ss_3dcv.rm_vlc_stereo_calibrate(K1, K2, Rt1, Rt2)
 stereo_rectification = hl2ss_3dcv.rm_vlc_stereo_rectify(K1, K2, stereo_calibration.R, stereo_calibration.t, shape)
 
 # Show rectified images
+# To keep this example simple, the images are captured one after the other but this will not work properly for dynamic scenes
+# Use the multiprocessing producer to obtain image pairs that are closest in time
 
 client_lf = hl2ss_utilities.rx_decoded_rm_vlc(host, port_left,  hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, vlc_profile, vlc_bitrate)
 client_rf = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'bgr24')

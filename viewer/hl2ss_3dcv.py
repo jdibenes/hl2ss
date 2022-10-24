@@ -156,7 +156,7 @@ def rm_depth_scale(depth, scale):
 
 
 def rm_depth_normalize(depth, undistort_map, scale):
-    return rm_depth_undistort(rm_depth_scale(depth, scale), undistort_map)
+    return rm_depth_scale(rm_depth_undistort(depth, undistort_map), scale)
 
 
 def rm_depth_to_points(depth, rays):
@@ -165,19 +165,19 @@ def rm_depth_to_points(depth, rays):
 
 
 def rm_depth_rgbd(depth, ab):
-    return (depth, ab)
+    return (ab, depth)
 
 
-def rm_depth_registration(depth_uv2xy, depth_extrinsics, camera_intrinsics, camera_extrinsics):
+def rm_depth_registration(depth_uv2xy, depth_scale, depth_extrinsics, camera_intrinsics, camera_extrinsics):
     xy1 = to_homogeneous(depth_uv2xy)
-    rays, _ = xy1_to_rays(xy1)
+    n = np.linalg.norm(xy1, axis=2)
     depth_to_camera = camera_to_camera(depth_extrinsics, camera_extrinsics)
     depth_to_image = projection(camera_intrinsics, depth_to_camera)
-    return (rays, depth_to_image)
+    return (xy1, n * depth_scale, depth_to_image)
 
 
-def rm_depth_rgbd_registered(depth, rgb, depth_rays, depth_to_image, rgb_interpolation):
-    xyz = rm_depth_to_points(depth, depth_rays)
+def rm_depth_rgbd_registered(depth, rgb, depth_xy1, depth_to_image, rgb_interpolation):
+    xyz = rm_depth_to_points(depth, depth_xy1)
     xyz1 = to_homogeneous(xyz)
     uv, _ = project_to_image(xyz1, depth_to_image)
     u = uv[:, 0].reshape(depth.shape)
