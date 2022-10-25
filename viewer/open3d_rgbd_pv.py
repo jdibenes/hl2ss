@@ -38,7 +38,7 @@ max_depth = 3.0
 
 # Fix PV focus
 
-hl2ss_3dcv.pv_optimize_for_cv(host, pv_focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.ColorTemperaturePreset.Auto)
+hl2ss_3dcv.pv_optimize_for_cv(host, pv_focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.IsoSpeedMode.Auto, hl2ss.IsoSpeedValue.Max, hl2ss.ColorTemperaturePreset.Auto)
 
 # Get camera calibrations
 

@@ -1,4 +1,6 @@
 
+#include "utilities.h"
+
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Media.Devices.h>
@@ -221,4 +223,42 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
     g_mediaCapture.VideoDeviceController().ExposureControl().SetAutoAsync(mode).get();
     if (mode) { return; }
     g_mediaCapture.VideoDeviceController().ExposureControl().SetValueAsync(winrt::Windows::Foundation::TimeSpan(exposure)).get();
+}
+
+// OK
+void PersonalVideo_SetExposurePriorityVideo(uint32_t enabled)
+{
+    g_mediaCapture.VideoDeviceController().ExposurePriorityVideoControl().Enabled(enabled != 0);
+}
+
+// OK
+void PersonalVideo_SetSceneMode(uint32_t mode)
+{
+    CaptureSceneMode value;
+
+    switch (mode)
+    {
+    case 0:  value = CaptureSceneMode::Auto;          break;
+    case 2:  value = CaptureSceneMode::Macro;         break;
+    case 3:  value = CaptureSceneMode::Portrait;      break;
+    case 4:  value = CaptureSceneMode::Sport;         break;
+    case 5:  value = CaptureSceneMode::Snow;          break;
+    case 6:  value = CaptureSceneMode::Night;         break;
+    case 7:  value = CaptureSceneMode::Beach;         break;
+    case 8:  value = CaptureSceneMode::Sunset;        break;
+    case 9:  value = CaptureSceneMode::Candlelight;   break;
+    case 10: value = CaptureSceneMode::Landscape;     break;
+    case 11: value = CaptureSceneMode::NightPortrait; break;
+    case 12: value = CaptureSceneMode::Backlit;       break;
+    default: return;
+    }
+
+    g_mediaCapture.VideoDeviceController().SceneModeControl().SetValueAsync(value).get();
+}
+
+// OK
+void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value)
+{
+    bool mode = setauto != 0;
+    if (mode) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetAutoAsync().get(); } else if ((value >= 100) && (value <= 3200)) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetValueAsync(value).get(); }
 }

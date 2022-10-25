@@ -34,7 +34,7 @@ line_thickness = 1
 
 calibration_lf = hl2ss_3dcv.get_calibration_rm(host, port_left, calibration_path)
 
-hl2ss_3dcv.pv_optimize_for_cv(host, focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.ColorTemperaturePreset.Auto)
+hl2ss_3dcv.pv_optimize_for_cv(host, focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.IsoSpeedMode.Auto, hl2ss.IsoSpeedValue.Max, hl2ss.ColorTemperaturePreset.Auto)
 calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, True)
 
 rotation_lf = hl2ss_3dcv.rm_vlc_get_rotation(port_left)

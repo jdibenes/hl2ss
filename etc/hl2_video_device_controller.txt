@@ -51,3 +51,35 @@ Preset: 0
 Step: 25
 Supported: 1
 Value: 2300
+
+SceneModeControl
+SupportedModes
+0
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+
+IsoSpeedControl
+Auto: 1
+Max: 3200
+Min: 100
+Preset: 0
+Step: 1
+Supported: 1
+Supported Presets
+0
+3
+4
+5
+6
+7
+8
+Value: 0

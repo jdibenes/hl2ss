@@ -22,9 +22,9 @@ static HANDLE g_quitevent = NULL; // CloseHandle
 static void RC_EnableMarker(SOCKET clientsocket)
 {
     bool ok;
-    uint8_t state;
+    uint32_t state;
     
-    ok = recv_u8(clientsocket, state);
+    ok = recv_u32(clientsocket, state);
     if (!ok) { return; }
 
     HolographicSpace_EnableMarker(state != 0);
@@ -139,6 +139,46 @@ static void RC_GetUTCOffset(SOCKET clientsocket)
 }
 
 // OK
+static void RC_SetExposurePriorityVideo(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t enabled;
+
+    ok = recv_u32(clientsocket, enabled);
+    if (!ok) { return; }
+
+    PersonalVideo_SetExposurePriorityVideo(enabled);
+}
+
+// OK
+static void RC_SetSceneMode(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok) { return; }
+
+    PersonalVideo_SetSceneMode(mode);
+}
+
+// OK
+static void RC_SetIsoSpeed(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t setauto;
+    uint32_t value;
+
+    ok = recv_u32(clientsocket, setauto);
+    if (!ok) { return; }
+
+    ok = recv_u32(clientsocket, value);
+    if (!ok) { return; }
+
+    PersonalVideo_SetIsoSpeed(setauto, value);
+}
+
+// OK
 static void RC_Translate(SOCKET clientsocket)
 {
     uint8_t state;
@@ -149,14 +189,17 @@ static void RC_Translate(SOCKET clientsocket)
 
     switch (state)
     {
-    case 0: RC_EnableMarker(clientsocket);              break;
-    case 1: RC_SetFocus(clientsocket);                  break;
-    case 2: RC_SetVideoTemporalDenoising(clientsocket); break;
-    case 3: RC_SetWhiteBalance_Preset(clientsocket);    break;
-    case 4: RC_SetWhiteBalance_Value(clientsocket);     break;
-    case 5: RC_SetExposure(clientsocket);               break;
-    case 6: RC_GetApplicationVersion(clientsocket);     break;
-    case 7: RC_GetUTCOffset(clientsocket);              break;
+    case 0x00: RC_EnableMarker(clientsocket);              break;
+    case 0x01: RC_SetFocus(clientsocket);                  break;
+    case 0x02: RC_SetVideoTemporalDenoising(clientsocket); break;
+    case 0x03: RC_SetWhiteBalance_Preset(clientsocket);    break;
+    case 0x04: RC_SetWhiteBalance_Value(clientsocket);     break;
+    case 0x05: RC_SetExposure(clientsocket);               break;
+    case 0x06: RC_GetApplicationVersion(clientsocket);     break;
+    case 0x07: RC_GetUTCOffset(clientsocket);              break;
+    case 0x08: RC_SetExposurePriorityVideo(clientsocket);  break;
+    case 0x09: RC_SetSceneMode(clientsocket);              break;
+    case 0x0A: RC_SetIsoSpeed(clientsocket);               break;
     }
 }
 

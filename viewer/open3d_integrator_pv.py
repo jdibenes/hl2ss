@@ -28,6 +28,8 @@ profile = hl2ss.VideoProfile.H265_MAIN
 bitrate = 5*1024*1024
 exposure_mode = hl2ss.ExposureMode.Manual
 exposure = hl2ss.ExposureValue.Max // 4
+iso_speed_mode = hl2ss.IsoSpeedMode.Manual
+iso_speed_value = 1600
 white_balance = hl2ss.ColorTemperaturePreset.Manual
 
 # Buffer length in seconds
@@ -51,7 +53,7 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    hl2ss_3dcv.pv_optimize_for_cv(host, focus, exposure_mode, exposure, white_balance)
+    hl2ss_3dcv.pv_optimize_for_cv(host, focus, exposure_mode, exposure, iso_speed_mode, iso_speed_value, white_balance)
 
     calibration_pv = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, width, height, framerate, profile, bitrate, True)
     calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)

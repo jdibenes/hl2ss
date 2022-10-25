@@ -229,6 +229,40 @@ class ExposureValue:
     Max = 660000 // 10
 
 
+# Exposure priority video mode
+class ExposurePriorityVideo:
+    Disabled = 0
+    Enabled = 1
+
+
+# Capture scene mode
+class CaptureSceneMode:
+    Auto = 0
+    Macro = 2
+    Portrait = 3
+    Sport = 4
+    Snow = 5
+    Night = 6
+    Beach = 7
+    Sunset = 8
+    Candlelight = 9
+    Landscape = 10
+    NightPortrait = 11
+    Backlit = 12
+
+
+# Iso speed mode
+class IsoSpeedMode:
+    Manual = 0
+    Auto = 1
+
+
+# Minimum and maximum allowed values for iso speed
+class IsoSpeedValue:
+    Min = 100
+    Max = 3200
+
+
 #------------------------------------------------------------------------------
 # Network Client
 #------------------------------------------------------------------------------
@@ -994,7 +1028,7 @@ class tx_rc:
 
     def set_marker_state(self, state):
         self._open()
-        command = struct.pack('<BB', 0, state)
+        command = struct.pack('<BI', 0, state)
         self._client.sendall(command)
         self._close()
 
@@ -1044,4 +1078,22 @@ class tx_rc:
         data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
         self._close()
         return struct.unpack('<Q', data)[0]
+
+    def set_pv_exposure_priority_video(self, enabled):
+        self._open()
+        command = struct.pack('<BI', 8, enabled)
+        self._client.sendall(command)
+        self._client.close()
+
+    def set_pv_scene_mode(self, mode):
+        self._open()
+        command = struct.pack('<BI', 9, mode)
+        self._client.sendall(command)
+        self._client.close()
+
+    def set_pv_iso_speed(self, mode, value):
+        self._open()
+        command = struct.pack('<BII', 10, mode, value)
+        self._client.sendall(command)
+        self._client.close()
 
