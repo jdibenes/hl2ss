@@ -11,6 +11,7 @@ from pynput import keyboard
 
 import cv2
 import hl2ss
+import hl2ss_3dcv
 import hl2ss_utilities
 import rus
 import numpy as np
@@ -18,7 +19,7 @@ import numpy as np
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.15'
+host = '192.168.1.7'
 
 # Ports
 port_mq = rus.Port.IPC
@@ -70,7 +71,7 @@ results = ipc.pop(command_buffer)
 
 previous  = False
 calib  = hl2ss.download_calibration_rm_depth_longthrow(host, port_lt)
-scaler = hl2ss_utilities.rm_depth_get_normalizer(calib.uv2xy)
+scaler = np.sqrt(calib.uv2xy[:, :, 0]**2 + calib.uv2xy[:, :, 1]**2 + 1) * calib.scale
 
 u0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  // 2
 v0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT // 2
@@ -83,7 +84,7 @@ while (enable):
     images = hl2ss.unpack_rm_depth(data.payload)
 
     # Show depth image
-    cv2.imshow('depth', images.depth * brightness)
+    cv2.imshow('depth', images.depth / np.max(images.depth))
     cv2.waitKey(1)
 
     keydown = (not previous) and trigger
@@ -104,8 +105,8 @@ while (enable):
         continue
 
     # 4x4 matrix that converts 3D points in depth camera space to world space
-    camera2world = hl2ss_utilities.rm_camera_to_world(calib.extrinsics, data.pose)
-    points = hl2ss_utilities.to_homogeneous(xyz) @ camera2world
+    camera2world = hl2ss_3dcv.camera_to_rignode(calib.extrinsics) @ hl2ss_3dcv.reference_to_world(data.pose)
+    points = hl2ss_3dcv.to_homogeneous(xyz) @ camera2world
 
     # Fit plane
     _, _, vh = np.linalg.svd(points)
