@@ -29,7 +29,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 - Optional per-frame pose for the Front Camera and Research Mode sensors streams.
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
 - Client can configure the resolution and framerate of the Front Camera (see [etc/hl2_capture_formats.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/hl2_capture_formats.txt) for a list of supported formats).
-- Client can configure the focus, temporal denoising, white balance, and exposure of the Front Camera.
+- Client can configure the focus, white balance, iso speed, and exposure of the Front Camera.
 
 The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time.
 
