@@ -83,13 +83,13 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 		while (!m_windowClosed)
 		{
-		window.Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+			window.Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
-		HolographicSpace_Update();
-		SI_NotifyNextFrame(HolographicSpace_GetTimestamp());
-		HolographicSpace_Clear();
-		// Draw
-		HolographicSpace_Present();
+			HolographicSpace_Update();
+			SI_NotifyNextFrame(HolographicSpace_GetTimestamp());
+			HolographicSpace_Clear();
+			// Draw
+			HolographicSpace_Present();
 		}
 	}
 
