@@ -12,7 +12,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
   - Hand Tracking
 - Research Mode Visible Light Cameras (4 cameras, 640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
 - Research Mode Depth
-  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB encoded as a single 32-bit PNG)
+  - Long Throw (320x288 @ 1-5 FPS, 16-bit Depth + 16-bit AB encoded as a single 32-bit PNG)
 - Research Mode IMU
   - Accelerometer
   - Gyroscope
