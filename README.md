@@ -4,7 +4,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 
 **Supported streams**
 
-- Front Camera (1920x1080 @ 30 FPS, H264 or HEVC encoded)
+- Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
 - Microphone (2 channels, 48000 Hz, AAC encoded)
 - Spatial Input (60 Hz)
   - Head Tracking
