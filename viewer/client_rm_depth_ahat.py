@@ -8,9 +8,7 @@
 
 from pynput import keyboard
 
-import numpy as np
 import hl2ss
-import hl2ss_utilities
 import cv2
 
 # Settings --------------------------------------------------------------------
@@ -19,22 +17,25 @@ import cv2
 host = "192.168.1.7"
 
 # Port
-port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
+port = hl2ss.StreamPort.RM_DEPTH_AHAT
 
 # Operating mode
 # 0: video
 # 1: video + rig pose
 # 2: query calibration (single transfer)
-mode = hl2ss.StreamMode.MODE_1
+mode = hl2ss.StreamMode.MODE_0
 
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_depth_longthrow(host, port)
+    data = hl2ss.download_calibration_rm_depth_ahat(host, port)
     print('Calibration data')
     print(data.uv2xy.shape)
     print(data.extrinsics)
     print(data.scale)
+    print(data.alias)
+    print(data.undistort_map.shape)
+    print(data.intrinsics)
     quit()
 
 enable = True
@@ -47,16 +48,22 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss_utilities.rx_decoded_rm_depth(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode)
+client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, hl2ss.VideoProfile.H264_BASE, 8*1024*1024)
 client.open()
+
+prev_ts = None
+count = 0
 
 while (enable):
     data = client.get_next_packet()
-    print('Pose at time {ts}'.format(ts=data.timestamp))
-    print(data.pose)
-    cv2.imshow('depth', data.payload.depth / np.max(data.payload.depth)) # Depth scaled for visibility
-    cv2.imshow('ab', data.payload.ab / np.max(data.payload.ab)) # AB scaled for visibility
+    cv2.imshow('depth', data.payload.depth)
+    cv2.imshow('ab', data.payload.ab)
     cv2.waitKey(1)
+
+    if (prev_ts is not None):
+        print((10*1000*1000) / (data.timestamp - prev_ts))
+    prev_ts = data.timestamp
+    print(data.pose)
 
 client.close()
 listener.join()

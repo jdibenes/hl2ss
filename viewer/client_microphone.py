@@ -50,7 +50,7 @@ listener = keyboard.Listener(on_press=on_press)
 thread.start()
 listener.start()
 
-client = hl2ss_utilities.rx_decoded_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile)
+client = hl2ss.rx_decoded_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile)
 client.open()
 
 while (enable): 

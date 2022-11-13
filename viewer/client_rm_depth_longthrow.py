@@ -1,12 +1,14 @@
 #------------------------------------------------------------------------------
-# This script receives encoded video from one of the HoloLens sideview
-# grayscale cameras and plays it. The camera resolution is 640x480 30 FPS. The
+# This script receives encoded video from the HoloLens depth camera and plays
+# it. Only long throw mode is supported. The resolution is 320x288 5 FPS. The
 # stream supports three operating modes: 0) video, 1) video + rig pose,
-# 2) query calibration (single transfer). Press esc to stop.
+# 2) query calibration (single transfer). Press esc to stop. Depth and AB
+# data are scaled for visibility.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
 
+import numpy as np
 import hl2ss
 import hl2ss_utilities
 import cv2
@@ -17,12 +19,7 @@ import cv2
 host = "192.168.1.7"
 
 # Port
-# Options:
-# hl2ss.StreamPort.RM_VLC_LEFTFRONT
-# hl2ss.StreamPort.RM_VLC_LEFTLEFT
-# hl2ss.StreamPort.RM_VLC_RIGHTFRONT
-# hl2ss.StreamPort.RM_VLC_RIGHTRIGHT
-port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
+port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 
 # Operating mode
 # 0: video
@@ -30,20 +27,14 @@ port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
 
-# Video encoding profile
-profile = hl2ss.VideoProfile.H265_MAIN
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = 1*1024*1024
-
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_vlc(host, port)
+    data = hl2ss.download_calibration_rm_depth_longthrow(host, port)
     print('Calibration data')
     print(data.uv2xy.shape)
     print(data.extrinsics)
+    print(data.scale)
     quit()
 
 enable = True
@@ -56,14 +47,15 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_vlc(host, port, hl2ss.ChunkSize.RM_VLC, mode, profile, bitrate)
+client = hl2ss.rx_decoded_rm_depth_longthrow(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
-    cv2.imshow('video', data.payload)
+    cv2.imshow('depth', data.payload.depth / np.max(data.payload.depth)) # Depth scaled for visibility
+    cv2.imshow('ab', data.payload.ab / np.max(data.payload.ab)) # AB scaled for visibility
     cv2.waitKey(1)
 
 client.close()

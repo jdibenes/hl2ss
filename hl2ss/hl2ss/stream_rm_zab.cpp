@@ -1,12 +1,12 @@
 
-// TODO: AHAT
-
+#include <mfapi.h>
 #include <MemoryBuffer.h>
 #include "research_mode.h"
 #include "server.h"
 #include "utilities.h"
 #include "locator.h"
 #include "timestamps.h"
+#include "neon.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.Numerics.h>
@@ -182,21 +182,191 @@ void RM_ZLT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 
 // AHAT ***********************************************************************
 
+template<bool ENABLE_LOCATION>
+void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
+{
+    IMFMediaBuffer *pBuffer; // Release
+    HookCallbackSocket* user;
+    LONGLONG sampletime;
+    BYTE* pBytes;
+    DWORD cbData;
+    float4x4 pose;    
+    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
+    bool ok;
+
+    user = (HookCallbackSocket*)param;
+
+    pSample->GetSampleTime(&sampletime);
+    pSample->ConvertToContiguousBuffer(&pBuffer);
+
+    pBuffer->Lock(&pBytes, NULL, &cbData);
+
+    wsaBuf[0].buf = (char*)&sampletime;
+    wsaBuf[0].len = sizeof(sampletime);
+
+    wsaBuf[1].buf = (char*)&cbData;
+    wsaBuf[1].len = sizeof(cbData);
+
+    wsaBuf[2].buf = (char*)pBytes;
+    wsaBuf[2].len = cbData;
+
+    if constexpr(ENABLE_LOCATION)
+    {
+    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(pose), NULL);
+    
+    wsaBuf[3].buf = (char*)&pose;
+    wsaBuf[3].len = sizeof(pose);
+    }
+
+    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { SetEvent(user->clientevent); }
+
+    pBuffer->Unlock();
+    pBuffer->Release();
+}
+
+template<bool ENABLE_LOCATION>
+void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+{
+    uint32_t const width      = RM_AHAT_WIDTH;
+    uint32_t const height     = RM_AHAT_HEIGHT;
+    uint32_t const framerate  = RM_AHAT_FPS;
+    uint32_t const framebytes = (width * height * 3) / 2;    
+    uint32_t const duration   = HNS_BASE / framerate;
+
+    PerceptionTimestamp ts = nullptr;
+    float4x4 pose;
+    IResearchModeSensorFrame* pSensorFrame; // Release
+    ResearchModeSensorTimestamp timestamp;
+    IResearchModeSensorDepthFrame* pDepthFrame; // Release
+    UINT16 const* pDepth;
+    UINT16 const* pAbImage;
+    size_t nDepthCount;
+    size_t nAbCount;
+    BYTE* pDst;
+    H26xFormat format;
+    IMFSinkWriter* pSinkWriter; // Release
+    IMFMediaBuffer* pBuffer; // Release
+    IMFSample* pSample; // Release
+    DWORD dwVideoIndex;
+    HookCallbackSocket user;
+    HANDLE clientevent; // CloseHandle    
+    HRESULT hr;
+    bool ok;
+
+    ok = ReceiveVideoH26x(clientsocket, format);
+    if (!ok) { return; }
+
+    format.width     = width;
+    format.height    = height;
+    format.framerate = framerate;
+
+    clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    user.clientsocket = clientsocket;
+    user.clientevent  = clientevent;
+
+    CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user);
+
+    sensor->OpenStream();
+
+    do
+    {
+    hr = sensor->GetNextBuffer(&pSensorFrame);
+    if (FAILED(hr)) { break; }
+
+    pSensorFrame->GetTimeStamp(&timestamp);
+    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pDepthFrame));
+
+    pDepthFrame->GetBuffer(&pDepth, &nDepthCount);
+    pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
+
+    MFCreateMemoryBuffer(framebytes, &pBuffer);
+
+    pBuffer->Lock(&pDst, NULL, NULL);
+    Neon_DepthAHATToNV12(pDepth, pAbImage, pDst);
+    pBuffer->Unlock();
+    pBuffer->SetCurrentLength(framebytes);
+
+    MFCreateSample(&pSample);
+
+    pSample->AddBuffer(pBuffer);
+    pSample->SetSampleDuration(duration);
+    pSample->SetSampleTime(timestamp.HostTicks);
+
+    if constexpr (ENABLE_LOCATION)
+    {
+    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
+    }
+
+    pSinkWriter->WriteSample(dwVideoIndex, pSample);
+
+    pDepthFrame->Release();
+    pSensorFrame->Release();
+    pSample->Release();
+    pBuffer->Release();
+    }
+    while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
+
+    sensor->CloseStream();
+
+    pSinkWriter->Flush(dwVideoIndex);
+    pSinkWriter->Release();
+
+    CloseHandle(clientevent);
+}
+
 void RM_ZHT_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
-    (void)sensor;
-    (void)clientsocket;
+    RM_ZHT_Stream<false>(sensor, clientsocket, nullptr);
 }
 
 void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    (void)sensor;
-    (void)clientsocket;
-    (void)locator;
+    RM_ZHT_Stream<true>(sensor, clientsocket, locator);
 }
 
 void RM_ZHT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
-    (void)sensor;
-    (void)clientsocket;
+    float const scale = 1000.0f;
+    float const alias =  999.0f;
+
+    std::vector<float> uv2x;
+    std::vector<float> uv2y;
+    std::vector<float> mapx;
+    std::vector<float> mapy;
+    float K[4];
+    DirectX::XMFLOAT4X4 extrinsics;
+    WSABUF wsaBuf[8];
+
+    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
+    ResearchMode_GetExtrinsics(sensor, extrinsics);
+
+    wsaBuf[0].buf = (char*)uv2x.data();
+    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
+
+    wsaBuf[1].buf = (char*)uv2y.data();
+    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
+
+    wsaBuf[2].buf = (char*)&extrinsics.m[0][0];
+    wsaBuf[2].len = sizeof(extrinsics.m);
+
+    wsaBuf[3].buf = (char*)&scale;
+    wsaBuf[3].len = sizeof(scale);
+
+    wsaBuf[4].buf = (char*)&alias;
+    wsaBuf[4].len = sizeof(alias);
+
+    wsaBuf[5].buf = (char*)mapx.data();
+    wsaBuf[5].len = (ULONG)(mapx.size() * sizeof(float));
+
+    wsaBuf[6].buf = (char*)mapy.data();
+    wsaBuf[6].len = (ULONG)(mapy.size() * sizeof(float));
+
+    wsaBuf[7].buf = (char*)K;
+    wsaBuf[7].len = sizeof(K);
+
+    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

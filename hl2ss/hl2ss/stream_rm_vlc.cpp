@@ -95,7 +95,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     float4x4 pose;
     HRESULT hr;
 
-    ok = ReceiveVideoFormatH26x(clientsocket, format);
+    ok = ReceiveVideoH26x(clientsocket, format);
     if (!ok) { return; }
 
     format.width     = width;

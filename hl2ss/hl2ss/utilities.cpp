@@ -41,6 +41,46 @@ bool ReceiveAudioFormatAAC(SOCKET clientsocket, AACBitrate& bitrate)
 	return true;
 }
 
+
+bool ReceiveVideoFormat(SOCKET clientsocket, H26xFormat& format)
+{
+	bool ok;
+	ok = recv_u16(clientsocket, format.width);
+	if (!ok) { return false; }
+	ok = recv_u16(clientsocket, format.height);
+	if (!ok) { return false; }
+	ok = recv_u8(clientsocket, format.framerate);
+	if (!ok) { return false; }
+	return true;
+}
+
+bool ReceiveVideoH26x(SOCKET clientsocket, H26xFormat& format)
+{
+	bool ok;
+	uint8_t h264profileid;
+
+	ok = recv_u8(clientsocket, h264profileid);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, format.bitrate);
+	if (!ok) { return false; }
+
+	switch (h264profileid)
+	{
+	case 0:  format.profile = H264Profile_Base; break;
+	case 1:  format.profile = H264Profile_Main; break;
+	case 2:  format.profile = H264Profile_High; break;
+	case 3:  format.profile = H265Profile_Main; break;
+	default: return false;
+	}
+
+	if (format.bitrate <= 0) { return false; }
+
+	return true;
+}
+
+
+
+
 // OK
 bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format)
 {
@@ -75,6 +115,9 @@ bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format)
 //-----------------------------------------------------------------------------
 // Packing
 //-----------------------------------------------------------------------------
+
+
+
 
 // OK
 void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n32ByteVectors)

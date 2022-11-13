@@ -100,6 +100,9 @@
     <ClCompile Include="nfo.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
+    <ClCompile Include="neon.cpp">
+      <Filter>Source Files\utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -307,6 +310,9 @@
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
     <ClInclude Include="nfo.h">
+      <Filter>Header Files\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="neon.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
   </ItemGroup>

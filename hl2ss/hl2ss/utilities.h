@@ -36,6 +36,9 @@ struct HookCallbackSocket
 
 bool ReceiveAudioFormatAAC(SOCKET clientsocket, AACBitrate& bitrate);
 bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format);
+bool ReceiveVideoFormat(SOCKET clientsocket, H26xFormat& format);
+bool ReceiveVideoH26x(SOCKET clientsocket, H26xFormat& format);
+
 
 //-----------------------------------------------------------------------------
 // Packing
