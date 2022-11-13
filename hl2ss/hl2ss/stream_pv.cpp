@@ -7,6 +7,7 @@
 #include "utilities.h"
 #include "ports.h"
 #include "timestamps.h"
+#include "ipc_sc.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.h>
@@ -151,15 +152,18 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
     if (!ok) { SetEvent(user->clientevent); }
 
     pBuffer->Unlock();
-
     pBuffer->Release();
 }
 
 // OK
 template<bool ENABLE_LOCATION>
-void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat const& format)
+void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format)
 {
     HookCallbackSocket user;
+    bool ok;
+
+    ok = ReceiveVideoH26x(clientsocket, format);
+    if (!ok) { return; }
 
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
@@ -213,7 +217,7 @@ static void PV_Stream(SOCKET clientsocket)
     ok = recv_u8(clientsocket, mode);
     if (!ok) { return; }
 
-    ok = ReceiveVideoFormatH26x(clientsocket, format);
+    ok = ReceiveVideoFormat(clientsocket, format);
     if (!ok) { return; }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);

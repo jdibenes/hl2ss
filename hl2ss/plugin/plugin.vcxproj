@@ -254,6 +254,8 @@
     <ClCompile Include="..\hl2ss\custom_media_type_handler.cpp" />
     <ClCompile Include="..\hl2ss\custom_sink_writers.cpp" />
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
+    <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
+    <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
     <ClCompile Include="..\hl2ss\locator.cpp" />
     <ClCompile Include="..\hl2ss\microphone_capture.cpp" />
     <ClCompile Include="..\hl2ss\neon.cpp" />
@@ -264,7 +266,6 @@
     <ClCompile Include="..\hl2ss\spatial_input.cpp" />
     <ClCompile Include="..\hl2ss\stream_mc.cpp" />
     <ClCompile Include="..\hl2ss\stream_pv.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rc.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
@@ -285,6 +286,8 @@
     <ClInclude Include="..\hl2ss\custom_sink_hook.h" />
     <ClInclude Include="..\hl2ss\custom_sink_writers.h" />
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
+    <ClInclude Include="..\hl2ss\ipc_rc.h" />
+    <ClInclude Include="..\hl2ss\ipc_sc.h" />
     <ClInclude Include="..\hl2ss\locator.h" />
     <ClInclude Include="..\hl2ss\microphone_capture.h" />
     <ClInclude Include="..\hl2ss\neon.h" />
@@ -296,7 +299,6 @@
     <ClInclude Include="..\hl2ss\spatial_input.h" />
     <ClInclude Include="..\hl2ss\stream_mc.h" />
     <ClInclude Include="..\hl2ss\stream_pv.h" />
-    <ClInclude Include="..\hl2ss\stream_rc.h" />
     <ClInclude Include="..\hl2ss\stream_rm.h" />
     <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />

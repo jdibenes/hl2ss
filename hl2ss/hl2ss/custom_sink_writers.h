@@ -14,5 +14,11 @@ struct H26xFormat
     uint32_t bitrate;
 };
 
+struct HookCallbackSocket
+{
+    SOCKET clientsocket;
+    HANDLE clientevent;
+};
+
 void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, uint32_t channels, uint32_t samplerate, AACBitrate bitrate, HOOK_SINK_PROC hookproc, void* hookparam);
 void CreateSinkWriterNV12ToH26x(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);

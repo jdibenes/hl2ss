@@ -6,6 +6,8 @@
 #include "custom_media_types.h"
 #include "custom_sink_writers.h"
 
+#include <winrt/Windows.Graphics.Imaging.h>
+
 //-----------------------------------------------------------------------------
 // COM
 //-----------------------------------------------------------------------------
@@ -19,32 +21,6 @@ void SafeRelease(T** ppT)
         *ppT = 0;
     }
 }
-
-//-----------------------------------------------------------------------------
-// Media Sink
-//-----------------------------------------------------------------------------
-
-struct HookCallbackSocket
-{
-    SOCKET clientsocket;
-    HANDLE clientevent;
-};
-
-//-----------------------------------------------------------------------------
-// Remote Configuration
-//-----------------------------------------------------------------------------
-
-bool ReceiveAudioFormatAAC(SOCKET clientsocket, AACBitrate& bitrate);
-bool ReceiveVideoFormatH26x(SOCKET clientsocket, H26xFormat& format);
-bool ReceiveVideoFormat(SOCKET clientsocket, H26xFormat& format);
-bool ReceiveVideoH26x(SOCKET clientsocket, H26xFormat& format);
-
-
-//-----------------------------------------------------------------------------
-// Packing
-//-----------------------------------------------------------------------------
-
-void PackUINT16toUINT32(BYTE const* slo16, BYTE const* shi16, BYTE* dst32, int n32ByteVectors);
 
 //-----------------------------------------------------------------------------
 // Logging 

@@ -5,6 +5,7 @@
 #include "locator.h"
 #include "utilities.h"
 #include "timestamps.h"
+#include "ipc_sc.h"
 #include "types.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
@@ -60,7 +61,6 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
     if (!ok) { SetEvent(user->clientevent); }
 
     pBuffer->Unlock();
-
     pBuffer->Release();
 }
 
@@ -78,22 +78,22 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint8_t  const zerochroma = 0x80;
 
     PerceptionTimestamp ts = nullptr;
-    bool ok = true;
+    float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
-    IResearchModeSensorVLCFrame* pVLCFrame; // Release
-    IMFSinkWriter* pSinkWriter; // Release
-    IMFMediaBuffer* pBuffer; // Release
-    IMFSample* pSample; // Release
-    HANDLE clientevent; // CloseHandle
-    H26xFormat format;    
-    HookCallbackSocket user;
     ResearchModeSensorTimestamp timestamp;
-    DWORD dwVideoIndex;
+    IResearchModeSensorVLCFrame* pVLCFrame; // Release
     BYTE const* pImage;
     size_t length;
     BYTE* pDst;
-    float4x4 pose;
+    H26xFormat format;
+    IMFSinkWriter* pSinkWriter; // Release
+    IMFMediaBuffer* pBuffer; // Release
+    IMFSample* pSample; // Release
+    DWORD dwVideoIndex;
+    HookCallbackSocket user;
+    HANDLE clientevent; // CloseHandle
     HRESULT hr;
+    bool ok;
 
     ok = ReceiveVideoH26x(clientsocket, format);
     if (!ok) { return; }
@@ -114,7 +114,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     do
     {
     hr = sensor->GetNextBuffer(&pSensorFrame); // block
-    if (FAILED(hr)) { continue; }
+    if (FAILED(hr)) { break; }
 
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pVLCFrame));

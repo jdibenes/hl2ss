@@ -75,6 +75,17 @@ class AudioProfile:
     AAC_24000 = 3
 
 
+# PNG Filters
+class PngFilterMode:
+    Automatic = 0
+    Disable   = 1
+    Sub       = 2
+    Up        = 3
+    Average   = 4
+    Paeth     = 5
+    Adaptive  = 6
+
+
 # RM VLC Parameters
 class Parameters_RM_VLC:
     WIDTH  = 640
@@ -85,7 +96,7 @@ class Parameters_RM_VLC:
     PERIOD = 1 / FPS
 
 
-# RM Depth AHaT Parameters
+# RM Depth AHAT Parameters
 class Parameters_RM_DEPTH_AHAT:
     WIDTH  = 512
     HEIGHT = 512
@@ -475,6 +486,10 @@ def _create_configuration_for_audio_encoding(profile):
     return struct.pack('<B', profile)
 
 
+def _create_configuration_for_png_encoding(png_filter):
+    return struct.pack('<B', png_filter)
+
+
 def _create_configuration_for_rm_vlc(mode, profile, bitrate):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mode(mode))
@@ -489,8 +504,11 @@ def _create_configuration_for_rm_depth_ahat(mode, profile, bitrate):
     return bytes(configuration)
 
 
-def _create_configuration_for_rm_depth_longthrow(mode):
-    return _create_configuration_for_mode(mode)
+def _create_configuration_for_rm_depth_longthrow(mode, png_filter):
+    configuration = bytearray()
+    configuration.extend(_create_configuration_for_mode(mode))
+    configuration.extend(_create_configuration_for_png_encoding(png_filter))
+    return bytes(configuration)
 
 
 def _create_configuration_for_rm_imu(mode):
@@ -538,10 +556,10 @@ def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, profile, bitrate
     return c
 
 
-def _connect_client_rm_depth_longthrow(host, port, chunk_size, mode):
+def _connect_client_rm_depth_longthrow(host, port, chunk_size, mode, png_filter):
     c = gatherer()
     c.open(host, port, chunk_size, mode)
-    c.sendall(_create_configuration_for_rm_depth_longthrow(mode))
+    c.sendall(_create_configuration_for_rm_depth_longthrow(mode, png_filter))
     return c
 
 
@@ -615,14 +633,15 @@ class rx_rm_depth_ahat:
 
 
 class rx_rm_depth_longthrow:
-    def __init__(self, host, port, chunk, mode):
+    def __init__(self, host, port, chunk, mode, png_filter):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.mode = mode
+        self.png_filter = png_filter
 
     def open(self):
-        self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.chunk, self.mode)
+        self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.chunk, self.mode, self.png_filter)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -759,15 +778,9 @@ class decode_rm_vlc:
     def create(self):
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
-    def parse(self, payload):
-        return self._codec.parse(payload)
-
-    def decode(self, packet):
-        return self._codec.decode(packet)
-
-    def parse_and_decode(self, payload):
-        for packet in self.parse(payload):
-            for frame in self.decode(packet):
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
                 return frame.to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
         return None
 
@@ -813,15 +826,9 @@ class decode_rm_depth_ahat:
     def create(self):
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
-    def parse(self, payload):
-        return self._codec.parse(payload)
-
-    def decode(self, packet):
-        return self._codec.decode(packet)
-
-    def parse_and_decode(self, payload):
-        for packet in self.parse(payload):
-            for frame in self.decode(packet):
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
                 return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray())
         return None
 
@@ -829,9 +836,8 @@ class decode_rm_depth_ahat:
 def decode_rm_depth_longthrow(payload):
     composite = cv2.imdecode(np.frombuffer(payload, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
     h, w, _ = composite.shape
-    interleaved = composite.view(np.uint16).reshape((h, w, 2))
-    depth, ab = np.dsplit(interleaved, 2)
-    return RM_Depth_Frame(depth.reshape((h, w)), ab.reshape((h, w)))
+    image = composite.view(np.uint16).reshape((2*h, w))
+    return RM_Depth_Frame(image[:h, :], image[h:, :])
 
 
 #------------------------------------------------------------------------------
@@ -870,15 +876,9 @@ class decode_pv:
     def create(self):
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
-    def parse(self, payload):
-        return self._codec.parse(payload)
-
-    def decode(self, packet):
-        return self._codec.decode(packet)
-
-    def parse_and_decode(self, payload, format):
-        for packet in self.parse(payload):
-            for frame in self.decode(packet):
+    def decode(self, payload, format):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
                 return frame.to_ndarray(format=format)
         return None
 
@@ -894,15 +894,9 @@ class decode_microphone:
     def create(self):
         self._codec = av.CodecContext.create(get_audio_codec_name(self.profile), 'r')
 
-    def parse(self, payload):
-        return self._codec.parse(payload)
-
-    def decode(self, packet):
-        return self._codec.decode(packet)
-
-    def parse_and_decode(self, payload):
-        for packet in self.parse(payload):
-            for frame in self.decode(packet):
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
                 return frame.to_ndarray()
         return None
 
@@ -1040,7 +1034,7 @@ class rx_decoded_rm_vlc:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.parse_and_decode(data.payload)
+        data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -1059,7 +1053,7 @@ class rx_decoded_rm_depth_ahat:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.parse_and_decode(data.payload)
+        data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -1067,8 +1061,8 @@ class rx_decoded_rm_depth_ahat:
 
 
 class rx_decoded_rm_depth_longthrow:
-    def __init__(self, host, port, chunk, mode):
-        self._client = rx_rm_depth_longthrow(host, port, chunk, mode)
+    def __init__(self, host, port, chunk, mode, png_filter):
+        self._client = rx_rm_depth_longthrow(host, port, chunk, mode, png_filter)
 
     def open(self):
         self._client.open()
@@ -1095,7 +1089,7 @@ class rx_decoded_pv:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.parse_and_decode(data.payload, self._format)
+        data.payload = self._codec.decode(data.payload, self._format)
         return data
 
     def close(self):
@@ -1113,7 +1107,7 @@ class rx_decoded_microphone:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.parse_and_decode(data.payload)
+        data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):

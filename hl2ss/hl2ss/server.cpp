@@ -21,7 +21,6 @@ SOCKET CreateSocket(char const* port)
 {
 	addrinfo hints;
 	addrinfo* result;
-	int iResult;
 	SOCKET listensocket;
 
 	ZeroMemory(&hints, sizeof(hints));
@@ -31,23 +30,13 @@ SOCKET CreateSocket(char const* port)
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags    = AI_PASSIVE;
 
-	iResult = getaddrinfo(NULL, port, &hints, &result);
-	if (iResult != 0) { return INVALID_SOCKET; }
-
+	getaddrinfo(NULL, port, &hints, &result);
 	listensocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	if (listensocket != INVALID_SOCKET) { iResult = bind(listensocket, result->ai_addr, (int)(result->ai_addrlen)); }
+	bind(listensocket, result->ai_addr, (int)(result->ai_addrlen));
 	freeaddrinfo(result);
-	if (listensocket == INVALID_SOCKET) { return INVALID_SOCKET; }
-	if (iResult == SOCKET_ERROR) { goto _socket_error; }
-
-	iResult = listen(listensocket, SOMAXCONN);
-	if (iResult == SOCKET_ERROR) { goto _socket_error; }
+	listen(listensocket, SOMAXCONN);
 
 	return listensocket;
-
-_socket_error:
-	closesocket(listensocket);
-	return INVALID_SOCKET;
 }
 
 // OK

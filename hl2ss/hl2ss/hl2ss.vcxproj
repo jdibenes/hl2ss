@@ -160,11 +160,12 @@
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
     <ClInclude Include="holographic_space.h" />
+    <ClInclude Include="ipc_sc.h" />
     <ClInclude Include="locator.h" />
     <ClInclude Include="neon.h" />
     <ClInclude Include="nfo.h" />
     <ClInclude Include="personal_video.h" />
-    <ClInclude Include="stream_rc.h" />
+    <ClInclude Include="ipc_rc.h" />
     <ClInclude Include="researchmode\ResearchModeApi.h" />
     <ClInclude Include="spatial_input.h" />
     <ClInclude Include="stream_mc.h" />
@@ -198,6 +199,7 @@
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
     <ClCompile Include="holographic_space.cpp" />
+    <ClCompile Include="ipc_sc.cpp" />
     <ClCompile Include="neon.cpp" />
     <ClCompile Include="nfo.cpp" />
     <ClCompile Include="research_mode.cpp" />
@@ -207,7 +209,7 @@
     <ClCompile Include="personal_video.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
-    <ClCompile Include="stream_rc.cpp" />
+    <ClCompile Include="ipc_rc.cpp" />
     <ClCompile Include="stream_si.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>
     </ClCompile>

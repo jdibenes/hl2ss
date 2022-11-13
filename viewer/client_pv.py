@@ -10,7 +10,6 @@
 from pynput import keyboard
 
 import hl2ss
-import hl2ss_utilities
 import cv2
 
 # Settings --------------------------------------------------------------------
@@ -42,7 +41,7 @@ bitrate = 5*1024*1024
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_pv(host, port, width, height, framerate, profile, bitrate)
+    data = hl2ss.download_calibration_pv(host, port, width, height, framerate)
     print('Calibration')
     print(data.focal_length)
     print(data.principal_point)

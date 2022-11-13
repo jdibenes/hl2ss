@@ -84,9 +84,6 @@
     <ClCompile Include="..\hl2ss\stream_si.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rc.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
     <ClCompile Include="holographic_space_stub.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -97,6 +94,12 @@
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
     <ClCompile Include="..\hl2ss\neon.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_sc.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_rc.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
   </ItemGroup>
@@ -185,9 +188,6 @@
     <ClInclude Include="hl2ss.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rc.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
     <ClInclude Include="..\hl2ss\timestamps.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
@@ -195,6 +195,12 @@
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\neon.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_sc.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_rc.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>

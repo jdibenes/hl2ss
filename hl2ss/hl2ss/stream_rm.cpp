@@ -74,8 +74,6 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     sensor = (IResearchModeSensor*)param;
     type = sensor->GetSensorType();
 
-    //if (type == DEPTH_AHAT) { return 0; } // Not supported
-
     ShowMessage(L"RM%d (%s): Waiting for consent", type, sensor->GetFriendlyName());
 
     ok = ResearchMode_WaitForConsent(sensor);

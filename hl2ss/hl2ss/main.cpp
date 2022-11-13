@@ -3,7 +3,7 @@
 #include "research_mode.h"
 #include "server.h"
 #include "utilities.h"
-#include "stream_rc.h"
+#include "ipc_rc.h"
 #include "stream_pv.h"
 #include "stream_rm.h"
 #include "stream_mc.h"
@@ -11,6 +11,7 @@
 #include "spatial_input.h"
 #include "stream_si.h"
 #include "holographic_space.h"
+#include "nfo.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
@@ -61,6 +62,10 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		window.Closed({ this, &App::OnWindowClosed });
 
 		if (m_init) { return; }
+
+		std::vector<wchar_t> ipaddress;
+		GetLocalIPv4Address(ipaddress);
+		ShowMessage(L"HOST %s", ipaddress.data());
 
 		HolographicSpace_Initialize();
 		Locator_Initialize();

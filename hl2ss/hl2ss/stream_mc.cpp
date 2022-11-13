@@ -3,6 +3,7 @@
 #include "custom_media_sink.h"
 #include "ports.h"
 #include "microphone_capture.h"
+#include "ipc_sc.h"
 #include "utilities.h"
 
 //-----------------------------------------------------------------------------
@@ -20,7 +21,7 @@ static HANDLE g_quitevent = NULL; // CloseHandle
 // OK
 void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 {
-	IMFMediaBuffer* pBuffer; // release
+	IMFMediaBuffer* pBuffer; // Release
 	LONGLONG sampletime;
 	BYTE* pBytes;
 	DWORD cbData;
@@ -48,7 +49,6 @@ void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 	if (!ok) { SetEvent(user->clientevent); }
 
 	pBuffer->Unlock();
-
 	pBuffer->Release();
 }
 
@@ -58,7 +58,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	uint32_t const channels = 2;
 	uint32_t const samplerate = 48000;
 	
-	IMFSinkWriter* pSinkWriter; // release
+	IMFSinkWriter* pSinkWriter; // Release
 	HANDLE clientevent; // CloseHandle
 	AACBitrate aacbitrate;
 	HookCallbackSocket user;

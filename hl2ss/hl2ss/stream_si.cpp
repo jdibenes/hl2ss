@@ -23,10 +23,10 @@ using namespace winrt::Windows::Perception::People;
 
 static bool g_enable = false;
 static std::queue<PerceptionTimestamp> g_queue;
-static HANDLE g_semaphore; // CloseHandle
+static HANDLE g_semaphore = NULL; // CloseHandle
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
-static HANDLE g_thread; // CloseHandle
-static HANDLE g_quitevent; // CloseHandle
+static HANDLE g_thread = NULL; // CloseHandle
+static HANDLE g_quitevent = NULL; // CloseHandle
 
 //-----------------------------------------------------------------------------
 // Functions

@@ -220,9 +220,9 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     case LEFT_FRONT:
     case LEFT_LEFT:
     case RIGHT_FRONT:
-    case RIGHT_RIGHT:      width = RM_VLC_WIDTH;  height = RM_VLC_HEIGHT;  break;
-    case DEPTH_AHAT:       width = RM_AHAT_WIDTH; height = RM_AHAT_HEIGHT; break;
-    case DEPTH_LONG_THROW: width = RM_LT_WIDTH;   height = RM_LT_HEIGHT;   break;
+    case RIGHT_RIGHT:      width = RM_VLC_WIDTH; height = RM_VLC_HEIGHT; break;
+    case DEPTH_AHAT:       width = RM_ZHT_WIDTH; height = RM_ZHT_HEIGHT; break;
+    case DEPTH_LONG_THROW: width = RM_ZLT_WIDTH; height = RM_ZLT_HEIGHT; break;
     default:               return false;
     }
 

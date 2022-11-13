@@ -26,25 +26,25 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     int const chunksize = 28;
 
     PerceptionTimestamp ts = nullptr;
-    bool ok = true;
+    float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
-    IResearchModeIMUFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
+    IResearchModeIMUFrame* pSensorIMUFrame; // Release    
     IMUDataStruct const* pIMUBuffer;
     size_t nIMUSamples;
     std::vector<BYTE> sampleBuffer;
     int bufSize;
     BYTE* pDst;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
-    float4x4 pose;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];    
     HRESULT hr;
+    bool ok;
 
     sensor->OpenStream();
 
     do
     {
     hr = sensor->GetNextBuffer(&pSensorFrame); // block
-    if (FAILED(hr)) { continue; }
+    if (FAILED(hr)) { break; }
 
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pSensorIMUFrame));

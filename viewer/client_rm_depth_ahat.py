@@ -1,13 +1,14 @@
 #------------------------------------------------------------------------------
-# This script receives encoded video from the HoloLens depth camera and plays
-# it. Only long throw mode is supported. The resolution is 320x288 5 FPS. The
-# stream supports three operating modes: 0) video, 1) video + rig pose,
-# 2) query calibration (single transfer). Press esc to stop. Depth and AB
-# data are scaled for visibility.
+# This script receives encoded video from the HoloLens depth camera in ahat
+# mode and plays it. The resolution is 512x512 @ 45 FPS. The stream supports 
+# three operating modes: 0) video, 1) video + rig pose, 2) query calibration
+# (single transfer). Press esc to stop. Depth and AB data are scaled for
+# visibility.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
 
+import numpy as np
 import hl2ss
 import cv2
 
@@ -23,7 +24,7 @@ port = hl2ss.StreamPort.RM_DEPTH_AHAT
 # 0: video
 # 1: video + rig pose
 # 2: query calibration (single transfer)
-mode = hl2ss.StreamMode.MODE_0
+mode = hl2ss.StreamMode.MODE_1
 
 #------------------------------------------------------------------------------
 
@@ -51,19 +52,13 @@ listener.start()
 client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, hl2ss.VideoProfile.H264_BASE, 8*1024*1024)
 client.open()
 
-prev_ts = None
-count = 0
-
 while (enable):
     data = client.get_next_packet()
-    cv2.imshow('depth', data.payload.depth)
-    cv2.imshow('ab', data.payload.ab)
-    cv2.waitKey(1)
-
-    if (prev_ts is not None):
-        print((10*1000*1000) / (data.timestamp - prev_ts))
-    prev_ts = data.timestamp
+    print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
+    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth))
+    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab))
+    cv2.waitKey(1)
 
 client.close()
 listener.join()

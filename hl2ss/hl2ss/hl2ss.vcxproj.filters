@@ -91,9 +91,6 @@
     <ClCompile Include="research_mode.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
-    <ClCompile Include="stream_rc.cpp">
-      <Filter>Source Files\streams</Filter>
-    </ClCompile>
     <ClCompile Include="timestamps.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
@@ -102,6 +99,12 @@
     </ClCompile>
     <ClCompile Include="neon.cpp">
       <Filter>Source Files\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ipc_rc.cpp">
+      <Filter>Source Files\server</Filter>
+    </ClCompile>
+    <ClCompile Include="ipc_sc.cpp">
+      <Filter>Source Files\server</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -303,9 +306,6 @@
     <ClInclude Include="ports.h">
       <Filter>Header Files\server</Filter>
     </ClInclude>
-    <ClInclude Include="stream_rc.h">
-      <Filter>Header Files\streams</Filter>
-    </ClInclude>
     <ClInclude Include="timestamps.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
@@ -314,6 +314,12 @@
     </ClInclude>
     <ClInclude Include="neon.h">
       <Filter>Header Files\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="ipc_sc.h">
+      <Filter>Header Files\server</Filter>
+    </ClInclude>
+    <ClInclude Include="ipc_rc.h">
+      <Filter>Header Files\server</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
