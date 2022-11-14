@@ -140,6 +140,8 @@ void PersonalVideo_SetFocus(uint32_t focusmode, uint32_t autofocusrange, uint32_
     FocusMode fm;
     FocusSettings fs;
 
+    if (!g_mediaCapture) { return; }
+
     switch (focusmode)
     {
     case 0:  fm = FocusMode::Auto;       break;
@@ -181,6 +183,8 @@ void PersonalVideo_SetVideoTemporalDenoising(uint32_t mode)
 {
     VideoTemporalDenoisingMode vtdm;
 
+    if (!g_mediaCapture) { return; }
+
     switch (mode)
     {
     case 0:  vtdm = VideoTemporalDenoisingMode::Off; break;
@@ -195,6 +199,8 @@ void PersonalVideo_SetVideoTemporalDenoising(uint32_t mode)
 void PersonalVideo_SetWhiteBalance_Preset(uint32_t preset)
 {
     ColorTemperaturePreset ctp;
+
+    if (!g_mediaCapture) { return; }
 
     switch (preset)
     {
@@ -215,7 +221,11 @@ void PersonalVideo_SetWhiteBalance_Preset(uint32_t preset)
 // OK
 void PersonalVideo_SetWhiteBalance_Value(uint32_t value)
 {
-    uint32_t temperature = value * 25;
+    uint32_t temperature;
+
+    if (!g_mediaCapture) { return; }
+
+    temperature = value * 25;
     if ((temperature < 2300) || (temperature > 7500)) { return; }
     g_mediaCapture.VideoDeviceController().WhiteBalanceControl().SetValueAsync(temperature).get();
 }
@@ -223,8 +233,13 @@ void PersonalVideo_SetWhiteBalance_Value(uint32_t value)
 // OK
 void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
 {
-    uint32_t exposure = value * 10;
-    bool mode = setauto != 0;
+    uint32_t exposure;
+    bool mode;
+
+    if (!g_mediaCapture) { return; }
+    
+    exposure = value * 10;
+    mode = setauto != 0;
     if ((exposure < 1000) || (exposure > 660000)) { return; }
     g_mediaCapture.VideoDeviceController().ExposureControl().SetAutoAsync(mode).get();
     if (mode) { return; }
@@ -234,6 +249,8 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
 // OK
 void PersonalVideo_SetExposurePriorityVideo(uint32_t enabled)
 {
+    if (!g_mediaCapture) { return; }
+
     g_mediaCapture.VideoDeviceController().ExposurePriorityVideoControl().Enabled(enabled != 0);
 }
 
@@ -241,6 +258,8 @@ void PersonalVideo_SetExposurePriorityVideo(uint32_t enabled)
 void PersonalVideo_SetSceneMode(uint32_t mode)
 {
     CaptureSceneMode value;
+
+    if (!g_mediaCapture) { return; }
 
     switch (mode)
     {
@@ -265,6 +284,10 @@ void PersonalVideo_SetSceneMode(uint32_t mode)
 // OK
 void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value)
 {
-    bool mode = setauto != 0;
+    bool mode;
+
+    if (!g_mediaCapture) { return; }
+        
+    mode = setauto != 0;
     if (mode) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetAutoAsync().get(); } else if ((value >= 100) && (value <= 3200)) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetValueAsync(value).get(); }
 }
