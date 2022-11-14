@@ -59,14 +59,14 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_rm_imu(host, port, chunk_size, mode)
+client = hl2ss.rx_decoded_rm_imu(host, port, chunk_size, mode)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
-    imu_data = hl2ss.unpack_rm_imu(data.payload)
+    imu_data = data.payload
     sample = imu_data.get_frame(0)
     print('Got {count} samples at time {ts}, first sample is (ticks = {st}, x = {x}, y = {y}, z = {z})'.format(count=imu_data.get_count(), ts=data.timestamp, st=sample.sensor_ticks_ns, x=sample.x, y=sample.y, z=sample.z))
 

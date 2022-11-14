@@ -40,6 +40,9 @@ bitrate = 5*1024*1024
 
 #------------------------------------------------------------------------------
 
+client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, 'bgr24')
+client.start_video_subsystem()
+
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss.download_calibration_pv(host, port, width, height, framerate)
     print('Calibration')
@@ -49,27 +52,27 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.tangential_distortion)
     print(data.projection)
     print(data.intrinsics)
-    quit()
+else:
+    enable = True
 
-enable = True
+    def on_press(key):
+        global enable
+        enable = key != keyboard.Key.esc
+        return enable
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
 
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+    client.open()
 
-client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, 'bgr24')
-client.open()
+    while (enable):
+        data = client.get_next_packet()
+        print('Pose at time {ts}'.format(ts=data.timestamp))
+        print(data.pose)
+        cv2.imshow('Video', data.payload)
+        cv2.waitKey(1)
 
-while (enable):
-    data = client.get_next_packet()
-    print('Pose at time {ts}'.format(ts=data.timestamp))
-    print(data.pose)
-    cv2.imshow('Video', data.payload)
-    cv2.waitKey(1)
+    client.close()
+    listener.join()
 
-client.close()
-listener.join()
+client.stop_video_subsystem()

@@ -17,11 +17,11 @@ port = hl2ss.StreamPort.SPATIAL_INPUT
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.rx_si(host, port, hl2ss.ChunkSize.SPATIAL_INPUT)
+client = hl2ss.rx_decoded_si(host, port, hl2ss.ChunkSize.SPATIAL_INPUT)
 client.open()
 
 data = client.get_next_packet()
-si = hl2ss.unpack_si(data.payload)
+si = data.payload
 
 print('Tracking status at time {ts}'.format(ts=data.timestamp))
 

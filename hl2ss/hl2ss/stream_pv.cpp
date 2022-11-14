@@ -25,6 +25,7 @@ using namespace winrt::Windows::Perception::Spatial;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static bool g_ready = false;
 static HANDLE g_quitevent = NULL; // CloseHandle
 static HANDLE g_thread = NULL; // CloseHandle
 
@@ -217,8 +218,12 @@ static void PV_Stream(SOCKET clientsocket)
     ok = recv_u8(clientsocket, mode);
     if (!ok) { return; }
 
+    if (!g_ready && (mode & 4)) { PersonalVideo_Initialize(); g_ready = true; }
+    
     ok = ReceiveVideoFormat(clientsocket, format);
     if (!ok) { return; }
+
+    if (!g_ready) { return; }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
     if (!ok) { return; }
@@ -228,7 +233,7 @@ static void PV_Stream(SOCKET clientsocket)
     videoFrameReader = PersonalVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
-    switch (mode)
+    switch (mode & 3)
     {
     case 0: PV_Stream<false>(clientsocket, clientevent, videoFrameReader, format); break;
     case 1: PV_Stream<true>( clientsocket, clientevent, videoFrameReader, format); break;
@@ -238,6 +243,8 @@ static void PV_Stream(SOCKET clientsocket)
     videoFrameReader.Close();
 
     CloseHandle(clientevent);
+
+    if (g_ready && (mode & 8)) { PersonalVideo_Close(); g_ready = false; }
 }
 
 // OK
@@ -247,8 +254,6 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
-
-    PersonalVideo_Initialize();
 
     listensocket = CreateSocket(PORT_PV);
 

@@ -5,7 +5,6 @@ import struct
 import cv2
 import av
 
-_I133_DISABLE_AHAT = True
 
 # Stream TCP Ports
 class StreamPort:
@@ -551,8 +550,6 @@ def _connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
 
 
 def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, profile, bitrate):
-    if (_I133_DISABLE_AHAT):
-        raise Exception('RM DEPTH AHAT access is currently disabled (https://github.com/microsoft/HoloLens2ForCV/issues/133)')
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_depth_ahat(mode, profile, bitrate))
@@ -690,6 +687,20 @@ class rx_pv:
 
     def close(self):
         self._client.close()
+
+    def start_video_subsystem(self):
+        mode = self.mode
+        self.mode = 0x7
+        self.open()
+        self.close()
+        self.mode = mode
+
+    def stop_video_subsystem(self):
+        mode = self.mode
+        self.mode = 0xB
+        self.open()
+        self.close()
+        self.mode = mode
 
 
 class rx_microphone:
@@ -1037,8 +1048,7 @@ class rx_decoded_rm_vlc:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.decode(data.payload)
-        return data
+        return packet(data.timestamp, self._codec.decode(data.payload), data.pose)
 
     def close(self):
         self._client.close()
@@ -1056,8 +1066,7 @@ class rx_decoded_rm_depth_ahat:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.decode(data.payload)
-        return data
+        return packet(data.timestamp, self._codec.decode(data.payload), data.pose)
 
     def close(self):
         self._client.close()
@@ -1072,8 +1081,22 @@ class rx_decoded_rm_depth_longthrow:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = decode_rm_depth_longthrow(data.payload)
-        return data
+        return packet(data.timestamp, decode_rm_depth_longthrow(data.payload), data.pose)
+
+    def close(self):
+        self._client.close()
+
+
+class rx_decoded_rm_imu:
+    def __init__(self, host, port, chunk, mode):
+        self._client = rx_rm_imu(host, port, chunk, mode)
+
+    def open(self):
+        self._client.open()
+
+    def get_next_packet(self):
+        data = self._client.get_next_packet()
+        return packet(data.timestamp, unpack_rm_imu(data.payload), data.pose)
 
     def close(self):
         self._client.close()
@@ -1092,11 +1115,16 @@ class rx_decoded_pv:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.decode(data.payload, self._format)
-        return data
+        return packet(data.timestamp, self._codec.decode(data.payload, self._format), data.pose)
 
     def close(self):
         self._client.close()
+
+    def start_video_subsystem(self):
+        self._client.start_video_subsystem()
+
+    def stop_video_subsystem(self):
+        self._client.stop_video_subsystem()
 
 
 class rx_decoded_microphone:
@@ -1110,8 +1138,22 @@ class rx_decoded_microphone:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        data.payload = self._codec.decode(data.payload)
-        return data
+        return packet(data.timestamp, self._codec.decode(data.payload), data.pose)
+
+    def close(self):
+        self._client.close()
+
+
+class rx_decoded_si:
+    def __init__(self, host, port, chunk):
+        self._client = rx_si(host, port, chunk)
+
+    def open(self):
+        self._client.open()
+
+    def get_next_packet(self):
+        data = self._client.get_next_packet()
+        return packet(data.timestamp, unpack_si(data.payload), data.pose)
 
     def close(self):
         self._client.close()

@@ -106,6 +106,14 @@ void PersonalVideo_Initialize()
 }
 
 // OK
+void PersonalVideo_Close()
+{
+    g_videoSource = nullptr;
+    g_mediaCapture.Close();
+    g_mediaCapture = nullptr;
+}
+
+// OK
 bool PersonalVideo_SetFormat(uint32_t width, uint32_t height, uint32_t framerate)
 {
     MediaFrameFormat selectedFormat = nullptr;
