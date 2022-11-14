@@ -1,6 +1,6 @@
 
+#include <Windows.h>
 #include "locator.h"
-#include "utilities.h"
 #include "spatial_input.h"
 
 #include <winrt/Windows.Foundation.Collections.h>

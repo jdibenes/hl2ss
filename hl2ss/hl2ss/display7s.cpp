@@ -6,6 +6,7 @@
 // Functions
 //-----------------------------------------------------------------------------
 
+// OK
 static void DrawGlyphUnit(int x, int y, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
 {
     for (int v = 0; v < glyph_unit_height; ++v)
@@ -21,16 +22,19 @@ static void DrawGlyphUnit(int x, int y, int glyph_unit_width, int glyph_unit_hei
     }
 }
 
+// OK
 static void DrawGlyphH(int x, int y, int glyph_width, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32 *buffer)
 {
     for (int u = glyph_unit_width; u < (glyph_width - glyph_unit_width); u += glyph_unit_width) { DrawGlyphUnit(x + u, y, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
 }
 
+// OK
 static void DrawGlyphV(int x, int y, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
 {
     for (int v = glyph_unit_height; v < (glyph_height - glyph_unit_height); v += glyph_unit_height) { DrawGlyphUnit(x, y + v, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
 }
 
+// OK
 static void DrawGlyphTile(int segments, int x, int y, int glyph_width, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
 {
     if (segments & 1) { DrawGlyphH(x,                                  y,                                    glyph_width,  glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
@@ -39,12 +43,14 @@ static void DrawGlyphTile(int segments, int x, int y, int glyph_width, int glyph
     if (segments & 8) { DrawGlyphV(x,                                  y,                                    glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
 }
 
+// OK
 static void DrawGlyph(int segments, int x, int y, int glyph_width, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
 {
     DrawGlyphTile(segments,      x, y,                                   glyph_width, glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer);
     DrawGlyphTile(segments >> 4, x, y + glyph_height - glyph_unit_width, glyph_width, glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer);
 }
 
+// OK
 static int DigitToSegments(char number)
 {
     switch (number)
@@ -63,6 +69,7 @@ static int DigitToSegments(char number)
     }
 }
 
+// OK
 static int DigitToSegments(wchar_t number)
 {
     switch (number)
@@ -81,12 +88,14 @@ static int DigitToSegments(wchar_t number)
     }
 }
 
+// OK
 void DrawDigits(wchar_t const* str, int x, int y, int glyph_width, int glyph_kerning, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
 {
     int offset = glyph_width + glyph_kerning;   
     for (int i = 0; i < wcslen(str); ++i) { DrawGlyph(DigitToSegments(str[i]), x + (i * offset), y, glyph_width, glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
 }
 
+// OK
 void DrawDigits(char const* str, int x, int y, int glyph_width, int glyph_kerning, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
 {
     int offset = glyph_width + glyph_kerning;

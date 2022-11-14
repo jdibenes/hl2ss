@@ -1,11 +1,11 @@
 
 #include <queue>
 #include "server.h"
-#include "holographic_space.h"
 #include "locator.h"
 #include "spatial_input.h"
-#include "utilities.h"
 #include "ports.h"
+#include "log.h"
+#include "lock.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>

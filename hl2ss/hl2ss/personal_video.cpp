@@ -1,6 +1,4 @@
 
-#include "utilities.h"
-
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Media.Devices.h>

@@ -2,7 +2,6 @@
 #include "Cannon/DrawCall.h"
 #include "nfo.h"
 #include "display7s.h"
-#include "utilities.h"
 #include "types.h"
 
 #include <windows.graphics.directx.direct3d11.interop.h>
@@ -45,18 +44,24 @@ void HolographicSpace_EnableMarker(bool state)
 // OK
 static void HolographicSpace_CreateHUDTextures()
 {
+    int const iptext_x     = 0;
+    int const iptext_y     = 0;
+    int const iptext_side  = 20;
+    int const iptext_size  = 4;
+    u32 const iptext_color = 0x6F6F6F6F;
+
     int const line_thickness = 16;
-    UINT32 const line_color = 0xFFFFFFFF;
+    u32 const line_color     = 0xFFFFFFFF;
 
-    int const buffer_width = 1440;
+    int const buffer_width  = 1440;
     int const buffer_height = 936;
-    int const buffer_bpt = sizeof(UINT32);
-    int const buffer_size = buffer_width * buffer_height * buffer_bpt;
-    int const y0 = buffer_height - line_thickness;
-
+    int const buffer_bpt    = sizeof(UINT32);
+    int const buffer_size   = buffer_width * buffer_height * buffer_bpt;
+    
     D3D11_TEXTURE2D_DESC dtd;
     D3D11_SUBRESOURCE_DATA dsd[2];
     BYTE* data; // delete[]
+    int y0;
 
     dtd.Width              = buffer_width;
     dtd.Height             = buffer_height;
@@ -83,10 +88,11 @@ static void HolographicSpace_CreateHUDTextures()
 
     std::vector<wchar_t> ipaddress;
     GetLocalIPv4Address(ipaddress);    
-    DrawDigits(ipaddress.data(), 128, 0, 20, 6, 24, 4, 4, buffer_width, buffer_height, 0x3F3F3F3F, (u32*)data);
+    DrawDigits(ipaddress.data(), iptext_x, iptext_y, iptext_side, iptext_size, iptext_side, iptext_size, iptext_size, buffer_width, buffer_height, iptext_color, (u32*)data);
 
     g_device->CreateTexture2D(&dtd, dsd, &g_texture_empty);
 
+    y0 = buffer_height - line_thickness;
     for (int y = y0 - line_thickness; y < (y0 + line_thickness); ++y) { for (int x = 0; x < buffer_width; ++x) { ((UINT32*)data)[y * buffer_width + x] = line_color; } }
 
     g_device->CreateTexture2D(&dtd, dsd, &g_texture_marker);

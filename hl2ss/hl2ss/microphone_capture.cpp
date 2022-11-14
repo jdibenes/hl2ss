@@ -1,7 +1,6 @@
 
 #include <mfapi.h>
 #include "microphone_capture.h"
-#include "utilities.h"
 #include "timestamps.h"
 #include "types.h"
 

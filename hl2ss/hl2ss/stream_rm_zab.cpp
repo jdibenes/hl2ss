@@ -3,7 +3,6 @@
 #include <MemoryBuffer.h>
 #include "research_mode.h"
 #include "server.h"
-#include "utilities.h"
 #include "locator.h"
 #include "timestamps.h"
 #include "neon.h"

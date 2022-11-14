@@ -79,7 +79,7 @@
     <ClCompile Include="stream_si.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
-    <ClCompile Include="utilities.cpp">
+    <ClCompile Include="lock.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
     <ClCompile Include="holographic_space.cpp">
@@ -107,6 +107,9 @@
       <Filter>Source Files\server</Filter>
     </ClCompile>
     <ClCompile Include="display7s.cpp">
+      <Filter>Source Files\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="log.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
   </ItemGroup>
@@ -300,7 +303,7 @@
     <ClInclude Include="custom_media_buffers.h">
       <Filter>Header Files\sink</Filter>
     </ClInclude>
-    <ClInclude Include="utilities.h">
+    <ClInclude Include="lock.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
     <ClInclude Include="holographic_space.h">
@@ -328,6 +331,9 @@
       <Filter>Header Files\server</Filter>
     </ClInclude>
     <ClInclude Include="display7s.h">
+      <Filter>Header Files\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="log.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
   </ItemGroup>

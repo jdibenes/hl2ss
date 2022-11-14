@@ -1,7 +1,6 @@
 
 #include <new>
 #include "custom_hook_callback.h"
-#include "utilities.h"
 
 //-----------------------------------------------------------------------------
 // HookSinkCallback Methods

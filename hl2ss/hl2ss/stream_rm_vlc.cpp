@@ -3,7 +3,6 @@
 #include "research_mode.h"
 #include "server.h"
 #include "locator.h"
-#include "utilities.h"
 #include "timestamps.h"
 #include "ipc_sc.h"
 #include "types.h"

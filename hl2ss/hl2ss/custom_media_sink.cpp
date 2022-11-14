@@ -3,7 +3,7 @@
 #include <mferror.h>
 #include "custom_media_sink.h"
 #include "custom_stream_sink.h"
-#include "utilities.h"
+#include "lock.h"
 
 //-----------------------------------------------------------------------------
 // CustomMediaSink Methods
@@ -185,7 +185,7 @@ HRESULT CustomMediaSink::SetPresentationClock(IMFPresentationClock* pPresentatio
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
     HRESULT hr;
-    if (m_pClock)            { hr = m_pClock->RemoveClockStateSink(this);        if (FAILED(hr)) { return hr; } SafeRelease(&m_pClock);       }
+    if (m_pClock)            { hr = m_pClock->RemoveClockStateSink(this);        if (FAILED(hr)) { return hr; } /*SafeRelease(&m_pClock);*/ m_pClock->Release(); m_pClock = NULL; }
     if (pPresentationClock)  { hr = pPresentationClock->AddClockStateSink(this); if (FAILED(hr)) { return hr; } pPresentationClock->AddRef(); }
     m_pClock = pPresentationClock;
     return S_OK;
@@ -208,9 +208,12 @@ HRESULT CustomMediaSink::Shutdown()
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
     for (auto stream : m_streams) { stream->Shutdown(); } // TODO: Error Handling
-    SafeRelease(&m_pClock);
+    //SafeRelease(&m_pClock);
     CleanupStreams();    
     m_isShutdown = true;
+    if (!m_pClock) { return S_OK; }
+    m_pClock->Release();
+    m_pClock = NULL;
     return S_OK;
 }
 

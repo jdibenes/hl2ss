@@ -1,8 +1,10 @@
 
-#include "utilities.h"
+#include <Windows.h>
+#include <stdio.h>
+#include <malloc.h>
 
 //-----------------------------------------------------------------------------
-// Logging 
+// Functions 
 //-----------------------------------------------------------------------------
 
 // OK
@@ -39,21 +41,4 @@ void ShowMessage(const wchar_t* format, ...)
 	text[len - 1] = L'\0';
 	OutputDebugStringW(text);
 	free(text);
-}
-
-//-----------------------------------------------------------------------------
-// Critical Section 
-//-----------------------------------------------------------------------------
-
-// OK
-CriticalSection::CriticalSection(void* pcs)
-{
-	m_pcs = pcs;
-	if (m_pcs) { EnterCriticalSection(static_cast<CRITICAL_SECTION*>(m_pcs)); }
-}
-
-// OK
-CriticalSection::~CriticalSection()
-{
-	if (m_pcs) { LeaveCriticalSection(static_cast<CRITICAL_SECTION*>(m_pcs)); }
 }

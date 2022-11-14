@@ -1,5 +1,4 @@
 
-#include "utilities.h"
 #include "types.h"
 
 #include <winrt/Windows.Foundation.h>

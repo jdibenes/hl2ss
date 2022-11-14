@@ -1,6 +1,4 @@
 
-#include "utilities.h"
-
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Networking.h>

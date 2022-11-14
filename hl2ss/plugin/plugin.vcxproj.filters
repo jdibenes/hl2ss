@@ -72,9 +72,6 @@
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\utilities.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
     <ClCompile Include="plugin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -100,6 +97,12 @@
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
     <ClCompile Include="..\hl2ss\ipc_rc.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\log.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\lock.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
   </ItemGroup>
@@ -170,9 +173,6 @@
     <ClInclude Include="..\hl2ss\types.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\utilities.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
     <ClInclude Include="ipc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -201,6 +201,12 @@
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\ipc_rc.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\log.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\lock.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,7 +2,8 @@
 #include <queue>
 #include <malloc.h>
 #include "../hl2ss/server.h"
-#include "../hl2ss/utilities.h"
+#include "../hl2ss/lock.h"
+#include "../hl2ss/log.h"
 #include "plugin.h"
 #include "ports.h"
 

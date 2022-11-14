@@ -1,7 +1,6 @@
 
 #include <ws2tcpip.h>
 #include "server.h"
-#include "utilities.h"
 #include "types.h"
 
 //-----------------------------------------------------------------------------

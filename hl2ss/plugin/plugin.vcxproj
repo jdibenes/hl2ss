@@ -257,6 +257,8 @@
     <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
     <ClCompile Include="..\hl2ss\locator.cpp" />
+    <ClCompile Include="..\hl2ss\lock.cpp" />
+    <ClCompile Include="..\hl2ss\log.cpp" />
     <ClCompile Include="..\hl2ss\microphone_capture.cpp" />
     <ClCompile Include="..\hl2ss\neon.cpp" />
     <ClCompile Include="..\hl2ss\nfo.cpp" />
@@ -272,7 +274,6 @@
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\timestamps.cpp" />
-    <ClCompile Include="..\hl2ss\utilities.cpp" />
     <ClCompile Include="holographic_space_stub.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="ipc.cpp" />
@@ -289,6 +290,8 @@
     <ClInclude Include="..\hl2ss\ipc_rc.h" />
     <ClInclude Include="..\hl2ss\ipc_sc.h" />
     <ClInclude Include="..\hl2ss\locator.h" />
+    <ClInclude Include="..\hl2ss\lock.h" />
+    <ClInclude Include="..\hl2ss\log.h" />
     <ClInclude Include="..\hl2ss\microphone_capture.h" />
     <ClInclude Include="..\hl2ss\neon.h" />
     <ClInclude Include="..\hl2ss\nfo.h" />
@@ -306,7 +309,6 @@
     <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\timestamps.h" />
     <ClInclude Include="..\hl2ss\types.h" />
-    <ClInclude Include="..\hl2ss\utilities.h" />
     <ClInclude Include="hl2ss.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="ipc.h" />

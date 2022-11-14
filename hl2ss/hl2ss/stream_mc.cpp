@@ -4,7 +4,7 @@
 #include "ports.h"
 #include "microphone_capture.h"
 #include "ipc_sc.h"
-#include "utilities.h"
+#include "log.h"
 
 //-----------------------------------------------------------------------------
 // Global Variables

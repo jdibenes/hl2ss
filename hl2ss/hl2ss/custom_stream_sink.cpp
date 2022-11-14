@@ -4,7 +4,7 @@
 #include <mferror.h>
 #include "custom_stream_sink.h"
 #include "custom_media_type_handler.h"
-#include "utilities.h"
+#include "lock.h"
 
 //-----------------------------------------------------------------------------
 // CustomStreamSink Methods
@@ -18,7 +18,8 @@ HRESULT CustomStreamSink::CreateInstance(CustomStreamSink** ppStream, IMFMediaSi
     if (!pStream) { return E_OUTOFMEMORY; }
     HRESULT hr = pStream->Initialize(dwStreamSinkIdentifier, pMediaType, pHook);
     if (SUCCEEDED(hr)) { (*ppStream = pStream)->AddRef(); }
-    SafeRelease(&pStream);
+    //SafeRelease(&pStream);
+    pStream->Release();
     return hr;
 }
 
@@ -53,10 +54,14 @@ CustomStreamSink::~CustomStreamSink()
 {
     //assert(!m_RefCount)
     DeleteCriticalSection(&m_critSec);
-    SafeRelease(&m_pSink);
-    SafeRelease(&m_pEventQueue);
-    SafeRelease(&m_pHandler);
-    SafeRelease(&m_pHook);
+    //SafeRelease(&m_pSink);
+    if (m_pSink) { m_pSink->Release(); }
+    //SafeRelease(&m_pEventQueue);
+    if (m_pEventQueue) { m_pEventQueue->Release(); }
+    //SafeRelease(&m_pHandler);
+    if (m_pHandler) { m_pHandler->Release(); }
+    //SafeRelease(&m_pHook);
+    if (m_pHook) { m_pHook->Release(); }
 }
 
 //-----------------------------------------------------------------------------
@@ -215,7 +220,10 @@ void CustomStreamSink::Shutdown()
 void CustomStreamSink::Detach()
 {
     CriticalSection cs(&m_critSec);
-    SafeRelease(&m_pSink);
+    //SafeRelease(&m_pSink);
+    if (!m_pSink) { return; }
+    m_pSink->Release();
+    m_pSink = NULL;
 }
 
 // OK

@@ -4,7 +4,7 @@
 #include "custom_media_buffers.h"
 #include "personal_video.h"
 #include "locator.h"
-#include "utilities.h"
+#include "log.h"
 #include "ports.h"
 #include "timestamps.h"
 #include "ipc_sc.h"

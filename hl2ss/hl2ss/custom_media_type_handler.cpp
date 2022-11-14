@@ -2,7 +2,7 @@
 #include <new>
 #include <mferror.h>
 #include "custom_media_type_handler.h"
-#include "utilities.h"
+#include "lock.h"
 
 //-----------------------------------------------------------------------------
 // CustomMediaTypeHandler Methods

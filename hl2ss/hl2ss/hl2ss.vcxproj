@@ -163,6 +163,7 @@
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="ipc_sc.h" />
     <ClInclude Include="locator.h" />
+    <ClInclude Include="log.h" />
     <ClInclude Include="neon.h" />
     <ClInclude Include="nfo.h" />
     <ClInclude Include="personal_video.h" />
@@ -182,7 +183,7 @@
     <ClInclude Include="stream_si.h" />
     <ClInclude Include="timestamps.h" />
     <ClInclude Include="types.h" />
-    <ClInclude Include="utilities.h" />
+    <ClInclude Include="lock.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cannon\AnimatedVector.cpp" />
@@ -202,6 +203,7 @@
     <ClCompile Include="display7s.cpp" />
     <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="ipc_sc.cpp" />
+    <ClCompile Include="log.cpp" />
     <ClCompile Include="neon.cpp" />
     <ClCompile Include="nfo.cpp" />
     <ClCompile Include="research_mode.cpp" />
@@ -220,7 +222,7 @@
     <ClCompile Include="stream_rm_zab.cpp" />
     <ClCompile Include="stream_rm_vlc.cpp" />
     <ClCompile Include="timestamps.cpp" />
-    <ClCompile Include="utilities.cpp" />
+    <ClCompile Include="lock.cpp" />
     <ClCompile Include="stream_rm.cpp" />
     <ClCompile Include="server.cpp" />
   </ItemGroup>

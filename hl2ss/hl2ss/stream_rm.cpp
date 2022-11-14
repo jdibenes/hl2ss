@@ -1,9 +1,10 @@
 
 #include "research_mode.h"
-#include "utilities.h"
+#include "server.h"
 #include "stream_rm_vlc.h"
 #include "stream_rm_imu.h"
 #include "stream_rm_zab.h"
+#include "log.h"
 #include "ports.h"
 #include "types.h"
 

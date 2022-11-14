@@ -2,7 +2,6 @@
 #include <mfapi.h>
 #include "research_mode.h"
 #include "server.h"
-#include "utilities.h"
 #include "ipc_rc.h"
 #include "stream_pv.h"
 #include "stream_rm.h"
