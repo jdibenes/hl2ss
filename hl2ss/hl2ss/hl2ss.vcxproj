@@ -159,6 +159,7 @@
     <ClInclude Include="custom_sink_writers.h" />
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
+    <ClInclude Include="display7s.h" />
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="ipc_sc.h" />
     <ClInclude Include="locator.h" />
@@ -198,6 +199,7 @@
     <ClCompile Include="custom_sink_writers.cpp" />
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
+    <ClCompile Include="display7s.cpp" />
     <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="ipc_sc.cpp" />
     <ClCompile Include="neon.cpp" />
@@ -221,6 +223,36 @@
     <ClCompile Include="utilities.cpp" />
     <ClCompile Include="stream_rm.cpp" />
     <ClCompile Include="server.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Lit_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Lit_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Lit_VS_SPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\UnlitTexture_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Unlit_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Unlit_VS_SPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

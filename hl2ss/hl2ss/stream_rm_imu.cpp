@@ -97,7 +97,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 }
 
 // OK
-void RM_IMU_Extrinsics(IResearchModeSensor* sensor, SOCKET clientsocket)
+static void RM_IMU_Extrinsics(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
     DirectX::XMFLOAT4X4 extrinsics;
     WSABUF wsaBuf;

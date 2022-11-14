@@ -63,10 +63,6 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 		if (m_init) { return; }
 
-		std::vector<wchar_t> ipaddress;
-		GetLocalIPv4Address(ipaddress);
-		ShowMessage(L"HOST %s", ipaddress.data());
-
 		HolographicSpace_Initialize();
 		Locator_Initialize();
 		ResearchMode_Initialize();

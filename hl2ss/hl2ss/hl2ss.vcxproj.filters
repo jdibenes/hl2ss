@@ -106,6 +106,9 @@
     <ClCompile Include="ipc_sc.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
+    <ClCompile Include="display7s.cpp">
+      <Filter>Source Files\utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -184,6 +187,9 @@
     </Filter>
     <Filter Include="Source Files\server">
       <UniqueIdentifier>{f79784ea-758b-40b8-803d-418b1e1bc1b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Cannon\Shaders">
+      <UniqueIdentifier>{c1ffcf68-dab7-4e2e-8d39-62e6bd99b99f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -321,10 +327,36 @@
     <ClInclude Include="ipc_rc.h">
       <Filter>Header Files\server</Filter>
     </ClInclude>
+    <ClInclude Include="display7s.h">
+      <Filter>Header Files\utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
       <Filter>Metadata</Filter>
     </AppxManifest>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Cannon\Shaders\Lit_PS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Lit_VS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Lit_VS_SPS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Unlit_VS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\Unlit_VS_SPS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Cannon\Shaders\UnlitTexture_PS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

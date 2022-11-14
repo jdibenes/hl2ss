@@ -5,6 +5,7 @@ import struct
 import cv2
 import av
 
+_I133_DISABLE_AHAT = True
 
 # Stream TCP Ports
 class StreamPort:
@@ -550,6 +551,8 @@ def _connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
 
 
 def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, profile, bitrate):
+    if (_I133_DISABLE_AHAT):
+        raise Exception('RM DEPTH AHAT access is currently disabled (https://github.com/microsoft/HoloLens2ForCV/issues/133)')
     c = gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_depth_ahat(mode, profile, bitrate))

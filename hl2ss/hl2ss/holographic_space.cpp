@@ -1,6 +1,9 @@
 
 #include "Cannon/DrawCall.h"
+#include "nfo.h"
+#include "display7s.h"
 #include "utilities.h"
+#include "types.h"
 
 #include <windows.graphics.directx.direct3d11.interop.h>
 
@@ -40,7 +43,7 @@ void HolographicSpace_EnableMarker(bool state)
 }
 
 // OK
-static void HolographicSpace_CreateMarkerTexture()
+static void HolographicSpace_CreateHUDTextures()
 {
     int const line_thickness = 16;
     UINT32 const line_color = 0xFFFFFFFF;
@@ -78,6 +81,10 @@ static void HolographicSpace_CreateMarkerTexture()
 
     memset(data, 0, buffer_size);
 
+    std::vector<wchar_t> ipaddress;
+    GetLocalIPv4Address(ipaddress);    
+    DrawDigits(ipaddress.data(), 128, 0, 20, 6, 24, 4, 4, buffer_width, buffer_height, 0x3F3F3F3F, (u32*)data);
+
     g_device->CreateTexture2D(&dtd, dsd, &g_texture_empty);
 
     for (int y = y0 - line_thickness; y < (y0 + line_thickness); ++y) { for (int x = 0; x < buffer_width; ++x) { ((UINT32*)data)[y * buffer_width + x] = line_color; } }
@@ -105,7 +112,7 @@ void HolographicSpace_Initialize()
     g_space.SetDirect3D11Device(interopDevice);
     g_device->GetImmediateContext(&g_context);
 
-    HolographicSpace_CreateMarkerTexture();
+    HolographicSpace_CreateHUDTextures();
 }
 
 // OK

@@ -19,7 +19,7 @@ static HANDLE g_quitevent = NULL; // CloseHandle
 //-----------------------------------------------------------------------------
 
 // OK
-void MC_SendSampleToSocket(IMFSample* pSample, void* param)
+static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 {
 	IMFMediaBuffer* pBuffer; // Release
 	LONGLONG sampletime;
