@@ -45,6 +45,8 @@ buffer_length = 5
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+
     enable = True
 
     def project_points(image, P, points, radius, color, thickness):
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    calibration = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate, profile, bitrate)
+    calibration = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate)
 
     producer = hl2ss_utilities.producer()
     producer.initialize_si(hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length, host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
@@ -69,7 +71,7 @@ if __name__ == '__main__':
     sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, mp.Manager(), None)
     sink_si.get_attach_response()
 
-    client_pv = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
+    client_pv = hl2ss.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
     client_pv.open()
 
     while (enable):
@@ -93,3 +95,5 @@ if __name__ == '__main__':
     sink_si.detach()
     producer.stop()
     listener.join()
+
+    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)

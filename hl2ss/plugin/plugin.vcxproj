@@ -309,6 +309,7 @@
     <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\timestamps.h" />
     <ClInclude Include="..\hl2ss\types.h" />
+    <ClInclude Include="configuration.h" />
     <ClInclude Include="hl2ss.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="ipc.h" />

@@ -25,7 +25,6 @@ using namespace winrt::Windows::Perception::Spatial;
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static bool g_ready = false;
 static HANDLE g_quitevent = NULL; // CloseHandle
 static HANDLE g_thread = NULL; // CloseHandle
 
@@ -218,12 +217,11 @@ static void PV_Stream(SOCKET clientsocket)
     ok = recv_u8(clientsocket, mode);
     if (!ok) { return; }
 
-    if (!g_ready && (mode & 4)) { PersonalVideo_Initialize(); g_ready = true; }
+    if (!PersonalVideo_Status() && (mode & 4)) { PersonalVideo_Open(); }
+    if (!PersonalVideo_Status()) { return; }
     
     ok = ReceiveVideoFormat(clientsocket, format);
     if (!ok) { return; }
-
-    if (!g_ready) { return; }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
     if (!ok) { return; }
@@ -244,7 +242,7 @@ static void PV_Stream(SOCKET clientsocket)
 
     CloseHandle(clientevent);
 
-    if (g_ready && (mode & 8)) { PersonalVideo_Close(); g_ready = false; }
+    if (mode & 8) { PersonalVideo_Close(); }
 }
 
 // OK

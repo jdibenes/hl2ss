@@ -36,13 +36,18 @@ max_depth = 3.0
 
 #------------------------------------------------------------------------------
 
+hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+rc_control = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+while (not rc_control.get_pv_subsystem_status()):
+    pass
+
 # Fix PV focus
 
 hl2ss_3dcv.pv_optimize_for_cv(host, pv_focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.IsoSpeedMode.Auto, hl2ss.IsoSpeedValue.Max, hl2ss.ColorTemperaturePreset.Auto)
 
 # Get camera calibrations
 
-pv_calibration = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, True)
+pv_calibration = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_framerate, True)
 pv_calibration.intrinsics, pv_calibration.extrinsics, _ = hl2ss_3dcv.pv_fix_calibration(pv_calibration.intrinsics, pv_calibration.extrinsics)
 lt_calibration = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
 
@@ -50,12 +55,12 @@ lt_calibration = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_L
 # To keep this example simple, the images are captured one after the other but this will not work properly for dynamic scenes
 # Use the multiprocessing producer to obtain image pairs that are closest in time
 
-client = hl2ss_utilities.rx_decoded_rm_depth(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0)
+client = hl2ss.rx_decoded_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0, hl2ss.PngFilterMode.Paeth)
 client.open()
 data_lt = client.get_next_packet()
 client.close()
 
-client = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'rgb24')
+client = hl2ss.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'rgb24')
 client.open()
 data_pv = client.get_next_packet()
 client.close()
@@ -86,3 +91,5 @@ intrinsics = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHR
 
 pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsics)
 o3d.visualization.draw_geometries([pcd])
+
+hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)

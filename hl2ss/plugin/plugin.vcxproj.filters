@@ -209,5 +209,8 @@
     <ClInclude Include="..\hl2ss\lock.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
+    <ClInclude Include="configuration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

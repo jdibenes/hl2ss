@@ -30,12 +30,17 @@ line_thickness = 1
 
 #------------------------------------------------------------------------------
 
+hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+rc_control = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+while (not rc_control.get_pv_subsystem_status()):
+    pass
+
 # Get camera calibrations
 
 calibration_lf = hl2ss_3dcv.get_calibration_rm(host, port_left, calibration_path)
 
 hl2ss_3dcv.pv_optimize_for_cv(host, focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.IsoSpeedMode.Auto, hl2ss.IsoSpeedValue.Max, hl2ss.ColorTemperaturePreset.Auto)
-calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, True)
+calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, pv_width, pv_height, pv_framerate, True)
 
 rotation_lf = hl2ss_3dcv.rm_vlc_get_rotation(port_left)
 
@@ -51,8 +56,8 @@ stereo_rectification = hl2ss_3dcv.rm_vlc_stereo_rectify(K1, K2, stereo_calibrati
 # To keep this example simple, the images are captured one after the other but this will not work properly for dynamic scenes
 # Use the multiprocessing producer to obtain image pairs that are closest in time
 
-client_lf = hl2ss_utilities.rx_decoded_rm_vlc(host, port_left,  hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, vlc_profile, vlc_bitrate)
-client_rf = hl2ss_utilities.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'bgr24')
+client_lf = hl2ss.rx_decoded_rm_vlc(host, port_left,  hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, vlc_profile, vlc_bitrate)
+client_rf = hl2ss.rx_decoded_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'bgr24')
 
 client_lf.open()
 data_lf = client_lf.get_next_packet()
@@ -75,3 +80,5 @@ for y in range(line_start, shape[1], line_offset):
 
 cv2.imshow('rect', image)
 cv2.waitKey(0)
+
+hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)

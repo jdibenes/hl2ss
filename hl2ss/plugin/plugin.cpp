@@ -7,6 +7,7 @@
 #include "../hl2ss/locator.h"
 #include "../hl2ss/research_mode.h"
 #include "../hl2ss/spatial_input.h"
+#include "../hl2ss/personal_video.h"
 #include "../hl2ss/stream_rm.h"
 #include "../hl2ss/stream_mc.h"
 #include "../hl2ss/stream_pv.h"
@@ -14,12 +15,8 @@
 #include "../hl2ss/ipc_rc.h"
 #include "../hl2ss/timestamps.h"
 #include "../hl2ss/log.h"
-
-#define HL2SS_ENABLE_RM  1
-#define HL2SS_ENABLE_MC  2
-#define HL2SS_ENABLE_PV  4
-#define HL2SS_ENABLE_SI  8
-#define HL2SS_ENABLE_RC 16
+#include "../hl2ss/nfo.h"
+#include "../hl2ss/types.h"
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -35,13 +32,13 @@ void InitializeStreams(uint32_t enable)
     Locator_Initialize();
 
     if (enable & HL2SS_ENABLE_RM) { ResearchMode_Initialize(); }
+    if (enable & HL2SS_ENABLE_PV) { PersonalVideo_Initialize(); }
     if (enable & HL2SS_ENABLE_SI) { SpatialInput_Initialize(); }
 
     if (enable & HL2SS_ENABLE_RM) { RM_Initialize(); }
-    if (enable & HL2SS_ENABLE_MC) { MC_Initialize(); }
     if (enable & HL2SS_ENABLE_PV) { PV_Initialize(); }
+    if (enable & HL2SS_ENABLE_MC) { MC_Initialize(); }
     if (enable & HL2SS_ENABLE_SI) { SI_Initialize(); }
-
     if (enable & HL2SS_ENABLE_RC) { RC_Initialize(); }
 
     MQ_Initialize();
@@ -59,4 +56,13 @@ UNITY_EXPORT
 void SI_Update()
 {
     SI_NotifyNextFrame(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp()));
+}
+
+// OK
+UNITY_EXPORT
+void GetLocalIPv4Address(wchar_t *buffer, int size)
+{
+    std::vector<wchar_t> address;
+    GetLocalIPv4Address(address);
+    wcscpy_s(buffer, size / sizeof(wchar_t), address.data());
 }

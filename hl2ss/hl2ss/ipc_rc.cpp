@@ -179,6 +179,18 @@ static void RC_SetIsoSpeed(SOCKET clientsocket)
 }
 
 // OK
+static void RC_GetSubsystemStatus(SOCKET clientsocket)
+{
+    bool status = PersonalVideo_Status();
+    WSABUF wsaBuf;
+
+    wsaBuf.len = sizeof(status);
+    wsaBuf.buf = (char*)&status;
+
+    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
+// OK
 static void RC_Translate(SOCKET clientsocket)
 {
     uint8_t state;
@@ -200,6 +212,7 @@ static void RC_Translate(SOCKET clientsocket)
     case 0x08: RC_SetExposurePriorityVideo(clientsocket);  break;
     case 0x09: RC_SetSceneMode(clientsocket);              break;
     case 0x0A: RC_SetIsoSpeed(clientsocket);               break;
+    case 0x0B: RC_GetSubsystemStatus(clientsocket);        break;
     }
 }
 

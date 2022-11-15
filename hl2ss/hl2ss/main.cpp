@@ -11,6 +11,7 @@
 #include "stream_si.h"
 #include "holographic_space.h"
 #include "nfo.h"
+#include "personal_video.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
@@ -66,6 +67,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		Locator_Initialize();
 		ResearchMode_Initialize();
 		SpatialInput_Initialize();
+		PersonalVideo_Initialize();
 
 		RM_Initialize();
 		MC_Initialize();

@@ -118,7 +118,7 @@ def main():
 
     producer = hl2ss_utilities.producer()
     producer.initialize_decoded_rm_vlc(hl2ss.Parameters_RM_VLC.FPS * buffer_length, host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, hl2ss.VideoProfile.H264_BASE, 1024*1024)
-    producer.initialize_decoded_rm_depth(hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1)
+    producer.initialize_decoded_rm_depth_longthrow(hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
     producer.start()
 
     manager = mp.Manager()

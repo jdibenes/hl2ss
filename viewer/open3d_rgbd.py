@@ -7,7 +7,6 @@ import numpy as np
 import open3d as o3d
 import hl2ss
 import hl2ss_3dcv
-import hl2ss_utilities
 import cv2
 
 #------------------------------------------------------------------------------
@@ -29,7 +28,7 @@ calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_L
 
 # Get single depth image
 
-client = hl2ss_utilities.rx_decoded_rm_depth(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0)
+client = hl2ss.rx_decoded_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0, hl2ss.PngFilterMode.Paeth)
 client.open()
 data_lt = client.get_next_packet()
 client.close()

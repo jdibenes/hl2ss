@@ -515,10 +515,6 @@ def _create_configuration_for_rm_imu(mode):
     return _create_configuration_for_mode(mode)
 
 
-def _create_configuration_for_rm_mode2():
-    return _create_configuration_for_mode(StreamMode.MODE_2)
-
-
 def _create_configuration_for_pv(mode, width, height, framerate, profile, bitrate):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mode(mode))
@@ -527,15 +523,19 @@ def _create_configuration_for_pv(mode, width, height, framerate, profile, bitrat
     return bytes(configuration)
 
 
-def _create_configuration_for_pv_mode2(width, height, framerate):
-    configuration = bytearray()
-    configuration.extend(_create_configuration_for_mode(StreamMode.MODE_2))
-    configuration.extend(_create_configuration_for_video_format(width, height, framerate))
-    return bytes(configuration)
-
-
 def _create_configuration_for_microphone(profile):
     return _create_configuration_for_audio_encoding(profile)
+
+
+def _create_configuration_for_rm_mode2(mode):
+    return _create_configuration_for_mode(mode)
+
+
+def _create_configuration_for_pv_mode2(mode, width, height, framerate):
+    configuration = bytearray()
+    configuration.extend(_create_configuration_for_mode(mode))
+    configuration.extend(_create_configuration_for_video_format(width, height, framerate))
+    return bytes(configuration)
 
 
 #------------------------------------------------------------------------------
@@ -588,6 +588,20 @@ def _connect_client_si(host, port, chunk_size):
     c = gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
     return c
+
+
+def start_subsystem_pv(host, port):
+    c = client()
+    c.open(host, port)
+    c.sendall(_create_configuration_for_pv_mode2(0x7, 1920, 1080, 30))
+    c.close()
+
+
+def stop_subsystem_pv(host, port):
+    c = client()
+    c.open(host, port)
+    c.sendall(_create_configuration_for_pv_mode2(0xB, 1920, 1080, 30))
+    c.close()
 
 
 #------------------------------------------------------------------------------
@@ -687,20 +701,6 @@ class rx_pv:
 
     def close(self):
         self._client.close()
-
-    def start_video_subsystem(self):
-        mode = self.mode
-        self.mode = 0x7
-        self.open()
-        self.close()
-        self.mode = mode
-
-    def stop_video_subsystem(self):
-        mode = self.mode
-        self.mode = 0xB
-        self.open()
-        self.close()
-        self.mode = mode
 
 
 class rx_microphone:
@@ -1120,12 +1120,6 @@ class rx_decoded_pv:
     def close(self):
         self._client.close()
 
-    def start_video_subsystem(self):
-        self._client.start_video_subsystem()
-
-    def stop_video_subsystem(self):
-        self._client.stop_video_subsystem()
-
 
 class rx_decoded_microphone:
     def __init__(self, host, port, chunk, profile):
@@ -1291,7 +1285,7 @@ def _download_mode2_data(host, port, configuration, bytes):
 
 
 def download_calibration_rm_vlc(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2X       : _Mode2Layout_RM_VLC.END_UV2X      ].reshape(Parameters_RM_VLC.SHAPE)
@@ -1307,7 +1301,7 @@ def download_calibration_rm_vlc(host, port):
 
 
 def download_calibration_rm_depth_ahat(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(), _Mode2Layout_RM_DEPTH_AHAT.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_AHAT.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_DEPTH_AHAT.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_AHAT.END_UV2X      ].reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
@@ -1325,7 +1319,7 @@ def download_calibration_rm_depth_ahat(host, port):
 
 
 def download_calibration_rm_depth_longthrow(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2X      ].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
@@ -1342,7 +1336,7 @@ def download_calibration_rm_depth_longthrow(host, port):
 
 
 def download_calibration_rm_imu(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(), _Mode2Layout_RM_IMU.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_IMU.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     extrinsics = floats[_Mode2Layout_RM_IMU.BEGIN_EXTRINSICS : _Mode2Layout_RM_IMU.END_EXTRINSICS].reshape((4, 4))
@@ -1351,7 +1345,7 @@ def download_calibration_rm_imu(host, port):
 
 
 def download_calibration_pv(host, port, width, height, framerate):
-    data   = _download_mode2_data(host, port, _create_configuration_for_pv_mode2(width, height, framerate), _Mode2Layout_PV.FLOAT_COUNT * _SIZEOF.FLOAT)
+    data   = _download_mode2_data(host, port, _create_configuration_for_pv_mode2(StreamMode.MODE_2, width, height, framerate), _Mode2Layout_PV.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     focal_length          = floats[_Mode2Layout_PV.BEGIN_FOCALLENGTH          : _Mode2Layout_PV.END_FOCALLENGTH         ]
@@ -1399,43 +1393,43 @@ class tx_rc:
 
     def set_marker_state(self, state):
         self._open()
-        command = struct.pack('<BI', 0, state)
+        command = struct.pack('<BI', 0x00, state)
         self._client.sendall(command)
         self._close()
 
     def set_pv_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
         self._open()
-        command = struct.pack('<BIIIII', 1, focusmode, autofocusrange, distance, value, driverfallback)
+        command = struct.pack('<BIIIII', 0x01, focusmode, autofocusrange, distance, value, driverfallback)
         self._client.sendall(command)
         self._close()
 
     def set_pv_video_temporal_denoising(self, mode):
         self._open()
-        command = struct.pack('<BI', 2, mode)
+        command = struct.pack('<BI', 0x02, mode)
         self._client.sendall(command)
         self._close()
 
     def set_pv_white_balance_preset(self, preset):
         self._open()
-        command = struct.pack('<BI', 3, preset)
+        command = struct.pack('<BI', 0x03, preset)
         self._client.sendall(command)
         self._close()
 
     def set_pv_white_balance_value(self, value):
         self._open()
-        command = struct.pack('<BI', 4, value)
+        command = struct.pack('<BI', 0x04, value)
         self._client.sendall(command)
         self._close()
 
     def set_pv_exposure(self, mode, value):
         self._open()
-        command = struct.pack('<BII', 5, mode, value)
+        command = struct.pack('<BII', 0x05, mode, value)
         self._client.sendall(command)
         self._close()
 
     def get_application_version(self):
         self._open()
-        command = struct.pack('<B', 6)
+        command = struct.pack('<B', 0x06)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.SHORT * 4, ChunkSize.SINGLE_TRANSFER)
         version = struct.unpack('<HHHH', data)
@@ -1444,7 +1438,7 @@ class tx_rc:
 
     def get_utc_offset(self, samples):
         self._open()
-        command = struct.pack('<BI', 7, samples)
+        command = struct.pack('<BI', 0x07, samples)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
         self._close()
@@ -1452,19 +1446,26 @@ class tx_rc:
 
     def set_pv_exposure_priority_video(self, enabled):
         self._open()
-        command = struct.pack('<BI', 8, enabled)
+        command = struct.pack('<BI', 0x08, enabled)
         self._client.sendall(command)
         self._client.close()
 
     def set_pv_scene_mode(self, mode):
         self._open()
-        command = struct.pack('<BI', 9, mode)
+        command = struct.pack('<BI', 0x09, mode)
         self._client.sendall(command)
         self._client.close()
 
     def set_pv_iso_speed(self, mode, value):
         self._open()
-        command = struct.pack('<BII', 10, mode, value)
+        command = struct.pack('<BII', 0x0A, mode, value)
         self._client.sendall(command)
         self._client.close()
+
+    def get_pv_subsystem_status(self):
+        self._open()
+        command = struct.pack('<B', 0x0B)
+        self._client.sendall(command)
+        data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
+        return struct.unpack('<B', data)[0] != 0
 

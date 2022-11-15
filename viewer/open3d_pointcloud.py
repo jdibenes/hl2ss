@@ -28,7 +28,7 @@ xy1, scale, _ = hl2ss_3dcv.rm_depth_registration(calibration.uv2xy, calibration.
 
 # Get single depth image
 
-rx_depth = hl2ss_utilities.rx_decoded_rm_depth(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0)
+rx_depth = hl2ss.rx_decoded_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0, hl2ss.PngFilterMode.Paeth)
 rx_depth.open()
 data = rx_depth.get_next_packet()
 rx_depth.close()

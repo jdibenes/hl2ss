@@ -77,8 +77,8 @@ class producer:
     def initialize_rm_vlc(self, buffer_size, host, port, chunk, mode, profile, bitrate):
         self._add(hl2ss_mp.producer(hl2ss.rx_rm_vlc(host, port, chunk, mode, profile, bitrate), buffer_size), port)
         
-    def initialize_rm_depth(self, buffer_size, host, port, chunk, mode):
-        self._add(hl2ss_mp.producer(hl2ss.rx_rm_depth(host, port, chunk, mode), buffer_size), port)
+    def initialize_rm_depth(self, buffer_size, host, port, chunk, mode, png_filter):
+        self._add(hl2ss_mp.producer(hl2ss.rx_rm_depth_longthrow(host, port, chunk, mode, png_filter), buffer_size), port)
 
     def initialize_rm_imu(self, buffer_size, host, port, chunk, mode):
         self._add(hl2ss_mp.producer(hl2ss.rx_rm_imu(host, port, chunk, mode), buffer_size), port)
@@ -93,16 +93,16 @@ class producer:
         self._add(hl2ss_mp.producer(hl2ss.rx_si(host, port, chunk), buffer_size), port)
 
     def initialize_decoded_rm_vlc(self, buffer_size, host, port, chunk, mode, profile, bitrate):
-        self._add(hl2ss_mp.producer(rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate), buffer_size), port)
+        self._add(hl2ss_mp.producer(hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate), buffer_size), port)
 
-    def initialize_decoded_rm_depth(self, buffer_size, host, port, chunk, mode):
-        self._add(hl2ss_mp.producer(rx_decoded_rm_depth(host, port, chunk, mode), buffer_size), port)
+    def initialize_decoded_rm_depth_longthrow(self, buffer_size, host, port, chunk, mode, png_filter):
+        self._add(hl2ss_mp.producer(hl2ss.rx_decoded_rm_depth_longthrow(host, port, chunk, mode, png_filter), buffer_size), port)
 
     def initialize_decoded_pv(self, buffer_size, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
-        self._add(hl2ss_mp.producer(rx_decoded_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, format), buffer_size), port)
+        self._add(hl2ss_mp.producer(hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, format), buffer_size), port)
 
     def initialize_decoded_microphone(self, buffer_size, host, port, chunk, profile):
-        self._add(hl2ss_mp.producer(rx_decoded_microphone(host, port, chunk, profile), buffer_size), port)
+        self._add(hl2ss_mp.producer(hl2ss.rx_decoded_microphone(host, port, chunk, profile), buffer_size), port)
 
     def start(self):
         for producer in self._producer.values():

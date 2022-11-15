@@ -5,6 +5,9 @@
 # (single transfer). Press esc to stop. Depth and AB data are scaled for
 # visibility.
 #------------------------------------------------------------------------------
+# Warning: starting the rm depth ahat stream while the pv subsystem is on
+# will put the ahat stream in an unrecoverable state
+# https://github.com/microsoft/HoloLens2ForCV/issues/133
 
 from pynput import keyboard
 
@@ -27,6 +30,11 @@ port = hl2ss.StreamPort.RM_DEPTH_AHAT
 mode = hl2ss.StreamMode.MODE_1
 
 #------------------------------------------------------------------------------
+
+hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+rc_control = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+while (rc_control.get_pv_subsystem_status()):
+    pass
 
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss.download_calibration_rm_depth_ahat(host, port)

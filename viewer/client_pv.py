@@ -40,8 +40,7 @@ bitrate = 5*1024*1024
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, 'bgr24')
-client.start_video_subsystem()
+hl2ss.start_subsystem_pv(host, port)
 
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss.download_calibration_pv(host, port, width, height, framerate)
@@ -63,6 +62,7 @@ else:
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
+    client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, 'bgr24')
     client.open()
 
     while (enable):
@@ -75,4 +75,4 @@ else:
     client.close()
     listener.join()
 
-client.stop_video_subsystem()
+hl2ss.stop_subsystem_pv(host, port)

@@ -407,7 +407,7 @@ def get_calibration_rm(host, port, path):
     return calibration
 
 
-def get_calibration_pv(host, port, path, focus, width, height, framerate, profile, bitrate, load_extrinsics):
+def get_calibration_pv(host, port, path, focus, width, height, framerate, load_extrinsics):
     _check_calibration_directory(path)
 
     root = _calibration_subdirectory(port, path)
@@ -417,7 +417,7 @@ def get_calibration_pv(host, port, path, focus, width, height, framerate, profil
     try:
         calibration = _load_calibration_pv(base)
     except:
-        calibration = hl2ss.download_calibration_pv(host, port, width, height, framerate, profile, bitrate)
+        calibration = hl2ss.download_calibration_pv(host, port, width, height, framerate)
         os.makedirs(base, exist_ok=True)
         _save_calibration_pv(calibration, base)
         

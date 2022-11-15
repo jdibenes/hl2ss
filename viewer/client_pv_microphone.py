@@ -38,6 +38,8 @@ video_filename = 'video.mp4'
 
 #------------------------------------------------------------------------------
 
+hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+
 tsfirst = None
 enable = True
 start_event = threading.Event()
@@ -48,7 +50,6 @@ def recv_pv(stream_video, lock, packetqueue, time_base, host, width, height, fra
 
     codec_video = av.CodecContext.create(hl2ss.get_video_codec_name(video_profile), 'r')
     client = hl2ss.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, video_profile, video_bitrate)
-    client.start_video_subsystem()
     client.open()
 
     while (enable):
@@ -65,8 +66,7 @@ def recv_pv(stream_video, lock, packetqueue, time_base, host, width, height, fra
             packetqueue.put((packet.pts, packet))
 
     client.close()
-    client.stop_video_subsystem()
-
+    
 def recv_mc(stream_audio, lock, packetqueue, time_base, host, audio_profile):
     global tsfirst
     global enable
@@ -136,3 +136,6 @@ thread_mc.join()
 listener.join()
 
 print('Recording stopped')
+
+hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+ 

@@ -67,7 +67,7 @@ if __name__ == '__main__':
     sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, mp.Manager(), None)
     sink_si.get_attach_response()
 
-    client_vlc = hl2ss_utilities.rx_decoded_rm_vlc(host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
+    client_vlc = hl2ss.rx_decoded_rm_vlc(host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
     client_vlc.open()
 
     while (enable):

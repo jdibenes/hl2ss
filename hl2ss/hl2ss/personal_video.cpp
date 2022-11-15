@@ -1,4 +1,6 @@
 
+#include "lock.h"
+
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Media.Devices.h>
@@ -13,6 +15,8 @@ using namespace winrt::Windows::Media::Capture::Frames;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static CRITICAL_SECTION g_lock;
+static bool g_ready = false;
 static MediaCapture g_mediaCapture = nullptr;
 static MediaFrameSource g_videoSource = nullptr;
 
@@ -78,6 +82,18 @@ static bool PersonalVideo_FindVideoFormat(MediaFrameSource const& videoSource, u
 // OK
 void PersonalVideo_Initialize()
 {
+    InitializeCriticalSection(&g_lock);
+}
+
+// OK
+void PersonalVideo_Cleanup()
+{
+    DeleteCriticalSection(&g_lock);
+}
+
+// OK
+void PersonalVideo_Open()
+{
     uint32_t const width     = 1920;
     uint32_t const height    = 1080;
     double   const framerate = 30;
@@ -86,6 +102,8 @@ void PersonalVideo_Initialize()
     MediaCaptureVideoProfile profile = nullptr;
     MediaCaptureVideoProfileMediaDescription description = nullptr;
     MediaCaptureInitializationSettings settings;
+
+    CriticalSection cs(&g_lock);
 
     g_mediaCapture = MediaCapture();
 
@@ -103,14 +121,26 @@ void PersonalVideo_Initialize()
     g_mediaCapture.InitializeAsync(settings).get();
 
     PersonalVideo_FindVideoSource(g_mediaCapture, g_videoSource);
+
+    g_ready = true;
 }
 
 // OK
 void PersonalVideo_Close()
 {
+    CriticalSection cs(&g_lock);
+
     g_videoSource = nullptr;
     g_mediaCapture.Close();
     g_mediaCapture = nullptr;
+
+    g_ready = false;
+}
+
+// OK
+bool PersonalVideo_Status()
+{
+    return g_ready;
 }
 
 // OK
@@ -140,7 +170,8 @@ void PersonalVideo_SetFocus(uint32_t focusmode, uint32_t autofocusrange, uint32_
     FocusMode fm;
     FocusSettings fs;
 
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
 
     switch (focusmode)
     {
@@ -183,7 +214,8 @@ void PersonalVideo_SetVideoTemporalDenoising(uint32_t mode)
 {
     VideoTemporalDenoisingMode vtdm;
 
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
 
     switch (mode)
     {
@@ -200,7 +232,8 @@ void PersonalVideo_SetWhiteBalance_Preset(uint32_t preset)
 {
     ColorTemperaturePreset ctp;
 
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
 
     switch (preset)
     {
@@ -223,7 +256,8 @@ void PersonalVideo_SetWhiteBalance_Value(uint32_t value)
 {
     uint32_t temperature;
 
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
 
     temperature = value * 25;
     if ((temperature < 2300) || (temperature > 7500)) { return; }
@@ -236,7 +270,8 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
     uint32_t exposure;
     bool mode;
 
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
     
     exposure = value * 10;
     mode = setauto != 0;
@@ -249,7 +284,8 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
 // OK
 void PersonalVideo_SetExposurePriorityVideo(uint32_t enabled)
 {
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
 
     g_mediaCapture.VideoDeviceController().ExposurePriorityVideoControl().Enabled(enabled != 0);
 }
@@ -259,7 +295,8 @@ void PersonalVideo_SetSceneMode(uint32_t mode)
 {
     CaptureSceneMode value;
 
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
 
     switch (mode)
     {
@@ -286,7 +323,8 @@ void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value)
 {
     bool mode;
 
-    if (!g_mediaCapture) { return; }
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
         
     mode = setauto != 0;
     if (mode) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetAutoAsync().get(); } else if ((value >= 100) && (value <= 3200)) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetValueAsync(value).get(); }
