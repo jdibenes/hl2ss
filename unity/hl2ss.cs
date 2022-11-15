@@ -23,6 +23,8 @@ public class hl2ss : MonoBehaviour
     private static extern void MQ_Restart();
     [DllImport("hl2ss")]
     private static extern void SI_Update();
+    [DllImport("hl2ss")]
+    private static extern void GetLocalIPv4Address(byte[] data, int size);
 #else
     private void InitializeStreams(uint enable)
     {
@@ -54,6 +56,11 @@ public class hl2ss : MonoBehaviour
     private void SI_Update()
     {
     }
+
+    private void GetLocalIPv4Address(byte[] data, int size)
+    {
+
+    }
 #endif
 
     [Tooltip("Must be enabled if InitializeStreams is called from the cpp code and disabled otherwise.")]
@@ -62,14 +69,17 @@ public class hl2ss : MonoBehaviour
     [Tooltip("Enable Research Mode sensors streams. Has no effect if InitializeStreams is called from the cpp code.")]
     public bool enableRM = true;
 
-    [Tooltip("Enable Microphone stream. Has no effect if InitializeStreams is called from the cpp code.")]
-    public bool enableMC = true;
-
     [Tooltip("Enable Front Camera stream. Has no effect if InitializeStreams is called from the cpp code.")]
     public bool enablePV = true;
 
+    [Tooltip("Enable Microphone stream. Has no effect if InitializeStreams is called from the cpp code.")]
+    public bool enableMC = true;
+    
     [Tooltip("Enable Spatial Input stream. Allowed only if InitializeStreams is called from the cpp code and must be disabled otherwise.")]
     public bool enableSI = false;
+
+    [Tooltip("Enable Remoce Configuration. Has no effect if InitializeStreams is called from the cpp code.")]
+    public bool enableRC = true;
 
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
@@ -88,7 +98,12 @@ public class hl2ss : MonoBehaviour
         m_loop = false;
         m_mode = false;
 
-        if (!skipInitialization) { InitializeStreams((enableRM ? 1U : 0U) | (enableMC ? 2U : 0U) | (enablePV ? 4U : 0U)); }
+        if (!skipInitialization) { InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U)); }
+
+        byte[] ipaddress = new byte[16 * 2];
+        GetLocalIPv4Address(ipaddress, ipaddress.Length);
+        string ip = System.Text.Encoding.Unicode.GetString(ipaddress);
+        DebugMessage(string.Format("UNITY: Local IP Address is: {0}", ip));
     }
 
     // Update is called once per frame
