@@ -1,11 +1,12 @@
 ﻿
 #include <queue>
 #include <malloc.h>
+#include "plugin.h"
+#include "ports.h"
+
 #include "../hl2ss/server.h"
 #include "../hl2ss/lock.h"
 #include "../hl2ss/log.h"
-#include "plugin.h"
-#include "ports.h"
 
 struct MQ_MSG
 {
@@ -20,7 +21,7 @@ struct MQ_MSG
 
 static HANDLE g_thread; // CloseHandle
 static HANDLE g_event_restart; // CloseHandle
-static HANDLE g_event_so; // CloseHandle
+static HANDLE g_semaphore_so; // CloseHandle
 static HANDLE g_event_error; // CloseHandle
 static HANDLE g_event_quit; // CloseHandle
 static CRITICAL_SECTION g_lock_si; // DeleteCriticalSection
@@ -103,7 +104,7 @@ static bool MQ_SO_Wait()
 {
 	HANDLE events[2];
 
-	events[0] = g_event_so;
+	events[0] = g_semaphore_so;
 	events[1] = g_event_error;
 
 	return WaitForMultipleObjects(sizeof(events) / sizeof(HANDLE), events, FALSE, INFINITE) == WAIT_OBJECT_0;
@@ -114,18 +115,11 @@ static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 {
 	SOCKET clientsocket = *((SOCKET*)param);
 	int status;
-	bool empty;
 	uint32_t id;
 
 	do
 	{
-	{
-	CriticalSection cs(&g_lock_so);
-	empty = g_queue_so.empty();
-	if (empty) { ResetEvent(g_event_so); }
-	}
-
-	if (empty && !MQ_SO_Wait()) { break; }
+	if (!MQ_SO_Wait()) { break; }
 
 	{
 	CriticalSection cs(&g_lock_so);
@@ -147,11 +141,9 @@ static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 UNITY_EXPORT
 void MQ_SO_Push(uint32_t id)
 {
-	{
 	CriticalSection cs(&g_lock_so);
 	g_queue_so.push(id);
-	SetEvent(g_event_so);
-	}
+	ReleaseSemaphore(g_semaphore_so, 1, NULL);
 }
 
 // OK
@@ -166,6 +158,8 @@ static void MQ_Procedure(SOCKET clientsocket)
 {
 	HANDLE threads[2];
 	MQ_MSG msg;
+
+	g_semaphore_so = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
 	
 	threads[0] = CreateThread(NULL, 0, MQ_EntryPoint_Receive, &clientsocket, 0, NULL);
 	threads[1] = CreateThread(NULL, 0, MQ_EntryPoint_Send,    &clientsocket, 0, NULL);
@@ -186,14 +180,11 @@ static void MQ_Procedure(SOCKET clientsocket)
 
 	ShowMessage("MQ: Waiting for restart signal");
 	WaitForSingleObject(g_event_restart, INFINITE);
-	
-	{
-	CriticalSection cs(&g_lock_so);
-	while (!g_queue_so.empty()) { g_queue_so.pop(); }
-	}
+
+	g_queue_so = {};
+	CloseHandle(g_semaphore_so);	
 
 	ResetEvent(g_event_error);
-	ResetEvent(g_event_so);
 
 	ShowMessage("MQ: Restart signal received");
 }
@@ -240,7 +231,6 @@ void MQ_Initialize()
 
 	g_event_quit    = CreateEvent(NULL, TRUE,  FALSE, NULL);
 	g_event_error   = CreateEvent(NULL, TRUE,  FALSE, NULL);
-	g_event_so      = CreateEvent(NULL, TRUE,  FALSE, NULL);
 	g_event_restart = CreateEvent(NULL, FALSE, FALSE, NULL);
 	
 	g_thread = CreateThread(NULL, 0, MQ_EntryPoint, NULL, 0, NULL);
@@ -258,8 +248,8 @@ void MQ_Cleanup()
 	WaitForSingleObject(g_thread, INFINITE);
 
 	CloseHandle(g_thread);
+
 	CloseHandle(g_event_restart);
-	CloseHandle(g_event_so);
 	CloseHandle(g_event_error);
 	CloseHandle(g_event_quit);
 
