@@ -13,6 +13,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 - Research Mode Visible Light Cameras (4 cameras, 640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
 - Research Mode Depth
   - Long Throw (320x288 @ 1-5 FPS, 16-bit Depth + 16-bit AB encoded as a single 32-bit PNG)
+      - Notes: https://github.com/microsoft/HoloLens2ForCV/issues/142
   - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB as NV12 luma+chroma, H264 or HEVC encoded)
       - Notes: https://github.com/microsoft/HoloLens2ForCV/issues/133
 - Research Mode IMU
