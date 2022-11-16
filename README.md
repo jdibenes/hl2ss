@@ -72,7 +72,7 @@ Multiple streams can be active at the same time but only one client per stream i
 ## Known Issues
 
 - Ocassionally, the application might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
-- Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens 2 OS. See Notes: https://github.com/microsoft/HoloLens2ForCV/issues/133.
+- Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens 2 OS. See: https://github.com/microsoft/HoloLens2ForCV/issues/133.
 - RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
 
 ## Building
