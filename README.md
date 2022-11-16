@@ -13,9 +13,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 - Research Mode Visible Light Cameras (4 cameras, 640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
 - Research Mode Depth
   - Long Throw (320x288 @ 1-5 FPS, 16-bit Depth + 16-bit AB encoded as a single 32-bit PNG)
-      - Notes: https://github.com/microsoft/HoloLens2ForCV/issues/142
   - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB as NV12 luma+chroma, H264 or HEVC encoded)
-      - Notes: https://github.com/microsoft/HoloLens2ForCV/issues/133
 - Research Mode IMU
   - Accelerometer
   - Gyroscope
@@ -26,8 +24,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 - Download calibration (e.g., camera intrinsics) for the Front Camera and Research Mode sensors (except Magnetometer).
 - Optional per-frame pose for the Front Camera and Research Mode sensors streams.
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
-- Client can configure the resolution and framerate of the Front Camera (see [etc/hl2_capture_formats.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/hl2_capture_formats.txt) for a list of supported formats).
-- Client can configure the focus, white balance, iso speed, and exposure of the Front Camera.
+- For the Front Camera, the client can configure the resolution, framerate, focus, white balance, iso speed, and exposure (see [etc/hl2_capture_formats.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/hl2_capture_formats.txt) for a list of supported formats).
 
 The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time.
 
@@ -71,6 +68,12 @@ The sample Python scripts depend on the following packages:
 The server application is a Native C++ Universal Windows Platform (UWP) application.
 Each sensor stream has its own thread.
 Multiple streams can be active at the same time but only one client per stream is allowed.
+
+## Known Issues
+
+- Ocassionally, the application might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
+- Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens 2 OS. See Notes: https://github.com/microsoft/HoloLens2ForCV/issues/133.
+- RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
 
 ## Building
 
