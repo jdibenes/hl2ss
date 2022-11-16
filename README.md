@@ -4,29 +4,36 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 
 **Supported streams**
 
+- Research Mode Visible Light Cameras (4 cameras, 640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
+- Research Mode Depth
+  - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB as NV12 luma+chroma, H264 or HEVC encoded) 
+  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB encoded as a single 32-bit PNG)
+- Research Mode IMU
+  - Accelerometer
+  - Gyroscope
+  - Magnetometer
 - Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
 - Microphone (2 channels, 48000 Hz, AAC encoded)
 - Spatial Input (60 Hz)
   - Head Tracking
   - Eye Tracking
   - Hand Tracking
-- Research Mode Visible Light Cameras (4 cameras, 640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
-- Research Mode Depth
-  - Long Throw (320x288 @ 1-5 FPS, 16-bit Depth + 16-bit AB encoded as a single 32-bit PNG)
-  - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB as NV12 luma+chroma, H264 or HEVC encoded)
-- Research Mode IMU
-  - Accelerometer
-  - Gyroscope
-  - Magnetometer
   
 **Additional features**
 
-- Download calibration (e.g., camera intrinsics) for the Front Camera and Research Mode sensors (except Magnetometer).
+- Download calibration (e.g., camera intrinsics) for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
 - Optional per-frame pose for the Front Camera and Research Mode sensors streams.
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
 - For the Front Camera, the client can configure the resolution, framerate, focus, white balance, iso speed, and exposure (see [etc/hl2_capture_formats.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/hl2_capture_formats.txt) for a list of supported formats).
 
 The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time.
+- RM VLC: [viewer/client_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_vlc.py)
+- RM Depth AHAT: [viewer/client_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_ahat.py)
+- RM Depth Long Throw: [viewer/client_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_longthrow.py)
+- RM IMU: [viewer/client_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_imu.py)
+- Front Camera: [viewer/client_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_pv.py)
+- Microphone: [viewer/client_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_microphone.py)
+- Spatial Input: [viewer/client_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_si.py)
 
 ## Preparation
 
@@ -56,12 +63,17 @@ The first time the server runs it will ask for the necessary permissions to acce
 
 ## Python dependencies
 
-The sample Python scripts depend on the following packages:
+Required packages:
 
 - [OpenCV](https://github.com/opencv/opencv-python) `pip install opencv-python`
 - [PyAV](https://github.com/PyAV-Org/PyAV) `pip install av`
-- [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [NumPy](https://numpy.org/) `pip install numpy`
+
+Optional packages used by some of the samples:
+
+- [pynput](https://github.com/moses-palmer/pynput) `pip install pynput`
+- [Open3D](http://www.open3d.org/) `pip install open3d`
+- [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 
 ## Details
 
