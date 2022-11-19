@@ -52,8 +52,7 @@ The server software is distributed as a single appxbundle file.
 
 1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
 2. Go to the Device Portal (type the IP address of your HoloLens in the address bar of your preferred web browser) and upload the appxbundle to the HoloLens (System -> File explorer -> Downloads).
-3. On your HoloLens, open the File Explorer and locate the appxbundle.
-4. Tap the appxbundle file to open the installer and tap Install.
+3. On your HoloLens, open the File Explorer and locate the appxbundle. Tap the appxbundle file to open the installer and tap Install.
 
 ## Permissions
 
