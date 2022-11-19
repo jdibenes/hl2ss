@@ -4,7 +4,8 @@
 # etc/hl2_capture_formats.txt for a list of supported formats. The default
 # configuration is 1080p 30 FPS. The stream supports three operating modes:
 # 0) video, 1) video + camera pose, 2) query calibration (single transfer).
-# Press esc to stop.
+# Press esc to stop. Note that the ahat stream cannot be used while the pv
+# subsystem is on.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -38,6 +39,9 @@ profile = hl2ss.VideoProfile.H265_MAIN
 # Must be > 0
 bitrate = 5*1024*1024
 
+# Decoded format
+decoded_format = 'bgr24'
+
 #------------------------------------------------------------------------------
 
 hl2ss.start_subsystem_pv(host, port)
@@ -62,7 +66,7 @@ else:
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, 'bgr24')
+    client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, decoded_format)
     client.open()
 
     while (enable):

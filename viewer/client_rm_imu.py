@@ -41,12 +41,9 @@ mode = hl2ss.StreamMode.MODE_1
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    try:
-        data = hl2ss.download_calibration_rm_imu(host, port)
-        print('Calibration data')
-        print(data.extrinsics)
-    except:
-        print('This stream does not support mode 2')
+    data = hl2ss.download_calibration_rm_imu(host, port)
+    print('Calibration data')
+    print(data.extrinsics)
     quit()
 
 enable = True

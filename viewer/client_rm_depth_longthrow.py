@@ -3,7 +3,8 @@
 # throw mode and plays it. The resolution is 320x288 @ 5 FPS. The stream
 # supports three operating modes: 0) video, 1) video + rig pose, 2) query
 # calibration (single transfer). Press esc to stop. Depth and AB data are 
-# scaled for visibility.
+# scaled for visibility. Note that the ahat and long throw streams cannot be
+# used simultaneously.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -55,8 +56,8 @@ while (enable):
     data = client.get_next_packet()
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
-    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Depth scaled for visibility
-    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # AB scaled for visibility
+    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Normalized for visibility
+    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Normalized for visibility
     cv2.waitKey(1)
 
 client.close()

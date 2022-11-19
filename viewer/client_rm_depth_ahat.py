@@ -3,11 +3,10 @@
 # mode and plays it. The resolution is 512x512 @ 45 FPS. The stream supports 
 # three operating modes: 0) video, 1) video + rig pose, 2) query calibration
 # (single transfer). Press esc to stop. Depth and AB data are scaled for
-# visibility.
+# visibility. Note that 1) the ahat stream cannot be used while the pv
+# subsystem is on, and 2) the ahat and long throw streams cannot be used
+# simultaneously.
 #------------------------------------------------------------------------------
-# Warning: starting the rm depth ahat stream while the pv subsystem is on
-# will put the ahat stream in an unrecoverable state
-# https://github.com/microsoft/HoloLens2ForCV/issues/133
 
 from pynput import keyboard
 
@@ -29,12 +28,14 @@ port = hl2ss.StreamPort.RM_DEPTH_AHAT
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
 
-#------------------------------------------------------------------------------
+# Video encoding profile
+profile = hl2ss.VideoProfile.H265_MAIN
 
-hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-rc_control = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
-while (rc_control.get_pv_subsystem_status()):
-    pass
+# Encoded stream average bits per second
+# Must be > 0
+bitrate = 8*1024*1024
+
+#------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss.download_calibration_rm_depth_ahat(host, port)
@@ -57,15 +58,15 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, hl2ss.VideoProfile.H264_BASE, 8*1024*1024)
+client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, profile, bitrate)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
-    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth))
-    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab))
+    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Normalized for visibility
+    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Normalized for visibility
     cv2.waitKey(1)
 
 client.close()
