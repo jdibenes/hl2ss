@@ -83,13 +83,13 @@ The server application is a Native C++ Universal Windows Platform (UWP) applicat
 Each sensor stream has its own thread.
 Multiple streams can be active at the same time but only one client per stream is allowed.
 
-## Known Issues
+## Known issues
 
 - Ocassionally, the application might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
 - Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens 2 OS. See https://github.com/microsoft/HoloLens2ForCV/issues/133.
 - RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
 
-## Building
+## Build from source and deploy
 
 Building requires a Windows 10 machine:
 
