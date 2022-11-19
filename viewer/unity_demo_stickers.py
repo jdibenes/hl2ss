@@ -76,12 +76,13 @@ scaler = np.sqrt(calib.uv2xy[:, :, 0]**2 + calib.uv2xy[:, :, 1]**2 + 1) * calib.
 u0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  // 2
 v0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT // 2
 
-client = hl2ss.rx_rm_depth(host, port_lt, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1)
+client = hl2ss.rx_decoded_rm_depth_longthrow(host, port_lt, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
-    images = hl2ss.unpack_rm_depth(data.payload)
+    #images = hl2ss.unpack_rm_depth(data.payload)
+    images = data.payload
 
     # Show depth image
     cv2.imshow('depth', images.depth / np.max(images.depth))
