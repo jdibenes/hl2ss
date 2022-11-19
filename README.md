@@ -92,10 +92,10 @@ Multiple streams can be active at the same time but only one client per stream i
 Building requires a Windows 10 machine:
 
 1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
-2. Open the Visual Studio solution (sln file in [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
-3. Build Release ARM64.
-4. In the Solution Explorer, right click the hl2ss project and select Properties.
-5. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
+2. Open the Visual Studio solution (sln file in the [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
+3. [Pair your HoloLens 2](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device).
+4. Build Release ARM64.
+5. In the Solution Explorer, right click the hl2ss project and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
 6. Run. The application will remain installed on the HoloLens even after power off.
 
 This process also builds the Unity plugin.
@@ -110,6 +110,7 @@ This process is described later in this section.
 **Using the plugin**
 
 1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project.
+    - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction), and then continue with the instructions presented in this section.
 2. In the Unity Editor, configure the plugin as UWP ARM64.
     1. Find the plugin in the Project window, select it, then go to the Inspector window.
     2. Set SDK to UWP.
