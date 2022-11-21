@@ -27,6 +27,9 @@ port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
 
+# PNG filter
+png_filter = hl2ss.PngFilterMode.Paeth
+
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -49,7 +52,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_depth_longthrow(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode, hl2ss.PngFilterMode.Paeth)
+client = hl2ss.rx_decoded_rm_depth_longthrow(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode, png_filter)
 client.open()
 
 while (enable):

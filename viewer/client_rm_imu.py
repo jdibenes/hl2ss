@@ -64,8 +64,9 @@ while (enable):
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
     imu_data = data.payload
+    count = imu_data.get_count()
     sample = imu_data.get_frame(0)
-    print('Got {count} samples at time {ts}, first sample is (ticks = {st}, x = {x}, y = {y}, z = {z})'.format(count=imu_data.get_count(), ts=data.timestamp, st=sample.sensor_ticks_ns, x=sample.x, y=sample.y, z=sample.z))
+    print('Got {count} samples at time {ts}, first sample is (ticks = {st}, x = {x}, y = {y}, z = {z})'.format(count=count, ts=data.timestamp, st=sample.sensor_ticks_ns, x=sample.x, y=sample.y, z=sample.z))
 
 client.close()
 listener.join()
