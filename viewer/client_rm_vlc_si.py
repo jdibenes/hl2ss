@@ -15,6 +15,7 @@ import numpy as np
 import hl2ss
 import hl2ss_utilities
 import hl2ss_3dcv
+import hl2ss_mp
 import cv2
 
 # Settings --------------------------------------------------------------------
@@ -59,11 +60,12 @@ if __name__ == '__main__':
 
     model_vlc = hl2ss.download_calibration_rm_vlc(host, port)
 
-    producer = hl2ss_utilities.producer()
-    producer.initialize_si(hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length, host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
-    producer.start()
+    producer = hl2ss_mp.producer()
+    producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
+    producer.start(hl2ss.StreamPort.SPATIAL_INPUT)
 
-    consumer = hl2ss_utilities.consumer()
+    consumer = hl2ss_mp.consumer()
     sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, mp.Manager(), None)
     sink_si.get_attach_response()
 
@@ -77,7 +79,7 @@ if __name__ == '__main__':
         image = cv2.remap(data_vlc.payload, model_vlc.undistort_map[:, :, 0], model_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         image = np.dstack((image, image, image))
 
-        if (data_vlc.is_valid_pose() and (data_si is not None)):
+        if (hl2ss.is_valid_pose(data_vlc.pose) and (data_si is not None)):
             projection = hl2ss_3dcv.projection(model_vlc.intrinsics, hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(model_vlc.extrinsics))
             si = hl2ss.unpack_si(data_si.payload)
             if (si.is_valid_hand_left()):
@@ -90,5 +92,5 @@ if __name__ == '__main__':
 
     client_vlc.close()
     sink_si.detach()
-    producer.stop()
+    producer.stop(hl2ss.StreamPort.SPATIAL_INPUT)
     listener.join()

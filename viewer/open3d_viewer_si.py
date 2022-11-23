@@ -10,6 +10,7 @@ import open3d as o3d
 import cv2
 import hl2ss
 import hl2ss_utilities
+import hl2ss_mp
 import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
@@ -25,11 +26,11 @@ framerate = 30
 profile = hl2ss.VideoProfile.H265_MAIN
 bitrate = 5*1024*1024
 focus = 1000
-exposure_mode = hl2ss.ExposureMode.Manual
-exposure = hl2ss.ExposureValue.Max // 2
-iso_speed_mode = hl2ss.IsoSpeedMode.Manual
+exposure_mode = hl2ss.PV_ExposureMode.Manual
+exposure = hl2ss.PV_ExposureValue.Max // 2
+iso_speed_mode = hl2ss.PV_IsoSpeedMode.Manual
 iso_speed_value = 1600
-white_balance = hl2ss.ColorTemperaturePreset.Manual
+white_balance = hl2ss.PV_ColorTemperaturePreset.Manual
 
 
 # Buffer length in seconds
@@ -89,21 +90,26 @@ if __name__ == '__main__':
     eye_line.points = o3d.utility.Vector3dVector(np.array([[0, 0, 0], [0, 1, 0]]).reshape((2, 3)))
     eye_line.lines = o3d.utility.Vector2iVector(np.array([0, 1]).reshape((1,2)))
 
-    left_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
-    right_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.HandJointKind.TOTAL)]
+    left_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.SI_HandJointKind.TOTAL)]
+    right_hand_joints = [o3d.geometry.TriangleMesh.create_octahedron(radius=hand_joint_radius) for _ in range(0, hl2ss.SI_HandJointKind.TOTAL)]
 
-    for i in range(0, hl2ss.HandJointKind.TOTAL):
+    for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
         left_hand_joints[i].paint_uniform_color(hand_joints_color)
         right_hand_joints[i].paint_uniform_color(hand_joints_color)
 
-    producer = hl2ss_utilities.producer()
-    producer.initialize_decoded_pv(framerate * buffer_length, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, profile, bitrate, 'rgb24')
-    producer.initialize_decoded_rm_depth_longthrow(hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
-    producer.initialize_si(hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length, host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
-    producer.start()
+    producer = hl2ss_mp.producer()
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, profile, bitrate, 'rgb24')
+    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
+    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
+    producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
+    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
+    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    producer.start(hl2ss.StreamPort.SPATIAL_INPUT)
 
     manager = mp.Manager()
-    consumer = hl2ss_utilities.consumer()
+    consumer = hl2ss_mp.consumer()
     sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
     sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
     sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, ...)
@@ -116,7 +122,7 @@ if __name__ == '__main__':
         sink_depth.acquire()
 
         data_depth = sink_depth.get_most_recent_frame()
-        if (not data_depth.is_valid_pose()):
+        if (not hl2ss.is_valid_pose(data_depth.pose)):
             continue
 
         _, data_pv = sink_pv.get_nearest(data_depth.timestamp)
@@ -153,7 +159,7 @@ if __name__ == '__main__':
     vis.add_geometry(head_frame, False)
     vis.add_geometry(eye_pointer, False)
     vis.add_geometry(eye_line, False)
-    for i in range(0, hl2ss.HandJointKind.TOTAL):        
+    for i in range(0, hl2ss.SI_HandJointKind.TOTAL):        
         vis.add_geometry(left_hand_joints[i], False)
         vis.add_geometry(right_hand_joints[i], False)
 
@@ -197,24 +203,24 @@ if __name__ == '__main__':
 
         if (si.is_valid_hand_left()):            
             left_hand = hl2ss_utilities.si_unpack_hand(si.get_hand_left())
-            for i in range(0, hl2ss.HandJointKind.TOTAL):
+            for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
                 left_hand_joints[i].translate(left_hand.positions[i, :], False)
         else:
-            for i in range(0, hl2ss.HandJointKind.TOTAL):
+            for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
                 left_hand_joints[i].translate(hide_position, False)
 
         if (si.is_valid_hand_right()):
             right_hand = hl2ss_utilities.si_unpack_hand(si.get_hand_right())
-            for i in range(0, hl2ss.HandJointKind.TOTAL):
+            for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
                 right_hand_joints[i].translate(right_hand.positions[i, :], False)
         else:
-            for i in range(0, hl2ss.HandJointKind.TOTAL):
+            for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
                 right_hand_joints[i].translate(hide_position, False)
 
         vis.update_geometry(head_frame)
         vis.update_geometry(eye_pointer)
         vis.update_geometry(eye_line)
-        for i in range(0, hl2ss.HandJointKind.TOTAL):
+        for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
             vis.update_geometry(left_hand_joints[i])
             vis.update_geometry(right_hand_joints[i])
 
@@ -222,7 +228,9 @@ if __name__ == '__main__':
         vis.update_renderer()
 
     [sink.detach() for sink in sinks]
-    producer.stop()
+    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
+    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    producer.stop(hl2ss.StreamPort.SPATIAL_INPUT)
     listener.join()
 
     vis.run()

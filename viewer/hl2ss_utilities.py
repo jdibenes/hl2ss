@@ -40,7 +40,7 @@ class SI_Hand:
 
 
 def si_unpack_hand(hand):
-    poses = [hand.get_joint_pose(joint) for joint in range(0, hl2ss.HandJointKind.TOTAL)]
+    poses = [hand.get_joint_pose(joint) for joint in range(0, hl2ss.SI_HandJointKind.TOTAL)]
     orientations = np.array([pose.orientation for pose in poses])
     positions = np.array([pose.position for pose in poses])
     radii = np.array([pose.radius for pose in poses])
