@@ -221,7 +221,12 @@ def _save_calibration_rm_vlc(calibration, path):
 
 
 def _save_calibration_rm_depth_ahat(calibration, path):
-    pass # Not implemented
+    calibration.uv2xy                .tofile(os.path.join(path, 'uv2xy.bin'))
+    calibration.extrinsics           .tofile(os.path.join(path, 'extrinsics.bin'))
+    calibration.scale                .tofile(os.path.join(path, 'scale.bin'))
+    calibration.alias                .tofile(os.path.join(path, 'alias.bin'))
+    calibration.undistort_map        .tofile(os.path.join(path, 'undistort_map.bin'))
+    calibration.intrinsics           .tofile(os.path.join(path, 'intrinsics.bin'))
 
 
 def _save_calibration_rm_depth_longthrow(calibration, path):
@@ -257,11 +262,20 @@ def _load_calibration_rm_vlc(path):
     undistort_map         = np.fromfile(os.path.join(path, 'undistort_map.bin'),         dtype=np.float32).reshape(lut_shape)
     intrinsics            = np.fromfile(os.path.join(path, 'intrinsics.bin'),            dtype=np.float32).reshape((4, 4))
 
-    return hl2ss.Mode2_RM_VLC(uv2xy, extrinsics, undistort_map, intrinsics)
+    return hl2ss._Mode2_RM_VLC(uv2xy, extrinsics, undistort_map, intrinsics)
 
 
 def _load_calibration_rm_depth_ahat(path):
-    return None # Not implemented in server
+    lut_shape = hl2ss.Parameters_RM_DEPTH_AHAT.SHAPE + (2,)
+
+    uv2xy                 = np.fromfile(os.path.join(path, 'uv2xy.bin'),                 dtype=np.float32).reshape(lut_shape)
+    extrinsics            = np.fromfile(os.path.join(path, 'extrinsics.bin'),            dtype=np.float32).reshape((4, 4))
+    scale                 = np.fromfile(os.path.join(path, 'scale.bin'),                 dtype=np.float32)
+    alias                 = np.fromfile(os.path.join(path, 'alias.bin'),                 dtype=np.float32)
+    undistort_map         = np.fromfile(os.path.join(path, 'undistort_map.bin'),         dtype=np.float32).reshape(lut_shape)
+    intrinsics            = np.fromfile(os.path.join(path, 'intrinsics.bin'),            dtype=np.float32).reshape((4, 4))
+
+    return hl2ss._Mode2_RM_DEPTH_AHAT(uv2xy, extrinsics, scale, alias, undistort_map, intrinsics)
 
 
 def _load_calibration_rm_depth_longthrow(path):
@@ -273,13 +287,13 @@ def _load_calibration_rm_depth_longthrow(path):
     undistort_map         = np.fromfile(os.path.join(path, 'undistort_map.bin'),         dtype=np.float32).reshape(lut_shape)
     intrinsics            = np.fromfile(os.path.join(path, 'intrinsics.bin'),            dtype=np.float32).reshape((4, 4))
 
-    return hl2ss.Mode2_RM_DEPTH_LONGTHROW(uv2xy, extrinsics, scale, undistort_map, intrinsics)
+    return hl2ss._Mode2_RM_DEPTH_LONGTHROW(uv2xy, extrinsics, scale, undistort_map, intrinsics)
 
 
 def _load_calibration_rm_imu(path):
     extrinsics            = np.fromfile(os.path.join(path, 'extrinsics.bin'),            dtype=np.float32).reshape((4, 4))
 
-    return hl2ss.Mode2_RM_IMU(extrinsics)
+    return hl2ss._Mode2_RM_IMU(extrinsics)
 
 
 def _load_calibration_pv(path):
@@ -290,7 +304,7 @@ def _load_calibration_pv(path):
     projection            = np.fromfile(os.path.join(path, 'projection.bin'),            dtype=np.float32).reshape((4, 4))
     intrinsics            = np.fromfile(os.path.join(path, 'intrinsics.bin'),            dtype=np.float32).reshape((4, 4))
 
-    return hl2ss.Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics)
+    return hl2ss._Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics)
 
 
 def _load_extrinsics_pv(path):
@@ -368,7 +382,7 @@ def _load_calibration_rm(port, path):
 # Calibration Manager
 #------------------------------------------------------------------------------
 
-class Mode2_PV_E:
+class _Mode2_PV_E:
     def __init__(self, mode2, extrinsics):
         self.focal_length          = mode2.focal_length
         self.principal_point       = mode2.principal_point
@@ -421,7 +435,7 @@ def get_calibration_pv(host, port, path, focus, width, height, framerate, load_e
         os.makedirs(base, exist_ok=True)
         _save_calibration_pv(calibration, base)
         
-    return Mode2_PV_E(calibration, extrinsics)
+    return _Mode2_PV_E(calibration, extrinsics)
 
 
 def save_extrinsics_pv(port, extrinsics, path):

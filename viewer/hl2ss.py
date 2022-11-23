@@ -1461,3 +1461,7 @@ class tx_rc:
         data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
         return struct.unpack('<B', data)[0] != 0
 
+    def wait_for_pv_subsystem(self, status):
+        while (self.get_pv_subsystem_status() != status):
+            pass
+
