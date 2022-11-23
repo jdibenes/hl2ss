@@ -35,6 +35,8 @@ invalid = False
 
 print('Connecting to HL2 (' + host +  ')...')
 
+hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+
 client_pv.open()
 client_rn.open()
 
@@ -42,7 +44,7 @@ for i in tqdm(range(0, samples)):
     data_pv = client_pv.get_next_packet()
     data_rn = client_rn.get_next_packet()
 
-    invalid =  (not data_pv.is_valid_pose()) or (not data_rn.is_valid_pose())
+    invalid =  (not hl2ss.is_valid_pose(data_pv.pose)) or (not hl2ss.is_valid_pose(data_rn.pose))
     if (invalid):
         break
 
@@ -51,6 +53,8 @@ for i in tqdm(range(0, samples)):
 
 client_pv.close()
 client_rn.close()
+
+hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
 if (invalid):
     print('Invalid pose detected')

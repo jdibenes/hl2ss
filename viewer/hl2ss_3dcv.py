@@ -194,11 +194,11 @@ def rm_depth_rgbd_registered(depth, rgb, depth_xy1, depth_to_image, rgb_interpol
 def pv_optimize_for_cv(host, focus, exposure_mode, exposure_value, iso_speed_mode, iso_speed_value, color_preset):
     settings = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 
-    settings.set_pv_video_temporal_denoising(hl2ss.VideoTemporalDenoisingMode.Off)
-    settings.set_pv_focus(hl2ss.FocusMode.Manual, hl2ss.AutoFocusRange.Normal, hl2ss.ManualFocusDistance.Infinity, focus, hl2ss.DriverFallback.Disable)
+    settings.set_pv_video_temporal_denoising(hl2ss.PV_VideoTemporalDenoisingMode.Off)
+    settings.set_pv_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Infinity, focus, hl2ss.PV_DriverFallback.Disable)
     settings.set_pv_exposure(exposure_mode, exposure_value)
     settings.set_pv_white_balance_preset(color_preset)
-    settings.set_pv_exposure_priority_video(hl2ss.ExposurePriorityVideo.Disabled)
+    settings.set_pv_exposure_priority_video(hl2ss.PV_ExposurePriorityVideo.Disabled)
     settings.set_pv_iso_speed(iso_speed_mode, iso_speed_value)
 
 

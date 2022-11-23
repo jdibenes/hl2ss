@@ -8,7 +8,7 @@ import multiprocessing as mp
 import open3d as o3d
 import cv2
 import hl2ss
-import hl2ss_utilities
+import hl2ss_mp
 import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
@@ -51,12 +51,13 @@ if __name__ == '__main__':
     vis.create_window()
     first_pcd = True
 
-    producer = hl2ss_utilities.producer()
-    producer.initialize_decoded_rm_depth_longthrow(hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
-    producer.start()
+    producer = hl2ss_mp.producer()
+    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
+    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     manager = mp.Manager()
-    consumer = hl2ss_utilities.consumer()
+    consumer = hl2ss_mp.consumer()
     sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
 
     sinks = [sink_depth]
@@ -67,7 +68,7 @@ if __name__ == '__main__':
         sink_depth.acquire()
 
         data_depth = sink_depth.get_most_recent_frame()
-        if (not data_depth.is_valid_pose()):
+        if (not hl2ss.is_valid_pose(data_depth.pose)):
             continue
 
         depth = hl2ss_3dcv.rm_depth_normalize(data_depth.payload.depth, calibration_lt.undistort_map, scale)
@@ -94,7 +95,7 @@ if __name__ == '__main__':
         vis.update_renderer()
 
     [sink.detach() for sink in sinks]
-    producer.stop()
+    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
     listener.join()
 
     vis.run()

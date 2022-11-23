@@ -102,7 +102,7 @@ class _CommandBuffer:
 
 class client:
     def open(self, host, port):
-        self._client = hl2ss.client()
+        self._client = hl2ss._client()
         self._client.open(host, port)
 
     def push(self, command_buffer):

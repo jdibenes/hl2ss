@@ -17,11 +17,11 @@ port = hl2ss.StreamPort.SPATIAL_INPUT
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.rx_decoded_si(host, port, hl2ss.ChunkSize.SPATIAL_INPUT)
+client = hl2ss.rx_si(host, port, hl2ss.ChunkSize.SPATIAL_INPUT)
 client.open()
 
 data = client.get_next_packet()
-si = data.payload
+si = hl2ss.unpack_si(data.payload)
 
 print('Tracking status at time {ts}'.format(ts=data.timestamp))
 
@@ -46,7 +46,7 @@ else:
 
 if (si.is_valid_hand_left()):
     hand_left = si.get_hand_left()
-    pose = hand_left.get_joint_pose(hl2ss.HandJointKind.Wrist)
+    pose = hand_left.get_joint_pose(hl2ss.SI_HandJointKind.Wrist)
     print('Left wrist pose')
     print(pose.orientation)
     print(pose.position)
@@ -57,7 +57,7 @@ else:
 
 if (si.is_valid_hand_right()):
     hand_right = si.get_hand_right()
-    pose = hand_right.get_joint_pose(hl2ss.HandJointKind.Wrist)
+    pose = hand_right.get_joint_pose(hl2ss.SI_HandJointKind.Wrist)
     print('Right wrist pose')
     print(pose.orientation)
     print(pose.position)

@@ -104,6 +104,7 @@ class Parameters_RM_DEPTH_AHAT:
     PIXELS = WIDTH * HEIGHT
     SHAPE  = (HEIGHT, WIDTH)
     PERIOD = 1 / FPS
+    FACTOR = 4
 
 
 # RM Depth Long Throw Parameters
@@ -136,7 +137,7 @@ class TimeBase:
 
 
 # Hand Joints
-class HandJointKind:
+class SI_HandJointKind:
     Palm = 0
     Wrist = 1
     ThumbMetacarpal = 2
@@ -167,13 +168,13 @@ class HandJointKind:
 
 
 # Display Marker
-class MarkerState:
+class HS_MarkerState:
     Disable = 0
     Enable = 1
 
 
 # Focus Modes
-class FocusMode:
+class PV_FocusMode:
     Auto = 0
     Single = 1
     Continuous = 2
@@ -181,38 +182,38 @@ class FocusMode:
 
 
 # Auto Focus Range
-class AutoFocusRange:
+class PV_AutoFocusRange:
     FullRange = 0
     Macro = 1
     Normal = 2
 
 
 # Manual Focus Distance
-class ManualFocusDistance:
+class PV_ManualFocusDistance:
     Infinity = 0
     Nearest = 2
 
 
 # Minimum and maximum allowed focus values
-class FocusValue:
+class PV_FocusValue:
     Min = 170
     Max = 10000
 
 
 # Driver configuration for auto focus
-class DriverFallback:
+class PV_DriverFallback:
     Enable = 0
     Disable = 1
 
 
 # Video Temporal Denoising
-class VideoTemporalDenoisingMode:
+class PV_VideoTemporalDenoisingMode:
     Off = 0
     On = 1
 
 
 # White Balance Presets
-class ColorTemperaturePreset:
+class PV_ColorTemperaturePreset:
     Auto = 0
     Manual = 1
     Cloudy = 2
@@ -224,31 +225,31 @@ class ColorTemperaturePreset:
 
 
 # Minimum and maximum allowed values for white balance
-class WhiteBalanceValue:
+class PV_WhiteBalanceValue:
     Min = 2300 // 25
     Max = 7500 // 25
 
 
 # Exposure mode
-class ExposureMode:
+class PV_ExposureMode:
     Manual = 0
     Auto = 1
     
 
 # Minimum and maximum allowed values for exposure
-class ExposureValue:
+class PV_ExposureValue:
     Min = 1000 // 10
     Max = 660000 // 10
 
 
 # Exposure priority video mode
-class ExposurePriorityVideo:
+class PV_ExposurePriorityVideo:
     Disabled = 0
     Enabled = 1
 
 
 # Capture scene mode
-class CaptureSceneMode:
+class PV_CaptureSceneMode:
     Auto = 0
     Macro = 2
     Portrait = 3
@@ -264,13 +265,13 @@ class CaptureSceneMode:
 
 
 # Iso speed mode
-class IsoSpeedMode:
+class PV_IsoSpeedMode:
     Manual = 0
     Auto = 1
 
 
 # Minimum and maximum allowed values for iso speed
-class IsoSpeedValue:
+class PV_IsoSpeedValue:
     Min = 100
     Max = 3200
 
@@ -300,7 +301,7 @@ class _RANGEOF:
     U64_MAX = 0xFFFFFFFFFFFFFFFF
 
 
-class client:
+class _client:
     def open(self, host, port):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.connect((host, port))
@@ -340,25 +341,14 @@ class client:
 # Packet Unpacker
 #------------------------------------------------------------------------------
 
-class packet:
+class _packet:
     def __init__(self, timestamp, payload, pose):
         self.timestamp = timestamp
         self.payload   = payload
         self.pose      = pose
 
-    def pack(self, mode):
-        buffer = bytearray()
-        buffer.extend(struct.pack('<QI', self.timestamp, len(self.payload)))
-        buffer.extend(self.payload)
-        if (mode == StreamMode.MODE_1):
-            buffer.extend(self.pose.tobytes())
-        return buffer
 
-    def is_valid_pose(self):
-        return self.pose[3, 3] != 0
-
-
-class unpacker:
+class _unpacker:
     def __init__(self, mode):
         self._mode = mode
         self._state = 0
@@ -398,17 +388,30 @@ class unpacker:
             return False
 
     def get(self):
-        return packet(self._timestamp, self._payload, self._pose)
+        return _packet(self._timestamp, self._payload, self._pose)
+
+
+def pack_packet(packet):
+    buffer = bytearray()
+    buffer.extend(struct.pack('<QI', packet.timestamp, len(packet.payload)))
+    buffer.extend(packet.payload)
+    if (packet.pose is not None):
+        buffer.extend(packet.pose.tobytes())
+    return buffer
+
+
+def is_valid_pose(pose):
+    return pose[3, 3] != 0
 
 
 #------------------------------------------------------------------------------
 # Packet Gatherer
 #------------------------------------------------------------------------------
 
-class gatherer:
+class _gatherer:
     def open(self, host, port, chunk_size, mode):
-        self._client = client()
-        self._unpacker = unpacker(mode)
+        self._client = _client()
+        self._unpacker = _unpacker(mode)
         self._chunk_size = chunk_size
 
         self._client.open(host, port)
@@ -430,24 +433,26 @@ class gatherer:
 # File I/O
 #------------------------------------------------------------------------------
 
-class raw_writer:
-    def open(self, filename, mode):
+class writer:
+    def open(self, filename, port, mode, profile):
         self._data = open(filename, 'wb')
-        self._data.write(struct.pack('<B', mode))
-        self._mode = mode
+        self._data.write(struct.pack('<HBB', port, mode, profile if (profile is not None) else _RANGEOF.U8_MAX))
 
-    def write(self, data):
-        self._data.write(data.pack(self._mode))
+    def write(self, packet):
+        self._data.write(pack_packet(packet))
 
     def close(self):
         self._data.close()
 
 
-class raw_reader:
+class reader:
     def open(self, filename, chunk_size):
-        self._data = open(filename, 'rb')
-        self._mode = struct.unpack('<B', self._data.read(_SIZEOF.BYTE))[0]
-        self._unpacker = unpacker(self._mode)
+        self._data = open(filename, 'rb')        
+        self._header = struct.unpack('<HBB', self._data.read(_SIZEOF.WORD + 2 * _SIZEOF.BYTE))
+        self.port = self._header[0]
+        self.mode = self._header[1]
+        self.profile = self._header[2]
+        self._unpacker = _unpacker(self.mode)
         self._chunk_size = chunk_size
         self._eof = False
         
@@ -543,62 +548,62 @@ def _create_configuration_for_pv_mode2(mode, width, height, framerate):
 #------------------------------------------------------------------------------
 
 def _connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
-    c = gatherer()
+    c = _gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_vlc(mode, profile, bitrate))
     return c
 
 
 def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, profile, bitrate):
-    c = gatherer()
+    c = _gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_depth_ahat(mode, profile, bitrate))
     return c
 
 
 def _connect_client_rm_depth_longthrow(host, port, chunk_size, mode, png_filter):
-    c = gatherer()
+    c = _gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_depth_longthrow(mode, png_filter))
     return c
 
 
 def _connect_client_rm_imu(host, port, chunk_size, mode):
-    c = gatherer()
+    c = _gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_imu(mode))
     return c
 
 
 def _connect_client_pv(host, port, chunk_size, mode, width, height, framerate, profile, bitrate):
-    c = gatherer()
+    c = _gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_pv(mode, width, height, framerate, profile, bitrate))
     return c
 
 
 def _connect_client_microphone(host, port, chunk_size, profile):
-    c = gatherer()
+    c = _gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
     c.sendall(_create_configuration_for_microphone(profile))
     return c
 
 
 def _connect_client_si(host, port, chunk_size):
-    c = gatherer()
+    c = _gatherer()
     c.open(host, port, chunk_size, StreamMode.MODE_0)
     return c
 
 
 def start_subsystem_pv(host, port):
-    c = client()
+    c = _client()
     c.open(host, port)
     c.sendall(_create_configuration_for_pv_mode2(0x7, 1920, 1080, 30))
     c.close()
 
 
 def stop_subsystem_pv(host, port):
-    c = client()
+    c = _client()
     c.open(host, port)
     c.sendall(_create_configuration_for_pv_mode2(0xB, 1920, 1080, 30))
     c.close()
@@ -803,7 +808,7 @@ class decode_rm_vlc:
 # RM Depth Decoder
 #------------------------------------------------------------------------------
 
-class RM_Depth_Frame:
+class _RM_Depth_Frame:
     def __init__(self, depth, ab):
         self.depth = depth
         self.ab    = ab
@@ -830,7 +835,7 @@ def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv):
     ab[:, 2::4] = v
     ab[:, 3::4] = v
 
-    return RM_Depth_Frame(y, ab)
+    return _RM_Depth_Frame(y, ab)
 
 
 class decode_rm_depth_ahat:
@@ -851,14 +856,14 @@ def decode_rm_depth_longthrow(payload):
     composite = cv2.imdecode(np.frombuffer(payload, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
     h, w, _ = composite.shape
     image = composite.view(np.uint16).reshape((2*h, w))
-    return RM_Depth_Frame(image[:h, :], image[h:, :])
+    return _RM_Depth_Frame(image[:h, :], image[h:, :])
 
 
 #------------------------------------------------------------------------------
 # RM IMU Unpacker
 #------------------------------------------------------------------------------
 
-class RM_IMU_Frame:
+class _RM_IMU_Frame:
     def __init__(self, sensor_ticks_ns, x, y, z):
         self.sensor_ticks_ns = sensor_ticks_ns
         self.x               = x
@@ -876,7 +881,7 @@ class unpack_rm_imu:
 
     def get_frame(self, index):
         data = struct.unpack('<QQfff', self._batch[(index * 28):((index + 1) * 28)])
-        return RM_IMU_Frame(data[0], data[2], data[3], data[4])
+        return _RM_IMU_Frame(data[0], data[2], data[3], data[4])
 
 
 #------------------------------------------------------------------------------
@@ -926,20 +931,20 @@ class _SI_Field:
     RIGHT = 8
 
 
-class SI_HeadPose:
+class _SI_HeadPose:
     def __init__(self, position, forward, up):
         self.position = position
         self.forward  = forward
         self.up       = up
 
 
-class SI_EyeRay:
+class _SI_EyeRay:
     def __init__(self, origin, direction):
         self.origin    = origin
         self.direction = direction
 
 
-class SI_HandJointPose:
+class _SI_HandJointPose:
     def __init__(self, orientation, position, radius, accuracy):
         self.orientation = orientation
         self.position    = position
@@ -973,12 +978,12 @@ class _Mode0Layout_SI:
     BEGIN_EYE_DIRECTION = END_EYE_ORIGIN
     END_EYE_DIRECTION   = BEGIN_EYE_DIRECTION + 3*_SIZEOF.FLOAT
     BEGIN_HAND_LEFT     = END_EYE_DIRECTION
-    END_HAND_LEFT       = BEGIN_HAND_LEFT + HandJointKind.TOTAL * _Mode0Layout_SI_Hand.BYTE_COUNT
+    END_HAND_LEFT       = BEGIN_HAND_LEFT + SI_HandJointKind.TOTAL * _Mode0Layout_SI_Hand.BYTE_COUNT
     BEGIN_HAND_RIGHT    = END_HAND_LEFT
-    END_HAND_RIGHT      = BEGIN_HAND_RIGHT + HandJointKind.TOTAL * _Mode0Layout_SI_Hand.BYTE_COUNT
+    END_HAND_RIGHT      = BEGIN_HAND_RIGHT + SI_HandJointKind.TOTAL * _Mode0Layout_SI_Hand.BYTE_COUNT
 
 
-class unpack_si_hand:
+class _SI_Hand:
     def __init__(self, payload):
         self._data = payload
 
@@ -992,7 +997,7 @@ class unpack_si_hand:
         radius      = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_RADIUS      : _Mode0Layout_SI_Hand.END_RADIUS],      dtype=np.float32)
         accuracy    = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_ACCURACY    : _Mode0Layout_SI_Hand.END_ACCURACY],    dtype=np.int32)
 
-        return SI_HandJointPose(orientation, position, radius, accuracy)
+        return _SI_HandJointPose(orientation, position, radius, accuracy)
 
 
 class unpack_si:
@@ -1017,19 +1022,19 @@ class unpack_si:
         forward  = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_FORWARD  : _Mode0Layout_SI.END_HEAD_FORWARD],  dtype=np.float32)
         up       = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_UP       : _Mode0Layout_SI.END_HEAD_UP],       dtype=np.float32)
 
-        return SI_HeadPose(position, forward, up)
+        return _SI_HeadPose(position, forward, up)
 
     def get_eye_ray(self):
         origin    = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_EYE_ORIGIN    : _Mode0Layout_SI.END_EYE_ORIGIN],    dtype=np.float32)
         direction = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_EYE_DIRECTION : _Mode0Layout_SI.END_EYE_DIRECTION], dtype=np.float32)
 
-        return SI_EyeRay(origin, direction)
+        return _SI_EyeRay(origin, direction)
 
     def get_hand_left(self):
-        return unpack_si_hand(self._data[_Mode0Layout_SI.BEGIN_HAND_LEFT : _Mode0Layout_SI.END_HAND_LEFT])
+        return _SI_Hand(self._data[_Mode0Layout_SI.BEGIN_HAND_LEFT : _Mode0Layout_SI.END_HAND_LEFT])
 
     def get_hand_right(self):
-        return unpack_si_hand(self._data[_Mode0Layout_SI.BEGIN_HAND_RIGHT : _Mode0Layout_SI.END_HAND_RIGHT])
+        return _SI_Hand(self._data[_Mode0Layout_SI.BEGIN_HAND_RIGHT : _Mode0Layout_SI.END_HAND_RIGHT])
 
 
 #------------------------------------------------------------------------------
@@ -1048,7 +1053,8 @@ class rx_decoded_rm_vlc:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        return packet(data.timestamp, self._codec.decode(data.payload), data.pose)
+        data.payload = self._codec.decode(data.payload)
+        return data
 
     def close(self):
         self._client.close()
@@ -1066,7 +1072,8 @@ class rx_decoded_rm_depth_ahat:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        return packet(data.timestamp, self._codec.decode(data.payload), data.pose)
+        data.payload = self._codec.decode(data.payload)
+        return data
 
     def close(self):
         self._client.close()
@@ -1081,22 +1088,8 @@ class rx_decoded_rm_depth_longthrow:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        return packet(data.timestamp, decode_rm_depth_longthrow(data.payload), data.pose)
-
-    def close(self):
-        self._client.close()
-
-
-class rx_decoded_rm_imu:
-    def __init__(self, host, port, chunk, mode):
-        self._client = rx_rm_imu(host, port, chunk, mode)
-
-    def open(self):
-        self._client.open()
-
-    def get_next_packet(self):
-        data = self._client.get_next_packet()
-        return packet(data.timestamp, unpack_rm_imu(data.payload), data.pose)
+        data.payload = decode_rm_depth_longthrow(data.payload)
+        return data
 
     def close(self):
         self._client.close()
@@ -1115,7 +1108,8 @@ class rx_decoded_pv:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        return packet(data.timestamp, self._codec.decode(data.payload, self._format), data.pose)
+        data.payload = self._codec.decode(data.payload, self._format)
+        return data
 
     def close(self):
         self._client.close()
@@ -1132,22 +1126,8 @@ class rx_decoded_microphone:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        return packet(data.timestamp, self._codec.decode(data.payload), data.pose)
-
-    def close(self):
-        self._client.close()
-
-
-class rx_decoded_si:
-    def __init__(self, host, port, chunk):
-        self._client = rx_si(host, port, chunk)
-
-    def open(self):
-        self._client.open()
-
-    def get_next_packet(self):
-        data = self._client.get_next_packet()
-        return packet(data.timestamp, unpack_si(data.payload), data.pose)
+        data.payload = self._codec.decode(data.payload)
+        return data
 
     def close(self):
         self._client.close()
@@ -1231,7 +1211,7 @@ class _Mode2Layout_PV:
     FLOAT_COUNT                = 2 + 2 + 3 + 2 + 16
 
 
-class Mode2_RM_VLC:
+class _Mode2_RM_VLC:
     def __init__(self, uv2xy, extrinsics, undistort_map, intrinsics):
         self.uv2xy         = uv2xy
         self.extrinsics    = extrinsics
@@ -1239,7 +1219,7 @@ class Mode2_RM_VLC:
         self.intrinsics    = intrinsics
 
 
-class Mode2_RM_DEPTH_AHAT:
+class _Mode2_RM_DEPTH_AHAT:
     def __init__(self, uv2xy, extrinsics, scale, alias, undistort_map, intrinsics):
         self.uv2xy         = uv2xy
         self.extrinsics    = extrinsics
@@ -1249,7 +1229,7 @@ class Mode2_RM_DEPTH_AHAT:
         self.intrinsics    = intrinsics
 
 
-class Mode2_RM_DEPTH_LONGTHROW:
+class _Mode2_RM_DEPTH_LONGTHROW:
     def __init__(self, uv2xy, extrinsics, scale, undistort_map, intrinsics):
         self.uv2xy         = uv2xy
         self.extrinsics    = extrinsics
@@ -1258,12 +1238,12 @@ class Mode2_RM_DEPTH_LONGTHROW:
         self.intrinsics    = intrinsics
 
 
-class Mode2_RM_IMU:
+class _Mode2_RM_IMU:
     def __init__(self, extrinsics):
         self.extrinsics = extrinsics
 
 
-class Mode2_PV:
+class _Mode2_PV:
     def __init__(self, focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics):
         self.focal_length          = focal_length
         self.principal_point       = principal_point
@@ -1274,7 +1254,7 @@ class Mode2_PV:
 
 
 def _download_mode2_data(host, port, configuration, bytes):
-    c = client()
+    c = _client()
 
     c.open(host, port)
     c.sendall(configuration)
@@ -1297,7 +1277,7 @@ def download_calibration_rm_vlc(host, port):
 
     intrinsics = np.array([[k[0], 0, 0, 0], [0, k[1], 0, 0], [k[2], k[3], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
     
-    return Mode2_RM_VLC(np.dstack((uv2x, uv2y)), extrinsics, np.dstack((mapx, mapy)), intrinsics)
+    return _Mode2_RM_VLC(np.dstack((uv2x, uv2y)), extrinsics, np.dstack((mapx, mapy)), intrinsics)
 
 
 def download_calibration_rm_depth_ahat(host, port):
@@ -1315,7 +1295,7 @@ def download_calibration_rm_depth_ahat(host, port):
 
     intrinsics = np.array([[k[0], 0, 0, 0], [0, k[1], 0, 0], [k[2], k[3], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
-    return Mode2_RM_DEPTH_AHAT(np.dstack((uv2x, uv2y)), extrinsics, scale, alias, np.dstack((mapx, mapy)), intrinsics)
+    return _Mode2_RM_DEPTH_AHAT(np.dstack((uv2x, uv2y)), extrinsics, scale, alias, np.dstack((mapx, mapy)), intrinsics)
 
 
 def download_calibration_rm_depth_longthrow(host, port):
@@ -1332,7 +1312,7 @@ def download_calibration_rm_depth_longthrow(host, port):
 
     intrinsics = np.array([[k[0], 0, 0, 0], [0, k[1], 0, 0], [k[2], k[3], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
-    return Mode2_RM_DEPTH_LONGTHROW(np.dstack((uv2x, uv2y)), extrinsics, scale, np.dstack((mapx, mapy)), intrinsics)
+    return _Mode2_RM_DEPTH_LONGTHROW(np.dstack((uv2x, uv2y)), extrinsics, scale, np.dstack((mapx, mapy)), intrinsics)
 
 
 def download_calibration_rm_imu(host, port):
@@ -1341,7 +1321,7 @@ def download_calibration_rm_imu(host, port):
 
     extrinsics = floats[_Mode2Layout_RM_IMU.BEGIN_EXTRINSICS : _Mode2Layout_RM_IMU.END_EXTRINSICS].reshape((4, 4))
 
-    return Mode2_RM_IMU(extrinsics)
+    return _Mode2_RM_IMU(extrinsics)
 
 
 def download_calibration_pv(host, port, width, height, framerate):
@@ -1356,15 +1336,27 @@ def download_calibration_pv(host, port, width, height, framerate):
 
     intrinsics = np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
-    return Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics)
+    return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics)
 
 
 #------------------------------------------------------------------------------
 # Port Information
 #------------------------------------------------------------------------------
 
-class PortName:
-    OF = ['rm_vlc_leftfront', 'rm_vlc_leftleft', 'rm_vlc_rightfront', 'rm_vlc_rightright', 'rm_depth_ahat', 'rm_depth_longthrow', 'rm_imu_accelerometer', 'rm_imu_gyroscope', 'rm_imu_magnetometer', 'remote_configuration', 'personal_video', 'microphone', 'spatial_input']
+class _PortName:
+    OF = ['rm_vlc_leftfront',
+          'rm_vlc_leftleft',
+          'rm_vlc_rightfront', 
+          'rm_vlc_rightright', 
+          'rm_depth_ahat', 
+          'rm_depth_longthrow', 
+          'rm_imu_accelerometer', 
+          'rm_imu_gyroscope', 
+          'rm_imu_magnetometer', 
+          'remote_configuration', 
+          'personal_video', 
+          'microphone', 
+          'spatial_input']
 
 
 def get_port_index(port):
@@ -1372,7 +1364,7 @@ def get_port_index(port):
 
 
 def get_port_name(port):
-    return PortName.OF[get_port_index(port)]
+    return _PortName.OF[get_port_index(port)]
 
 
 #------------------------------------------------------------------------------
@@ -1385,13 +1377,13 @@ class tx_rc:
         self.port = port
 
     def _open(self):
-        self._client = client()
+        self._client = _client()
         self._client.open(self.host, self.port)
 
     def _close(self):
         self._client.close()
 
-    def set_marker_state(self, state):
+    def set_hs_marker_state(self, state):
         self._open()
         command = struct.pack('<BI', 0x00, state)
         self._client.sendall(command)

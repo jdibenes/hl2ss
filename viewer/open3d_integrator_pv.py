@@ -27,11 +27,11 @@ height = 360
 framerate = 30
 profile = hl2ss.VideoProfile.H265_MAIN
 bitrate = 5*1024*1024
-exposure_mode = hl2ss.ExposureMode.Manual
-exposure = hl2ss.ExposureValue.Max // 4
-iso_speed_mode = hl2ss.IsoSpeedMode.Manual
+exposure_mode = hl2ss.PV_ExposureMode.Manual
+exposure = hl2ss.PV_ExposureValue.Max // 4
+iso_speed_mode = hl2ss.PV_IsoSpeedMode.Manual
 iso_speed_value = 1600
-white_balance = hl2ss.ColorTemperaturePreset.Manual
+white_balance = hl2ss.PV_ColorTemperaturePreset.Manual
 
 # Buffer length in seconds
 buffer_length = 10
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         sink_depth.acquire()
 
         data_lt = sink_depth.get_most_recent_frame()
-        if (not data_lt.is_valid_pose()):
+        if (not hl2ss.is_valid_pose(data_lt.pose)):
             continue
 
         _, data_pv = sink_pv.get_nearest(data_lt.timestamp)

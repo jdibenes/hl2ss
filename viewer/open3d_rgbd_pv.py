@@ -43,7 +43,7 @@ while (not rc_control.get_pv_subsystem_status()):
 
 # Fix PV focus
 
-hl2ss_3dcv.pv_optimize_for_cv(host, pv_focus, hl2ss.ExposureMode.Auto, hl2ss.ExposureValue.Min, hl2ss.IsoSpeedMode.Auto, hl2ss.IsoSpeedValue.Max, hl2ss.ColorTemperaturePreset.Auto)
+hl2ss_3dcv.pv_optimize_for_cv(host, pv_focus, hl2ss.PV_ExposureMode.Auto, hl2ss.PV_ExposureValue.Min, hl2ss.PV_IsoSpeedMode.Auto, hl2ss.PV_IsoSpeedValue.Max, hl2ss.PV_ColorTemperaturePreset.Auto)
 
 # Get camera calibrations
 

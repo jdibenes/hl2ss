@@ -91,7 +91,7 @@ while (enable):
     keydown = (not previous) and trigger
     previous = trigger
 
-    if ((not data.is_valid_pose()) or (not keydown)):
+    if ((not hl2ss.is_valid_pose(data.pose)) or (not keydown)):
         continue
 
     # Get the 3D points corresponding to the 7x7 patch in the center of the depth image
