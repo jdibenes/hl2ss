@@ -26,18 +26,6 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
 - For the Front Camera, the client can configure the resolution, framerate, focus, white balance, and exposure (see [etc/hl2_capture_formats.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/hl2_capture_formats.txt) for a list of supported formats).
 
-**Python client**
-
-The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time.
-- RM VLC: [viewer/client_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_vlc.py)
-- RM Depth AHAT: [viewer/client_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_ahat.py)
-- RM Depth Long Throw: [viewer/client_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_longthrow.py)
-- RM IMU: [viewer/client_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_imu.py)
-- Front Camera: [viewer/client_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_pv.py)
-- Microphone: [viewer/client_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_microphone.py)
-- Spatial Input: [viewer/client_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_si.py)
-- Remote Configuration: [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py)
-
 ## Preparation
 
 Before using the server software, configure your HoloLens as follows:
@@ -54,6 +42,8 @@ The server software is distributed as a single appxbundle file.
 2. Go to the Device Portal (type the IP address of your HoloLens in the address bar of your preferred web browser) and upload the appxbundle to the HoloLens (System -> File explorer -> Downloads).
 3. On your HoloLens, open the File Explorer and locate the appxbundle. Tap the appxbundle file to open the installer and tap Install.
 
+You can find the server application (hl2ss) in the All apps list.
+
 ## Permissions
 
 The first time the server runs it will ask for the necessary permissions to access sensor data. If there are any issues, please verify that the server application (hl2ss.exe) has access to:
@@ -63,7 +53,17 @@ The first time the server runs it will ask for the necessary permissions to acce
 - Microphone (Settings -> Privacy -> Microphone).
 - User movements (Settings -> Privacy -> User movements).
 
-## Python dependencies
+## Python client
+
+The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time. Run the server application on your HoloLens and set the host variable of the Python scripts to your HoloLens IP address.
+- RM VLC: [viewer/client_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_vlc.py)
+- RM Depth AHAT: [viewer/client_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_ahat.py)
+- RM Depth Long Throw: [viewer/client_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_longthrow.py)
+- RM IMU: [viewer/client_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_imu.py)
+- Front Camera: [viewer/client_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_pv.py)
+- Microphone: [viewer/client_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_microphone.py)
+- Spatial Input: [viewer/client_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_si.py)
+- Remote Configuration: [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py)
 
 Required packages:
 
@@ -77,17 +77,14 @@ Optional packages used by some of the samples:
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 
-## Details
+## Known issues and limitations
 
-The server application is a Native C++ Universal Windows Platform (UWP) application.
-Each sensor stream has its own thread.
-Multiple streams can be active at the same time but only one client per stream is allowed.
-
-## Known issues
-
+- Multiple streams can be active at the same time but only one client per stream is allowed.
 - Ocassionally, the application might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
 - Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens 2 OS. See https://github.com/microsoft/HoloLens2ForCV/issues/133.
-- RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
+- The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
+- The Python scripts might freeze under some configurations. See https://github.com/PyAV-Org/PyAV/issues/978 and https://github.com/opencv/opencv/issues/21952 for details and workarounds.
+- Building for x86 and x64 (HoloLens emulator), and ARM is not supported.
 
 ## Build from source and deploy
 
@@ -97,6 +94,7 @@ Building requires a Windows 10 machine:
 2. Open the Visual Studio solution (sln file in the [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
 3. [Pair your HoloLens 2](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device).
 4. Build Release ARM64.
+    - If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](https://github.com/jdibenes/hl2ss/tree/main/etc) into the hl2ss\ARM64\Release\hl2ss folder.
 5. In the Solution Explorer, right click the hl2ss project and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
 6. Run. The application will remain installed on the HoloLens even after power off.
 
