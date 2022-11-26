@@ -1,6 +1,6 @@
 # HoloLens 2 Sensor Streaming
 
-HoloLens 2 server application for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes.
+HoloLens 2 server application for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes. Also works on Windows and OS X.
 
 **Supported streams**
 
@@ -33,6 +33,8 @@ Before using the server software, configure your HoloLens as follows:
 1. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
 2. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
 3. Enable research mode: Refer to the **Enabling Research Mode** section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
+
+Please note that **enabling Research Mode on the HoloLens increases battery usage**.
 
 ## Installation (sideloading)
 
