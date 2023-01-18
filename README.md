@@ -102,7 +102,7 @@ Building requires a Windows 10 machine:
 
 This process also builds the Unity plugin.
 
-## Unity plugin
+## Unity plugin (DLL)
 
 For streaming sensor data from a Unity application.
 All streams are supported.
