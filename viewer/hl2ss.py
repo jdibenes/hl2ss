@@ -709,7 +709,12 @@ class rx_pv:
         self._client = _connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.profile, self.bitrate)
 
     def get_next_packet(self):
-        return self._client.get_next_packet()
+        data = self._client.get_next_packet()
+        frame = unpack_pv(data.payload)
+        data.payload = frame.picture
+        data.focal_length = frame.focal_length
+        data.principal_point = frame.principal_point
+        return data
 
     def close(self):
         self._client.close()
@@ -894,6 +899,17 @@ class unpack_rm_imu:
 #------------------------------------------------------------------------------
 # PV Decoder
 #------------------------------------------------------------------------------
+
+class _PV_Frame:
+    def __init__(self, picture, focal_length, principal_point):
+        self.picture         = picture
+        self.focal_length    = focal_length
+        self.principal_point = principal_point
+
+
+def unpack_pv(payload):
+    return _PV_Frame(payload[:-16], payload[-16:-8], payload[-8:])
+
 
 class decode_pv:
     def __init__(self, profile):
@@ -1116,6 +1132,8 @@ class rx_decoded_pv:
     def get_next_packet(self):
         data = self._client.get_next_packet()
         data.payload = self._codec.decode(data.payload, self._format)
+        data.focal_length = np.frombuffer(data.focal_length, dtype=np.float32)
+        data.principal_point = np.frombuffer(data.principal_point, dtype=np.float32)
         return data
 
     def close(self):

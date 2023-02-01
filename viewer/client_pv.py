@@ -73,6 +73,10 @@ else:
         data = client.get_next_packet()
         print('Pose at time {ts}'.format(ts=data.timestamp))
         print(data.pose)
+        print('Focal length')
+        print(data.focal_length)
+        print('Principal point')
+        print(data.principal_point)
         cv2.imshow('Video', data.payload)
         cv2.waitKey(1)
 

@@ -21,6 +21,15 @@ using namespace winrt::Windows::Media::Capture::Frames;
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception::Spatial;
 
+struct _PV_Projection
+{
+    float2 f;
+    float2 c;
+    float4x4 pose;
+};
+
+typedef struct _PV_Projection PV_Projection;
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -49,7 +58,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     MediaFrameReference frame = sender.TryAcquireLatestFrame();
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
-    float4x4 pose;
+    PV_Projection pj;
     int64_t timestamp;
 
     if (!frame) { return; }
@@ -64,11 +73,17 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pSample->SetSampleDuration(frame.Duration().count());
     pSample->SetSampleTime(timestamp);
 
+    auto intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
+
+    pj.f = intrinsics.FocalLength();
+    pj.c = intrinsics.PrincipalPoint();
+
     if constexpr(ENABLE_LOCATION)
     {
-    pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
+    pj.pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
     }
+
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj));
 
     g_pSinkWriter->WriteSample(g_dwVideoIndex, pSample);
 
@@ -119,8 +134,9 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
     LONGLONG sampletime;
     BYTE* pBytes;
     DWORD cbData;
-    float4x4 pose;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
+    DWORD cbDataEx;
+    PV_Projection pj;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 6 : 5];
     HookCallbackSocket* user;
     bool ok;
 
@@ -128,24 +144,31 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
+    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj), NULL);
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
+
+    cbDataEx = cbData + sizeof(pj.f) + sizeof(pj.c);
 
     wsaBuf[0].buf = (char*)&sampletime;
     wsaBuf[0].len = sizeof(sampletime);
 
-    wsaBuf[1].buf = (char*)&cbData;
-    wsaBuf[1].len = sizeof(cbData);
+    wsaBuf[1].buf = (char*)&cbDataEx;
+    wsaBuf[1].len = sizeof(cbDataEx);
 
     wsaBuf[2].buf = (char*)pBytes;
     wsaBuf[2].len = cbData;
+      
+    wsaBuf[3].buf = (char*)&pj.f;
+    wsaBuf[3].len = sizeof(pj.f);
+
+    wsaBuf[4].buf = (char*)&pj.c;
+    wsaBuf[4].len = sizeof(pj.c);
 
     if constexpr(ENABLE_LOCATION)
-    {    
-    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(pose), NULL);
-
-    wsaBuf[3].buf = (char*)&pose;
-    wsaBuf[3].len = sizeof(pose);
+    {
+    wsaBuf[5].buf = (char*)&pj.pose;
+    wsaBuf[5].len = sizeof(pj.pose);
     }
     
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
