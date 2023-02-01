@@ -224,9 +224,9 @@ static DWORD WINAPI RC_EntryPoint(void *param)
     SOCKET listensocket;
     SOCKET clientsocket;
 
-    listensocket = CreateSocket(PORT_RC);
+    listensocket = CreateSocket(PORT_NAME_RC);
 
-    ShowMessage("RC: Listening at port %s", PORT_RC);
+    ShowMessage("RC: Listening at port %s", PORT_NAME_RC);
 
     do
     {

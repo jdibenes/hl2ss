@@ -93,9 +93,9 @@ static DWORD WINAPI MC_EntryPoint(void*)
 
 	g_microphoneCapture->WaitActivate(INFINITE);
 
-	listensocket = CreateSocket(PORT_MC);
+	listensocket = CreateSocket(PORT_NAME_MC);
 
-	ShowMessage("MC: Listening at port %s", PORT_MC);
+	ShowMessage("MC: Listening at port %s", PORT_NAME_MC);
 
 	do
 	{

@@ -24,15 +24,15 @@ typedef void(*RM_MODE2)(IResearchModeSensor*, SOCKET);
 
 static char const* const g_research_sensor_port[] =
 {
-    PORT_RM_VLF,
-    PORT_RM_VLL,
-    PORT_RM_VRF,
-    PORT_RM_VRR,
-    PORT_RM_ZHT,
-    PORT_RM_ZLT,
-    PORT_RM_ACC,
-    PORT_RM_GYR,
-    PORT_RM_MAG
+    PORT_NAME_RM_VLF,
+    PORT_NAME_RM_VLL,
+    PORT_NAME_RM_VRF,
+    PORT_NAME_RM_VRR,
+    PORT_NAME_RM_ZHT,
+    PORT_NAME_RM_ZLT,
+    PORT_NAME_RM_ACC,
+    PORT_NAME_RM_GYR,
+    PORT_NAME_RM_MAG
 };
 
 static HANDLE g_quitevent = NULL; // CloseHandle

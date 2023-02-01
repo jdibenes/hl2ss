@@ -61,10 +61,10 @@ bool ReceiveVideoH26x(SOCKET clientsocket, H26xFormat& format)
 
 	switch (h264profileid)
 	{
-	case 0:  format.profile = H264Profile_Base; break;
-	case 1:  format.profile = H264Profile_Main; break;
-	case 2:  format.profile = H264Profile_High; break;
-	case 3:  format.profile = H265Profile_Main; break;
+	case 0:  format.profile = H26xProfile::H264Profile_Base; break;
+	case 1:  format.profile = H26xProfile::H264Profile_Main; break;
+	case 2:  format.profile = H26xProfile::H264Profile_High; break;
+	case 3:  format.profile = H26xProfile::H265Profile_Main; break;
 	default: return false;
 	}
 

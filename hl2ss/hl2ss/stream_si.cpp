@@ -119,9 +119,9 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 
     SpatialInput_WaitForEyeConsent();
 
-    listensocket = CreateSocket(PORT_SI);
+    listensocket = CreateSocket(PORT_NAME_SI);
 
-    ShowMessage("SI: Listening at port %s", PORT_SI);
+    ShowMessage("SI: Listening at port %s", PORT_NAME_SI);
 
     do
     {

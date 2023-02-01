@@ -5,7 +5,7 @@
 #include <winrt/Windows.Perception.Spatial.h>
 #include <winrt/Windows.Perception.People.h>
 
-#define HAND_JOINTS 26
+int const HAND_JOINTS = 26;
 
 struct Frame
 {

@@ -276,9 +276,9 @@ static DWORD WINAPI PV_EntryPoint(void *param)
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
 
-    listensocket = CreateSocket(PORT_PV);
+    listensocket = CreateSocket(PORT_NAME_PV);
 
-    ShowMessage("PV: Listening at port %s", PORT_PV);
+    ShowMessage("PV: Listening at port %s", PORT_NAME_PV);
 
     do
     {
