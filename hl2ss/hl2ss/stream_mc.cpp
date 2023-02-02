@@ -55,25 +55,33 @@ static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 // OK
 static void MC_Shoutcast(SOCKET clientsocket)
 {
-	uint32_t const channels = 2;
+	uint32_t const channels   = 2;
 	uint32_t const samplerate = 48000;
 	
 	IMFSinkWriter* pSinkWriter; // Release
 	HANDLE clientevent; // CloseHandle
-	AACBitrate aacbitrate;
+	AACFormat format;
 	HookCallbackSocket user;
 	DWORD dwAudioIndex;
 	bool ok;
 
-	ok = ReceiveAudioFormatAAC(clientsocket, aacbitrate);
+	ok = ReceiveAudioFormatAAC(clientsocket, format.profile);
 	if (!ok) { return; }
+
+	format.channels   = channels;
+	format.samplerate = samplerate;
 
 	clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	user.clientsocket = clientsocket;
-	user.clientevent = clientevent;
+	user.clientevent  = clientevent;
+	user.data_profile = format.profile;
 
-	CreateSinkWriterPCMToAAC(&pSinkWriter, &dwAudioIndex, channels, samplerate, aacbitrate, MC_SendSampleToSocket, &user);
+	switch (format.profile)
+	{
+	case AACProfile::AACProfile_None: CreateSinkWriterPCMToPCM(&pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
+	default:                          CreateSinkWriterPCMToAAC(&pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
+	}
 
 	g_microphoneCapture->Start();
 	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);

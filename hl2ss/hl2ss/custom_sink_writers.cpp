@@ -43,19 +43,54 @@ static void CreateSingleStreamSinkWriter(IMFSinkWriter** ppSinkWriter, DWORD* pd
 }
 
 // OK
-void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, uint32_t channels, uint32_t samplerate, AACBitrate bitrate, HOOK_SINK_PROC hookproc, void* hookparam)
+void CreateSinkWriterPCMToPCM(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+{
+	IMFMediaType* pTypePCM; // Release
+
+	CreateTypePCMS16(&pTypePCM, format.channels, format.samplerate);
+
+	CreateSingleStreamSinkWriter(ppSinkWriter, pdwAudioIndex, pTypePCM, pTypePCM, hookproc, hookparam);
+
+	pTypePCM->Release();
+}
+
+// OK
+void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypePCM; // Release
 	IMFMediaType* pTypeAAC; // Release
 
-	CreateTypePCMS16(&pTypePCM, channels, samplerate);
-	CreateTypeAAC(&pTypeAAC, channels, samplerate, bitrate);
+	CreateTypePCMS16(&pTypePCM, format.channels, format.samplerate);
+	CreateTypeAAC(&pTypeAAC, format.channels, format.samplerate, format.profile);
 
 	CreateSingleStreamSinkWriter(ppSinkWriter, pdwAudioIndex, pTypePCM, pTypeAAC, hookproc, hookparam);
 
 	pTypePCM->Release();
 	pTypeAAC->Release();
+}
 
+// OK
+void CreateSinkWriterL8ToL8(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+{
+	IMFMediaType* pTypeL8; // Release
+
+	CreateTypeL8(&pTypeL8, format.width, format.height, format.width, format.framerate);
+
+	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeL8, pTypeL8, hookproc, hookparam);
+
+	pTypeL8->Release();
+}
+
+// OK
+void CreateSinkWriterNV12ToNV12(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+{
+	IMFMediaType* pTypeNV12; // Release
+
+	CreateTypeNV12(&pTypeNV12, format.width, format.height, format.width, format.framerate);
+
+	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeNV12, pTypeNV12, hookproc, hookparam);
+
+	pTypeNV12->Release();
 }
 
 // OK

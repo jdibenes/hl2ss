@@ -7,18 +7,30 @@
 
 struct H26xFormat
 {
-    uint16_t width;
-    uint16_t height;
-    uint8_t framerate;
+    uint16_t    width;
+    uint16_t    height;
+    uint8_t     framerate;
     H26xProfile profile;
-    uint32_t bitrate;
+    uint32_t    bitrate;
+};
+
+struct AACFormat
+{
+    uint32_t   channels;
+    uint32_t   samplerate;
+    AACProfile profile;
 };
 
 struct HookCallbackSocket
 {
     SOCKET clientsocket;
     HANDLE clientevent;
+    int    data_profile;
 };
 
-void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, uint32_t channels, uint32_t samplerate, AACBitrate bitrate, HOOK_SINK_PROC hookproc, void* hookparam);
+void CreateSinkWriterPCMToPCM(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
+void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
+
+void CreateSinkWriterL8ToL8(    IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
+void CreateSinkWriterNV12ToNV12(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
 void CreateSinkWriterNV12ToH26x(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);

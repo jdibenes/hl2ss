@@ -61,19 +61,19 @@ HRESULT CreateTypePCMS16(IMFMediaType** ppType, uint32_t channels, uint32_t samp
 
 // https://docs.microsoft.com/en-us/windows/win32/medfound/aac-encoder
 // OK
-HRESULT CreateTypeAAC(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AACBitrate bitrate)
+HRESULT CreateTypeAAC(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AACProfile profile)
 {
     IMFMediaType* pType;
     uint32_t bytespersecond;
 
     MFCreateMediaType(&pType);
 
-    switch (bitrate)
+    switch (profile)
     {
-    case AACBitrate::AACBitrate_12000: bytespersecond = 12000; break;
-    case AACBitrate::AACBitrate_16000: bytespersecond = 16000; break;
-    case AACBitrate::AACBitrate_20000: bytespersecond = 20000; break;
-    case AACBitrate::AACBitrate_24000: bytespersecond = 24000; break;
+    case AACProfile::AACProfile_12000: bytespersecond = 12000; break;
+    case AACProfile::AACProfile_16000: bytespersecond = 16000; break;
+    case AACProfile::AACProfile_20000: bytespersecond = 20000; break;
+    case AACProfile::AACProfile_24000: bytespersecond = 24000; break;
     default:                           bytespersecond = 24000; break;
     }
 
@@ -84,6 +84,30 @@ HRESULT CreateTypeAAC(IMFMediaType** ppType, uint32_t channels, uint32_t sampler
     pType->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, samplerate);
     pType->SetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, bytespersecond);
     pType->SetUINT32(MF_MT_AAC_PAYLOAD_TYPE, 1);
+
+    *ppType = pType;
+
+    return S_OK;
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/medfound/video-subtype-guids
+// OK
+HRESULT CreateTypeL8(IMFMediaType **ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps)
+{
+    IMFMediaType* pType;
+
+    MFCreateMediaType(&pType);
+
+    pType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+    pType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_L8);
+    pType->SetUINT32(MF_MT_DEFAULT_STRIDE, stride);
+    MFSetAttributeRatio(pType, MF_MT_FRAME_RATE, fps, 1);
+    MFSetAttributeSize(pType, MF_MT_FRAME_SIZE, width, height);
+    pType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlaceMode::MFVideoInterlace_Progressive);
+    pType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+    MFSetAttributeRatio(pType, MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
+    pType->SetUINT32(MF_MT_SAMPLE_SIZE, width * height);
+    pType->SetUINT32(MF_MT_FIXED_SIZE_SAMPLES, TRUE);
 
     *ppType = pType;
 

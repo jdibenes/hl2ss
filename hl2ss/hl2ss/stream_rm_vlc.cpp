@@ -29,6 +29,7 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
     DWORD cbData;
     WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     float4x4 pose;
+    uint8_t ack;
     HookCallbackSocket* user;
     bool ok;
 
@@ -58,6 +59,7 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
+    if (user->data_profile == RAW_PROFILE) { recv_u8(user->clientsocket, ack); }
 
     pBuffer->Unlock();
     pBuffer->Release();
@@ -71,8 +73,6 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t const height     = RM_VLC_HEIGHT;
     uint32_t const framerate  = RM_VLC_FPS;
     uint32_t const lumasize   = width * height;
-    uint32_t const chromasize = lumasize / 2;
-    uint32_t const framebytes = lumasize + chromasize;
     LONGLONG const duration   = HNS_BASE / framerate;
     uint8_t  const zerochroma = 0x80;
 
@@ -91,6 +91,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     DWORD dwVideoIndex;
     HookCallbackSocket user;
     HANDLE clientevent; // CloseHandle
+    uint32_t chromasize;
+    uint32_t framebytes;
     HRESULT hr;
     bool ok;
 
@@ -105,8 +107,15 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
+    user.data_profile = format.profile;
 
-    CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user);
+    switch (format.profile)
+    {
+    case H26xProfile::H26xProfile_None: chromasize = 0;            CreateSinkWriterL8ToL8(    &pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    default:                            chromasize = lumasize / 2; CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    }
+
+    framebytes = lumasize + chromasize;
 
     sensor->OpenStream();
 

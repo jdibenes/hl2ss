@@ -633,7 +633,10 @@ class rx_rm_vlc:
         self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
 
     def get_next_packet(self):
-        return self._client.get_next_packet()
+        data = self._client.get_next_packet()
+        if (self.profile == 0xFF):
+            self._client.sendall(b'\x00')
+        return data
 
     def close(self):
         self._client.close()

@@ -18,6 +18,7 @@
 
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
+using namespace winrt::Windows::Media::Devices::Core;
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception::Spatial;
 
@@ -55,12 +56,14 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 {
     (void)args;
     
-    MediaFrameReference frame = sender.TryAcquireLatestFrame();
+    CameraIntrinsics intrinsics = nullptr;
+    MediaFrameReference frame = nullptr;
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
     PV_Projection pj;
     int64_t timestamp;
 
+    frame = sender.TryAcquireLatestFrame();
     if (!frame) { return; }
 
     SoftwareBitmapBuffer::CreateInstance(&pBuffer, frame);
@@ -73,7 +76,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pSample->SetSampleDuration(frame.Duration().count());
     pSample->SetSampleTime(timestamp);
 
-    auto intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
+    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
 
     pj.f = intrinsics.FocalLength();
     pj.c = intrinsics.PrincipalPoint();
@@ -96,7 +99,8 @@ static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, Me
 {
     (void)args;
 
-    MediaFrameReference frame = sender.TryAcquireLatestFrame();
+    CameraIntrinsics intrinsics = nullptr;
+    MediaFrameReference frame = nullptr;
     float2 f;
     float2 c;
     float3 r;
@@ -104,12 +108,13 @@ static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, Me
     float4x4 p;
     DWORD status;
 
+    frame = sender.TryAcquireLatestFrame();
     if (!frame) { return; }
 
     status = WaitForSingleObject(g_intrinsic_event, 0);
     if (status != WAIT_TIMEOUT) { return; }
 
-    auto intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
+    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
 
     f = intrinsics.FocalLength();
     c = intrinsics.PrincipalPoint();
@@ -190,8 +195,13 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
+    user.data_profile = format.profile;
 
-    CreateSinkWriterNV12ToH26x(&g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user);
+    switch (format.profile)
+    {
+    case H26xProfile::H26xProfile_None: CreateSinkWriterNV12ToNV12(&g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    default:                            CreateSinkWriterNV12ToH26x(&g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    }
 
     reader.FrameArrived(PV_OnVideoFrameArrived<ENABLE_LOCATION>);
 
