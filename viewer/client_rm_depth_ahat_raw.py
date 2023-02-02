@@ -29,11 +29,7 @@ port = hl2ss.StreamPort.RM_DEPTH_AHAT
 mode = hl2ss.StreamMode.MODE_1
 
 # Video encoding profile
-profile = 0xFF #hl2ss.VideoProfile.H265_MAIN
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = 8*1024*1024
+profile = hl2ss.VideoProfile.RAW
 
 #------------------------------------------------------------------------------
 
@@ -58,19 +54,20 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, profile, bitrate)
+client = hl2ss.rx_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, profile, 1)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
+
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
-    depth = np.frombuffer(data.payload, dtype=np.uint16, count=512*512).reshape((512, 512))
-    ab = np.frombuffer(data.payload, dtype=np.uint16, offset=512*512*2, count=512*512).reshape((512, 512))
+
+    depth = np.frombuffer(data.payload, dtype=np.uint16, count=hl2ss.Parameters_RM_DEPTH_AHAT.PIXELS).reshape(hl2ss.Parameters_RM_DEPTH_AHAT.SHAPE)
+    ab = np.frombuffer(data.payload, dtype=np.uint16, offset=hl2ss.Parameters_RM_DEPTH_AHAT.PIXELS*hl2ss._SIZEOF.WORD, count=hl2ss.Parameters_RM_DEPTH_AHAT.PIXELS).reshape(hl2ss.Parameters_RM_DEPTH_AHAT.SHAPE)
 
     cv2.imshow('Depth', depth)
-    cv2.imshow('AB', ab / np.max(ab)) # Normalized for visibility
-    print(np.max(ab)) # ~ 12000
+    cv2.imshow('AB', ab) # max ~ 12000
     cv2.waitKey(1)
 
 client.close()

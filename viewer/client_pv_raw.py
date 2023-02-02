@@ -10,6 +10,7 @@
 
 from pynput import keyboard
 
+import time
 import numpy as np
 import hl2ss
 import cv2
@@ -34,14 +35,7 @@ height    = 360
 framerate = 15
 
 # Video encoding profile
-profile = 0xFF #hl2ss.VideoProfile.H265_MAIN
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = 5*1024*1024
-
-# Decoded format
-decoded_format = 'bgr24'
+profile = hl2ss.VideoProfile.RAW
 
 #------------------------------------------------------------------------------
 
@@ -67,21 +61,23 @@ else:
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    client = hl2ss.rx_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate)
+    client = hl2ss.rx_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, 1)
     client.open()
 
     while (enable):
         data = client.get_next_packet()
+
         print('Pose at time {ts}'.format(ts=data.timestamp))
         print(data.pose)
-        print('Focal length')
-        print(data.focal_length)
-        print('Principal point')
-        print(data.principal_point)
-        cv2.imshow('Video', np.frombuffer(data.payload, dtype=np.uint8, count=width*height).reshape((height, width)))
+
+        frame_nv12 = np.frombuffer(data.payload, dtype=np.uint8, count=int((width*height*3)/2)).reshape((int(height*3/2), width))
+        frame_bgr = cv2.cvtColor(frame_nv12, cv2.COLOR_YUV2BGR_NV12)
+        
+        cv2.imshow('Video', frame_bgr)
         cv2.waitKey(1)
 
     client.close()
     listener.join()
+    time.sleep(2) # wait for last capture
 
-#hl2ss.stop_subsystem_pv(host, port)
+hl2ss.stop_subsystem_pv(host, port)

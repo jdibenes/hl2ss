@@ -9,7 +9,6 @@
 from pynput import keyboard
 
 import hl2ss
-import hl2ss_utilities
 import pyaudio
 import queue
 import threading
@@ -23,7 +22,7 @@ host = "192.168.1.7"
 port = hl2ss.StreamPort.MICROPHONE
 
 # Audio encoding profile
-profile = 0xFF #hl2ss.AudioProfile.AAC_24000
+profile = hl2ss.AudioProfile.RAW
 
 #------------------------------------------------------------------------------
 
@@ -55,7 +54,6 @@ client.open()
 
 while (enable): 
     data = client.get_next_packet()
-    #audio = hl2ss_utilities.microphone_planar_to_packed(data.payload)
     pcmqueue.put(bytes(data.payload))
 
 client.close()
