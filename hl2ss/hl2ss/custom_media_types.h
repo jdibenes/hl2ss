@@ -28,4 +28,5 @@ HRESULT CreateTypePCMS16(IMFMediaType** ppType, uint32_t channels, uint32_t samp
 HRESULT CreateTypeAAC(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AACProfile profile);
 HRESULT CreateTypeL8(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps);
 HRESULT CreateTypeNV12(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps);
+HRESULT CreateTypeARGB(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps);
 HRESULT CreateTypeH26x(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps, H26xProfile profile, uint32_t bitrate);

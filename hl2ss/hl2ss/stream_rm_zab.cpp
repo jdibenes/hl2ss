@@ -25,6 +25,8 @@ using namespace winrt::Windows::Storage::Streams;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
+typedef void(*ZHT_KERNEL)(u16 const*, u16 const*, u8*);
+
 // Notes
 // https://github.com/microsoft/HoloLens2ForCV/issues/133
 // https://github.com/microsoft/HoloLens2ForCV/issues/142
@@ -34,6 +36,15 @@ using namespace winrt::Windows::Perception::Spatial;
 //-----------------------------------------------------------------------------
 
 // ZHT ************************************************************************
+
+// OK
+static void RM_ZHT_Stack(u16 const* pDepth, u16 const* pAb, u8 *out)
+{
+    int const block = RM_ZHT_WIDTH * RM_ZHT_HEIGHT * sizeof(u16);
+    
+    memcpy(out,         pDepth, block);
+    memcpy(out + block, pAb,    block);
+}
 
 // OK
 template<bool ENABLE_LOCATION>
@@ -86,7 +97,6 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t const width      = RM_ZHT_WIDTH;
     uint32_t const height     = RM_ZHT_HEIGHT;
     uint32_t const framerate  = RM_ZHT_FPS;
-    uint32_t const framebytes = (width * height * 3) / 2;    
     uint32_t const duration   = HNS_BASE / framerate;
 
     PerceptionTimestamp ts = nullptr;
@@ -105,7 +115,9 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     IMFSample* pSample; // Release
     DWORD dwVideoIndex;
     HookCallbackSocket user;
-    HANDLE clientevent; // CloseHandle    
+    HANDLE clientevent; // CloseHandle
+    uint32_t framebytes;
+    ZHT_KERNEL kernel;
     HRESULT hr;
     bool ok;
 
@@ -120,8 +132,13 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
+    user.data_profile = format.profile;
 
-    CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user);
+    switch (format.profile)
+    {
+    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_Stack;   framebytes =  width * height * 2  * 2; CreateSinkWriterARGBToARGB(&pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    default:                            kernel = Neon_ZHTToNV12; framebytes = (width * height * 3) / 2; CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    }
 
     sensor->OpenStream();
 
@@ -139,7 +156,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     MFCreateMemoryBuffer(framebytes, &pBuffer);
 
     pBuffer->Lock(&pDst, NULL, NULL);
-    Neon_ZHTToNV12(pDepth, pAbImage, pDst);
+    kernel(pDepth, pAbImage, pDst);
     pBuffer->Unlock();
     pBuffer->SetCurrentLength(framebytes);
 

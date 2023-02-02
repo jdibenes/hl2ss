@@ -94,6 +94,18 @@ void CreateSinkWriterNV12ToNV12(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoInd
 }
 
 // OK
+void CreateSinkWriterARGBToARGB(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+{
+	IMFMediaType* pTypeARGB; // Release
+
+	CreateTypeARGB(&pTypeARGB, format.width, format.height, format.width, format.framerate);
+
+	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeARGB, pTypeARGB, hookproc, hookparam);
+
+	pTypeARGB->Release();
+}
+
+// OK
 void CreateSinkWriterNV12ToH26x(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypeNV12; // Release

@@ -33,4 +33,5 @@ void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex
 
 void CreateSinkWriterL8ToL8(    IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
 void CreateSinkWriterNV12ToNV12(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
+void CreateSinkWriterARGBToARGB(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
 void CreateSinkWriterNV12ToH26x(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);

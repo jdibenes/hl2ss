@@ -61,6 +61,7 @@ class VideoProfile:
     H264_MAIN = 1
     H264_HIGH = 2
     H265_MAIN = 3
+    RAW       = 0xFF
 
 
 # Audio Encoder Configuration
@@ -73,6 +74,7 @@ class AudioProfile:
     AAC_16000 = 1
     AAC_20000 = 2
     AAC_24000 = 3
+    RAW       = 0xFF
 
 
 # PNG Filters
@@ -84,6 +86,7 @@ class PngFilterMode:
     Average   = 4
     Paeth     = 5
     Adaptive  = 6
+    RAW       = 0xFF
 
 
 # RM VLC Parameters
