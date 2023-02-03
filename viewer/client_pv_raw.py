@@ -64,14 +64,16 @@ else:
     client = hl2ss.rx_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, 1)
     client.open()
 
+    stride = hl2ss.compute_nv12_stride(width)
+
     while (enable):
         data = client.get_next_packet()
 
         print('Pose at time {ts}'.format(ts=data.timestamp))
         print(data.pose)
 
-        frame_nv12 = np.frombuffer(data.payload, dtype=np.uint8, count=int((width*height*3)/2)).reshape((int(height*3/2), width))
-        frame_bgr = cv2.cvtColor(frame_nv12, cv2.COLOR_YUV2BGR_NV12)
+        frame_nv12 = np.frombuffer(data.payload, dtype=np.uint8, count=int((stride*height*3)/2)).reshape((int(height*3/2), stride))
+        frame_bgr = cv2.cvtColor(frame_nv12[:, :width], cv2.COLOR_YUV2BGR_NV12)
         
         cv2.imshow('Video', frame_bgr)
         cv2.waitKey(1)

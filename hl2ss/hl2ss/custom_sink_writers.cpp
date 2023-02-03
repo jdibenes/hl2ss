@@ -11,6 +11,12 @@
 //-----------------------------------------------------------------------------
 
 // OK
+static uint32_t ComputeNV12Stride(uint32_t width)
+{
+	return width + ((64 - (width & 63)) & 63);
+}
+
+// OK
 static void CreateSingleStreamSinkWriter(IMFSinkWriter** ppSinkWriter, DWORD* pdwStreamIndex, IMFMediaType* pInputType, IMFMediaType* pOutputType, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	HookSinkCallback* pHook; // Release
@@ -86,7 +92,7 @@ void CreateSinkWriterNV12ToNV12(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoInd
 {
 	IMFMediaType* pTypeNV12; // Release
 
-	CreateTypeNV12(&pTypeNV12, format.width, format.height, format.width, format.framerate);
+	CreateTypeNV12(&pTypeNV12, format.width, format.height, ComputeNV12Stride(format.width), format.framerate);
 
 	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeNV12, pTypeNV12, hookproc, hookparam);
 
@@ -111,7 +117,7 @@ void CreateSinkWriterNV12ToH26x(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoInd
 	IMFMediaType* pTypeNV12; // Release
 	IMFMediaType* pTypeH26x; // Release
 
-	CreateTypeNV12(&pTypeNV12, format.width, format.height, format.width, format.framerate);
+	CreateTypeNV12(&pTypeNV12, format.width, format.height, ComputeNV12Stride(format.width), format.framerate);
 	CreateTypeH26x(&pTypeH26x, format.width, format.height, format.framerate, format.profile, format.bitrate);
 
 	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeNV12, pTypeH26x, hookproc, hookparam);

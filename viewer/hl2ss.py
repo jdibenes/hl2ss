@@ -637,7 +637,7 @@ class rx_rm_vlc:
 
     def get_next_packet(self):
         data = self._client.get_next_packet()
-        if (self.profile == 0xFF):
+        if (self.profile == VideoProfile.RAW):
             self._client.sendall(b'\x00')
         return data
 
@@ -915,6 +915,10 @@ class _PV_Frame:
 
 def unpack_pv(payload):
     return _PV_Frame(payload[:-16], payload[-16:-8], payload[-8:])
+
+
+def compute_nv12_stride(width):
+    return width + ((64 - (width & 63)) & 63)
 
 
 class decode_pv:
