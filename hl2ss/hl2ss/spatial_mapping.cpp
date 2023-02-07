@@ -133,7 +133,7 @@ static DWORD WINAPI SpatialMapping_ComputeMesh(void* param)
     ReleaseSemaphore(g_observed_meshes_semaphore, 1, NULL);
 }
 
-void SpatialMapping_BeginComputeMeshes(std::vector<MeshDescription> const& desc, int maxtasks)
+void SpatialMapping_BeginComputeMeshes(std::vector<MeshDescription>& desc, int maxtasks)
 {
     size_t size = desc.size();
 
@@ -143,7 +143,7 @@ void SpatialMapping_BeginComputeMeshes(std::vector<MeshDescription> const& desc,
 
     g_observed_meshes_semaphore = CreateSemaphore(NULL, maxtasks, maxtasks, NULL);
     for (int i = 0; i < size; ++i) { g_observed_meshes_event[i] = CreateEvent(NULL, FALSE, FALSE, NULL); }
-    for (int i = 0; i < size; ++i) { g_observed_meshes_thread[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)&desc[i], 0, NULL); }
+    for (int i = 0; i < size; ++i) { desc[i].index = i; g_observed_meshes_thread[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)&desc[i], 0, NULL); }
 }
 
 int SpatialMapping_WaitComputeMeshes()
