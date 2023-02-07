@@ -1,0 +1,9 @@
+SupportedTriangleIndexFormats
+57 : R16UInt
+42 : R32UInt
+SupportedVertexNormalFormats
+2  : R32G32B32A32Float
+31 : R8G8B8A8IntNormalized
+SupportedVertexPositionFormats
+2  : R32G32B32A32Float
+13 : R16G16B16A16IntNormalized 
