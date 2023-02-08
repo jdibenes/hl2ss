@@ -296,6 +296,7 @@ class _SIZEOF:
     LONGLONG = 8
     QWORD    = 8
     DOUBLE   = 8
+    GUID     = 16
 
 
 class _RANGEOF:
@@ -1506,14 +1507,14 @@ class tx_rc:
 #------------------------------------------------------------------------------
 
 class _SM_VolumeType:
-    BOX = 0
-    FRUSTUM = 1
+    BOX          = 0
+    FRUSTUM      = 1
     ORIENTED_BOX = 2
-    SPHERE = 3
+    SPHERE       = 3
 
 
 class SM_VertexPositionFormat:
-    R32G32B32A32Float = 2
+    R32G32B32A32Float         = 2
     R16G16B16A16IntNormalized = 13
 
 
@@ -1523,24 +1524,30 @@ class SM_TriangleIndexFormat:
 
 
 class SM_VertexNormalFormat:
-    R32G32B32A32Float = 2
+    R32G32B32A32Float     = 2
     R8G8B8A8IntNormalized = 31
 
 
-class sm_volume:
+class _SM_Convert:
+    DirectXPixelFormatToNumPy = { 2 : np.float32, 13 : np.int16, 57 : np.uint16, 42 : np.uint32, 31 : np.int8 }
+
+
+class sm_bounding_volume:
     def __init__(self):
-        self._data = bytearray()
         self._count = 0
+        self._data = bytearray()        
 
     def add_box(self, center, extents):
         self._data.extend(struct.pack('<Iffffff', _SM_VolumeType.BOX, center[0], center[1], center[2], extents[0], extents[1], extents[2]))
         self._count += 1
 
     def add_frustum(self, near, far, right, left, top, bottom):
-        pass
+        self._data.extend(struct.pack('<Iffffffffffffffffffffffff', _SM_VolumeType.FRUSTUM, near[0], near[1], near[2], near[3], far[0], far[1], far[2], far[3], right[0], right[1], right[2], right[3], left[0], left[1], left[2], left[3], top[0], top[1], top[2], top[3], bottom[0], bottom[1], bottom[2], bottom[3]))
+        self._count += 1
 
     def add_oriented_box(self, center, extents, orientation):
-        pass
+        self._data.extend(struct.pack('<Iffffffffff', _SM_VolumeType.ORIENTED_BOX, center[0], center[1], center[2], extents[0], extents[1], extents[2], orientation[0], orientation[1], orientation[2], orientation[3]))
+        self._count += 1
 
     def add_sphere(self, center, radius):
         self._data.extend(struct.pack('<Iffff', _SM_VolumeType.SPHERE, center[0], center[1], center[2], radius))
@@ -1551,9 +1558,8 @@ class sm_volume:
 
 
 class sm_mesh_task:
-    def __init__(self, max_threads):
+    def __init__(self):
         self._count = 0
-        self._max_threads = max_threads
         self._data = bytearray()
 
     def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals):
@@ -1561,69 +1567,74 @@ class sm_mesh_task:
         self._count += 1
 
     def _get(self):
-        return self._count, self._max_threads, self._data
+        return self._count, self._data
 
 
-class sm_mesh:
+class _sm_mesh:
     def __init__(self, vertex_position_scale, vertex_positions, triangle_indices, vertex_normals):
         self.vertex_position_scale = vertex_position_scale
-        self.vertex_positions = vertex_positions
-        self.triangle_indices = triangle_indices
-        self.vertex_normals = vertex_normals
+        self.vertex_positions      = vertex_positions
+        self.triangle_indices      = triangle_indices
+        self.vertex_normals        = vertex_normals
+
+    def unpack(self, vertex_position_format, triangle_index_format, vertex_normal_format):
+        self.vertex_position_scale = np.frombuffer(self.vertex_position_scale, dtype=np.float32).reshape((1, 3))
+        self.vertex_positions      = np.frombuffer(self.vertex_positions,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_position_format]).reshape((-1, 4))
+        self.triangle_indices      = np.frombuffer(self.triangle_indices,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[triangle_index_format]).reshape((-1, 3))
+        self.vertex_normals        = np.frombuffer(self.vertex_normals,        dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_normal_format]).reshape((-1, 4))
 
 
 class ipc_sm:
+    _CMD_CREATE_OBSERVER       = 0x00
+    _CMD_SET_VOLUMES           = 0x01
+    _CMD_GET_OBSERVED_SURFACES = 0x02
+    _CMD_GET_MESHES            = 0x03
+
     def __init__(self, host, port):
-        self._client = _client()
         self.host = host
         self.port = port
-
+        self._client = _client()
+        
     def open(self):
         self._client.open(self.host, self.port)
 
     def create_observer(self):
-        self._client.sendall(struct.pack('<B', 0x00))
+        self._client.sendall(struct.pack('<B', ipc_sm._CMD_CREATE_OBSERVER))
 
     def set_volumes(self, volumes):
         count, data = volumes._get()
         msg = bytearray()
-        msg.extend(struct.pack('<BB', 0x01, count))
+        msg.extend(struct.pack('<BB', ipc_sm._CMD_SET_VOLUMES, count))
         msg.extend(data)
         self._client.sendall(msg)
 
     def get_observed_surfaces(self):
-        self._client.sendall(struct.pack('<B', 0x02))
+        self._client.sendall(struct.pack('<B', ipc_sm._CMD_GET_OBSERVED_SURFACES))
         count = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
         count = struct.unpack('<I', count)[0]
-        ids = self._client.download(16 * count, ChunkSize.SINGLE_TRANSFER)
-        return ids
+        ids   = self._client.download(count * _SIZEOF.GUID, ChunkSize.SINGLE_TRANSFER)
+        return [ids[(i*_SIZEOF.GUID):((i+1)*_SIZEOF.GUID)] for i in range(0, count)]
     
-    def get_meshes(self, tasks):
-        count, threads, data = tasks._get()
+    def get_meshes(self, tasks, threads):
+        count, data = tasks._get()
         msg = bytearray()
-        msg.extend(struct.pack('<BII', 0x03, count, threads))
+        msg.extend(struct.pack('<BII', ipc_sm._CMD_GET_MESHES, count, threads))
         msg.extend(data)
         self._client.sendall(msg)
-        meshes = [None] * count
+        meshes = [_sm_mesh(None, None, None, None)] * count
         for _ in range(0, count):
-            ms = self._client.download(_SIZEOF.DWORD * 2, ChunkSize.SINGLE_TRANSFER)
-            index, status = struct.unpack('<II', ms)
+            mis = self._client.download(_SIZEOF.DWORD * 2, ChunkSize.SINGLE_TRANSFER)
+            index, status = struct.unpack('<II', mis)
             if (status != 0):
                 continue
             vps = self._client.download(_SIZEOF.FLOAT * 3, ChunkSize.SINGLE_TRANSFER)
             vpl = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
-            vpl = struct.unpack('<I', vpl)[0]
-            vpd = self._client.download(vpl, ChunkSize.SINGLE_TRANSFER)
+            vpd = self._client.download(struct.unpack('<I', vpl)[0], ChunkSize.SINGLE_TRANSFER)
             til = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
-            til = struct.unpack('<I', til)[0]
-            tid = self._client.download(til, ChunkSize.SINGLE_TRANSFER)
+            tid = self._client.download(struct.unpack('<I', til)[0], ChunkSize.SINGLE_TRANSFER)
             vnl = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
-            vnl = struct.unpack('<I', vnl)[0]
-            vnd = self._client.download(vnl, ChunkSize.SINGLE_TRANSFER)
-            meshes[index] = sm_mesh(vps, vpd, tid, vnd)
-            print(vpl)
-            print(til)
-            print(vnl)
+            vnd = self._client.download(struct.unpack('<I', vnl)[0], ChunkSize.SINGLE_TRANSFER)
+            meshes[index] = _sm_mesh(vps, vpd, tid, vnd)
         return meshes
 
     def close(self):
