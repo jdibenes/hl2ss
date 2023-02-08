@@ -80,10 +80,10 @@ void SpatialMapping_SetVolumes(std::vector<VolumeDescription> const& vd)
     {
     switch (vd[i].type)
     {
-    case VolumeType_Box:         volumes.push_back(SpatialBoundingVolume::FromBox(        scs, vd[i].box));          break;
-    case VolumeType_Frustum:     volumes.push_back(SpatialBoundingVolume::FromFrustum(    scs, vd[i].frustum));      break;
-    case VolumeType_OrientedBox: volumes.push_back(SpatialBoundingVolume::FromOrientedBox(scs, vd[i].oriented_box)); break;
-    case VolumeType_Sphere:      volumes.push_back(SpatialBoundingVolume::FromSphere(     scs, vd[i].sphere));       break;
+    case VolumeType_Box:         volumes.push_back(SpatialBoundingVolume::FromBox(        scs, vd[i].data.box));          break;
+    case VolumeType_Frustum:     volumes.push_back(SpatialBoundingVolume::FromFrustum(    scs, vd[i].data.frustum));      break;
+    case VolumeType_OrientedBox: volumes.push_back(SpatialBoundingVolume::FromOrientedBox(scs, vd[i].data.oriented_box)); break;
+    case VolumeType_Sphere:      volumes.push_back(SpatialBoundingVolume::FromSphere(     scs, vd[i].data.sphere));       break;
     }
     }
 
@@ -98,30 +98,32 @@ void SpatialMapping_GetObservedSurfaces()
     for (auto pair : g_observed) { g_observed_ids[i++] = pair.Key(); }
 }
 
-void SpatialMapping_ReportIDs(winrt::guid const*& data, size_t& count)
+void SpatialMapping_ReportIDs(winrt::guid const*& data, uint32_t& count)
 {
     data = g_observed_ids.data();
-    count = g_observed_ids.size();
+    count = (uint32_t)g_observed_ids.size();
 }
 
 static DWORD WINAPI SpatialMapping_ComputeMesh(void* param)
 {
     SpatialSurfaceMeshOptions options = nullptr;
-    MeshDescription* desc;
+    MeshTask* desc;
 
     WaitForSingleObject(g_observed_meshes_semaphore, INFINITE);
-    
-    desc = (MeshDescription*)param;
 
-    if (g_observed.HasKey(desc->id))
+    ShowMessage("SM: IN TASK");
+    
+    desc = (MeshTask*)param;
+
+    if (g_observed.HasKey(desc->md.id))
     {
     options = SpatialSurfaceMeshOptions();
-    options.IncludeVertexNormals(desc->normals);
-    options.TriangleIndexFormat((DirectXPixelFormat)desc->triangle_format);
-    options.VertexNormalFormat((DirectXPixelFormat)desc->normal_format);
-    options.VertexPositionFormat((DirectXPixelFormat)desc->vertex_format);
+    options.IncludeVertexNormals(desc->md.normals);
+    options.TriangleIndexFormat((DirectXPixelFormat)desc->md.triangle_format);
+    options.VertexNormalFormat((DirectXPixelFormat)desc->md.normal_format);
+    options.VertexPositionFormat((DirectXPixelFormat)desc->md.vertex_format);
 
-    g_observed_meshes[desc->index].mesh = g_observed.Lookup(desc->id).TryComputeLatestMeshAsync(desc->maxtpcm, options).get();
+    g_observed_meshes[desc->index].mesh = g_observed.Lookup(desc->md.id).TryComputeLatestMeshAsync(desc->md.maxtpcm, options).get();
     g_observed_meshes_status[desc->index] = 0;
     }
     else
@@ -131,19 +133,23 @@ static DWORD WINAPI SpatialMapping_ComputeMesh(void* param)
 
     SetEvent(g_observed_meshes_event[desc->index]);
     ReleaseSemaphore(g_observed_meshes_semaphore, 1, NULL);
+
+    return 0;
 }
 
-void SpatialMapping_BeginComputeMeshes(std::vector<MeshDescription>& desc, int maxtasks)
+void SpatialMapping_BeginComputeMeshes(std::vector<MeshTask>& desc, int maxtasks)
 {
     size_t size = desc.size();
 
     g_observed_meshes.resize(size);
     g_observed_meshes_status.resize(size);
     g_observed_meshes_event.resize(size);
+    g_observed_meshes_thread.resize(size);
 
     g_observed_meshes_semaphore = CreateSemaphore(NULL, maxtasks, maxtasks, NULL);
     for (int i = 0; i < size; ++i) { g_observed_meshes_event[i] = CreateEvent(NULL, FALSE, FALSE, NULL); }
-    for (int i = 0; i < size; ++i) { desc[i].index = i; g_observed_meshes_thread[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)&desc[i], 0, NULL); }
+    for (int i = 0; i < size; ++i) { desc[i].index = i; }
+    for (int i = 0; i < size; ++i) { g_observed_meshes_thread[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)&desc[i], 0, NULL); }
 }
 
 int SpatialMapping_WaitComputeMeshes()

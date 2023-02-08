@@ -23,27 +23,34 @@ struct VolumeDescription
     winrt::Windows::Perception::Spatial::SpatialBoundingFrustum frustum;
     winrt::Windows::Perception::Spatial::SpatialBoundingOrientedBox oriented_box;
     winrt::Windows::Perception::Spatial::SpatialBoundingSphere sphere;
-    };
+    }
+    data;
 };
 
 struct MeshDescription
 {
-    winrt::guid id;
-    double      maxtpcm;
-    uint32_t    index;
-    uint32_t    triangle_format;
-    uint32_t    normal_format;
-    uint32_t    vertex_format;
-    bool        normals;
+    winrt::guid id;  // 16
+    double      maxtpcm; // 8 -> 24
+    uint32_t    triangle_format; // 4 -> 28
+    uint32_t    normal_format; // 4 -> 32
+    uint32_t    vertex_format;  // 4 -> 36
+    bool        normals; // 4 -> 40
 };
 
-bool SpatialMapping_WaitForConsent();
+struct MeshTask
+{
+    MeshDescription md;
+    uint32_t        index; // 4 -> 44
+    uint32_t        reserved; // 4 -> 48
+};
+
 void SpatialMapping_Initialize();
+bool SpatialMapping_WaitForConsent();
 void SpatialMapping_CreateObserver();
 void SpatialMapping_SetVolumes(std::vector<VolumeDescription> const& vd);
 void SpatialMapping_GetObservedSurfaces();
-void SpatialMapping_ReportIDs(winrt::guid const*& data, size_t& count);
-void SpatialMapping_BeginComputeMeshes(std::vector<MeshDescription> const& desc, int maxtasks);
+void SpatialMapping_ReportIDs(winrt::guid const*& data, uint32_t& count);
+void SpatialMapping_BeginComputeMeshes(std::vector<MeshTask>& desc, int maxtasks);
 int SpatialMapping_WaitComputeMeshes();
 int SpatialMapping_GetStatusComputeMeshes(int index);
 void SpatialMapping_GetMeshComputeMeshes(int index, winrt::Windows::Perception::Spatial::Surfaces::SpatialSurfaceMesh& mesh);

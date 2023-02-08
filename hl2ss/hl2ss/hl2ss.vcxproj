@@ -162,6 +162,7 @@
     <ClInclude Include="display7s.h" />
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="ipc_sc.h" />
+    <ClInclude Include="ipc_sm.h" />
     <ClInclude Include="locator.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="neon.h" />

@@ -25,6 +25,7 @@ class StreamPort:
 # IPC TCP Ports
 class IPCPort:
     REMOTE_CONFIGURATION = 3809
+    SPATIAL_MAPPING      = 3813
 
 
 # Default Chunk Sizes
@@ -1499,4 +1500,132 @@ class tx_rc:
     def wait_for_pv_subsystem(self, status):
         while (self.get_pv_subsystem_status() != status):
             pass
+
+#------------------------------------------------------------------------------
+# Spatial Mapping
+#------------------------------------------------------------------------------
+
+class _SM_VolumeType:
+    BOX = 0
+    FRUSTUM = 1
+    ORIENTED_BOX = 2
+    SPHERE = 3
+
+
+class SM_VertexPositionFormat:
+    R32G32B32A32Float = 2
+    R16G16B16A16IntNormalized = 13
+
+
+class SM_TriangleIndexFormat:
+    R16UInt = 57
+    R32Uint = 42
+
+
+class SM_VertexNormalFormat:
+    R32G32B32A32Float = 2
+    R8G8B8A8IntNormalized = 31
+
+
+class sm_volume:
+    def __init__(self):
+        self._data = bytearray()
+        self._count = 0
+
+    def add_box(self, center, extents):
+        self._data.extend(struct.pack('<Iffffff', _SM_VolumeType.BOX, center[0], center[1], center[2], extents[0], extents[1], extents[2]))
+        self._count += 1
+
+    def add_frustum(self, near, far, right, left, top, bottom):
+        pass
+
+    def add_oriented_box(self, center, extents, orientation):
+        pass
+
+    def add_sphere(self, center, radius):
+        self._data.extend(struct.pack('<Iffff', _SM_VolumeType.SPHERE, center[0], center[1], center[2], radius))
+        self._count += 1
+
+    def _get(self):
+        return self._count, self._data
+
+
+class sm_mesh_task:
+    def __init__(self, max_threads):
+        self._count = 0
+        self._max_threads = max_threads
+        self._data = bytearray()
+
+    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals):
+        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, triangle_index_format, vertex_normal_format, vertex_position_format, 1 if include_vertex_normals else 0))
+        self._count += 1
+
+    def _get(self):
+        return self._count, self._max_threads, self._data
+
+
+class sm_mesh:
+    def __init__(self, vertex_position_scale, vertex_positions, triangle_indices, vertex_normals):
+        self.vertex_position_scale = vertex_position_scale
+        self.vertex_positions = vertex_positions
+        self.triangle_indices = triangle_indices
+        self.vertex_normals = vertex_normals
+
+
+class ipc_sm:
+    def __init__(self, host, port):
+        self._client = _client()
+        self.host = host
+        self.port = port
+
+    def open(self):
+        self._client.open(self.host, self.port)
+
+    def create_observer(self):
+        self._client.sendall(struct.pack('<B', 0x00))
+
+    def set_volumes(self, volumes):
+        count, data = volumes._get()
+        msg = bytearray()
+        msg.extend(struct.pack('<BB', 0x01, count))
+        msg.extend(data)
+        self._client.sendall(msg)
+
+    def get_observed_surfaces(self):
+        self._client.sendall(struct.pack('<B', 0x02))
+        count = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
+        count = struct.unpack('<I', count)[0]
+        ids = self._client.download(16 * count, ChunkSize.SINGLE_TRANSFER)
+        return ids
+    
+    def get_meshes(self, tasks):
+        count, threads, data = tasks._get()
+        msg = bytearray()
+        msg.extend(struct.pack('<BII', 0x03, count, threads))
+        msg.extend(data)
+        self._client.sendall(msg)
+        meshes = [None] * count
+        for _ in range(0, count):
+            ms = self._client.download(_SIZEOF.DWORD * 2, ChunkSize.SINGLE_TRANSFER)
+            index, status = struct.unpack('<II', ms)
+            if (status != 0):
+                continue
+            vps = self._client.download(_SIZEOF.FLOAT * 3, ChunkSize.SINGLE_TRANSFER)
+            vpl = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
+            vpl = struct.unpack('<I', vpl)[0]
+            vpd = self._client.download(vpl, ChunkSize.SINGLE_TRANSFER)
+            til = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
+            til = struct.unpack('<I', til)[0]
+            tid = self._client.download(til, ChunkSize.SINGLE_TRANSFER)
+            vnl = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
+            vnl = struct.unpack('<I', vnl)[0]
+            vnd = self._client.download(vnl, ChunkSize.SINGLE_TRANSFER)
+            meshes[index] = sm_mesh(vps, vpd, tid, vnd)
+            print(vpl)
+            print(til)
+            print(vnl)
+        return meshes
+
+    def close(self):
+        self._client.close()
 

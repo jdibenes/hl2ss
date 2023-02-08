@@ -345,6 +345,9 @@
     <ClInclude Include="spatial_mapping.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
+    <ClInclude Include="ipc_sm.h">
+      <Filter>Header Files\server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
