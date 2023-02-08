@@ -3,7 +3,6 @@
 #include "timestamps.h"
 #include "locator.h"
 #include "spatial_mapping.h"
-#include "log.h"
 
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
@@ -11,31 +10,33 @@
 #include <winrt/Windows.Perception.Spatial.h>
 #include <winrt/Windows.Perception.Spatial.Surfaces.h>
 #include <winrt/Windows.Graphics.DirectX.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Windows::Perception::Spatial::Surfaces;
 using namespace winrt::Windows::Graphics::DirectX;
+using namespace winrt::Windows::Storage::Streams;
 
-struct SSI_W // eww
+struct SSM
 {
     SpatialSurfaceMesh mesh = nullptr;
 };
-
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_event_consent = NULL;
-static HANDLE g_thread_consent = NULL;
+static HANDLE g_event_consent = NULL; // CloseHandle
+static HANDLE g_thread_consent = NULL; // CloseHandle
 static SpatialPerceptionAccessStatus g_status_consent = SpatialPerceptionAccessStatus::Unspecified;
 static SpatialSurfaceObserver g_sso = nullptr;
+static SpatialCoordinateSystem g_world = nullptr;
 static IMapView<winrt::guid, SpatialSurfaceInfo> g_observed = nullptr;
 static std::vector<winrt::guid> g_observed_ids;
-static std::vector<SSI_W> g_observed_meshes;
-static std::vector<int32_t> g_observed_meshes_status;
+static std::vector<SSM> g_observed_meshes;
+static std::vector<MeshInfo> g_observed_meshes_info;
 static std::vector<HANDLE> g_observed_meshes_event; // CloseHandle
 static std::vector<HANDLE> g_observed_meshes_thread; // CloseHandle
 static HANDLE g_observed_meshes_semaphore; // CloseHandle
@@ -44,6 +45,7 @@ static HANDLE g_observed_meshes_semaphore; // CloseHandle
 // Functions
 //-----------------------------------------------------------------------------
 
+// OK
 static DWORD WINAPI SpatialMapping_RequestAccess(void *param)
 {
     (void)param;
@@ -54,157 +56,158 @@ static DWORD WINAPI SpatialMapping_RequestAccess(void *param)
     return 0;
 }
 
-bool SpatialMapping_WaitForConsent()
-{
-    WaitForSingleObject(g_event_consent, INFINITE);
-    return g_status_consent == SpatialPerceptionAccessStatus::Allowed;
-}
-
+// OK
 void SpatialMapping_Initialize()
 {
     g_event_consent = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread_consent = CreateThread(NULL, 0, SpatialMapping_RequestAccess, NULL, 0, NULL);
 }
 
+// OK
+bool SpatialMapping_WaitForConsent()
+{
+    WaitForSingleObject(g_event_consent, INFINITE);
+    return g_status_consent == SpatialPerceptionAccessStatus::Allowed;
+}
+
+// OK
 void SpatialMapping_CreateObserver()
 {
     g_sso = SpatialSurfaceObserver();
 }
 
-void SpatialMapping_SetVolumes(std::vector<VolumeDescription> const& vd)
+// OK
+void SpatialMapping_SetVolumes(VolumeDescription const* vd, size_t size)
 {
-    SpatialCoordinateSystem scs = Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp()));
     std::vector<SpatialBoundingVolume> volumes;
+
+    g_world = Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp()));
     
-    for (int i = 0; i < vd.size(); ++i)
+    for (int i = 0; i < size; ++i)
     {
     switch (vd[i].type)
     {
-    case VolumeType_Box:         volumes.push_back(SpatialBoundingVolume::FromBox(        scs, vd[i].data.box));          break;
-    case VolumeType_Frustum:     volumes.push_back(SpatialBoundingVolume::FromFrustum(    scs, vd[i].data.frustum));      break;
-    case VolumeType_OrientedBox: volumes.push_back(SpatialBoundingVolume::FromOrientedBox(scs, vd[i].data.oriented_box)); break;
-    case VolumeType_Sphere:      volumes.push_back(SpatialBoundingVolume::FromSphere(     scs, vd[i].data.sphere));       break;
+    case VolumeType_Box:         volumes.push_back(SpatialBoundingVolume::FromBox(        g_world, vd[i].data.box));          break;
+    case VolumeType_Frustum:     volumes.push_back(SpatialBoundingVolume::FromFrustum(    g_world, vd[i].data.frustum));      break;
+    case VolumeType_OrientedBox: volumes.push_back(SpatialBoundingVolume::FromOrientedBox(g_world, vd[i].data.oriented_box)); break;
+    case VolumeType_Sphere:      volumes.push_back(SpatialBoundingVolume::FromSphere(     g_world, vd[i].data.sphere));       break;
     }
     }
 
     g_sso.SetBoundingVolumes(volumes);
 }
 
-void SpatialMapping_GetObservedSurfaces()
+// OK
+void SpatialMapping_GetObservedSurfaces(winrt::guid const*& data, size_t& size)
 {
     g_observed = g_sso.GetObservedSurfaces();
     int i = 0;
     g_observed_ids.resize(g_observed.Size());
     for (auto pair : g_observed) { g_observed_ids[i++] = pair.Key(); }
-}
-
-void SpatialMapping_ReportIDs(winrt::guid const*& data, uint32_t& count)
-{
     data = g_observed_ids.data();
-    count = (uint32_t)g_observed_ids.size();
+    size = g_observed_ids.size();
 }
 
+// OK
+static SpatialBoundingOrientedBox SpatialMapping_GetBounds(SpatialSurfaceInfo ssi, SpatialSurfaceMesh ssm)
+{
+    auto sbob = ssi.TryGetBounds(ssm.CoordinateSystem());
+    return sbob ? sbob.Value() : SpatialBoundingOrientedBox{ {0, 0, 0}, {0, 0, 0}, {0, 0, 0, 0} };
+}
+
+// OK
+static void SpatialMapping_ComputeMesh(MeshTask* task)
+{
+    SpatialSurfaceInfo ssi = nullptr;
+    SpatialSurfaceMeshOptions options = nullptr;
+    SpatialSurfaceMesh ssm = nullptr;
+    IBuffer vertex_positions;
+    IBuffer triangle_indices;
+    IBuffer vertex_normals;
+
+    g_observed_meshes_info[task->index].index = task->index;
+
+    ssi = g_observed.TryLookup(task->md.id);
+    if (!ssi)
+    {
+        g_observed_meshes_info[task->index].status = 1;
+        return;
+    }
+
+    options = SpatialSurfaceMeshOptions();
+    options.VertexPositionFormat((DirectXPixelFormat)task->md.vertex_format);
+    options.TriangleIndexFormat((DirectXPixelFormat)task->md.triangle_format);
+    options.VertexNormalFormat((DirectXPixelFormat)task->md.normal_format);
+    options.IncludeVertexNormals(task->md.normals);
+
+    ssm = ssi.TryComputeLatestMeshAsync(task->md.maxtpcm, options).get();
+    if (!ssm)
+    {
+        g_observed_meshes_info[task->index].status = 2;
+        return;
+    }
+
+    g_observed_meshes[task->index].mesh = ssm;
+
+    vertex_positions = ssm.VertexPositions().Data();
+    triangle_indices = ssm.TriangleIndices().Data();
+    vertex_normals   = task->md.normals ? ssm.VertexNormals().Data() : nullptr;
+
+    g_observed_meshes_info[task->index].status      = 0;
+    g_observed_meshes_info[task->index].vpl         = vertex_positions.Length();
+    g_observed_meshes_info[task->index].til         = triangle_indices.Length();
+    g_observed_meshes_info[task->index].vnl         = task->md.normals ? vertex_normals.Length() : 0;
+    g_observed_meshes_info[task->index].vpd         = vertex_positions.data();
+    g_observed_meshes_info[task->index].tid         = triangle_indices.data();
+    g_observed_meshes_info[task->index].vnd         = task->md.normals ? vertex_normals.data() : NULL;
+    g_observed_meshes_info[task->index].update_time = ssi.UpdateTime().time_since_epoch().count();
+    g_observed_meshes_info[task->index].pose        = Locator_GetTransformTo(ssm.CoordinateSystem(), g_world);
+    g_observed_meshes_info[task->index].scale       = ssm.VertexPositionScale();
+    g_observed_meshes_info[task->index].bounds      = SpatialMapping_GetBounds(ssi, ssm);
+}
+
+// OK
 static DWORD WINAPI SpatialMapping_ComputeMesh(void* param)
 {
-    SpatialSurfaceMeshOptions options = nullptr;
-    MeshTask* desc;
-
+    MeshTask* task = (MeshTask*)param;
     WaitForSingleObject(g_observed_meshes_semaphore, INFINITE);
-
-    ShowMessage("SM: IN TASK");
-    
-    desc = (MeshTask*)param;
-
-    if (g_observed.HasKey(desc->md.id))
-    {
-    options = SpatialSurfaceMeshOptions();
-    options.IncludeVertexNormals(desc->md.normals);
-    options.TriangleIndexFormat((DirectXPixelFormat)desc->md.triangle_format);
-    options.VertexNormalFormat((DirectXPixelFormat)desc->md.normal_format);
-    options.VertexPositionFormat((DirectXPixelFormat)desc->md.vertex_format);
-
-    g_observed_meshes[desc->index].mesh = g_observed.Lookup(desc->md.id).TryComputeLatestMeshAsync(desc->md.maxtpcm, options).get();
-    g_observed_meshes_status[desc->index] = 0;
-    }
-    else
-    {
-    g_observed_meshes_status[desc->index] = -1;
-    }
-
-    SetEvent(g_observed_meshes_event[desc->index]);
+    SpatialMapping_ComputeMesh(task);
+    SetEvent(g_observed_meshes_event[task->index]);
     ReleaseSemaphore(g_observed_meshes_semaphore, 1, NULL);
-
     return 0;
 }
 
-void SpatialMapping_BeginComputeMeshes(std::vector<MeshTask>& desc, int maxtasks)
+// OK
+void SpatialMapping_BeginComputeMeshes(MeshTask* task, size_t size, int maxtasks)
 {
-    size_t size = desc.size();
-
     g_observed_meshes.resize(size);
-    g_observed_meshes_status.resize(size);
+    g_observed_meshes_info.resize(size);
     g_observed_meshes_event.resize(size);
     g_observed_meshes_thread.resize(size);
 
     g_observed_meshes_semaphore = CreateSemaphore(NULL, maxtasks, maxtasks, NULL);
+
+    for (int i = 0; i < size; ++i) { task[i].index = i; }
     for (int i = 0; i < size; ++i) { g_observed_meshes_event[i] = CreateEvent(NULL, FALSE, FALSE, NULL); }
-    for (int i = 0; i < size; ++i) { desc[i].index = i; }
-    for (int i = 0; i < size; ++i) { g_observed_meshes_thread[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)&desc[i], 0, NULL); }
+    for (int i = 0; i < size; ++i) { g_observed_meshes_thread[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)(task + i), 0, NULL); }
 }
 
-int SpatialMapping_WaitComputeMeshes()
+// OK
+MeshInfo* SpatialMapping_GetNextMesh()
 {
-    size_t size = g_observed_meshes.size();
+    size_t size = g_observed_meshes_event.size();
     DWORD status = WaitForMultipleObjects((DWORD)size, g_observed_meshes_event.data(), FALSE, INFINITE);
-    if ((status >= WAIT_OBJECT_0) && (status <= (WAIT_OBJECT_0 + size - 1))) { return status - WAIT_OBJECT_0; }
-    return -1;
+    return ((status >= WAIT_OBJECT_0) && (status < (WAIT_OBJECT_0 + size))) ? (g_observed_meshes_info.data() + (status - WAIT_OBJECT_0)) : NULL;
 }
 
-int SpatialMapping_GetStatusComputeMeshes(int index)
-{
-    return g_observed_meshes_status[index];
-}
-
-void SpatialMapping_GetMeshComputeMeshes(int index, SpatialSurfaceMesh &mesh)
-{
-    mesh = g_observed_meshes[index].mesh;
-}
-
+// OK
 void SpatialMapping_EndComputeMeshes()
 {
     size_t size = g_observed_meshes.size();
 
     WaitForMultipleObjects((DWORD)size, g_observed_meshes_thread.data(), TRUE, INFINITE);
+
     for (int i = 0; i < size; ++i) { CloseHandle(g_observed_meshes_thread[i]); }
     for (int i = 0; i < size; ++i) { CloseHandle(g_observed_meshes_event[i]); }
     CloseHandle(g_observed_meshes_semaphore);
 }
-
-
-
-
-// Box:         Center 3f, Extents 3f
-// Frustum:     Near plane, Far plane, Right plane, Left plane, Top plane, Bottom plane | plane: normal 3f, d 1f
-// OrientedBox: Center 3f, Extents 3f, Orientation quaternion | quaternion: x, y, z, w float
-// Sphere:      Center 3f, Radius 1f
-
-
-//mesh.TriangleIndices().Data().data(); // Data, ElementCount, Stride
-    //mesh.VertexNormals();
-    //mesh.VertexPositions();
-    //mesh.VertexPositionScale();
-
-
-
-
-
-
-
-
-
-
-
-// guid: u32 Data1, u16 Data2, u16 Data3, u8 Data4[8] -> 16 bytes
-
-
-

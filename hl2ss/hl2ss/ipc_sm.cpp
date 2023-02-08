@@ -5,38 +5,39 @@
 #include "spatial_mapping.h"
 #include "log.h"
 
-#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Perception.Spatial.h>
 
-using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception::Spatial;
-using namespace winrt::Windows::Perception::Spatial::Surfaces;
-using namespace winrt::Windows::Storage::Streams;
 
-struct MeshStatus
-{
-    uint32_t index;
-    uint32_t status;
-};
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
 
 static HANDLE g_thread = NULL;
 static HANDLE g_quitevent = NULL;
 static HANDLE g_clientevent = NULL;
 
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
+// OK
 static void SM_TransferError()
 {
     SetEvent(g_clientevent);
 }
 
+// OK
 static void SM_MSG_CreateObserver(SOCKET clientsocket)
 {
     (void)clientsocket;
     SpatialMapping_CreateObserver();
-    ShowMessage("SM: CreateObserver");
 }
 
+// OK
 static void SM_MSG_SetVolumes(SOCKET clientsocket)
 {
-    std::vector<VolumeDescription> desc;
+    std::vector<VolumeDescription> vd;
     uint32_t type;
     uint8_t count;
     int size;
@@ -49,8 +50,8 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
         return;
     }
 
-    desc.resize(count);
-    VolumeDescription* data = desc.data();
+    vd.resize(count);
+    VolumeDescription* data = vd.data();
 
     for (int i = 0; i < count; ++i)
     {
@@ -72,7 +73,7 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
         return;
     }
 
-    desc[i].type = (VolumeType)type;
+    vd[i].type = (VolumeType)type;
     ok = recv(clientsocket, (char*)&(data[i].data), size);
     if (!ok)
     {
@@ -81,52 +82,38 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
     }
     }
 
-    SpatialMapping_SetVolumes(desc);
-    ShowMessage("SM SetVolume of Type %d", type);
+    SpatialMapping_SetVolumes(data, count);
 }
 
+// OK
 static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
 {
     WSABUF wsaBuf[2];
     winrt::guid const* ids;
-    uint32_t count;
+    size_t count;
     bool ok;
 
-    SpatialMapping_GetObservedSurfaces();
-    SpatialMapping_ReportIDs(ids, count);
+    SpatialMapping_GetObservedSurfaces(ids, count);
     
     wsaBuf[0].buf = (char*)&count;
     wsaBuf[0].len = sizeof(count);
 
     wsaBuf[1].buf = (char*)ids;
-    wsaBuf[1].len = count * sizeof(winrt::guid);
+    wsaBuf[1].len = (ULONG)(count * sizeof(winrt::guid));
 
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SM_TransferError(); }
-
-    ShowMessage("SM: Got %d surfaces", count);
 }
 
+// OK
 static void SM_MSG_GetMeshes(SOCKET clientsocket)
 {
-    SpatialSurfaceMesh mesh = nullptr;
     std::vector<MeshTask> md;
     uint32_t count;
     uint32_t maxtasks;
-    MeshTask* data;
-    MeshStatus ms;
-    float3 scale;
-    IBuffer vertex_positions;
-    uint8_t* vertex_positions_data;
-    uint32_t vertex_positions_length;
-    IBuffer triangle_indices;
-    uint8_t* triangle_indices_data;
-    uint32_t triangle_indices_length;
-    IBuffer vertex_normals;
-    uint8_t* vertex_normals_data;
-    uint32_t vertex_normals_length;
-    WSABUF wsaBufStatus[1];
-    WSABUF wsaBufData[7];
+    MeshTask* task;
+    MeshInfo* info;
+    WSABUF wsaBuf[4];
     bool ok;
 
     ok = recv_u32(clientsocket, count);
@@ -136,8 +123,6 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
         return;
     }
 
-    ShowMessage("SM: GetMesh count %d", count);
-
     ok = recv_u32(clientsocket, maxtasks);
     if (!ok)
     {
@@ -145,14 +130,12 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
         return;
     }
 
-    ShowMessage("SM: GetMesh maxtasks %d", maxtasks);
-
     md.resize(count);
-    data = md.data();
+    task = md.data();
 
     for (uint32_t i = 0; i < count; ++i)
     {
-    ok = recv(clientsocket, (char*)&data[i], sizeof(MeshDescription));
+    ok = recv(clientsocket, (char*)(task + i), sizeof(MeshDescription));
     if (!ok)
     {
         SM_TransferError();
@@ -160,85 +143,36 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
     }
     }
 
-    ShowMessage("SM: GetMesh Desc %f %d %d %d %d", md[0].md.maxtpcm, md[0].md.vertex_format, md[0].md.triangle_format, md[0].md.normal_format, md[0].md.normals);
-
-    ShowMessage("SM: BeginComputeMeshes");
-
-    SpatialMapping_BeginComputeMeshes(md, maxtasks);
+    SpatialMapping_BeginComputeMeshes(task, count, maxtasks);
 
     for (; count > 0; --count)
     {
-    ms.index = SpatialMapping_WaitComputeMeshes();
-    ms.status = SpatialMapping_GetStatusComputeMeshes(ms.index);
+    info = SpatialMapping_GetNextMesh();
 
-    wsaBufStatus[0].buf = (char*)&ms;
-    wsaBufStatus[0].len = sizeof(ms);
+    wsaBuf[0].buf = (char*)info;
+    wsaBuf[0].len = MESH_INFO_HEADER_SIZE;
 
-    ShowMessage("SM: index %d status %d", ms.index, ms.status);
+    wsaBuf[1].buf = (char*)info->vpd;
+    wsaBuf[1].len = info->vpl;
 
-    ok = send_multiple(clientsocket, wsaBufStatus, sizeof(wsaBufStatus) / sizeof(WSABUF));
+    wsaBuf[2].buf = (char*)info->tid;
+    wsaBuf[2].len = info->til;
+
+    wsaBuf[3].buf = (char*)info->vnd;
+    wsaBuf[3].len = info->vnl;
+
+    ok = send_multiple(clientsocket, wsaBuf, (info->status == 0) ? (sizeof(wsaBuf) / sizeof(WSABUF)) : 1);
     if (!ok)
     {
         SM_TransferError();
         break;
     }
-
-    if (ms.status != 0) { continue; }
-
-    SpatialMapping_GetMeshComputeMeshes(ms.index, mesh);
-
-    scale            = mesh.VertexPositionScale();
-    vertex_positions = mesh.VertexPositions().Data();
-    triangle_indices = mesh.TriangleIndices().Data();
-    vertex_normals   = mesh.VertexNormals().Data();
-
-    vertex_positions_data   = vertex_positions.data();
-    vertex_positions_length = vertex_positions.Length();
-    triangle_indices_data   = triangle_indices.data();
-    triangle_indices_length = triangle_indices.Length();
-    vertex_normals_data     = vertex_normals.data();
-    vertex_normals_length   = vertex_normals.Length();
-
-    wsaBufData[0].buf = (char*)&scale;
-    wsaBufData[0].len = sizeof(scale);
-
-    wsaBufData[1].buf = (char*)&vertex_positions_length;
-    wsaBufData[1].len = sizeof(vertex_positions_length);
-
-    ShowMessage("vpl %d", vertex_positions_length);
-
-    wsaBufData[2].buf = (char*)vertex_positions_data;
-    wsaBufData[2].len = vertex_positions_length;
-
-    wsaBufData[3].buf = (char*)&triangle_indices_length;
-    wsaBufData[3].len = sizeof(triangle_indices_length);
-
-    ShowMessage("til %d", triangle_indices_length);
-
-    wsaBufData[4].buf = (char*)triangle_indices_data;
-    wsaBufData[4].len = triangle_indices_length;
-
-    wsaBufData[5].buf = (char*)&vertex_normals_length;
-    wsaBufData[5].len = sizeof(vertex_normals_length);
-
-    ShowMessage("vnl %d", vertex_normals_length);
-
-    wsaBufData[6].buf = (char*)vertex_normals_data;
-    wsaBufData[6].len = vertex_normals_length;
-
-    ok = send_multiple(clientsocket, wsaBufData, sizeof(wsaBufData) / sizeof(WSABUF));
-    if (!ok) 
-    {
-        SM_TransferError();
-        break;
-    }
     }
 
-    ShowMessage("SM: EndComputeMeshes");
     SpatialMapping_EndComputeMeshes();
-    ShowMessage("SM: GetMeshes complete!");
 }
 
+// OK
 static void SM_Dispatch(SOCKET clientsocket)
 {
     uint8_t state;
@@ -263,6 +197,7 @@ static void SM_Dispatch(SOCKET clientsocket)
     }
 }
 
+// OK
 static void SM_Translate(SOCKET clientsocket)
 {
     g_clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -270,6 +205,7 @@ static void SM_Translate(SOCKET clientsocket)
     CloseHandle(g_clientevent);
 }
 
+// OK
 static DWORD WINAPI SM_EntryPoint(void* param)
 {
     (void)param;
@@ -309,17 +245,20 @@ static DWORD WINAPI SM_EntryPoint(void* param)
     return 0;
 }
 
+// OK
 void SM_Initialize()
 {
     g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, SM_EntryPoint, NULL, 0, NULL);
 }
 
+// OK
 void SM_Quit()
 {
     SetEvent(g_quitevent);
 }
 
+// OK
 void SM_Cleanup()
 {
     WaitForSingleObject(g_thread, INFINITE);
@@ -330,25 +269,3 @@ void SM_Cleanup()
     g_thread = NULL;
     g_quitevent = NULL;
 }
-
-
-
-
-// sizeof(VolumeDescription) = 100 = 4 + 96
-// Box -> 6f -> 24 (same as sizeof)
-// Frustum -> 6x4f -> 24f -> 96 (same as sizeof)
-// OrientedBox -> (6+4)f -> 40 (same as sizeof)
-// Sphere -> 4f -> 16 (same as sizeof)
-
-// index  u32
-// status u32
-
-// vertex scale 3xf32
-// positions size u32
-// positions
-// indices size u32
-// indices
-// normals size
-// normals
-
-//mesh.VertexNormals(); // optional!
