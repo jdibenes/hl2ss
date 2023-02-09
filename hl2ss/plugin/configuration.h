@@ -6,3 +6,4 @@
 #define HL2SS_ENABLE_MC  4
 #define HL2SS_ENABLE_SI  8
 #define HL2SS_ENABLE_RC 16
+#define HL2SS_ENABLE_SM 32
