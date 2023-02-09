@@ -241,7 +241,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 
     closesocket(clientsocket);
 
-    ShowMessage("RC: Client Disconnected");
+    ShowMessage("RC: Client disconnected");
     }
     while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
 

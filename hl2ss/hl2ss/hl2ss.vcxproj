@@ -162,6 +162,7 @@
     <ClInclude Include="display7s.h" />
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="ipc_sc.h" />
+    <ClInclude Include="ipc_sm.h" />
     <ClInclude Include="locator.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="neon.h" />
@@ -170,6 +171,7 @@
     <ClInclude Include="ipc_rc.h" />
     <ClInclude Include="researchmode\ResearchModeApi.h" />
     <ClInclude Include="spatial_input.h" />
+    <ClInclude Include="spatial_mapping.h" />
     <ClInclude Include="stream_mc.h" />
     <ClInclude Include="microphone_capture.h" />
     <ClInclude Include="ports.h" />
@@ -203,6 +205,7 @@
     <ClCompile Include="display7s.cpp" />
     <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="ipc_sc.cpp" />
+    <ClCompile Include="ipc_sm.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="neon.cpp" />
     <ClCompile Include="nfo.cpp" />
@@ -211,6 +214,7 @@
     <ClCompile Include="locator.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="personal_video.cpp" />
+    <ClCompile Include="spatial_mapping.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />

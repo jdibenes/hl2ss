@@ -25,6 +25,7 @@ class StreamPort:
 # IPC TCP Ports
 class IPCPort:
     REMOTE_CONFIGURATION = 3809
+    SPATIAL_MAPPING      = 3813
 
 
 # Default Chunk Sizes
@@ -295,6 +296,7 @@ class _SIZEOF:
     LONGLONG = 8
     QWORD    = 8
     DOUBLE   = 8
+    GUID     = 16
 
 
 class _RANGEOF:
@@ -1499,4 +1501,168 @@ class tx_rc:
     def wait_for_pv_subsystem(self, status):
         while (self.get_pv_subsystem_status() != status):
             pass
+
+
+#------------------------------------------------------------------------------
+# Spatial Mapping
+#------------------------------------------------------------------------------
+
+class _SM_VolumeType:
+    Box         = 0
+    Frustum     = 1
+    OrientedBox = 2
+    Sphere      = 3
+
+
+class SM_VertexPositionFormat:
+    R32G32B32A32Float         = 2
+    R16G16B16A16IntNormalized = 13
+
+
+class SM_TriangleIndexFormat:
+    R16UInt = 57
+    R32Uint = 42
+
+
+class SM_VertexNormalFormat:
+    R32G32B32A32Float     = 2
+    R8G8B8A8IntNormalized = 31
+
+
+class _SM_Convert:
+    DirectXPixelFormatToNumPy = { 2 : np.float32, 13 : np.int16, 57 : np.uint16, 42 : np.uint32, 31 : np.int8 }
+
+
+class sm_bounding_volume:
+    def __init__(self):
+        self._count = 0
+        self._data = bytearray()        
+
+    def add_box(self, center, extents):
+        self._data.extend(struct.pack('<Iffffff', _SM_VolumeType.Box, center[0], center[1], center[2], extents[0], extents[1], extents[2]))
+        self._count += 1
+
+    def add_frustum(self, near, far, right, left, top, bottom):
+        self._data.extend(struct.pack('<Iffffffffffffffffffffffff', _SM_VolumeType.Frustum, near[0], near[1], near[2], near[3], far[0], far[1], far[2], far[3], right[0], right[1], right[2], right[3], left[0], left[1], left[2], left[3], top[0], top[1], top[2], top[3], bottom[0], bottom[1], bottom[2], bottom[3]))
+        self._count += 1
+
+    def add_oriented_box(self, center, extents, orientation):
+        self._data.extend(struct.pack('<Iffffffffff', _SM_VolumeType.OrientedBox, center[0], center[1], center[2], extents[0], extents[1], extents[2], orientation[0], orientation[1], orientation[2], orientation[3]))
+        self._count += 1
+
+    def add_sphere(self, center, radius):
+        self._data.extend(struct.pack('<Iffff', _SM_VolumeType.Sphere, center[0], center[1], center[2], radius))
+        self._count += 1
+
+    def _get(self):
+        return self._count, self._data
+
+
+class sm_mesh_task:
+    def __init__(self):
+        self._count = 0
+        self._data = bytearray()
+
+    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals):
+        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, 1 if include_vertex_normals else 0))
+        self._count += 1
+
+    def _get(self):
+        return self._count, self._data
+
+
+class _sm_mesh:
+    def __init__(self, vertex_position_scale, update_time, pose, bounds, vertex_positions, triangle_indices, vertex_normals):
+        self.vertex_position_scale = vertex_position_scale
+        self.update_time           = update_time
+        self.pose                  = pose
+        self.bounds                = bounds        
+        self.vertex_positions      = vertex_positions
+        self.triangle_indices      = triangle_indices
+        self.vertex_normals        = vertex_normals
+
+    def unpack(self, vertex_position_format, triangle_index_format, vertex_normal_format):
+        self.vertex_position_scale = np.frombuffer(self.vertex_position_scale, dtype=np.float32).reshape((1, 3))
+        self.update_time           = np.frombuffer(self.update_time,           dtype=np.uint64)
+        self.pose                  = np.frombuffer(self.pose,                  dtype=np.float32).reshape((4, 4))
+        self.bounds                = np.frombuffer(self.bounds,                dtype=np.float32)        
+        self.vertex_positions      = np.frombuffer(self.vertex_positions,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_position_format]).reshape((-1, 4))
+        self.triangle_indices      = np.frombuffer(self.triangle_indices,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[triangle_index_format]).reshape((-1, 3))
+        self.vertex_normals        = np.frombuffer(self.vertex_normals,        dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_normal_format]).reshape((-1, 4))
+
+
+class ipc_sm:
+    _CMD_CREATE_OBSERVER       = 0x00
+    _CMD_SET_VOLUMES           = 0x01
+    _CMD_GET_OBSERVED_SURFACES = 0x02
+    _CMD_GET_MESHES            = 0x03
+
+    _MESH_INFO_HEADER_SIZE     = 144
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self._client = _client()
+        
+    def open(self):
+        self._client.open(self.host, self.port)
+
+    def create_observer(self):
+        self._client.sendall(struct.pack('<B', ipc_sm._CMD_CREATE_OBSERVER))
+
+    def set_volumes(self, volumes):
+        count, data = volumes._get()
+        msg = bytearray()
+        msg.extend(struct.pack('<BB', ipc_sm._CMD_SET_VOLUMES, count))
+        msg.extend(data)
+        self._client.sendall(msg)
+
+    def get_observed_surfaces(self):
+        self._client.sendall(struct.pack('<B', ipc_sm._CMD_GET_OBSERVED_SURFACES))
+        count = struct.unpack('<Q', self._client.download(_SIZEOF.QWORD, ChunkSize.SINGLE_TRANSFER))[0]
+        ids = self._client.download(count * _SIZEOF.GUID, ChunkSize.SINGLE_TRANSFER)
+        return [ids[(i*_SIZEOF.GUID):((i+1)*_SIZEOF.GUID)] for i in range(0, count)]
+    
+    def _download_mesh(self):
+        header = self._client.download(ipc_sm._MESH_INFO_HEADER_SIZE, ChunkSize.SINGLE_TRANSFER)
+        index, status, vpl, til, vnl = struct.unpack('<IIIII', header[:20])
+
+        if (status != 0):
+            return index, None
+        
+        payload = self._client.download(vpl + til + vnl, ChunkSize.SINGLE_TRANSFER)
+
+        scale       = header[20:32]
+        update_time = header[32:40]
+        pose        = header[40:104]
+        bounds      = header[104:144]
+
+        vpd_b = 0
+        vpd_e = vpd_b + vpl
+        tid_b = vpd_e
+        tid_e = tid_b + til
+        vnd_b = tid_e
+        vnd_e = vnd_b + vnl
+        
+        vpd = payload[vpd_b:vpd_e]
+        tid = payload[tid_b:tid_e]
+        vnd = payload[vnd_b:vnd_e]
+
+        return index, _sm_mesh(scale, update_time, pose, bounds, vpd, tid, vnd)
+    
+    def _download_meshes(self, count):
+        for _ in range(0, count):
+            yield self._download_mesh()
+    
+    def get_meshes(self, tasks, threads):
+        count, data = tasks._get()
+        msg = bytearray()
+        msg.extend(struct.pack('<BII', ipc_sm._CMD_GET_MESHES, count, threads))
+        msg.extend(data)
+        self._client.sendall(msg)
+        meshes = {index : mesh for index, mesh in self._download_meshes(count)}
+        return meshes
+
+    def close(self):
+        self._client.close()
 

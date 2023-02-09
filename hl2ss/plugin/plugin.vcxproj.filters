@@ -105,6 +105,12 @@
     <ClCompile Include="..\hl2ss\lock.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_sm.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\spatial_mapping.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -211,6 +217,12 @@
     </ClInclude>
     <ClInclude Include="configuration.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_sm.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\spatial_mapping.h">
+      <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
