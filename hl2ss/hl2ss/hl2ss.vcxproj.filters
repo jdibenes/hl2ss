@@ -118,6 +118,9 @@
     <ClCompile Include="ipc_sm.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
+    <ClCompile Include="scene_understanding.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
