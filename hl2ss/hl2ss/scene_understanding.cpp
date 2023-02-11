@@ -1,53 +1,140 @@
 
 #include <Windows.h>
-#include "log.h"
+#include <unordered_set>
+#include "timestamps.h"
+#include "locator.h"
+#include "scene_understanding.h"
 
+#include <winrt/Windows.Foundation.Numerics.h>
+#include <winrt/Windows.Perception.h>
+#include <winrt/Windows.Perception.Spatial.h>
+#include <winrt/Windows.Perception.Spatial.Preview.h>
 #include <Microsoft.MixedReality.SceneUnderstanding.h>
 
+using namespace winrt::Windows::Foundation::Numerics;
+using namespace winrt::Windows::Perception;
+using namespace winrt::Windows::Perception::Spatial;
+using namespace winrt::Windows::Perception::Spatial::Preview;
 using namespace Microsoft::MixedReality::SceneUnderstanding;
 
-static std::shared_ptr<PerceptionSceneFactory> g_scene_observer;
+struct Query
+{
+    GUID const* guid_match;
+    size_t guid_count;
+    uint8_t kinds;
+};
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+static std::shared_ptr<PerceptionSceneFactory> g_scene_observer = nullptr;
 static HANDLE g_event_consent = NULL; // CloseHandle
 static Status g_s = Status::Failed;
 static PerceptionSceneFactoryAccessStatus g_psfas = PerceptionSceneFactoryAccessStatus::UserPromptRequired;
-static std::list<int> g_list; // ???
+static std::shared_ptr<Scene> g_scene = nullptr;
+static Query g_query;
+static Result g_result;
+static HANDLE g_event_done = NULL; // CloseHandle
 
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
+// OK
 static void SceneUnderstanding_Callback_RequestAccess(Status s, PerceptionSceneFactoryAccessStatus psfas)
 {
     g_s = s;
-    g_psfas  = psfas;
+    g_psfas = psfas;
     SetEvent(g_event_consent);
 }
 
+// OK
 void SceneUnderstanding_Initialize()
 {
     g_event_consent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_done = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_scene_observer = PerceptionSceneFactory::CreatePerceptionSceneFactory();
     g_scene_observer->RequestAccessAsync(SceneUnderstanding_Callback_RequestAccess);
 }
 
+// OK
 bool SceneUnderstanding_WaitForConsent()
 {
     WaitForSingleObject(g_event_consent, INFINITE);
     return (g_s == Status::OK) && (g_psfas == PerceptionSceneFactoryAccessStatus::Allowed);
 }
 
-static void SceneUnderstanding_Callback_ComputeAsync(Status s, std::shared_ptr<Scene> scene)
+// OK
+static uint32_t SceneUnderstanding_KindToFlag(SceneObjectKind kind)
 {
-    // ???
+    switch (kind)
+    {
+    case SceneObjectKind::Background:         return KindFlag::Background;
+    case SceneObjectKind::Wall:               return KindFlag::Wall;
+    case SceneObjectKind::Floor:              return KindFlag::Floor;
+    case SceneObjectKind::Ceiling:            return KindFlag::Ceiling;
+    case SceneObjectKind::Platform:           return KindFlag::Platform;
+    case SceneObjectKind::Unknown:            return KindFlag::Unknown;
+    case SceneObjectKind::World:              return KindFlag::World;
+    case SceneObjectKind::CompletelyInferred: return KindFlag::CompletelyInferred;
+    default:                                  return 0;
+    }
 }
 
-void SceneUnderstanding_Query() // IPC
+// OK
+static void SceneUnderstanding_AdvanceScene(std::shared_ptr<Scene> scene)
 {
-    SceneQuerySettings sqs;
+    PerceptionTimestamp ts = nullptr;
+    SpatialCoordinateSystem scs = nullptr;
+    std::shared_ptr<SceneComponent> component;
+    std::unordered_set<void*> check;
+    GUID guid;
 
-    sqs.EnableSceneObjectQuads = true;
-    sqs.EnableSceneObjectMeshes = true;
-    sqs.EnableOnlyObservedSceneObjects = false;
-    sqs.EnableWorldMesh = true;
-    sqs.RequestedMeshLevelOfDetail = SceneMeshLevelOfDetail::Fine;
+    if (g_scene) { g_scene->Dispose(); }
+    g_scene = scene;
 
-    g_scene_observer->ComputeAsync(sqs, 10.0f, SceneUnderstanding_Callback_ComputeAsync);
-    // g_scene_observer->ComputeWithBoundsAsync() // ???
-    // also with previous scene
+    ts = QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp());
+    guid = scene->GetOriginSpatialGraphNodeId();
+    scs = SpatialGraphInteropPreview::CreateCoordinateSystemForNode(*((winrt::guid*)&guid));
+    
+    g_result.extrinsics = scene->GetOrigin().CoordinateSystemToNodeTransform;
+    g_result.pose = Locator_GetTransformTo(scs, Locator_GetWorldCoordinateSystem(ts));
+
+    for (int i = 0; i < g_query.guid_count; ++i)
+    {
+    component = scene->FindComponent(g_query.guid_match[i]);
+    if (!component || (check.count(component->Handle()) > 0)) { continue; }
+    check.insert(component->Handle());
+    g_result.selected.push_back(std::dynamic_pointer_cast<SceneObject>(component));
+    }
+
+    for (auto& object : scene->GetSceneObjects()) { if ((SceneUnderstanding_KindToFlag(object->GetKind()) & g_query.kinds) && (check.count(object->Handle()) <= 0)) { g_result.selected.push_back(object); } }
+}
+
+// OK
+static void SceneUnderstanding_Callback_ComputeAsync(Status s, std::shared_ptr<Scene> scene)
+{
+    g_result.status = s;
+    g_result.selected.clear();
+    if (s == Status::OK) { SceneUnderstanding_AdvanceScene(scene); }
+    g_result.items = (uint32_t)g_result.selected.size();
+    SetEvent(g_event_done);
+}
+
+// OK
+void SceneUnderstanding_Query(SceneQuerySettings sqs, float query_radius, bool use_previous, GUID const* guid_match, size_t guid_count, uint8_t kind_flags) // IPC
+{
+    ResetEvent(g_event_done);
+    g_query.guid_match = guid_match;
+    g_query.guid_count = guid_count;
+    g_query.kinds = kind_flags;
+    if (use_previous && g_scene) { g_scene_observer->ComputeAsync(sqs, query_radius, g_scene, SceneUnderstanding_Callback_ComputeAsync); } else { g_scene_observer->ComputeAsync(sqs, query_radius, SceneUnderstanding_Callback_ComputeAsync); }
+}
+
+// OK
+Result const* SceneUnderstanding_WaitForResult()
+{
+    WaitForSingleObject(g_event_done, INFINITE);
+    return &g_result;
 }

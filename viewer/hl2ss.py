@@ -26,6 +26,7 @@ class StreamPort:
 class IPCPort:
     REMOTE_CONFIGURATION = 3809
     SPATIAL_MAPPING      = 3813
+    SCENE_UNDERSTANDING  = 3814
 
 
 # Default Chunk Sizes
@@ -1662,6 +1663,135 @@ class ipc_sm:
         self._client.sendall(msg)
         meshes = {index : mesh for index, mesh in self._download_meshes(count)}
         return meshes
+
+    def close(self):
+        self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Scene Understanding
+#------------------------------------------------------------------------------
+
+class SU_MeshLOD:
+    Coarse = 0
+    Medium = 1
+    Fine = 2
+    Unlimited = 255
+
+
+class SU_KindFlag:
+    Background = 1
+    Wall = 2
+    Floor = 4
+    Ceiling = 8
+    Platform = 16
+    Unknown = 32
+    World = 64
+    CompletelyInferred = 128
+
+
+class SU_Create:
+    New = 0
+    NewFromPrevious = 1
+
+
+class su_task:
+    def __init__(self, enable_quads, enable_meshes, enable_only_observed, enable_world_mesh, mesh_lod, query_radius, create_mode, kind_flags, get_orientation, get_position, get_location_matrix, get_quad, get_meshes, get_collider_meshes, guid_list):
+        self.enable_quads = enable_quads
+        self.enable_meshes = enable_meshes
+        self.enable_only_observed = enable_only_observed
+        self.enable_world_mesh = enable_world_mesh
+        self.mesh_lod = mesh_lod
+        self.query_radius = query_radius
+        self.create_mode = create_mode
+        self.kind_flags = kind_flags
+        self.get_orientation = get_orientation
+        self.get_position = get_position
+        self.get_location_matrix = get_location_matrix
+        self.get_quad = get_quad
+        self.get_meshes = get_meshes
+        self.get_collider_meshes = get_collider_meshes
+        self.guid_list = guid_list
+
+
+class SU_Kind:
+    Background = 0,
+    Wall = 1,
+    Floor = 2,
+    Ceiling = 3,
+    Platform = 4,
+    Unknown = 247,
+    World = 248,
+    CompletelyInferred = 249,
+
+
+class _su_item:
+    def __init__(self, id, kind, orientation, position, location, alignment, extents):
+        self.id = id
+        self.kind = np.frombuffer(kind, dtype=np.int32)
+        if (len(orientation) > 0):
+            self.orientation = np.frombuffer(orientation, dtype=np.float32)
+        if (len(position) > 0):
+            self.position = np.frombuffer(position, dtype=np.float32)
+        if (len(location) > 0):
+            self.location = np.frombuffer(location, dtype=np.float32).reshape((4, 4))
+        if (len(alignment) > 0):
+            self.alignment = np.frombuffer(alignment, np.int32)
+        if (len(extents) > 0):
+            self.extents = np.frombuffer(extents, dtype=np.float32)
+
+
+class _su_result:
+    def __init__(self, header, offset_orientation, offset_position, offset_location, offset_alignment, offset_extents, items):
+        self._he = 4
+        self._hp = self._he + 64
+        self._hi = self._hp + 64
+        self._bo = 20
+        self._bp = self._bo + offset_orientation
+        self._bl = self._bp + offset_position
+        self._ba = self._bl + offset_location
+        self._be = self._ba + offset_alignment
+        self._bm = self._be + offset_extents
+
+        self.extrinsics = header[self._he:self._hp]
+        self.pose = header[self._hp:self._hi]
+        self.items = items
+
+    def _unpack_item(self, d):
+        return _su_item(d[:16], d[16:20], d[self._bo:self._bp], d[self._bp:self._bl], d[self._bl:self._ba], d[self._ba:self._be], d[self._be:self._bm])
+    
+    def unpack(self):
+        self.extrinsics = np.frombuffer(self.extrinsics, dtype=np.float32).reshape((4, 4))
+        self.pose = np.frombuffer(self.pose, dtype=np.float32).reshape((4, 4))
+        self.items = [self._unpack_item(d) for d in self.items]
+
+
+class ipc_su:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self._client = _client()
+
+    def open(self):
+        self._client.open(self.host, self.port)
+
+    def query(self, task):
+        msg = struct.pack('<BBBBIfBBBBBBBBI', task.enable_quads, task.enable_meshes, task.enable_only_observed, task.enable_world_mesh, task.mesh_lod, task.query_radius, task.create_mode, task.kind_flags, task.get_orientation, task.get_position, task.get_location_matrix, task.get_quad, task.get_meshes, task.get_collider_meshes, len(task.guid_list))
+        print(f'msg len {len(msg)}')
+        self._client.sendall(msg)
+        header = self._client.download(136, ChunkSize.SINGLE_TRANSFER)
+        status = struct.unpack('<I', header[:4])[0]
+        if (status != 0):
+            return None
+        items = struct.unpack('<I', header[132:])[0]
+        offset_orientation = 16 * task.get_orientation
+        offset_position = 12 * task.get_position
+        offset_location = 64 * task.get_location_matrix
+        offset_alignment = 4 * task.get_quad
+        offset_extents = 8 * task.get_quad
+        item_size = 16 + 4 + offset_orientation + offset_position + offset_location + offset_alignment + offset_extents
+        items = [self._client.download(item_size, ChunkSize.SINGLE_TRANSFER) for i in range(0, items)]
+        return _su_result(header, offset_orientation, offset_position, offset_location, offset_alignment, offset_extents, items)
 
     def close(self):
         self._client.close()

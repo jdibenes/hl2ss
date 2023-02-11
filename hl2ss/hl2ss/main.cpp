@@ -14,6 +14,8 @@
 #include "personal_video.h"
 #include "spatial_mapping.h"
 #include "ipc_sm.h"
+#include "scene_understanding.h"
+#include "ipc_su.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
@@ -71,6 +73,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		SpatialInput_Initialize();
 		PersonalVideo_Initialize();
 		SpatialMapping_Initialize();
+		SceneUnderstanding_Initialize(); // thread?
 
 		RM_Initialize();
 		MC_Initialize();
@@ -78,6 +81,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		SI_Initialize();
 		RC_Initialize();
 		SM_Initialize();
+		SU_Initialize();
 
 		m_init = true;
 	}
