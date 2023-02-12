@@ -24,6 +24,27 @@ struct Query
     uint8_t kinds;
 };
 
+template<>
+struct std::hash<GUID>
+{
+std::size_t operator()(GUID const& guid) const noexcept
+{
+    uint8_t hash[8];
+
+    hash[0] = (uint8_t)(guid.Data1);
+    hash[1] = (uint8_t)(guid.Data1 >> 8);
+    hash[2] = guid.Data4[0];
+    hash[3] = (uint8_t)(((guid.Data1 >> 16) & 0x03) | (guid.Data4[1] << 2));
+
+    hash[4] = (uint8_t)(guid.Data1 >> 18);
+    hash[5] = (uint8_t)(((guid.Data1 >> 26) & 0x3F) | (guid.Data3 << 6));
+    hash[6] = (uint8_t)(guid.Data2);
+    hash[7] = (uint8_t)(guid.Data2 >> 8);
+
+    return *((size_t*)hash);
+}
+};
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -88,7 +109,7 @@ static void SceneUnderstanding_AdvanceScene(std::shared_ptr<Scene> scene)
     PerceptionTimestamp ts = nullptr;
     SpatialCoordinateSystem scs = nullptr;
     std::shared_ptr<SceneComponent> component;
-    std::unordered_set<void*> check;
+    std::unordered_set<GUID> check;
     GUID guid;
 
     if (g_scene) { g_scene->Dispose(); }
@@ -104,12 +125,12 @@ static void SceneUnderstanding_AdvanceScene(std::shared_ptr<Scene> scene)
     for (int i = 0; i < g_query.guid_count; ++i)
     {
     component = scene->FindComponent(g_query.guid_match[i]);
-    if (!component || (check.count(component->Handle()) > 0)) { continue; }
-    check.insert(component->Handle());
+    if (!component || (check.count(component->GetId()) > 0)) { continue; }
+    check.insert(component->GetId());
     g_result.selected.push_back(std::dynamic_pointer_cast<SceneObject>(component));
     }
 
-    for (auto& object : scene->GetSceneObjects()) { if ((SceneUnderstanding_KindToFlag(object->GetKind()) & g_query.kinds) && (check.count(object->Handle()) <= 0)) { g_result.selected.push_back(object); } }
+    for (auto& object : scene->GetSceneObjects()) { if ((SceneUnderstanding_KindToFlag(object->GetKind()) & g_query.kinds) && (check.count(object->GetId()) <= 0)) { g_result.selected.push_back(object); } }
 }
 
 // OK
