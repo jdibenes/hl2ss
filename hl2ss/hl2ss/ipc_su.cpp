@@ -124,8 +124,7 @@ static void SU_Dispatch(SOCKET clientsocket)
     if (task.get_location_matrix) { item_location = item->GetLocationAsMatrix(); }
     if (task.get_quad)            { quad = item->GetQuad();
                                     item_alignment = quad ? quad->GetAlignment() : SceneQuadAlignment::NonOrthogonal;
-                                    item_extents = quad ? quad->GetExtents() : Vector2{0, 0};
-    }
+                                    item_extents = quad ? quad->GetExtents() : Vector2{0, 0}; }
 
     /*
     item->GetMeshes();
