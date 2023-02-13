@@ -13,6 +13,9 @@
     <Filter Include="Header Files">
       <UniqueIdentifier>{b1ce91d2-71a5-4b7a-8315-c160291ada0b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libraries\SceneUnderstanding">
+      <UniqueIdentifier>{22b77a89-1078-4c0e-8f72-7684fd56d840}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\hl2ss\custom_hook_callback.cpp">
@@ -110,6 +113,15 @@
     </ClCompile>
     <ClCompile Include="..\hl2ss\spatial_mapping.cpp">
       <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_su.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\scene_understanding.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp">
+      <Filter>Libraries\SceneUnderstanding</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -224,5 +236,16 @@
     <ClInclude Include="..\hl2ss\spatial_mapping.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_su.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\scene_understanding.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\runtimes\win10-arm64\native\Microsoft.MixedReality.SceneUnderstanding.dll">
+      <Filter>Libraries\SceneUnderstanding</Filter>
+    </None>
   </ItemGroup>
 </Project>

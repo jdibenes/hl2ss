@@ -216,12 +216,14 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>Default</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <AdditionalDependencies>mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mfuuid.lib;Microsoft.MixedReality.SceneUnderstanding.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\ARM64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -257,6 +259,7 @@
     <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sm.cpp" />
+    <ClCompile Include="..\hl2ss\ipc_su.cpp" />
     <ClCompile Include="..\hl2ss\locator.cpp" />
     <ClCompile Include="..\hl2ss\lock.cpp" />
     <ClCompile Include="..\hl2ss\log.cpp" />
@@ -265,6 +268,7 @@
     <ClCompile Include="..\hl2ss\nfo.cpp" />
     <ClCompile Include="..\hl2ss\personal_video.cpp" />
     <ClCompile Include="..\hl2ss\research_mode.cpp" />
+    <ClCompile Include="..\hl2ss\scene_understanding.cpp" />
     <ClCompile Include="..\hl2ss\server.cpp" />
     <ClCompile Include="..\hl2ss\spatial_input.cpp" />
     <ClCompile Include="..\hl2ss\spatial_mapping.cpp" />
@@ -276,6 +280,7 @@
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\timestamps.cpp" />
+    <ClCompile Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp" />
     <ClCompile Include="holographic_space_stub.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="ipc.cpp" />
@@ -292,6 +297,7 @@
     <ClInclude Include="..\hl2ss\ipc_rc.h" />
     <ClInclude Include="..\hl2ss\ipc_sc.h" />
     <ClInclude Include="..\hl2ss\ipc_sm.h" />
+    <ClInclude Include="..\hl2ss\ipc_su.h" />
     <ClInclude Include="..\hl2ss\locator.h" />
     <ClInclude Include="..\hl2ss\lock.h" />
     <ClInclude Include="..\hl2ss\log.h" />
@@ -301,6 +307,7 @@
     <ClInclude Include="..\hl2ss\personal_video.h" />
     <ClInclude Include="..\hl2ss\ports.h" />
     <ClInclude Include="..\hl2ss\research_mode.h" />
+    <ClInclude Include="..\hl2ss\scene_understanding.h" />
     <ClInclude Include="..\hl2ss\server.h" />
     <ClInclude Include="..\hl2ss\spatial_input.h" />
     <ClInclude Include="..\hl2ss\spatial_mapping.h" />
@@ -318,6 +325,9 @@
     <ClInclude Include="plugin.h" />
     <ClInclude Include="ipc.h" />
     <ClInclude Include="ports.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\runtimes\win10-arm64\native\Microsoft.MixedReality.SceneUnderstanding.dll" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
