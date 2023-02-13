@@ -84,6 +84,9 @@ public class hl2ss : MonoBehaviour
     [Tooltip("Enable Spatial Mapping interface. Has no effect if InitializeStreams is called from the cpp code.")]
     public bool enableSM = true;
 
+    [Tooltip("Enable Scene Understanding interface. Has no effect if InitializeStreams is called from the cpp code.")]
+    public bool enableSU = true;
+
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
 
@@ -101,7 +104,7 @@ public class hl2ss : MonoBehaviour
         m_loop = false;
         m_mode = false;
 
-        if (!skipInitialization) { InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U)); }
+        if (!skipInitialization) { InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U)); }
 
         byte[] ipaddress = new byte[16 * 2];
         GetLocalIPv4Address(ipaddress, ipaddress.Length);
