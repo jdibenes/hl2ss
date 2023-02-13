@@ -26,6 +26,7 @@ class StreamPort:
 class IPCPort:
     REMOTE_CONFIGURATION = 3809
     SPATIAL_MAPPING      = 3813
+    SCENE_UNDERSTANDING  = 3814
 
 
 # Default Chunk Sizes
@@ -1662,6 +1663,155 @@ class ipc_sm:
         self._client.sendall(msg)
         meshes = {index : mesh for index, mesh in self._download_meshes(count)}
         return meshes
+
+    def close(self):
+        self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Scene Understanding
+#------------------------------------------------------------------------------
+
+class SU_MeshLOD:
+    Coarse = 0
+    Medium = 1
+    Fine = 2
+    Unlimited = 255
+
+
+class SU_KindFlag:
+    Background = 1
+    Wall = 2
+    Floor = 4
+    Ceiling = 8
+    Platform = 16
+    Unknown = 32
+    World = 64
+    CompletelyInferred = 128
+
+
+class SU_Create:
+    New = 0
+    NewFromPrevious = 1
+
+
+class SU_Kind:
+    Background = 0,
+    Wall = 1,
+    Floor = 2,
+    Ceiling = 3,
+    Platform = 4,
+    Unknown = 247,
+    World = 248,
+    CompletelyInferred = 249,
+
+
+class su_task:
+    def __init__(self, enable_quads, enable_meshes, enable_only_observed, enable_world_mesh, mesh_lod, query_radius, create_mode, kind_flags, get_orientation, get_position, get_location_matrix, get_quad, get_meshes, get_collider_meshes, guid_list):
+        self.enable_quads = enable_quads
+        self.enable_meshes = enable_meshes
+        self.enable_only_observed = enable_only_observed
+        self.enable_world_mesh = enable_world_mesh
+        self.mesh_lod = mesh_lod
+        self.query_radius = query_radius
+        self.create_mode = create_mode
+        self.kind_flags = kind_flags
+        self.get_orientation = get_orientation
+        self.get_position = get_position
+        self.get_location_matrix = get_location_matrix
+        self.get_quad = get_quad
+        self.get_meshes = get_meshes
+        self.get_collider_meshes = get_collider_meshes
+        self.guid_list = guid_list
+
+
+class _su_mesh:
+    def __init__(self, vertex_positions, triangle_indices):
+        self.vertex_positions = vertex_positions
+        self.triangle_indices = triangle_indices
+
+    def unpack(self):
+        self.vertex_positions = np.frombuffer(self.vertex_positions, dtype=np.float32).reshape((-1, 3))
+        self.triangle_indices = np.frombuffer(self.triangle_indices, dtype=np.uint32).reshape((-1, 3))
+
+
+class _su_item:
+    def __init__(self, id, kind, orientation, position, location, alignment, extents, meshes, collider_meshes):
+        self.id = id
+        self.kind = kind
+        self.orientation = orientation
+        self.position = position
+        self.location = location
+        self.alignment = alignment
+        self.extents = extents
+        self.meshes = meshes
+        self.collider_meshes = collider_meshes
+
+    def unpack(self):
+        self.kind = np.frombuffer(self.kind, dtype=np.int32)
+        self.orientation = np.frombuffer(self.orientation, dtype=np.float32)
+        self.position = np.frombuffer(self.position, dtype=np.float32)
+        self.location = np.frombuffer(self.location, dtype=np.float32).reshape((-1, 4))
+        self.alignment = np.frombuffer(self.alignment, np.int32)
+        self.extents = np.frombuffer(self.extents, dtype=np.float32)
+
+
+class _su_result:
+    def __init__(self, extrinsics, pose, items):        
+        self.extrinsics = extrinsics
+        self.pose = pose
+        self.items = items
+
+    def unpack(self):
+        self.extrinsics = np.frombuffer(self.extrinsics, dtype=np.float32).reshape((4, 4))
+        self.pose = np.frombuffer(self.pose, dtype=np.float32).reshape((4, 4))
+
+
+class ipc_su:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self._client = _client()
+
+    def open(self):
+        self._client.open(self.host, self.port)
+
+    def _download_mesh(self):
+        elements_vertices, elements_indices = struct.unpack('<II', self._client.download(2 * _SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))
+        vpl = elements_vertices * _SIZEOF.DWORD
+        til = elements_indices * _SIZEOF.DWORD
+        data = self._client.download(vpl + til, ChunkSize.SINGLE_TRANSFER)
+        return _su_mesh(data[:vpl], data[vpl:])
+
+    def _download_meshes(self):
+        return [self._download_mesh() for _ in range(0, struct.unpack('<I', self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0])]
+    
+    def _download_item(self, bi, bk, bo, bp, bl, ba, be, bm, download_meshes, download_collider_meshes):
+        d = self._client.download(bm, ChunkSize.SINGLE_TRANSFER)
+        return _su_item(d[bi:bk], d[bk:bo], d[bo:bp], d[bp:bl], d[bl:ba], d[ba:be], d[be:bm], self._download_meshes() if (download_meshes) else [], self._download_meshes() if (download_collider_meshes) else [])
+    
+    def query(self, task):
+        msg = bytearray()
+        msg.extend(struct.pack('<BBBBIfBBBBBBBBI', task.enable_quads, task.enable_meshes, task.enable_only_observed, task.enable_world_mesh, task.mesh_lod, task.query_radius, task.create_mode, task.kind_flags, task.get_orientation, task.get_position, task.get_location_matrix, task.get_quad, task.get_meshes, task.get_collider_meshes, len(task.guid_list)))
+        for guid in task.guid_list:
+            msg.extend(guid)
+        self._client.sendall(msg)
+        header = self._client.download(136, ChunkSize.SINGLE_TRANSFER)
+        status = struct.unpack('<I', header[:4])[0]
+        if (status != 0):
+            return None
+        he = 4
+        hp = he + 64
+        hi = hp + 64
+        bi = 0
+        bk = bi + 16
+        bo = bk + 4
+        bp = bo + (16 * task.get_orientation)
+        bl = bp + (12 * task.get_position)
+        ba = bl + (64 * task.get_location_matrix)
+        be = ba + (4 * task.get_quad)
+        bm = be + (8 * task.get_quad)
+        return _su_result(header[he:hp], header[hp:hi], [self._download_item(bi, bk, bo, bp, bl, ba, be, bm, task.get_meshes, task.get_collider_meshes) for _ in range(0, struct.unpack('<I', header[132:])[0])])
 
     def close(self):
         self._client.close()

@@ -163,6 +163,7 @@
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="ipc_sc.h" />
     <ClInclude Include="ipc_sm.h" />
+    <ClInclude Include="ipc_su.h" />
     <ClInclude Include="locator.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="neon.h" />
@@ -170,6 +171,7 @@
     <ClInclude Include="personal_video.h" />
     <ClInclude Include="ipc_rc.h" />
     <ClInclude Include="researchmode\ResearchModeApi.h" />
+    <ClInclude Include="scene_understanding.h" />
     <ClInclude Include="spatial_input.h" />
     <ClInclude Include="spatial_mapping.h" />
     <ClInclude Include="stream_mc.h" />
@@ -206,10 +208,12 @@
     <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="ipc_sc.cpp" />
     <ClCompile Include="ipc_sm.cpp" />
+    <ClCompile Include="ipc_su.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="neon.cpp" />
     <ClCompile Include="nfo.cpp" />
     <ClCompile Include="research_mode.cpp" />
+    <ClCompile Include="scene_understanding.cpp" />
     <ClCompile Include="spatial_input.cpp" />
     <ClCompile Include="locator.cpp" />
     <ClCompile Include="main.cpp" />
@@ -263,6 +267,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
+    <Import Project="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets" Condition="Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -270,5 +275,6 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets'))" />
   </Target>
 </Project>

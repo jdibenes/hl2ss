@@ -100,9 +100,6 @@
     <ClCompile Include="neon.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
-    <ClCompile Include="ipc_rc.cpp">
-      <Filter>Source Files\server</Filter>
-    </ClCompile>
     <ClCompile Include="ipc_sc.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
@@ -115,8 +112,20 @@
     <ClCompile Include="spatial_mapping.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
+    <ClCompile Include="scene_understanding.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp">
+      <Filter>Libraries\SceneUnderstanding</Filter>
+    </ClCompile>
     <ClCompile Include="ipc_sm.cpp">
-      <Filter>Source Files\server</Filter>
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="ipc_rc.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="ipc_su.cpp">
+      <Filter>Source Files\streams</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -200,6 +209,9 @@
     <Filter Include="Libraries\Cannon\Shaders">
       <UniqueIdentifier>{c1ffcf68-dab7-4e2e-8d39-62e6bd99b99f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libraries\SceneUnderstanding">
+      <UniqueIdentifier>{a94c3462-d48c-4d9d-80dc-711bb512086c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
@@ -207,6 +219,9 @@
     </None>
     <None Include="PropertySheet.props">
       <Filter>Metadata</Filter>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(SceneUnderstanding-Platform)\native\Microsoft.MixedReality.SceneUnderstanding.dll">
+      <Filter>Libraries\SceneUnderstanding</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -333,9 +348,6 @@
     <ClInclude Include="ipc_sc.h">
       <Filter>Header Files\server</Filter>
     </ClInclude>
-    <ClInclude Include="ipc_rc.h">
-      <Filter>Header Files\server</Filter>
-    </ClInclude>
     <ClInclude Include="display7s.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
@@ -345,8 +357,17 @@
     <ClInclude Include="spatial_mapping.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
+    <ClInclude Include="ipc_rc.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
     <ClInclude Include="ipc_sm.h">
-      <Filter>Header Files\server</Filter>
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="scene_understanding.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="ipc_su.h">
+      <Filter>Header Files\streams</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

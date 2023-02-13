@@ -96,7 +96,7 @@ bool recv(SOCKET clientsocket, char* buf, int bytes)
 	while (bytes > 0)
 	{
 	status = recv(clientsocket, buf, bytes, 0);
-	if (status == SOCKET_ERROR) { return false; }
+	if ((status == SOCKET_ERROR) || (status == 0)) { return false; }
 	buf   += status;
 	bytes -= status;
 	}
