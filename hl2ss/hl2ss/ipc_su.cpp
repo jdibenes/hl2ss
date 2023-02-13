@@ -44,6 +44,68 @@ static void SU_TransferError()
     SetEvent(g_clientevent);
 }
 
+static void SU_TransferMeshes(SOCKET clientsocket, std::vector<std::shared_ptr<SceneMesh>> const& meshes)
+{
+    uint32_t const vertex_fields = 3;
+    uint32_t count = (uint32_t)meshes.size();
+    uint32_t count_vertices;
+    uint32_t count_vertices_fields;
+    uint32_t count_triangle_indices;
+    uint32_t* data_vertices;
+    uint32_t* data_triangle_indices;
+    std::vector<uint32_t> buffer_vertices;
+    std::vector<uint32_t> buffer_triangles;
+    WSABUF wsaBufHeader[1];
+    WSABUF wsaBufMesh[4];
+    bool ok;
+
+    wsaBufHeader[0].buf = (char*)&count;
+    wsaBufHeader[0].len = sizeof(count);
+
+    ok = send_multiple(clientsocket, wsaBufHeader, sizeof(wsaBufHeader) / sizeof(WSABUF));
+    if (!ok)
+    {
+        SU_TransferError();
+        return;
+    }
+
+    for (auto& mesh : meshes)
+    {
+    count_vertices = mesh->GetVertexCount();
+    count_triangle_indices = mesh->GetTriangleIndexCount();
+
+    count_vertices_fields = count_vertices * vertex_fields;
+
+    buffer_vertices.resize(count_vertices_fields);
+    buffer_triangles.resize(count_triangle_indices);
+
+    data_vertices = buffer_vertices.data();
+    data_triangle_indices = buffer_triangles.data();
+
+    mesh->GetVertexPositions(data_vertices, count_vertices);
+    mesh->GetTriangleIndices({ data_triangle_indices, count_triangle_indices });
+
+    wsaBufMesh[0].buf = (char*)&count_vertices_fields;
+    wsaBufMesh[0].len = sizeof(count_vertices_fields);
+
+    wsaBufMesh[1].buf = (char*)&count_triangle_indices;
+    wsaBufMesh[1].len = sizeof(count_triangle_indices);
+
+    wsaBufMesh[2].buf = (char*)data_vertices;
+    wsaBufMesh[2].len = count_vertices_fields * sizeof(uint32_t);
+
+    wsaBufMesh[3].buf = (char*)data_triangle_indices;
+    wsaBufMesh[3].len = count_triangle_indices * sizeof(uint32_t);
+
+    ok = send_multiple(clientsocket, wsaBufMesh, sizeof(wsaBufMesh) / sizeof(WSABUF));
+    if (!ok)
+    {
+        SU_TransferError();
+        return;
+    }
+    }
+}
+
 // OK
 static void SU_Dispatch(SOCKET clientsocket)
 {
@@ -125,22 +187,16 @@ static void SU_Dispatch(SOCKET clientsocket)
     if (task.get_quad)            { quad = item->GetQuad();
                                     item_alignment = quad ? quad->GetAlignment() : SceneQuadAlignment::NonOrthogonal;
                                     item_extents = quad ? quad->GetExtents() : Vector2{0, 0}; }
-
-    /*
-    item->GetMeshes();
-    item->GetColliderMeshes();
-    */
-    /*
-    bool get_meshes;
-    bool get_collider_meshes;
-    */
-
+    
     ok = send_multiple(clientsocket, wsaBuf_items, sizeof(wsaBuf_items) / sizeof(WSABUF));
     if (!ok)
     {
         SU_TransferError();
         return;
     }
+    
+    if (task.get_meshes)          { SU_TransferMeshes(clientsocket, item->GetMeshes()); }
+    if (task.get_collider_meshes) { SU_TransferMeshes(clientsocket, item->GetColliderMeshes()); }
     }
 }
 
