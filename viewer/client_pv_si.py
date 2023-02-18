@@ -11,11 +11,12 @@
 from pynput import keyboard
 
 import multiprocessing as mp
+import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
-import cv2
 
 # Settings --------------------------------------------------------------------
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
         data_pv = client_pv.get_next_packet()
         data_si = sink_si.get_nearest(data_pv.timestamp)[1]
 
-        image = data_pv.payload
+        image = data_pv.payload.image
 
         if (hl2ss.is_valid_pose(data_pv.pose) and (data_si is not None)):
             projection = hl2ss_3dcv.projection(calibration.intrinsics, hl2ss_3dcv.world_to_reference(data_pv.pose))

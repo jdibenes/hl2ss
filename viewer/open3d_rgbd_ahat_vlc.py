@@ -8,6 +8,7 @@ from pynput import keyboard
 import multiprocessing as mp
 import numpy as np
 import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_mp
 import hl2ss_3dcv

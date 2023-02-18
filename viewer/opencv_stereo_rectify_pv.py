@@ -1,8 +1,9 @@
 
+import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_utilities
 import hl2ss_3dcv
-import cv2
 import numpy as np
 
 # Settings --------------------------------------------------------------------
@@ -31,7 +32,7 @@ line_thickness = 1
 #------------------------------------------------------------------------------
 
 hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-rc_control = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+rc_control = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 while (not rc_control.get_pv_subsystem_status()):
     pass
 
@@ -68,7 +69,7 @@ data_rf = client_rf.get_next_packet()
 client_rf.close()
 
 image_l = hl2ss_3dcv.rm_vlc_to_rgb(hl2ss_3dcv.rm_vlc_rotate_image(cv2.remap(data_lf.payload, calibration_lf.undistort_map[:,:,0], calibration_lf.undistort_map[:,:,1], cv2.INTER_LINEAR), rotation_lf))
-image_r = data_rf.payload
+image_r = data_rf.payload.image
 
 r1 = cv2.remap(image_l, stereo_rectification.map1[:, :, 0], stereo_rectification.map1[:, :, 1], cv2.INTER_LINEAR)
 r2 = cv2.remap(image_r, stereo_rectification.map2[:, :, 0], stereo_rectification.map2[:, :, 1], cv2.INTER_LINEAR)

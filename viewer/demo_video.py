@@ -8,6 +8,7 @@ from pynput import keyboard
 import numpy as np
 import multiprocessing as mp
 import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_mp
 
@@ -64,7 +65,7 @@ if __name__ == '__main__':
         print('Error: Simultaneous RM Depth Long Throw and RM Depth AHAT streaming is not supported. See known issues at https://github.com/jdibenes/hl2ss.')
         quit()
 
-    client_rc = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    client_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
         hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
@@ -91,6 +92,9 @@ if __name__ == '__main__':
         sinks[port] = consumer.create_sink(producer, port, manager, None)
         sinks[port].get_attach_response()
 
+    def display_pv(port, payload):
+        cv2.imshow(hl2ss.get_port_name(port), payload.image)
+
     def display_basic(port, payload):
         cv2.imshow(hl2ss.get_port_name(port), payload)
 
@@ -105,7 +109,7 @@ if __name__ == '__main__':
         hl2ss.StreamPort.RM_VLC_RIGHTRIGHT  : display_basic,
         hl2ss.StreamPort.RM_DEPTH_AHAT      : display_depth,
         hl2ss.StreamPort.RM_DEPTH_LONGTHROW : display_depth,
-        hl2ss.StreamPort.PERSONAL_VIDEO     : display_basic
+        hl2ss.StreamPort.PERSONAL_VIDEO     : display_pv
     }
 
     enable = True

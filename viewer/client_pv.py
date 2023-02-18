@@ -10,8 +10,9 @@
 
 from pynput import keyboard
 
-import hl2ss
 import cv2
+import hl2ss_imshow
+import hl2ss
 
 # Settings --------------------------------------------------------------------
 
@@ -74,10 +75,10 @@ else:
         print('Pose at time {ts}'.format(ts=data.timestamp))
         print(data.pose)
         print('Focal length')
-        print(data.focal_length)
+        print(data.payload.focal_length)
         print('Principal point')
-        print(data.principal_point)
-        cv2.imshow('Video', data.payload)
+        print(data.payload.principal_point)
+        cv2.imshow('Video', data.payload.image)
         cv2.waitKey(1)
 
     client.close()

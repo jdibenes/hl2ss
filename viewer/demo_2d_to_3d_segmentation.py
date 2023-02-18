@@ -7,6 +7,7 @@ import multiprocessing as mp
 import numpy as np
 import hl2ss
 import hl2ss_utilities
+import hl2ss_mp
 import hl2ss_3dcv
 import cv2
 import mmcv
@@ -116,13 +117,16 @@ def main():
     uv2xy = calibration_lt.uv2xy
     xy1, scale, depth_to_vlc_image = hl2ss_3dcv.rm_depth_registration(uv2xy, calibration_lt.scale, calibration_lt.extrinsics, calibration_vlc.intrinsics, calibration_vlc.extrinsics)
 
-    producer = hl2ss_utilities.producer()
-    producer.initialize_decoded_rm_vlc(hl2ss.Parameters_RM_VLC.FPS * buffer_length, host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, hl2ss.VideoProfile.H264_BASE, 1024*1024)
-    producer.initialize_decoded_rm_depth_longthrow(hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
-    producer.start()
+    producer = hl2ss_mp.producer()
+    producer.configure_rm_vlc(True, host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, hl2ss.VideoProfile.H264_BASE, 1024*1024)
+    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.initialize(hl2ss.StreamPort.RM_VLC_LEFTFRONT, buffer_length*hl2ss.Parameters_RM_VLC.FPS)
+    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, buffer_length*hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
+    producer.start(hl2ss.StreamPort.RM_VLC_LEFTFRONT)
+    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     manager = mp.Manager()
-    consumer = hl2ss_utilities.consumer()
+    consumer = hl2ss_mp.consumer()
     sink_vlc = consumer.create_sink(producer, hl2ss.StreamPort.RM_VLC_LEFTFRONT, manager, None)
     sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
 
@@ -143,7 +147,7 @@ def main():
         vis.update_renderer()
 
         data_depth = sink_depth.get_most_recent_frame()
-        if (not data_depth.is_valid_pose()):
+        if (not hl2ss.is_valid_pose(data_depth.pose)):
             continue
 
         _, data_vlc = sink_vlc.get_nearest(data_depth.timestamp)

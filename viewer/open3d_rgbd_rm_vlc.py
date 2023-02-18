@@ -6,6 +6,7 @@
 import numpy as np
 import open3d as o3d
 import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_utilities
 import hl2ss_3dcv

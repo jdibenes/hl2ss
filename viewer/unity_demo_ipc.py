@@ -11,14 +11,14 @@ import rus
 #------------------------------------------------------------------------------
 
 # HL2 address
-host = '192.168.1.15'
+host = '192.168.1.7'
 
 # text to send to the Unity app
 text = 'hello from python!!'
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.client() # create hl2ss client object
+client = hl2ss._client() # create hl2ss client object
 client.open(host, rus.Port.IPC) # connect to HL2
 
 data = text.encode('utf-8') # encode string as utf8

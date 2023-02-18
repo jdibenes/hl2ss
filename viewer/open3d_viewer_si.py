@@ -132,7 +132,7 @@ if __name__ == '__main__':
         depth_world_to_camera = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
 
         depth = hl2ss_3dcv.rm_depth_normalize(data_depth.payload.depth, calibration_lt.undistort_map, scale)
-        rgb, depth = hl2ss_3dcv.rm_depth_rgbd_registered(depth, data_pv.payload, xy1, depth_to_pv_image, cv2.INTER_LINEAR)
+        rgb, depth = hl2ss_3dcv.rm_depth_rgbd_registered(depth, data_pv.payload.image, xy1, depth_to_pv_image, cv2.INTER_LINEAR)
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
         
         volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())

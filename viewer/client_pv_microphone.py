@@ -58,7 +58,8 @@ def recv_pv(stream_video, lock, packetqueue, time_base, host, width, height, fra
         if (not tsfirst):
             tsfirst = data.timestamp
         lock.release()
-        for packet in codec_video.parse(data.payload):
+        frame = hl2ss.unpack_pv(data.payload)
+        for packet in codec_video.parse(frame.image):
             packet.stream = stream_video
             packet.pts = data.timestamp - tsfirst
             packet.dts = packet.pts

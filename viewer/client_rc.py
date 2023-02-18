@@ -56,7 +56,7 @@ scene_mode = hl2ss.PV_CaptureSceneMode.Auto
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+client = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 
 version = client.get_application_version()
 print('Installed version {v0}.{v1}.{v2}.{v3}'.format(v0=version[0], v1=version[1], v2=version[2], v3=version[3]))

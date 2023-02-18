@@ -7,8 +7,9 @@
 
 from pynput import keyboard
 
-import hl2ss
 import cv2
+import hl2ss_imshow
+import hl2ss
 
 # Settings --------------------------------------------------------------------
 

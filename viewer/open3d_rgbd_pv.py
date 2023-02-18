@@ -6,6 +6,7 @@
 import numpy as np
 import open3d as o3d
 import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_utilities
 import hl2ss_3dcv
@@ -37,7 +38,7 @@ max_depth = 3.0
 #------------------------------------------------------------------------------
 
 hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-rc_control = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+rc_control = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 while (not rc_control.get_pv_subsystem_status()):
     pass
 
@@ -73,7 +74,7 @@ xy1, scale, depth_to_pv_image = hl2ss_3dcv.rm_depth_registration(uv2xy, lt_calib
 # Generate RGBD pair
 
 depth = hl2ss_3dcv.rm_depth_normalize(data_lt.payload.depth, lt_calibration.undistort_map, scale)
-rgb, depth = hl2ss_3dcv.rm_depth_rgbd_registered(depth, data_pv.payload, xy1, depth_to_pv_image, cv2.INTER_LINEAR)
+rgb, depth = hl2ss_3dcv.rm_depth_rgbd_registered(depth, data_pv.payload.image, xy1, depth_to_pv_image, cv2.INTER_LINEAR)
 
 # Show RGBD image
 
