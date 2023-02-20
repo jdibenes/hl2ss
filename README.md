@@ -76,6 +76,7 @@ Required packages:
 - [OpenCV](https://github.com/opencv/opencv-python) `pip install opencv-python`
 - [PyAV](https://github.com/PyAV-Org/PyAV) `pip install av`
 - [NumPy](https://numpy.org/) `pip install numpy`
+- [Websockets](https://github.com/aaugustin/websockets) `pip install websockets`
 
 Optional packages used by some of the samples:
 
