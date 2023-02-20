@@ -1,16 +1,20 @@
 # HoloLens 2 Sensor Streaming
 
-HoloLens 2 server application for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes. Also works on Windows and OS X.
+HoloLens 2 server application and Python client library for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes but also works on Windows and OS X.
 
 **Supported streams**
 
-- Research Mode Visible Light Cameras (4 cameras, 640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
+- Research Mode Visible Light Cameras (640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
+  - Left Front
+  - Left Left
+  - Right Front
+  - Right Right
 - Research Mode Depth
   - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB as NV12 luma+chroma, H264 or HEVC encoded) 
-  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB encoded as a single 32-bit PNG)
+  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB, encoded as a single 32-bit PNG)
 - Research Mode IMU
-  - Accelerometer
-  - Gyroscope
+  - Accelerometer (m/s^2)
+  - Gyroscope (deg/s)
   - Magnetometer
 - Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
 - Microphone (2 channels, 48000 Hz, AAC encoded)
@@ -22,15 +26,16 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 **Additional features**
 
 - Access to Spatial Mapping and Scene Understanding data (Experimental).
-- Download calibration (e.g., camera intrinsics) for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
+- Download calibration data for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
 - Optional per-frame pose for the Front Camera and Research Mode sensors streams.
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
-- For the Front Camera, the client can configure the resolution, framerate, focus, white balance, and exposure (see [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported formats).
-
+- Client can configure the resolution and framerate of the Front Camera. See [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
+- Client can configure the focus, white balance, and exposure of the Front Camera. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
+- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC). See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
 
 ## Preparation
 
-Before using the server software, configure your HoloLens as follows:
+Before using the server software configure your HoloLens as follows:
 
 1. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
 2. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
@@ -40,7 +45,15 @@ Please note that **enabling Research Mode on the HoloLens increases battery usag
 
 ## Installation (sideloading)
 
-The server software is distributed as a single appxbundle file.
+The server software is distributed as a single appxbundle file and can be installed using one of the two following methods.
+
+**Method 1**
+
+1. On your HoloLens, open Microsoft Edge and navigate to this repository.
+2. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
+3. Open the appxbundle and tap Install.
+
+**Method 2**
 
 1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
 2. Go to the Device Portal (type the IP address of your HoloLens in the address bar of your preferred web browser) and upload the appxbundle to the HoloLens (System -> File explorer -> Downloads).
@@ -50,7 +63,7 @@ You can find the server application (hl2ss) in the All apps list.
 
 ## Permissions
 
-The first time the server runs it will ask for the necessary permissions to access sensor data. If there are any issues, please verify that the server application (hl2ss.exe) has access to:
+The first time the server runs it will ask for the necessary permissions to access sensor data. If there are any issues please verify that the server application (hl2ss.exe) has access to:
 
 - Camera (Settings -> Privacy -> Camera).
 - Eye tracker (Settings -> Privacy -> Eye tracker).
@@ -166,7 +179,7 @@ This process is described later in this section.
 7. Navigate to Configuration Properties -> Linker -> Input -> Additional Dependencies and add hl2ss.lib.
 8. Open App.cpp and edit it as follows:
     1. `#include <hl2ss.h>` after the other includes.
-    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_MC | HL2SS_ENABLE_PV | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM);`.
+    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_MC | HL2SS_ENABLE_PV | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU);`.
 9. Follow step 11 of the previous section.
 
 **Remote Unity Scene**
