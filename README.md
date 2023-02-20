@@ -1,6 +1,6 @@
 # HoloLens 2 Sensor Streaming
 
-HoloLens 2 server application and Python client library for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes but also works on Windows and OS X.
+HoloLens 2 server application and Python client library for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes but also works on Windows and OS X. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
 
 **Supported streams**
 
@@ -17,7 +17,7 @@ HoloLens 2 server application and Python client library for streaming sensor dat
   - Gyroscope (deg/s)
   - Magnetometer
 - Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
-- Microphone (2 channels, 48000 Hz, AAC encoded)
+- Microphone (2 channels @ 48000 Hz, PCM 16, AAC encoded)
 - Spatial Input (60 Hz)
   - Head Tracking
   - Eye Tracking
@@ -31,7 +31,7 @@ HoloLens 2 server application and Python client library for streaming sensor dat
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
 - Client can configure the resolution and framerate of the Front Camera. See [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
-- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC). See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
+- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
 
 ## Preparation
 
@@ -72,7 +72,10 @@ The first time the server runs it will ask for the necessary permissions to acce
 
 ## Python client
 
-The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time. Run the server application on your HoloLens and set the host variable of the Python scripts to your HoloLens IP address.
+The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time. Additional samples show how to associate data from multiple streams. Run the server application on your HoloLens and set the host variable of the Python scripts to your HoloLens IP address.
+
+**Interfaces**
+
 - RM VLC: [viewer/client_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_vlc.py)
 - RM Depth AHAT: [viewer/client_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_ahat.py)
 - RM Depth Long Throw: [viewer/client_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_longthrow.py)
@@ -84,18 +87,28 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Spatial Mapping: [viewer/client_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_sm.py)
 - Scene Understanding: [viewer/client_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_su.py)
 
-Required packages:
+**Required packages**
 
 - [OpenCV](https://github.com/opencv/opencv-python) `pip install opencv-python`
 - [PyAV](https://github.com/PyAV-Org/PyAV) `pip install av`
 - [NumPy](https://numpy.org/) `pip install numpy`
 - [Websockets](https://github.com/aaugustin/websockets) `pip install websockets`
 
-Optional packages used by some of the samples:
+**Optional packages**
 
 - [pynput](https://github.com/moses-palmer/pynput) `pip install pynput`
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
+- [MMDetection](https://github.com/open-mmlab/mmdetection)
+
+**Data Details**
+
+- Right-handed coordinate system with +y => up, +x => right, and -z => forward.
+- For 3D points the order is [x, y, z] expressed in meters.
+- For quaternions (orientations) the order is [x, y, z, w].
+- For RM Depth Longthrow divide depth by 1000 to convert to meters.
+- For RM Depth AHAT divide depth by 250 to convert to meters.
+- [Hand data format](https://learn.microsoft.com/en-us/uwp/api/windows.perception.people.jointpose?view=winrt-22621).
 
 ## Known issues and limitations
 
