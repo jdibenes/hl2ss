@@ -25,7 +25,7 @@ HoloLens 2 server application for streaming sensor data via TCP. Created to stre
 - Download calibration (e.g., camera intrinsics) for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
 - Optional per-frame pose for the Front Camera and Research Mode sensors streams.
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
-- For the Front Camera, the client can configure the resolution, framerate, focus, white balance, and exposure (see [etc/hl2_capture_formats.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/hl2_capture_formats.txt) for a list of supported formats).
+- For the Front Camera, the client can configure the resolution, framerate, focus, white balance, and exposure (see [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported formats).
 
 
 ## Preparation
@@ -34,7 +34,7 @@ Before using the server software, configure your HoloLens as follows:
 
 1. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
 2. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
-3. Enable research mode: Refer to the **Enabling Research Mode** section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
+3. Enable research mode: Refer to the Enabling Research Mode section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
 
 Please note that **enabling Research Mode on the HoloLens increases battery usage**.
 
@@ -89,7 +89,6 @@ Optional packages used by some of the samples:
 - Ocassionally, the application might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
 - Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens 2 OS. See https://github.com/microsoft/HoloLens2ForCV/issues/133.
 - The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
-- The Python scripts might freeze under some configurations. See https://github.com/PyAV-Org/PyAV/issues/978 and https://github.com/opencv/opencv/issues/21952 for details and workarounds.
 - Building for x86 and x64 (HoloLens emulator), and ARM is not supported.
 
 ## Build from source and deploy
