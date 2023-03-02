@@ -24,7 +24,7 @@ if ((focus < hl2ss.PV_FocusValue.Min) or (focus > hl2ss.PV_FocusValue.Max)):
     print('Error: Focus value must be in range [{fmin}, {fmax}]'.format(fmin=hl2ss.PV_FocusValue.Min, fmax=hl2ss.PV_FocusValue.Max))
     quit()
 
-client_rc = hl2ss.tx_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+client_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 
 hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 client_rc.wait_for_pv_subsystem(True)
