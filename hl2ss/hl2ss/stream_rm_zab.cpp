@@ -110,6 +110,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     size_t nAbCount;
     BYTE* pDst;
     H26xFormat format;
+    CustomMediaSink* pSink; // Release
     IMFSinkWriter* pSinkWriter; // Release
     IMFMediaBuffer* pBuffer; // Release
     IMFSample* pSample; // Release
@@ -136,8 +137,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     switch (format.profile)
     {
-    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_Stack;   framebytes =  width * height * 2  * 2; CreateSinkWriterARGBToARGB(&pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
-    default:                            kernel = Neon_ZHTToNV12; framebytes = (width * height * 3) / 2; CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_Stack;   framebytes =  width * height * 2  * 2; CreateSinkWriterARGBToARGB(&pSink, &pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    default:                            kernel = Neon_ZHTToNV12; framebytes = (width * height * 3) / 2; CreateSinkWriterNV12ToH26x(&pSink, &pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
     }
 
     sensor->OpenStream();
@@ -186,6 +187,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     pSinkWriter->Flush(dwVideoIndex);
     pSinkWriter->Release();
+    pSink->Shutdown();
+    pSink->Release();
 
     CloseHandle(clientevent);
 }

@@ -17,10 +17,10 @@ static uint32_t ComputeNV12Stride(uint32_t width)
 }
 
 // OK
-static void CreateSingleStreamSinkWriter(IMFSinkWriter** ppSinkWriter, DWORD* pdwStreamIndex, IMFMediaType* pInputType, IMFMediaType* pOutputType, HOOK_SINK_PROC hookproc, void* hookparam)
+static void CreateSingleStreamSinkWriter(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwStreamIndex, IMFMediaType* pInputType, IMFMediaType* pOutputType, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	HookSinkCallback* pHook; // Release
-	CustomMediaSink* pSink; // Release
+	CustomMediaSink* pSink;
 	IMFAttributes* pSinkAttr; // Release
 	IMFSinkWriter* pSinkWriter;
 	DWORD dwStreamIndex;
@@ -40,28 +40,29 @@ static void CreateSingleStreamSinkWriter(IMFSinkWriter** ppSinkWriter, DWORD* pd
 	pSinkWriter->SetInputMediaType(dwStreamIndex, pInputType, NULL);
 	pSinkWriter->BeginWriting();
 
+	*ppSink = pSink;
 	*ppSinkWriter = pSinkWriter;
 	*pdwStreamIndex = dwStreamIndex;
 
 	pHook->Release();
-	pSink->Release();
+	//pSink->Release();
 	pSinkAttr->Release();
 }
 
 // OK
-void CreateSinkWriterPCMToPCM(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+void CreateSinkWriterPCMToPCM(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypePCM; // Release
 
 	CreateTypePCMS16(&pTypePCM, format.channels, format.samplerate);
 
-	CreateSingleStreamSinkWriter(ppSinkWriter, pdwAudioIndex, pTypePCM, pTypePCM, hookproc, hookparam);
+	CreateSingleStreamSinkWriter(ppSink, ppSinkWriter, pdwAudioIndex, pTypePCM, pTypePCM, hookproc, hookparam);
 
 	pTypePCM->Release();
 }
 
 // OK
-void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+void CreateSinkWriterPCMToAAC(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypePCM; // Release
 	IMFMediaType* pTypeAAC; // Release
@@ -69,50 +70,50 @@ void CreateSinkWriterPCMToAAC(IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex
 	CreateTypePCMS16(&pTypePCM, format.channels, format.samplerate);
 	CreateTypeAAC(&pTypeAAC, format.channels, format.samplerate, format.profile);
 
-	CreateSingleStreamSinkWriter(ppSinkWriter, pdwAudioIndex, pTypePCM, pTypeAAC, hookproc, hookparam);
+	CreateSingleStreamSinkWriter(ppSink, ppSinkWriter, pdwAudioIndex, pTypePCM, pTypeAAC, hookproc, hookparam);
 
 	pTypePCM->Release();
 	pTypeAAC->Release();
 }
 
 // OK
-void CreateSinkWriterL8ToL8(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+void CreateSinkWriterL8ToL8(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypeL8; // Release
 
 	CreateTypeL8(&pTypeL8, format.width, format.height, format.width, format.framerate);
 
-	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeL8, pTypeL8, hookproc, hookparam);
+	CreateSingleStreamSinkWriter(ppSink, ppSinkWriter, pdwVideoIndex, pTypeL8, pTypeL8, hookproc, hookparam);
 
 	pTypeL8->Release();
 }
 
 // OK
-void CreateSinkWriterNV12ToNV12(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+void CreateSinkWriterNV12ToNV12(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypeNV12; // Release
 
 	CreateTypeNV12(&pTypeNV12, format.width, format.height, ComputeNV12Stride(format.width), format.framerate);
 
-	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeNV12, pTypeNV12, hookproc, hookparam);
+	CreateSingleStreamSinkWriter(ppSink, ppSinkWriter, pdwVideoIndex, pTypeNV12, pTypeNV12, hookproc, hookparam);
 
 	pTypeNV12->Release();
 }
 
 // OK
-void CreateSinkWriterARGBToARGB(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+void CreateSinkWriterARGBToARGB(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypeARGB; // Release
 
 	CreateTypeARGB(&pTypeARGB, format.width, format.height, format.width, format.framerate);
 
-	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeARGB, pTypeARGB, hookproc, hookparam);
+	CreateSingleStreamSinkWriter(ppSink, ppSinkWriter, pdwVideoIndex, pTypeARGB, pTypeARGB, hookproc, hookparam);
 
 	pTypeARGB->Release();
 }
 
 // OK
-void CreateSinkWriterNV12ToH26x(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
+void CreateSinkWriterNV12ToH26x(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam)
 {
 	IMFMediaType* pTypeNV12; // Release
 	IMFMediaType* pTypeH26x; // Release
@@ -120,7 +121,7 @@ void CreateSinkWriterNV12ToH26x(IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoInd
 	CreateTypeNV12(&pTypeNV12, format.width, format.height, ComputeNV12Stride(format.width), format.framerate);
 	CreateTypeH26x(&pTypeH26x, format.width, format.height, format.framerate, format.profile, format.bitrate);
 
-	CreateSingleStreamSinkWriter(ppSinkWriter, pdwVideoIndex, pTypeNV12, pTypeH26x, hookproc, hookparam);
+	CreateSingleStreamSinkWriter(ppSink, ppSinkWriter, pdwVideoIndex, pTypeNV12, pTypeH26x, hookproc, hookparam);
 
 	pTypeNV12->Release();
 	pTypeH26x->Release();

@@ -187,6 +187,7 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
 template<bool ENABLE_LOCATION>
 void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format)
 {
+    CustomMediaSink* pSink; // Release
     HookCallbackSocket user;
     bool ok;
 
@@ -199,8 +200,8 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 
     switch (format.profile)
     {
-    case H26xProfile::H26xProfile_None: CreateSinkWriterNV12ToNV12(&g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
-    default:                            CreateSinkWriterNV12ToH26x(&g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    case H26xProfile::H26xProfile_None: CreateSinkWriterNV12ToNV12(&pSink, &g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    default:                            CreateSinkWriterNV12ToH26x(&pSink, &g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
     }
 
     reader.FrameArrived(PV_OnVideoFrameArrived<ENABLE_LOCATION>);
@@ -211,6 +212,8 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 
     g_pSinkWriter->Flush(g_dwVideoIndex);
     g_pSinkWriter->Release();
+    pSink->Shutdown();
+    pSink->Release();
 
     g_pSinkWriter = NULL;
     g_dwVideoIndex = 0;

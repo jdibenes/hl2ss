@@ -85,6 +85,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     size_t length;
     BYTE* pDst;
     H26xFormat format;
+    CustomMediaSink* pSink; // Release
     IMFSinkWriter* pSinkWriter; // Release
     IMFMediaBuffer* pBuffer; // Release
     IMFSample* pSample; // Release
@@ -111,8 +112,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     switch (format.profile)
     {
-    case H26xProfile::H26xProfile_None: chromasize = 0;            CreateSinkWriterL8ToL8(    &pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
-    default:                            chromasize = lumasize / 2; CreateSinkWriterNV12ToH26x(&pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    case H26xProfile::H26xProfile_None: chromasize = 0;            CreateSinkWriterL8ToL8(    &pSink, &pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    default:                            chromasize = lumasize / 2; CreateSinkWriterNV12ToH26x(&pSink, &pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
     }
 
     framebytes = lumasize + chromasize;
@@ -163,6 +164,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     pSinkWriter->Flush(dwVideoIndex);
     pSinkWriter->Release();
+    pSink->Shutdown();
+    pSink->Release();
 
     CloseHandle(clientevent);
 }

@@ -58,6 +58,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	uint32_t const channels   = 2;
 	uint32_t const samplerate = 48000;
 	
+	CustomMediaSink* pSink; // Release
 	IMFSinkWriter* pSinkWriter; // Release
 	HANDLE clientevent; // CloseHandle
 	AACFormat format;
@@ -79,8 +80,8 @@ static void MC_Shoutcast(SOCKET clientsocket)
 
 	switch (format.profile)
 	{
-	case AACProfile::AACProfile_None: CreateSinkWriterPCMToPCM(&pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
-	default:                          CreateSinkWriterPCMToAAC(&pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
+	case AACProfile::AACProfile_None: CreateSinkWriterPCMToPCM(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
+	default:                          CreateSinkWriterPCMToAAC(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
 	}
 
 	g_microphoneCapture->Start();
@@ -89,6 +90,8 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	
 	pSinkWriter->Flush(dwAudioIndex);
 	pSinkWriter->Release();
+	pSink->Shutdown();
+	pSink->Release();
 
 	CloseHandle(clientevent);
 }
