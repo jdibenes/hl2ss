@@ -90,7 +90,6 @@ class PngFilterMode:
     Average   = 4
     Paeth     = 5
     Adaptive  = 6
-    RAW       = 0xFF
 
 
 # RM VLC Parameters
@@ -801,7 +800,17 @@ def get_audio_codec_bitrate(profile):
 
 
 def get_gop_size(profile, framerate):
-    return 1 if (profile == VideoProfile.RAW) else (2 * framerate)
+    name = get_video_codec_name(profile)
+    return 1 if ((name != 'h264') and (name != 'hevc')) else (2 * framerate)
+
+
+def get_video_codec_default_factor(profile):
+    name = get_video_codec_name(profile)
+    return 4/420 if (name == 'h264') else 1/140 if (name == 'hevc') else 1.0
+
+
+def get_video_codec_default_bitrate(width, height, fps, profile):
+    return int(width*height*fps*12*get_video_codec_default_factor(profile))
 
 
 #------------------------------------------------------------------------------
@@ -917,7 +926,7 @@ def unpack_pv(payload):
     return _PV_Frame(payload[:-16], payload[-16:-8], payload[-8:])
 
 
-def compute_nv12_stride(width):
+def get_nv12_stride(width):
     return width + ((64 - (width & 63)) & 63)
 
 
