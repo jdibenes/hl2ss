@@ -18,3 +18,4 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value);
 void PersonalVideo_SetExposurePriorityVideo(uint32_t enabled);
 void PersonalVideo_SetSceneMode(uint32_t mode);
 void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value);
+void PersonalVideo_SetBacklightCompensation(bool enable);

@@ -329,3 +329,11 @@ void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value)
     mode = setauto != 0;
     if (mode) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetAutoAsync().get(); } else if ((value >= 100) && (value <= 3200)) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetValueAsync(value).get(); }
 }
+
+// OK
+void PersonalVideo_SetBacklightCompensation(bool enable)
+{
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
+    g_mediaCapture.VideoDeviceController().BacklightCompensation().TrySetValue(enable ? 1.0 : 0.0);
+}

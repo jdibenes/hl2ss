@@ -791,6 +791,7 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
     intrinsics[1, 1] =  focal_length[1]
     intrinsics[2, 0] = principal_point[0]
     intrinsics[2, 1] = principal_point[1]
+    return intrinsics
 
 
 def unpack_pv(payload):
