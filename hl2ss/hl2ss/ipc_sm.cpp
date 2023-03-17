@@ -93,6 +93,7 @@ static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
     size_t count;
     bool ok;
 
+    SpatialMapping_WaitForUpdate();
     SpatialMapping_GetObservedSurfaces(ids, count);
     
     wsaBuf[0].buf = (char*)&count;

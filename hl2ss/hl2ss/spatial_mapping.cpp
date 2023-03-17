@@ -40,6 +40,7 @@ static std::vector<MeshInfo> g_observed_meshes_info;
 static std::vector<HANDLE> g_observed_meshes_event; // CloseHandle
 static std::vector<HANDLE> g_observed_meshes_thread; // CloseHandle
 static HANDLE g_observed_meshes_semaphore; // CloseHandle
+static HANDLE g_event_observed_surfaces_changed; // CloseHandle
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -60,6 +61,7 @@ static DWORD WINAPI SpatialMapping_RequestAccess(void *param)
 void SpatialMapping_Initialize()
 {
     g_event_consent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_observed_surfaces_changed = CreateEvent(NULL, FALSE, FALSE, NULL);
     g_thread_consent = CreateThread(NULL, 0, SpatialMapping_RequestAccess, NULL, 0, NULL);
 }
 
@@ -71,9 +73,22 @@ bool SpatialMapping_WaitForConsent()
 }
 
 // OK
+static void SpatialMapping_OnObservedSurfacesChanged(SpatialSurfaceObserver sso, winrt::Windows::Foundation::IInspectable const&)
+{
+    SetEvent(g_event_observed_surfaces_changed);
+}
+
+// OK
+void SpatialMapping_WaitForUpdate()
+{
+    WaitForSingleObject(g_event_observed_surfaces_changed, INFINITE);
+}
+
+// OK
 void SpatialMapping_CreateObserver()
 {
     g_sso = SpatialSurfaceObserver();
+    g_sso.ObservedSurfacesChanged(SpatialMapping_OnObservedSurfacesChanged);
 }
 
 // OK

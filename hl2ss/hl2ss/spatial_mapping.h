@@ -63,6 +63,7 @@ int const MESH_INFO_HEADER_SIZE = 144;
 
 void SpatialMapping_Initialize();
 bool SpatialMapping_WaitForConsent();
+void SpatialMapping_WaitForUpdate();
 void SpatialMapping_CreateObserver();
 void SpatialMapping_SetVolumes(VolumeDescription const* vd, size_t size);
 void SpatialMapping_GetObservedSurfaces(winrt::guid const*& data, size_t& size);
