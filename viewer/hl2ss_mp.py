@@ -172,6 +172,7 @@ class _interconnect(mp.Process):
         sink_din.put(self._frame_stamp)
 
     def _get_most_recent_frame(self, sink_din, sink_dout):
+        sink_din.put(self._frame_stamp)
         sink_din.put(self._buffer.last())
 
     def _get_buffered_frame(self, sink_din, sink_dout, frame_stamp):
@@ -299,8 +300,9 @@ class _sink:
     def get_most_recent_frame(self):
         self._sink_dout.put(_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME)
         self._interconnect_semaphore.release()
+        frame_stamp = self._sink_din.get()
         data = self._sink_din.get()
-        return data
+        return (frame_stamp, data)
 
     def get_buffered_frame(self, frame_stamp):
         self._sink_dout.put(frame_stamp)
