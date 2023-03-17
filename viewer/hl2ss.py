@@ -922,6 +922,17 @@ class _PV_Frame:
         self.principal_point = np.frombuffer(principal_point, dtype=np.float32)
 
 
+def create_pv_intrinsics_placeholder():
+    return np.eye(4, 4, dtype=np.float32)
+
+
+def update_pv_intrinsics(intrinsics, focal_length, principal_point):
+    intrinsics[0, 0] = -focal_length[0]
+    intrinsics[1, 1] =  focal_length[1]
+    intrinsics[2, 0] = principal_point[0]
+    intrinsics[2, 1] = principal_point[1]
+
+
 def unpack_pv(payload):
     return _PV_Frame(payload[:-16], payload[-16:-8], payload[-8:])
 
@@ -1485,25 +1496,26 @@ class ipc_rc:
         self._open()
         command = struct.pack('<BI', 0x08, enabled)
         self._client.sendall(command)
-        self._client.close()
+        self._close()
 
     def set_pv_scene_mode(self, mode):
         self._open()
         command = struct.pack('<BI', 0x09, mode)
         self._client.sendall(command)
-        self._client.close()
+        self._close()
 
     def set_pv_iso_speed(self, mode, value):
         self._open()
         command = struct.pack('<BII', 0x0A, mode, value)
         self._client.sendall(command)
-        self._client.close()
+        self._close()
 
     def get_pv_subsystem_status(self):
         self._open()
         command = struct.pack('<B', 0x0B)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
+        self._close()
         return struct.unpack('<B', data)[0] != 0
 
     def wait_for_pv_subsystem(self, status):
