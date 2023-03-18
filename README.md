@@ -32,6 +32,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Client can configure the resolution and framerate of the Front Camera. See [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
+- Client can register voice commands (Experimental).
 
 ## Preparation
 
@@ -86,6 +87,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Remote Configuration: [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py)
 - Spatial Mapping: [viewer/client_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_sm.py)
 - Scene Understanding: [viewer/client_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_su.py)
+- Voice Input: [viewer/client_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_vi.py)
 
 **Required packages**
 
