@@ -10,6 +10,7 @@
 #include "../hl2ss/personal_video.h"
 #include "../hl2ss/spatial_mapping.h"
 #include "../hl2ss/scene_understanding.h"
+#include "../hl2ss/voice_input.h"
 #include "../hl2ss/stream_rm.h"
 #include "../hl2ss/stream_mc.h"
 #include "../hl2ss/stream_pv.h"
@@ -17,6 +18,7 @@
 #include "../hl2ss/ipc_rc.h"
 #include "../hl2ss/ipc_sm.h"
 #include "../hl2ss/ipc_su.h"
+#include "../hl2ss/ipc_vi.h"
 #include "../hl2ss/timestamps.h"
 #include "../hl2ss/log.h"
 #include "../hl2ss/nfo.h"
@@ -40,6 +42,7 @@ void InitializeStreams(uint32_t enable)
     if (enable & HL2SS_ENABLE_SI) { SpatialInput_Initialize(); }
     if (enable & HL2SS_ENABLE_SM) { SpatialMapping_Initialize(); }
     if (enable & HL2SS_ENABLE_SU) { SceneUnderstanding_Initialize(); }
+    if (enable & HL2SS_ENABLE_VI) { VoiceInput_Initialize(); }
 
     if (enable & HL2SS_ENABLE_RM) { RM_Initialize(); }
     if (enable & HL2SS_ENABLE_PV) { PV_Initialize(); }
@@ -48,6 +51,7 @@ void InitializeStreams(uint32_t enable)
     if (enable & HL2SS_ENABLE_RC) { RC_Initialize(); }
     if (enable & HL2SS_ENABLE_SM) { SM_Initialize(); }
     if (enable & HL2SS_ENABLE_SU) { SU_Initialize(); }
+    if (enable & HL2SS_ENABLE_VI) { VI_Initialize(); }
 
     MQ_Initialize();
 }

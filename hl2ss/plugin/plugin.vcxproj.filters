@@ -123,6 +123,12 @@
     <ClCompile Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp">
       <Filter>Libraries\SceneUnderstanding</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_vi.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\voice_input.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -240,6 +246,12 @@
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\scene_understanding.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_vi.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\voice_input.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>

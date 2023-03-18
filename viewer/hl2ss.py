@@ -29,6 +29,7 @@ class IPCPort:
     REMOTE_CONFIGURATION = 3809
     SPATIAL_MAPPING      = 3813
     SCENE_UNDERSTANDING  = 3814
+    VOICE_INPUT          = 3815
     UNITY_MESSAGE_QUEUE  = 3816
 
 
@@ -1309,7 +1310,7 @@ class _PortName:
           'spatial_input', 
           'spatial_mapping', 
           'scene_understanding',
-          'RESERVED',
+          'voice_input',
           'unity_message_queue']
 
 
@@ -1831,8 +1832,78 @@ class ipc_su(_context_manager):
 
 
 #------------------------------------------------------------------------------
-# RESERVED
+# Voice Input
 #------------------------------------------------------------------------------
+
+class vi_result:
+    def __init__(self, index, confidence, phrase_duration, phrase_start_time, raw_confidence):
+        self.index = index
+        self.confidence = confidence
+        self.phrase_duration = phrase_duration
+        self.phrase_start_time = phrase_start_time
+        self.raw_confidence = raw_confidence
+
+    def unpack(self):
+        self.index = struct.unpack('<I', self.index)[0]
+        self.confidence = struct.unpack('<I', self.confidence)[0]
+        self.phrase_duration = struct.unpack('<Q', self.phrase_duration)[0]
+        self.phrase_start_time = struct.unpack('<Q', self.phrase_start_time)[0]
+        self.raw_confidence = struct.unpack('<d', self.raw_confidence)[0]
+
+
+class ipc_vi(_context_manager):
+    _CMD_CREATE_RECOGNIZER = 0x00
+    _CMD_REGISTER_COMMANDS = 0x01
+    _CMD_START = 0x02
+    _CMD_POP = 0x03
+    _CMD_CLEAR = 0x04
+    _CMD_STOP = 0x05
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def open(self):
+        self._client = _client()
+        self._client.open(self.host, self.port)
+
+    def create_recognizer(self):
+        command = struct.pack('<B', ipc_vi._CMD_CREATE_RECOGNIZER)
+        self._client.sendall(command)
+
+    def register_commands(self, clear, strings):
+        command = bytearray()
+        command.extend(struct.pack('<BBB', ipc_vi._CMD_REGISTER_COMMANDS, 1 if (clear) else 0, len(strings)))
+        for string in strings:
+            encoded = string.encode('utf-16')
+            command.extend(struct.pack('<H', len(encoded)))
+            command.extend(encoded)
+        self._client.sendall(command)
+        data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
+        return struct.unpack('<B', data)[0] != 0
+    
+    def start(self):
+        command = struct.pack('<B', ipc_vi._CMD_START)
+        self._client.sendall(command)
+
+    def pop(self):
+        command = struct.pack('<B', ipc_vi._CMD_POP)
+        self._client.sendall(command)
+        data = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
+        count = struct.unpack('<I', data)[0]
+        data = self._client.download(32*count, ChunkSize.SINGLE_TRANSFER)
+        return [vi_result(data[(i*32):(i*32+4)], data[(i*32+4):(i*32+8)], data[(i*32+8):(i*32+16)], data[(i*32+16):(i*32+24)], data[(i*32+24):(i*32+32)]) for i in range(0, count)]
+    
+    def clear(self):
+        command = struct.pack('<B', ipc_vi._CMD_CLEAR)
+        self._client.sendall(command)
+
+    def stop(self):
+        command = struct.pack('<B', ipc_vi._CMD_STOP)
+        self._client.sendall(command)
+
+    def close(self):
+        self._client.close()
 
 
 #------------------------------------------------------------------------------

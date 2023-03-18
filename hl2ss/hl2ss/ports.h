@@ -16,6 +16,7 @@
 #define PORT_NUMBER_SI     3812
 #define PORT_NUMBER_SM     3813
 #define PORT_NUMBER_SU     3814
+#define PORT_NUMBER_VI     3815
 
 #define X38_HTOA(H)         #H
 #define X38_PORT_HTOA(port) X38_HTOA(port)
@@ -35,3 +36,4 @@
 #define PORT_NAME_SI     X38_PORT_HTOA(PORT_NUMBER_SI)
 #define PORT_NAME_SM     X38_PORT_HTOA(PORT_NUMBER_SM)
 #define PORT_NAME_SU     X38_PORT_HTOA(PORT_NUMBER_SU)
+#define PORT_NAME_VI     X38_PORT_HTOA(PORT_NUMBER_VI)

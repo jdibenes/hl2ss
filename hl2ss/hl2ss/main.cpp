@@ -16,6 +16,8 @@
 #include "ipc_sm.h"
 #include "scene_understanding.h"
 #include "ipc_su.h"
+#include "voice_input.h"
+#include "ipc_vi.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
@@ -74,6 +76,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		PersonalVideo_Initialize();
 		SpatialMapping_Initialize();
 		SceneUnderstanding_Initialize(); // thread?
+		VoiceInput_Initialize();
 
 		RM_Initialize();
 		MC_Initialize();
@@ -82,6 +85,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		RC_Initialize();
 		SM_Initialize();
 		SU_Initialize();
+		VI_Initialize();
 
 		m_init = true;
 	}

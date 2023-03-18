@@ -164,6 +164,7 @@
     <ClInclude Include="ipc_sc.h" />
     <ClInclude Include="ipc_sm.h" />
     <ClInclude Include="ipc_su.h" />
+    <ClInclude Include="ipc_vi.h" />
     <ClInclude Include="locator.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="neon.h" />
@@ -188,6 +189,7 @@
     <ClInclude Include="timestamps.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="lock.h" />
+    <ClInclude Include="voice_input.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cannon\AnimatedVector.cpp" />
@@ -209,6 +211,7 @@
     <ClCompile Include="ipc_sc.cpp" />
     <ClCompile Include="ipc_sm.cpp" />
     <ClCompile Include="ipc_su.cpp" />
+    <ClCompile Include="ipc_vi.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="neon.cpp" />
     <ClCompile Include="nfo.cpp" />
@@ -233,6 +236,7 @@
     <ClCompile Include="lock.cpp" />
     <ClCompile Include="stream_rm.cpp" />
     <ClCompile Include="server.cpp" />
+    <ClCompile Include="voice_input.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
