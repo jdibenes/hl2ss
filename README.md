@@ -101,15 +101,6 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [MMDetection](https://github.com/open-mmlab/mmdetection)
 
-**Data Details**
-
-- Right-handed coordinate system with +y => up, +x => right, and -z => forward.
-- For 3D points the order is [x, y, z] expressed in meters.
-- For quaternions (orientations) the order is [x, y, z, w].
-- For RM Depth Long Throw divide depth by 1000 to convert to meters.
-- For RM Depth AHAT divide depth by 250 to convert to meters.
-- [Hand data format](https://learn.microsoft.com/en-us/uwp/api/windows.perception.people.jointpose?view=winrt-22621).
-
 ## Known issues and limitations
 
 - Multiple streams can be active at the same time but only one client per stream is allowed.
