@@ -65,13 +65,11 @@ if __name__ == '__main__':
     listener.start()
 
     hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-    hl2ss_3dcv.pv_optimize_for_cv(host, focus, exposure_mode, exposure, iso_speed_mode, iso_speed_value, white_balance)
 
-    calibration_pv = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, focus, width, height, framerate, True)
     calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
-    xy1, scale, depth_to_pv_image = hl2ss_3dcv.rm_depth_registration(uv2xy, calibration_lt.scale, calibration_lt.extrinsics, calibration_pv.intrinsics, calibration_pv.extrinsics)
+    xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
     
     volume = o3d.pipelines.integration.ScalableTSDFVolume(voxel_length=voxel_length, sdf_trunc=sdf_trunc, color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
     intrinsics_depth = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT, calibration_lt.intrinsics[0, 0], calibration_lt.intrinsics[1, 1], calibration_lt.intrinsics[2, 0], calibration_lt.intrinsics[2, 1])
@@ -98,7 +96,7 @@ if __name__ == '__main__':
         right_hand_joints[i].paint_uniform_color(hand_joints_color)
 
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, width, height, framerate, profile, bitrate, 'rgb24')
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'rgb24')
     producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
     producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
@@ -118,11 +116,13 @@ if __name__ == '__main__':
 
     [sink.get_attach_response() for sink in sinks]
 
+    pv_intrinsics = hl2ss.create_pv_intrinsics_placeholder()
+
     while (enable):
         sink_depth.acquire()
 
-        data_depth = sink_depth.get_most_recent_frame()
-        if (not hl2ss.is_valid_pose(data_depth.pose)):
+        _, data_depth = sink_depth.get_most_recent_frame()
+        if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
             continue
 
         _, data_pv = sink_pv.get_nearest(data_depth.timestamp)
@@ -131,9 +131,23 @@ if __name__ == '__main__':
 
         depth_world_to_camera = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
 
-        depth = hl2ss_3dcv.rm_depth_normalize(data_depth.payload.depth, calibration_lt.undistort_map, scale)
-        rgb, depth = hl2ss_3dcv.rm_depth_rgbd_registered(depth, data_pv.payload.image, xy1, depth_to_pv_image, cv2.INTER_LINEAR)
-        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
+        depth = hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_lt.undistort_map)
+        depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
+        color = data_pv.payload.image
+        pv_intrinsics = hl2ss.update_pv_intrinsics(pv_intrinsics, data_pv.payload.focal_length, data_pv.payload.principal_point)
+
+        lt_points         = hl2ss_3dcv.rm_depth_to_points(xy1, depth)
+        lt_to_world       = hl2ss_3dcv.camera_to_rignode(calibration_lt.extrinsics) @ hl2ss_3dcv.reference_to_world(data_depth.pose)
+        world_to_lt       = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
+        world_to_pv_image = hl2ss_3dcv.world_to_reference(data_pv.pose) @ hl2ss_3dcv.camera_to_image(pv_intrinsics)
+        world_points      = hl2ss_3dcv.transform(lt_points, lt_to_world)
+        pv_uv             = hl2ss_3dcv.project(world_points, world_to_pv_image)
+        color             = cv2.remap(color, pv_uv[:, :, 0], pv_uv[:, :, 1], cv2.INTER_LINEAR)
+
+        mask_uv = hl2ss_3dcv.slice_to_block((pv_uv[:, :, 0] < 0) | (pv_uv[:, :, 0] >= width) | (pv_uv[:, :, 1] < 0) | (pv_uv[:, :, 1] >= height))
+        depth[mask_uv] = 0
+
+        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(color), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
         
         volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())
         pcd_tmp = volume.extract_point_cloud()
@@ -171,7 +185,7 @@ if __name__ == '__main__':
     while(enable):
         sink_si.acquire()
 
-        data_si = sink_si.get_most_recent_frame()
+        _, data_si = sink_si.get_most_recent_frame()
 
         si = hl2ss.unpack_si(data_si.payload)
 

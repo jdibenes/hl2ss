@@ -783,6 +783,10 @@ class _PV_Frame:
         self.principal_point = np.frombuffer(principal_point, dtype=np.float32)
 
 
+def create_pv_intrinsics(focal_length, principal_point):
+    return np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
+
+
 def create_pv_intrinsics_placeholder():
     return np.eye(4, 4, dtype=np.float32)
 

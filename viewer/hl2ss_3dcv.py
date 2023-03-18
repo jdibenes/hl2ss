@@ -161,12 +161,12 @@ def rm_depth_undistort(depth, undistort_map):
     return cv2.remap(depth, undistort_map[:, :, 0], undistort_map[:, :, 1], cv2.INTER_NEAREST)
 
 
-def rm_depth_ab_to_float(ab):
-    return ab.astype(np.float32) / hl2ss._RANGEOF.U16_MAX
+def rm_depth_to_float(image):
+    return image.astype(np.float32) / hl2ss._RANGEOF.U16_MAX
 
 
-def rm_depth_ab_to_uint8(ab):
-    return (ab / (hl2ss._RANGEOF.U8_MAX + 1)).astype(np.uint8)
+def rm_depth_to_uint8(image):
+    return (image / (hl2ss._RANGEOF.U8_MAX + 1)).astype(np.uint8)
 
 
 def rm_depth_compute_rays(uv2xy, depth_scale):
@@ -177,6 +177,10 @@ def rm_depth_compute_rays(uv2xy, depth_scale):
 
 def rm_depth_to_points(rays, depth):
     return rays * depth
+
+
+def rm_depth_to_rgb(image):
+    return np.dstack((image, image, image))
 
 
 #------------------------------------------------------------------------------

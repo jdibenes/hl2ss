@@ -115,10 +115,10 @@ def main():
     calibration_vlc.intrinsics, calibration_vlc.extrinsics = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_vlc.intrinsics, calibration_vlc.extrinsics, rotation)
 
     uv2xy = calibration_lt.uv2xy
-    xy1, scale, depth_to_vlc_image = hl2ss_3dcv.rm_depth_registration(uv2xy, calibration_lt.scale, calibration_lt.extrinsics, calibration_vlc.intrinsics, calibration_vlc.extrinsics)
+    xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
 
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, hl2ss.VideoProfile.H264_BASE, 1024*1024)
+    producer.configure_rm_vlc(True, host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, hl2ss.VideoProfile.H264_BASE, 1024*1024)
     producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
     producer.initialize(hl2ss.StreamPort.RM_VLC_LEFTFRONT, buffer_length*hl2ss.Parameters_RM_VLC.FPS)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, buffer_length*hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
@@ -146,12 +146,12 @@ def main():
         vis.poll_events()
         vis.update_renderer()
 
-        data_depth = sink_depth.get_most_recent_frame()
-        if (not hl2ss.is_valid_pose(data_depth.pose)):
+        _, data_depth = sink_depth.get_most_recent_frame()
+        if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
             continue
 
         _, data_vlc = sink_vlc.get_nearest(data_depth.timestamp)
-        if (data_vlc is None):
+        if ((data_vlc is None) or (not hl2ss.is_valid_pose(data_vlc.pose))):
             continue
 
         frame = cv2.remap(data_vlc.payload, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
@@ -161,19 +161,16 @@ def main():
         result = inference_detector(model, frame)
         mask = result['pan_results']
 
-        depth = hl2ss_3dcv.rm_depth_scale(data_depth.payload.depth, scale)
+        depth = hl2ss_3dcv.rm_depth_normalize(data_depth.payload.depth, scale)
         depth[depth > max_depth] = 0
 
         points = hl2ss_3dcv.rm_depth_to_points(depth, xy1)
-        hpoints = hl2ss_3dcv.to_homogeneous(points)
-
-        pixels, _, = hl2ss_3dcv.project_to_image(hpoints, depth_to_vlc_image)
-        map_u = pixels[:, 0].reshape(depth.shape)
-        map_v = pixels[:, 1].reshape(depth.shape)
+        pixels = hl2ss_3dcv.project(points, hl2ss_3dcv.camera_to_rignode(calibration_lt.extrinsics) @ hl2ss_3dcv.reference_to_world(data_depth.pose) @ hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_vlc.extrinsics) @ hl2ss_3dcv.camera_to_image(calibration_vlc.intrinsics))
+        map_u = pixels[:, :, 0]
+        map_v = pixels[:, :, 1]
 
         depth_to_world = hl2ss_3dcv.camera_to_rignode(calibration_lt.extrinsics) @ hl2ss_3dcv.reference_to_world(data_depth.pose)
-        hwpoints = hpoints @ depth_to_world
-        points, _ = hl2ss_3dcv.to_inhomogeneous(hwpoints)
+        points = hl2ss_3dcv.transform(points, depth_to_world)
 
         labels = cv2.remap(mask, map_u, map_v, cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=model.num_classes).reshape((-1, 1))
         rgb = cv2.remap(frame, map_u, map_v, cv2.INTER_NEAREST)
@@ -184,12 +181,14 @@ def main():
         colors = np.array([list(PALETTE[kinds[i, 0]]) for i in range(0, labels.size)], dtype=np.uint8)
         colors = np.hstack((colors[:, 0].reshape((-1, 1)), colors[:, 1].reshape((-1, 1)), colors[:, 2].reshape((-1, 1))))
 
-        rgb = np.hstack((rgb[:, :, 0].reshape((-1, 1)), rgb[:, :, 1].reshape((-1, 1)), rgb[:, :, 2].reshape((-1, 1))))
+        #rgb = np.hstack((rgb[:, :, 0].reshape((-1, 1)), rgb[:, :, 1].reshape((-1, 1)), rgb[:, :, 2].reshape((-1, 1))))
+        rgb = hl2ss_3dcv.block_to_list(rgb)
+        points = hl2ss_3dcv.block_to_list(points)
 
         colors = 0.5 * colors + 0.5 * rgb
 
-        select = (depth.reshape((-1, 1)) > 0)
-        select = select.reshape((-1,))
+        select = depth.reshape((-1,)) > 0
+        #elect = select.reshape((-1,))
 
         points = points[select, :]
         colors = colors[select, :]

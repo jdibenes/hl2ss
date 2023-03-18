@@ -47,7 +47,7 @@ pv_mode = hl2ss.StreamMode.MODE_1
 pv_width = 1280
 pv_height = 720
 pv_framerate = 30
-pv_profile = hl2ss.VideoProfile.H265_MAIN
+pv_profile = hl2ss.VideoProfile.H264_MAIN
 pv_bitrate = 5*1024*1024
 pv_format = 'bgr24'
 
@@ -66,6 +66,7 @@ if __name__ == '__main__':
         quit()
 
     client_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    client_rc.open()
 
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
         hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
@@ -124,7 +125,7 @@ if __name__ == '__main__':
 
     while (enable):
         for port in ports:
-            data = sinks[port].get_most_recent_frame()
+            _, data = sinks[port].get_most_recent_frame()
             if (data is not None):
                 DISPLAY_MAP[port](port, data.payload)
         cv2.waitKey(1)
@@ -138,5 +139,7 @@ if __name__ == '__main__':
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
         hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
         client_rc.wait_for_pv_subsystem(False)
+
+    client_rc.close()
 
     listener.join()

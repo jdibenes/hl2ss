@@ -51,6 +51,7 @@ task = hl2ss.su_task(enable_scene_object_quads,
                      get_meshes, 
                      get_collider_meshes, 
                      guid_list)
+task.pack()
 
 client = hl2ss.ipc_su(host, port)
 client.open()
