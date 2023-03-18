@@ -5,8 +5,10 @@
 
 from pynput import keyboard
 
-import rus
 import threading
+import hl2ss
+import rus
+
 
 # Settings --------------------------------------------------------------------
 
@@ -14,7 +16,7 @@ import threading
 host = '192.168.1.7'
 
 # Port
-port = rus.Port.IPC
+port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 
 # Position in image space (x, y, z)
 # x, y in pixels
@@ -48,10 +50,12 @@ listener.start()
 with open(texture_file, mode='rb') as file:
     texture = file.read()
 
-ipc = rus.connect_client_mq(host, port)
+ipc = hl2ss.ipc_umq(host, port)
+ipc.open()
+
 key = 0
 
-display_list = rus.create_command_buffer()
+display_list = rus.command_buffer()
 display_list.begin_display_list() # Begin command sequence
 display_list.remove_all() # Remove all objects that were created remotely
 display_list.create_primitive(rus.PrimitiveType.Quad) # Create a quad, server will return its id
@@ -62,15 +66,15 @@ display_list.set_active(key, rus.ActiveState.Active) # Make the quad visible
 display_list.set_target_mode(rus.TargetMode.UseID) # Restore target mode
 display_list.end_display_list() # End command sequence
 ipc.push(display_list) # Send commands to server
-results = ipc.pop(display_list) # Get results from server
+results = ipc.pull(display_list) # Get results from server
 key = results[2] # Get the quad id, created by the 3rd command in the list
 
 stop_event.wait()
 
-command_buffer = rus.create_command_buffer()
+command_buffer = rus.command_buffer()
 command_buffer.remove(key) # Destroy quad
 ipc.push(command_buffer)
-results = ipc.pop(command_buffer)
+results = ipc.pull(command_buffer)
 
 ipc.close()
 

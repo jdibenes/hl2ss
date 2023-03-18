@@ -1547,23 +1547,23 @@ class _SM_Convert:
 class sm_bounding_volume:
     def __init__(self):
         self._count = 0
-        self._data = bytearray()        
+        self._data = bytearray()
+
+    def _add(self, data):
+        self._data.extend(data)
+        self._count += 1
 
     def add_box(self, center, extents):
-        self._data.extend(struct.pack('<Iffffff', _SM_VolumeType.Box, center[0], center[1], center[2], extents[0], extents[1], extents[2]))
-        self._count += 1
+        self._add(struct.pack('<Iffffff', _SM_VolumeType.Box, center[0], center[1], center[2], extents[0], extents[1], extents[2]))
 
     def add_frustum(self, near, far, right, left, top, bottom):
-        self._data.extend(struct.pack('<Iffffffffffffffffffffffff', _SM_VolumeType.Frustum, near[0], near[1], near[2], near[3], far[0], far[1], far[2], far[3], right[0], right[1], right[2], right[3], left[0], left[1], left[2], left[3], top[0], top[1], top[2], top[3], bottom[0], bottom[1], bottom[2], bottom[3]))
-        self._count += 1
+        self._add(struct.pack('<Iffffffffffffffffffffffff', _SM_VolumeType.Frustum, near[0], near[1], near[2], near[3], far[0], far[1], far[2], far[3], right[0], right[1], right[2], right[3], left[0], left[1], left[2], left[3], top[0], top[1], top[2], top[3], bottom[0], bottom[1], bottom[2], bottom[3]))
 
     def add_oriented_box(self, center, extents, orientation):
-        self._data.extend(struct.pack('<Iffffffffff', _SM_VolumeType.OrientedBox, center[0], center[1], center[2], extents[0], extents[1], extents[2], orientation[0], orientation[1], orientation[2], orientation[3]))
-        self._count += 1
+        self._add(struct.pack('<Iffffffffff', _SM_VolumeType.OrientedBox, center[0], center[1], center[2], extents[0], extents[1], extents[2], orientation[0], orientation[1], orientation[2], orientation[3]))
 
     def add_sphere(self, center, radius):
-        self._data.extend(struct.pack('<Iffff', _SM_VolumeType.Sphere, center[0], center[1], center[2], radius))
-        self._count += 1
+        self._add(struct.pack('<Iffff', _SM_VolumeType.Sphere, center[0], center[1], center[2], radius))
 
     def _get(self):
         return self._count, self._data
@@ -1831,8 +1831,30 @@ class ipc_su(_context_manager):
 
 
 #------------------------------------------------------------------------------
+# RESERVED
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
 # Unity Message Queue
 #------------------------------------------------------------------------------
+
+class umq_command_buffer:
+    def __init__(self):
+        self._buffer = bytearray()
+        self._count = 0
+
+    def add(self, id, data):
+        self._buffer.extend(struct.pack('<II', id, len(data)))
+        self._buffer.extend(data)
+        self._count += 1
+
+    def get_data(self):
+        return bytes(self._buffer)
+    
+    def get_count(self):
+        return self._count
+
 
 class ipc_umq(_context_manager):
     def __init__(self, host, port):
@@ -1843,11 +1865,11 @@ class ipc_umq(_context_manager):
         self._client = _client()
         self._client.open(self.host, self.port)
 
-    def push(self, data):
-        self._client.sendall(data)
+    def push(self, buffer):
+        self._client.sendall(buffer.get_data())
 
-    def pop(self, count):
-        return np.frombuffer(self._client.download(_SIZEOF.DWORD * count, ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
+    def pull(self, buffer):
+        return np.frombuffer(self._client.download(_SIZEOF.DWORD * buffer.get_count(), ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
 
     def close(self):
         self._client.close()

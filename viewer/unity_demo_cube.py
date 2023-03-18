@@ -5,6 +5,7 @@
 
 from pynput import keyboard
 
+import hl2ss
 import rus
 
 # Settings --------------------------------------------------------------------
@@ -13,7 +14,7 @@ import rus
 host = '192.168.1.7'
 
 # Port
-port = rus.Port.IPC
+port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 
 # Initial position in world space (x, y, z) in meters
 position = [0, 0, 0]
@@ -39,10 +40,12 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-ipc = rus.connect_client_mq(host, port)
+ipc = hl2ss.ipc_umq(host, port)
+ipc.open()
+
 key = 0
 
-display_list = rus.create_command_buffer()
+display_list = rus.command_buffer()
 display_list.begin_display_list() # Begin command sequence
 display_list.remove_all() # Remove all objects that were created remotely
 display_list.create_primitive(rus.PrimitiveType.Cube) # Create a cube, server will return its id
@@ -53,7 +56,7 @@ display_list.set_active(key, rus.ActiveState.Active) # Make the cube visible
 display_list.set_target_mode(rus.TargetMode.UseID) # Restore target mode
 display_list.end_display_list() # End command sequence
 ipc.push(display_list) # Send commands to server
-results = ipc.pop(display_list) # Get results from server
+results = ipc.pull(display_list) # Get results from server
 key = results[2] # Get the cube id, created by the 3rd command in the list
 
 print('Created cube with id {iid}'.format(iid=key))
@@ -73,18 +76,18 @@ while (enable):
 
     position[2] = z
 
-    display_list = rus.create_command_buffer()
+    display_list = rus.command_buffer()
     display_list.begin_display_list()
     display_list.set_world_transform(key, position, rotation, scale)
     display_list.set_color(key, [z, 0, 1-z, 1-z]) # Semi-transparency is supported
     display_list.end_display_list()
     ipc.push(display_list)
-    results = ipc.pop(display_list)
+    results = ipc.pull(display_list)
 
-command_buffer = rus.create_command_buffer()
+command_buffer = rus.command_buffer()
 command_buffer.remove(key) # Destroy cube
 ipc.push(command_buffer)
-results = ipc.pop(command_buffer)
+results = ipc.pull(command_buffer)
 
 ipc.close()
 

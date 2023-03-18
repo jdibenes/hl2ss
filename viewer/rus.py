@@ -1,5 +1,6 @@
 
 import struct
+import hl2ss
 
 
 # 3D Primitive Types
@@ -28,69 +29,43 @@ class ActiveState:
 # Commands
 #------------------------------------------------------------------------------
 
-class CommandBuffer:
-    def __init__(self):
-        self._buffer = bytearray()
-        self._count = 0
-
+class command_buffer(hl2ss.umq_command_buffer):
     def create_primitive(self, type):
-        self._buffer.extend(struct.pack('<III', 0, 4, type))
-        self._count += 1
+        self.add(0, struct.pack('<I', type))
 
     def set_active(self, key, state):
-        self._buffer.extend(struct.pack('<IIII', 1, 8, key, state))
-        self._count += 1
+        self.add(1, struct.pack('<II', key, state))
 
     def set_world_transform(self, key, position, rotation, scale):
-        self._buffer.extend(struct.pack('<IIIffffffffff', 2, 44, key, position[0], position[1], position[2], rotation[0], rotation[1], rotation[2], rotation[3], scale[0], scale[1], scale[2]))
-        self._count += 1
+        self.add(2, struct.pack('<Iffffffffff', key, position[0], position[1], position[2], rotation[0], rotation[1], rotation[2], rotation[3], scale[0], scale[1], scale[2]))
 
     def set_local_transform(self, key, position, rotation, scale):
-        self._buffer.extend(struct.pack('<IIIffffffffff', 3, 44, key, position[0], position[1], position[2], rotation[0], rotation[1], rotation[2], rotation[3], scale[0], scale[1], scale[2]))
-        self._count += 1
+        self.add(3, struct.pack('<Iffffffffff', key, position[0], position[1], position[2], rotation[0], rotation[1], rotation[2], rotation[3], scale[0], scale[1], scale[2]))
 
     def set_color(self, key, rgba):
-        self._buffer.extend(struct.pack('<IIIffff', 4, 20, key, rgba[0], rgba[1], rgba[2], rgba[3]))
-        self._count += 1
+        self.add(4, struct.pack('<Iffff', key, rgba[0], rgba[1], rgba[2], rgba[3]))
 
     def set_texture(self, key, texture):
-        self._buffer.extend(struct.pack('<III', 5, 4+len(texture), key))
-        self._buffer.extend(texture)
-        self._count += 1
+        self.add(5, struct.pack('<I', key) + texture)
 
     def create_text(self): 
-        self._buffer.extend(struct.pack('<II', 6, 0))
-        self._count += 1
+        self.add(6, b'')
 
     def set_text(self, key, font_size, rgba, string):
-        data = string.encode('utf-8')
-        self._buffer.extend(struct.pack('<IIIfffff', 7, 24+len(data), key, font_size, rgba[0], rgba[1], rgba[2], rgba[3]))
-        self._buffer.extend(data)
-        self._count += 1
+        self.add(7, struct.pack('<Ifffff', key, font_size, rgba[0], rgba[1], rgba[2], rgba[3]) + string.encode('utf-8'))
 
     def remove(self, key):
-        self._buffer.extend(struct.pack('<III', 16, 4, key))
-        self._count += 1
+        self.add(16, struct.pack('<I', key))
 
     def remove_all(self):
-        self._buffer.extend(struct.pack('<II', 17, 0))
-        self._count += 1
+        self.add(17, b'')
 
     def begin_display_list(self):
-        self._buffer.extend(struct.pack('<II', 18, 0))
-        self._count += 1
+        self.add(18, b'')
 
     def end_display_list(self):
-        self._buffer.extend(struct.pack('<II', 19, 0))
-        self._count += 1
+        self.add(19, b'')
 
     def set_target_mode(self, mode):
-        self._buffer.extend(struct.pack('<III', 20, 4, mode))
-        self._count += 1
-
-    def get_data(self):
-        return bytes(self._buffer)
-    
-    def get_count(self):
-        return self._count
+        self.add(20, struct.pack('<I', mode))
 

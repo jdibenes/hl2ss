@@ -4,9 +4,7 @@
 # the ProcessMessage method for the corresponding command id.
 #------------------------------------------------------------------------------
 
-import struct
 import hl2ss
-import rus
 
 #------------------------------------------------------------------------------
 
@@ -18,20 +16,21 @@ text = 'hello from python!!'
 
 #------------------------------------------------------------------------------
 
-client = hl2ss._client() # create hl2ss client object
-client.open(host, rus.Port.IPC) # connect to HL2
+class command_buffer(hl2ss.umq_command_buffer):
+    def send_text(self, text):
+        # create command string
+        # command id (4 byte integer)
+        # data (bytes)
+        self.add(21, text.encode('utf-8')) # assuming command 21 implemented in hl2ss.cs
 
-data = text.encode('utf-8') # encode string as utf8
 
-# create command string
-# - command id (4 byte integer)
-# - parameter length (4 byte integer)
-# - parameter (parameter length bytes) 
-command = bytearray()
-command.extend(struct.pack('<II', 21, len(data)))
-command.extend(data)
+client = hl2ss.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE) # create hl2ss client object
+client.open() # connect to HL2
 
-client.sendall(command) # send command string to Unity app
-response = client.download(4, hl2ss.ChunkSize.SINGLE_TRANSFER) # receive response from Unity app (4 byte integer)
+buffer = command_buffer() # create command buffer
+buffer.send_text(text) # append send text command
+
+client.push(buffer) # send command string to Unity app
+response = client.pull(buffer) # receive response from Unity app (4 byte integer per command)
 
 client.close() # disconnect
