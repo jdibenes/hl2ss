@@ -29,6 +29,7 @@ class IPCPort:
     REMOTE_CONFIGURATION = 3809
     SPATIAL_MAPPING      = 3813
     SCENE_UNDERSTANDING  = 3814
+    UNITY_MESSAGE_QUEUE  = 3816
 
 
 # Default Chunk Sizes
@@ -1303,7 +1304,9 @@ class _PortName:
           'microphone', 
           'spatial_input', 
           'spatial_mapping', 
-          'scene_understanding']
+          'scene_understanding',
+          'RESERVED',
+          'unity_message_queue']
 
 
 def get_port_index(port):
@@ -1781,9 +1784,9 @@ class ipc_su(_context_manager):
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self._client = _client()
-
+        
     def open(self):
+        self._client = _client()
         self._client.open(self.host, self.port)
 
     def _download_mesh(self):
@@ -1818,6 +1821,29 @@ class ipc_su(_context_manager):
         be = ba + (4 * task.get_quad)
         bm = be + (8 * task.get_quad)
         return _su_result(header[he:hp], header[hp:hi], [self._download_item(bi, bk, bo, bp, bl, ba, be, bm, task.get_meshes, task.get_collider_meshes) for _ in range(0, struct.unpack('<I', header[132:])[0])])
+
+    def close(self):
+        self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Unity Message Queue
+#------------------------------------------------------------------------------
+
+class ipc_umq(_context_manager):
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+    
+    def open(self):
+        self._client = _client()
+        self._client.open(self.host, self.port)
+
+    def push(self, data):
+        self._client.sendall(data)
+
+    def pop(self, count):
+        return np.frombuffer(self._client.download(_SIZEOF.DWORD * count, ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
 
     def close(self):
         self._client.close()

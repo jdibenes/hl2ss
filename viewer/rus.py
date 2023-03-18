@@ -1,12 +1,5 @@
 
 import struct
-import numpy as np
-import hl2ss
-
-
-# Message Queue Port
-class Port:
-    IPC = 3816
 
 
 # 3D Primitive Types
@@ -35,7 +28,7 @@ class ActiveState:
 # Commands
 #------------------------------------------------------------------------------
 
-class _CommandBuffer:
+class CommandBuffer:
     def __init__(self):
         self._buffer = bytearray()
         self._count = 0
@@ -95,32 +88,9 @@ class _CommandBuffer:
         self._buffer.extend(struct.pack('<III', 20, 4, mode))
         self._count += 1
 
-
-#------------------------------------------------------------------------------
-# IPC Client
-#------------------------------------------------------------------------------
-
-class client:
-    def open(self, host, port):
-        self._client = hl2ss._client()
-        self._client.open(host, port)
-
-    def push(self, command_buffer):
-        self._client.sendall(command_buffer._buffer)
-
-    def pop(self, command_buffer):
-        return np.frombuffer(self._client.download(4 * command_buffer._count, hl2ss.ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
-
-    def close(self):
-        self._client.close()
-
-
-def connect_client_mq(host, port):
-    c = client()
-    c.open(host, port)
-    return c
-
-
-def create_command_buffer():
-    return _CommandBuffer()
+    def get_data(self):
+        return bytes(self._buffer)
+    
+    def get_count(self):
+        return self._count
 
