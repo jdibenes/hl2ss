@@ -55,7 +55,7 @@ static Status g_s = Status::Failed;
 static PerceptionSceneFactoryAccessStatus g_psfas = PerceptionSceneFactoryAccessStatus::UserPromptRequired;
 static std::shared_ptr<Scene> g_scene = nullptr;
 static Query g_query;
-static Result g_result;
+static SceneUnderstanding_Result g_result;
 static HANDLE g_event_done = NULL; // CloseHandle
 
 //-----------------------------------------------------------------------------
@@ -91,14 +91,14 @@ static uint32_t SceneUnderstanding_KindToFlag(SceneObjectKind kind)
 {
     switch (kind)
     {
-    case SceneObjectKind::Background:         return KindFlag::Background;
-    case SceneObjectKind::Wall:               return KindFlag::Wall;
-    case SceneObjectKind::Floor:              return KindFlag::Floor;
-    case SceneObjectKind::Ceiling:            return KindFlag::Ceiling;
-    case SceneObjectKind::Platform:           return KindFlag::Platform;
-    case SceneObjectKind::Unknown:            return KindFlag::Unknown;
-    case SceneObjectKind::World:              return KindFlag::World;
-    case SceneObjectKind::CompletelyInferred: return KindFlag::CompletelyInferred;
+    case SceneObjectKind::Background:         return SceneUnderstanding_KindFlag::Background;
+    case SceneObjectKind::Wall:               return SceneUnderstanding_KindFlag::Wall;
+    case SceneObjectKind::Floor:              return SceneUnderstanding_KindFlag::Floor;
+    case SceneObjectKind::Ceiling:            return SceneUnderstanding_KindFlag::Ceiling;
+    case SceneObjectKind::Platform:           return SceneUnderstanding_KindFlag::Platform;
+    case SceneObjectKind::Unknown:            return SceneUnderstanding_KindFlag::Unknown;
+    case SceneObjectKind::World:              return SceneUnderstanding_KindFlag::World;
+    case SceneObjectKind::CompletelyInferred: return SceneUnderstanding_KindFlag::CompletelyInferred;
     default:                                  return 0;
     }
 }
@@ -154,7 +154,7 @@ void SceneUnderstanding_Query(SceneQuerySettings sqs, float query_radius, bool u
 }
 
 // OK
-Result const* SceneUnderstanding_WaitForResult()
+SceneUnderstanding_Result const* SceneUnderstanding_WaitForResult()
 {
     WaitForSingleObject(g_event_done, INFINITE);
     return &g_result;

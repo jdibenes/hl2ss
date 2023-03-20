@@ -10,18 +10,29 @@
 
 using namespace winrt::Windows::Media::SpeechRecognition;
 
-SpeechRecognizer g_recognizer = nullptr;
-std::vector<winrt::hstring> g_commands;
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
 CRITICAL_SECTION g_lock; // DeleteCriticalSection
-std::queue<VoiceInput_Result> g_queue;
 HANDLE g_event_completed = NULL; // CloseHandle
 
+SpeechRecognizer g_recognizer = nullptr;
+std::vector<winrt::hstring> g_commands;
+std::queue<VoiceInput_Result> g_queue;
+
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
+// OK
 void VoiceInput_Initialize()
 {
     InitializeCriticalSection(&g_lock);
     g_event_completed = CreateEvent(NULL, TRUE, TRUE, NULL);
 }
 
+// OK
 static uint32_t VoiceInput_FindID(winrt::hstring const& query)
 {
     uint32_t index = 0;
@@ -29,6 +40,7 @@ static uint32_t VoiceInput_FindID(winrt::hstring const& query)
     return index;
 }
 
+// OK
 static void VoiceInput_Completed(SpeechContinuousRecognitionSession scrs, SpeechContinuousRecognitionCompletedEventArgs const& args)
 {
     (void)scrs;
@@ -36,6 +48,7 @@ static void VoiceInput_Completed(SpeechContinuousRecognitionSession scrs, Speech
     SetEvent(g_event_completed);
 }
 
+// OK
 static void VoiceInput_ResultGenerated(SpeechContinuousRecognitionSession scrs, SpeechContinuousRecognitionResultGeneratedEventArgs const& args)
 {
     (void)scrs;
@@ -49,6 +62,7 @@ static void VoiceInput_ResultGenerated(SpeechContinuousRecognitionSession scrs, 
     g_queue.push(result);
 }
 
+// OK
 void VoiceInput_CreateRecognizer()
 {
     if (g_recognizer) { g_recognizer.Close(); }
@@ -57,6 +71,7 @@ void VoiceInput_CreateRecognizer()
     g_recognizer.ContinuousRecognitionSession().Completed(VoiceInput_Completed);
 }
 
+// OK
 bool VoiceInput_RegisterCommands(std::vector<winrt::hstring> const& strings, bool clear)
 {
     SpeechRecognitionListConstraint srlc = SpeechRecognitionListConstraint(strings);
@@ -71,39 +86,28 @@ bool VoiceInput_RegisterCommands(std::vector<winrt::hstring> const& strings, boo
     return result.Status() == SpeechRecognitionResultStatus::Success;
 }
 
+// OK
 void VoiceInput_Start()
 {
     ResetEvent(g_event_completed);
     g_recognizer.ContinuousRecognitionSession().StartAsync().get();
 }
 
-void VoiceInput_Pause()
-{
-    g_recognizer.ContinuousRecognitionSession().PauseAsync().get();
-}
-
-void VoiceInput_Resume()
-{
-    g_recognizer.ContinuousRecognitionSession().Resume();
-}
-
-void VoiceInput_Cancel()
-{
-    g_recognizer.ContinuousRecognitionSession().CancelAsync().get();
-}
-
+// OK
 void VoiceInput_Stop()
 {
     g_recognizer.ContinuousRecognitionSession().StopAsync().get();
     WaitForSingleObject(g_event_completed, INFINITE);
 }
 
+// OK
 size_t VoiceInput_GetCount()
 {
     CriticalSection cs(&g_lock);
     return g_queue.size();
 }
 
+// OK
 VoiceInput_Result VoiceInput_Pop()
 {
     CriticalSection cs(&g_lock);
@@ -112,6 +116,7 @@ VoiceInput_Result VoiceInput_Pop()
     return result;
 }
 
+// OK
 void VoiceInput_Clear()
 {
     CriticalSection cs(&g_lock);

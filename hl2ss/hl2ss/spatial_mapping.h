@@ -5,7 +5,7 @@
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
-enum VolumeType
+enum SpatialMapping_VolumeType
 {
     VolumeType_Box,
     VolumeType_Frustum,
@@ -13,9 +13,9 @@ enum VolumeType
     VolumeType_Sphere
 };
 
-struct VolumeDescription
+struct SpatialMapping_VolumeDescription
 {
-    VolumeType type;
+    SpatialMapping_VolumeType type;
     union
     {
     winrt::Windows::Perception::Spatial::SpatialBoundingBox box;
@@ -26,7 +26,7 @@ struct VolumeDescription
     data;
 };
 
-struct MeshDescription
+struct SpatialMapping_MeshDescription
 {
     winrt::guid id;
     double maxtpcm;
@@ -36,14 +36,14 @@ struct MeshDescription
     bool normals;
 };
 
-struct MeshTask
+struct SpatialMapping_MeshTask
 {
-    MeshDescription md;
+    SpatialMapping_MeshDescription md;
     uint32_t index;
     uint32_t reserved;
 };
 
-struct MeshInfo
+struct SpatialMapping_MeshInfo
 {
     uint32_t index;
     uint32_t status;
@@ -59,14 +59,13 @@ struct MeshInfo
     uint8_t* vnd;
 };
 
-int const MESH_INFO_HEADER_SIZE = 144;
+int const SM_MESH_INFO_HEADER_SIZE = 144;
 
 void SpatialMapping_Initialize();
 bool SpatialMapping_WaitForConsent();
-void SpatialMapping_WaitForUpdate();
 void SpatialMapping_CreateObserver();
-void SpatialMapping_SetVolumes(VolumeDescription const* vd, size_t size);
+void SpatialMapping_SetVolumes(SpatialMapping_VolumeDescription const* vd, size_t size);
 void SpatialMapping_GetObservedSurfaces(winrt::guid const*& data, size_t& size);
-void SpatialMapping_BeginComputeMeshes(MeshTask* task, size_t size, int maxtasks);
-MeshInfo* SpatialMapping_GetNextMesh();
+void SpatialMapping_BeginComputeMeshes(SpatialMapping_MeshTask* task, size_t size, int maxtasks);
+SpatialMapping_MeshInfo* SpatialMapping_GetNextMesh();
 void SpatialMapping_EndComputeMeshes();
