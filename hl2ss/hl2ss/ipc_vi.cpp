@@ -4,21 +4,32 @@
 #include "voice_input.h"
 #include "log.h"
 
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+HANDLE g_thread = NULL;
 HANDLE g_event_quit = NULL;
 HANDLE g_event_client = NULL;
-HANDLE g_thread = NULL;
 
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
+// OK
 static void VI_TransferError()
 {
     SetEvent(g_event_client);
 }
 
+// OK
 static void VI_MSG_CreateRecognizer(SOCKET clientsocket)
 {
     (void)clientsocket;
     VoiceInput_CreateRecognizer();
 }
 
+// OK
 static void VI_MSG_RegisterCommands(SOCKET clientsocket)
 {
     uint8_t clear;
@@ -78,12 +89,14 @@ static void VI_MSG_RegisterCommands(SOCKET clientsocket)
     }
 }
 
+// OK
 static void VI_MSG_Start(SOCKET clientsocket)
 {
     (void)clientsocket;
     VoiceInput_Start();
 }
 
+// OK
 static void VI_MSG_Pop(SOCKET clientsocket)
 {
     uint32_t count;
@@ -118,18 +131,21 @@ static void VI_MSG_Pop(SOCKET clientsocket)
     }
 }
 
+// OK
 static void VI_MSG_Clear(SOCKET clientsocket)
 {
     (void)clientsocket;
     VoiceInput_Clear();
 }
 
+// OK
 static void VI_MSG_Stop(SOCKET clientsocket)
 {
     (void)clientsocket;
     VoiceInput_Stop();
 }
 
+// OK
 static void VI_Dispatch(SOCKET clientsocket)
 {
     uint8_t state;
@@ -156,12 +172,14 @@ static void VI_Dispatch(SOCKET clientsocket)
     }
 }
 
+// OK
 static void VI_Translate(SOCKET clientsocket)
 {
     ResetEvent(g_event_client);
     do { VI_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
 }
 
+// OK
 static DWORD WINAPI VI_EntryPoint(void *param)
 {
     (void)param;
@@ -197,6 +215,7 @@ static DWORD WINAPI VI_EntryPoint(void *param)
     return 0;
 }
 
+// OK
 void VI_Initialize()
 {
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -204,11 +223,13 @@ void VI_Initialize()
     g_thread = CreateThread(NULL, 0, VI_EntryPoint, NULL, 0, NULL);
 }
 
+// OK
 void VI_Quit()
 {
     SetEvent(g_event_quit);
 }
 
+// OK
 void VI_Cleanup()
 {
     WaitForSingleObject(g_thread, INFINITE);

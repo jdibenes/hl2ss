@@ -12,8 +12,8 @@
 //-----------------------------------------------------------------------------
 
 static HANDLE g_thread = NULL; // CloseHandle
-static HANDLE g_quitevent = NULL; // CloseHandle
-static HANDLE g_clientevent = NULL; // CloseHandle
+static HANDLE g_event_quit = NULL; // CloseHandle
+static HANDLE g_event_client = NULL; // CloseHandle
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -22,25 +22,31 @@ static HANDLE g_clientevent = NULL; // CloseHandle
 // OK
 static void RC_TransferError()
 {
-    SetEvent(g_clientevent);
+    SetEvent(g_event_client);
 }
 
 // OK
-static void RC_GetApplicationVersion(SOCKET clientsocket)
+static void RC_MSG_GetApplicationVersion(SOCKET clientsocket)
 {
     uint16_t data[4];
     WSABUF wsaBuf;
+    bool ok;
 
     GetApplicationVersion(data);
 
     wsaBuf.buf = (char*)data;
     wsaBuf.len = sizeof(data);
 
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 }
 
 // OK
-static void RC_GetUTCOffset(SOCKET clientsocket)
+static void RC_MSG_GetUTCOffset(SOCKET clientsocket)
 {
     bool ok;
     uint32_t samples;
@@ -59,11 +65,16 @@ static void RC_GetUTCOffset(SOCKET clientsocket)
     wsaBuf.buf = (char*)&offset;
     wsaBuf.len = sizeof(offset);
 
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 }
 
 // OK
-static void RC_SetHSMarkerState(SOCKET clientsocket)
+static void RC_MSG_SetHSMarkerState(SOCKET clientsocket)
 {
     bool ok;
     uint32_t state;
@@ -79,19 +90,25 @@ static void RC_SetHSMarkerState(SOCKET clientsocket)
 }
 
 // OK
-static void RC_GetPVSubsystemStatus(SOCKET clientsocket)
+static void RC_MSG_GetPVSubsystemStatus(SOCKET clientsocket)
 {
     bool status = PersonalVideo_Status();
     WSABUF wsaBuf;
+    bool ok;
 
     wsaBuf.len = sizeof(status);
     wsaBuf.buf = (char*)&status;
 
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 }
 
 // OK
-static void RC_SetPVFocus(SOCKET clientsocket)
+static void RC_MSG_SetPVFocus(SOCKET clientsocket)
 {
     bool ok;
     uint32_t focusmode;
@@ -135,7 +152,7 @@ static void RC_SetPVFocus(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVVideoTemporalDenoising(SOCKET clientsocket)
+static void RC_MSG_SetPVVideoTemporalDenoising(SOCKET clientsocket)
 {
     bool ok;
     uint32_t mode;
@@ -151,7 +168,7 @@ static void RC_SetPVVideoTemporalDenoising(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVWhiteBalancePreset(SOCKET clientsocket)
+static void RC_MSG_SetPVWhiteBalancePreset(SOCKET clientsocket)
 {
     bool ok;
     uint32_t preset;
@@ -167,7 +184,7 @@ static void RC_SetPVWhiteBalancePreset(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVWhiteBalanceValue(SOCKET clientsocket)
+static void RC_MSG_SetPVWhiteBalanceValue(SOCKET clientsocket)
 {
     bool ok;
     uint32_t value;
@@ -183,7 +200,7 @@ static void RC_SetPVWhiteBalanceValue(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVExposure(SOCKET clientsocket)
+static void RC_MSG_SetPVExposure(SOCKET clientsocket)
 {
     bool ok;
     uint32_t mode;
@@ -206,7 +223,7 @@ static void RC_SetPVExposure(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVExposurePriorityVideo(SOCKET clientsocket)
+static void RC_MSG_SetPVExposurePriorityVideo(SOCKET clientsocket)
 {
     bool ok;
     uint32_t enabled;
@@ -222,7 +239,7 @@ static void RC_SetPVExposurePriorityVideo(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVIsoSpeed(SOCKET clientsocket)
+static void RC_MSG_SetPVIsoSpeed(SOCKET clientsocket)
 {
     bool ok;
     uint32_t setauto;
@@ -245,7 +262,7 @@ static void RC_SetPVIsoSpeed(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVBacklightCompensation(SOCKET clientsocket)
+static void RC_MSG_SetPVBacklightCompensation(SOCKET clientsocket)
 {
     bool ok;
     uint32_t state;
@@ -261,7 +278,7 @@ static void RC_SetPVBacklightCompensation(SOCKET clientsocket)
 }
 
 // OK
-static void RC_SetPVSceneMode(SOCKET clientsocket)
+static void RC_MSG_SetPVSceneMode(SOCKET clientsocket)
 {
     bool ok;
     uint32_t mode;
@@ -291,19 +308,19 @@ static void RC_Dispatch(SOCKET clientsocket)
 
     switch (state)
     {
-    case 0x00: RC_GetApplicationVersion(clientsocket);       break;
-    case 0x01: RC_GetUTCOffset(clientsocket);                break;
-    case 0x02: RC_SetHSMarkerState(clientsocket);            break;
-    case 0x03: RC_GetPVSubsystemStatus(clientsocket);        break;
-    case 0x04: RC_SetPVFocus(clientsocket);                  break;
-    case 0x05: RC_SetPVVideoTemporalDenoising(clientsocket); break;
-    case 0x06: RC_SetPVWhiteBalancePreset(clientsocket);     break;
-    case 0x07: RC_SetPVWhiteBalanceValue(clientsocket);      break;
-    case 0x08: RC_SetPVExposure(clientsocket);               break;
-    case 0x09: RC_SetPVExposurePriorityVideo(clientsocket);  break;
-    case 0x0A: RC_SetPVIsoSpeed(clientsocket);               break;
-    case 0x0B: RC_SetPVBacklightCompensation(clientsocket);  break;
-    case 0x0C: RC_SetPVSceneMode(clientsocket);              break;
+    case 0x00: RC_MSG_GetApplicationVersion(clientsocket);       break;
+    case 0x01: RC_MSG_GetUTCOffset(clientsocket);                break;
+    case 0x02: RC_MSG_SetHSMarkerState(clientsocket);            break;
+    case 0x03: RC_MSG_GetPVSubsystemStatus(clientsocket);        break;
+    case 0x04: RC_MSG_SetPVFocus(clientsocket);                  break;
+    case 0x05: RC_MSG_SetPVVideoTemporalDenoising(clientsocket); break;
+    case 0x06: RC_MSG_SetPVWhiteBalancePreset(clientsocket);     break;
+    case 0x07: RC_MSG_SetPVWhiteBalanceValue(clientsocket);      break;
+    case 0x08: RC_MSG_SetPVExposure(clientsocket);               break;
+    case 0x09: RC_MSG_SetPVExposurePriorityVideo(clientsocket);  break;
+    case 0x0A: RC_MSG_SetPVIsoSpeed(clientsocket);               break;
+    case 0x0B: RC_MSG_SetPVBacklightCompensation(clientsocket);  break;
+    case 0x0C: RC_MSG_SetPVSceneMode(clientsocket);              break;
     default:
         RC_TransferError();
         return;
@@ -313,9 +330,8 @@ static void RC_Dispatch(SOCKET clientsocket)
 // OK
 static void RC_Translate(SOCKET clientsocket)
 {
-    g_clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    do { RC_Dispatch(clientsocket); } while (WaitForSingleObject(g_clientevent, 0) == WAIT_TIMEOUT);
-    CloseHandle(g_clientevent);
+    ResetEvent(g_event_client);
+    do { RC_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
 }
 
 // OK
@@ -345,7 +361,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 
     ShowMessage("RC: Client disconnected");
     }
-    while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
     closesocket(listensocket);
 
@@ -357,14 +373,15 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 // OK
 void RC_Initialize()
 {
-    g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, RC_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
 void RC_Quit()
 {
-    SetEvent(g_quitevent);
+    SetEvent(g_event_quit);
 }
 
 // OK
@@ -373,8 +390,10 @@ void RC_Cleanup()
     WaitForSingleObject(g_thread, INFINITE);
 
     CloseHandle(g_thread);
-    CloseHandle(g_quitevent);
+    CloseHandle(g_event_client);
+    CloseHandle(g_event_quit);
 
     g_thread = NULL;
-    g_quitevent = NULL;
+    g_event_client = NULL;
+    g_event_quit = NULL;
 }
