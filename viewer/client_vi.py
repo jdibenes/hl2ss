@@ -1,14 +1,24 @@
-
-# https://learn.microsoft.com/en-us/windows/mixed-reality/develop/native/voice-input-in-directx
+#------------------------------------------------------------------------------
+# This script registers voice commands on the HoloLens.
+# Press esc to stop.
+#------------------------------------------------------------------------------
 
 from pynput import keyboard
 
 import hl2ss
 
+# Settings --------------------------------------------------------------------
+
+# HoloLens address
 host = '192.168.1.7'
+
+# Port
 port = hl2ss.IPCPort.VOICE_INPUT
 
+# Voice commands
 strings = ['cat', 'dog', 'red', 'blue']
+
+#------------------------------------------------------------------------------
 
 enable = True
 
@@ -29,17 +39,19 @@ listener.start()
 client = hl2ss.ipc_vi(host, port)
 client.open()
 
+# See
+# https://learn.microsoft.com/en-us/windows/mixed-reality/develop/native/voice-input-in-directx
+# for details
+
 client.create_recognizer()
-result = client.register_commands(True, strings)
-print(result)
-if (result):
+if (client.register_commands(True, strings)):
+    print('Ready. Try saying any of the commands you defined.')
     client.start()
     while (enable):
         events = client.pop()
         for event in events:
             event.unpack()
-            print(f'event: {get_word(strings, event.index)} {event.index} {event.confidence} {event.phrase_duration} {event.phrase_start_time} {event.raw_confidence}')
-
+            print(f'Event: {get_word(strings, event.index)} {event.index} {event.confidence} {event.phrase_duration} {event.phrase_start_time} {event.raw_confidence}')
     client.stop()
     client.clear()
 

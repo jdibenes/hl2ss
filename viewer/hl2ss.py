@@ -498,10 +498,7 @@ class rx_rm_vlc(_context_manager):
         self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
 
     def get_next_packet(self):
-        data = self._client.get_next_packet()
-        if (self.profile == VideoProfile.RAW):
-            self._client.sendall(b'\x00')
-        return data
+        return self._client.get_next_packet()
 
     def close(self):
         self._client.close()
@@ -753,24 +750,26 @@ def decode_rm_depth_longthrow(payload):
 #------------------------------------------------------------------------------
 
 class _RM_IMU_Frame:
-    def __init__(self, sensor_ticks_ns, x, y, z):
-        self.sensor_ticks_ns = sensor_ticks_ns
+    def __init__(self, vinyl_hup_ticks, soc_ticks, x, y, z, temperature):
+        self.vinyl_hup_ticks = vinyl_hup_ticks
+        self.soc_ticks       = soc_ticks
         self.x               = x
         self.y               = y
         self.z               = z
+        self.temperature     = temperature
 
 
 class unpack_rm_imu:
     def __init__(self, payload):
-        self._count = len(payload) // 28
+        self._count = len(payload) // 32
         self._batch = payload
 
     def get_count(self):
         return self._count
 
     def get_frame(self, index):
-        data = struct.unpack('<QQfff', self._batch[(index * 28):((index + 1) * 28)])
-        return _RM_IMU_Frame(data[0], data[2], data[3], data[4])
+        data = struct.unpack('<QQffff', self._batch[(index * 32):((index + 1) * 32)])
+        return _RM_IMU_Frame(data[0], data[1], data[2], data[3], data[4], data[5])
 
 
 #------------------------------------------------------------------------------
@@ -1834,6 +1833,13 @@ class ipc_su(_context_manager):
 #------------------------------------------------------------------------------
 # Voice Input
 #------------------------------------------------------------------------------
+
+class VI_SpeechRecognitionConfidence:
+    High = 0
+    Medium = 1
+    Low = 2
+    Rejected = 3
+
 
 class vi_result:
     def __init__(self, index, confidence, phrase_duration, phrase_start_time, raw_confidence):
