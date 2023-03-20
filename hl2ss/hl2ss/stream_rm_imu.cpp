@@ -22,8 +22,6 @@ using namespace winrt::Windows::Perception::Spatial;
 template<class IResearchModeIMUFrame, class IMUDataStruct, bool ENABLE_LOCATION>
 void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    int const chunksize = 28;
-
     PerceptionTimestamp ts = nullptr;
     float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
@@ -31,9 +29,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     IResearchModeIMUFrame* pSensorIMUFrame; // Release    
     IMUDataStruct const* pIMUBuffer;
     size_t nIMUSamples;
-    std::vector<BYTE> sampleBuffer;
     int bufSize;
-    BYTE* pDst;
     WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];    
     HRESULT hr;
     bool ok;
@@ -61,11 +57,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pSensorIMUFrame->GetMagnetometerSamples(&pIMUBuffer, &nIMUSamples);
     }
 
-    bufSize = (int)(nIMUSamples * chunksize);
-    if (sampleBuffer.size() < bufSize) { sampleBuffer.resize(bufSize); }
-    pDst = sampleBuffer.data();
-
-    for (int i = 0; i < (int)nIMUSamples; ++i) { memcpy(pDst + (i * chunksize), &(pIMUBuffer[i]), chunksize); }
+    bufSize = (int)(nIMUSamples * sizeof(IMUDataStruct));
 
     wsaBuf[0].buf = (char*)&timestamp.HostTicks;
     wsaBuf[0].len = sizeof(timestamp.HostTicks);
@@ -73,7 +65,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     wsaBuf[1].buf = (char*)&bufSize;
     wsaBuf[1].len = sizeof(bufSize);
     
-    wsaBuf[2].buf = (char*)pDst;
+    wsaBuf[2].buf = (char*)pIMUBuffer;
     wsaBuf[2].len = bufSize;
 
     if constexpr(ENABLE_LOCATION)

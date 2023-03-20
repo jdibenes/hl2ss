@@ -35,7 +35,7 @@ static char const* const g_research_sensor_port[] =
     PORT_NAME_RM_MAG
 };
 
-static HANDLE g_quitevent = NULL; // CloseHandle
+static HANDLE g_event_quit = NULL; // CloseHandle
 static std::vector<HANDLE> g_threads; // CloseHandle
 
 //-----------------------------------------------------------------------------
@@ -114,7 +114,7 @@ static DWORD WINAPI RM_EntryPoint(void* param)
 
     ShowMessage("RM%d: Client disconnected", type);
     }
-    while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
   
     closesocket(listensocket);
 
@@ -129,7 +129,7 @@ void RM_Initialize()
     ResearchModeSensorType const* sensortypes = ResearchMode_GetSensorTypes();
     int const sensorcount = ResearchMode_GetSensorTypeCount();
 
-    g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     
     g_threads.resize(sensorcount);
     for (int i = 0; i < sensorcount; ++i) { g_threads[i] = CreateThread(NULL, 0, RM_EntryPoint, ResearchMode_GetSensor(sensortypes[i]), NULL, NULL); }
@@ -138,7 +138,7 @@ void RM_Initialize()
 // OK
 void RM_Quit()
 {
-    SetEvent(g_quitevent);
+    SetEvent(g_event_quit);
 }
 
 // OK
@@ -147,8 +147,8 @@ void RM_Cleanup()
     WaitForMultipleObjects((DWORD)g_threads.size(), g_threads.data(), TRUE, INFINITE);
 
     for (auto thread : g_threads) { CloseHandle(thread); }
-    CloseHandle(g_quitevent);
+    CloseHandle(g_event_quit);
 
     g_threads.clear();
-    g_quitevent = NULL;
+    g_event_quit = NULL;
 }

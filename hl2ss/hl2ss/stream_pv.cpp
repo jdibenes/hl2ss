@@ -22,20 +22,18 @@ using namespace winrt::Windows::Media::Devices::Core;
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception::Spatial;
 
-struct _PV_Projection
+struct PV_Projection
 {
     float2 f;
     float2 c;
     float4x4 pose;
 };
 
-typedef struct _PV_Projection PV_Projection;
-
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_quitevent = NULL; // CloseHandle
+static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_thread = NULL; // CloseHandle
 
 // Mode: 0, 1
@@ -43,7 +41,7 @@ static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
 
 // Mode: 2
-static HANDLE g_intrinsic_event = NULL; // alias
+static HANDLE g_event_intrinsic = NULL; // alias
 static float g_intrinsics[2 + 2 + 3 + 2 + 16];
 
 //-----------------------------------------------------------------------------
@@ -111,7 +109,7 @@ static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, Me
     frame = sender.TryAcquireLatestFrame();
     if (!frame) { return; }
 
-    status = WaitForSingleObject(g_intrinsic_event, 0);
+    status = WaitForSingleObject(g_event_intrinsic, 0);
     if (status != WAIT_TIMEOUT) { return; }
 
     intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
@@ -128,7 +126,7 @@ static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, Me
     memcpy(&g_intrinsics[7], &t, sizeof(t));
     memcpy(&g_intrinsics[9], &p, sizeof(p));
 
-    SetEvent(g_intrinsic_event);
+    SetEvent(g_event_intrinsic);
 }
 
 // OK
@@ -224,12 +222,12 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
 {
     WSABUF wsaBuf;
 
-    g_intrinsic_event = clientevent;
+    g_event_intrinsic = clientevent;
 
     reader.FrameArrived(PV_OnVideoFrameArrived_Intrinsics);
 
     reader.StartAsync().get();
-    WaitForSingleObject(g_intrinsic_event, INFINITE);
+    WaitForSingleObject(g_event_intrinsic, INFINITE);
     reader.StopAsync().get();
 
     wsaBuf.buf = (char*)g_intrinsics;
@@ -237,7 +235,7 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
 
     send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 
-    g_intrinsic_event = NULL;
+    g_event_intrinsic = NULL;
     memset(g_intrinsics, 0, sizeof(g_intrinsics));
 }
 
@@ -308,7 +306,7 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 
     ShowMessage("PV: Client disconnected");
     } 
-    while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
     closesocket(listensocket);
 
@@ -320,14 +318,14 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 // OK
 void PV_Initialize()
 {
-    g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, PV_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
 void PV_Quit()
 {
-    SetEvent(g_quitevent);
+    SetEvent(g_event_quit);
 }
 
 // OK
@@ -336,8 +334,8 @@ void PV_Cleanup()
     WaitForSingleObject(g_thread, INFINITE);
 
     CloseHandle(g_thread);
-    CloseHandle(g_quitevent);
+    CloseHandle(g_event_quit);
     
     g_thread = NULL;
-    g_quitevent = NULL;
+    g_event_quit = NULL;
 }

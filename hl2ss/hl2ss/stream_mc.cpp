@@ -10,9 +10,10 @@
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static winrt::com_ptr<MicrophoneCapture> g_microphoneCapture = nullptr;
 static HANDLE g_thread = NULL; // CloseHandle
-static HANDLE g_quitevent = NULL; // CloseHandle
+static HANDLE g_event_quit = NULL; // CloseHandle
+
+static winrt::com_ptr<MicrophoneCapture> g_microphoneCapture = nullptr;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -60,7 +61,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	
 	CustomMediaSink* pSink; // Release
 	IMFSinkWriter* pSinkWriter; // Release
-	HANDLE clientevent; // CloseHandle
+	HANDLE event_client; // CloseHandle
 	AACFormat format;
 	HookCallbackSocket user;
 	DWORD dwAudioIndex;
@@ -72,10 +73,10 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	format.channels   = channels;
 	format.samplerate = samplerate;
 
-	clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	user.clientsocket = clientsocket;
-	user.clientevent  = clientevent;
+	user.clientevent  = event_client;
 	user.data_profile = format.profile;
 
 	switch (format.profile)
@@ -85,7 +86,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	}
 
 	g_microphoneCapture->Start();
-	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
+	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(event_client, 0) == WAIT_TIMEOUT);
 	g_microphoneCapture->Stop();
 	
 	pSinkWriter->Flush(dwAudioIndex);
@@ -93,7 +94,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	pSink->Shutdown();
 	pSink->Release();
 
-	CloseHandle(clientevent);
+	CloseHandle(event_client);
 }
 
 // OK
@@ -123,7 +124,7 @@ static DWORD WINAPI MC_EntryPoint(void*)
 
 	ShowMessage("MC: Client disconnected");
 	}
-	while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
+	while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
 	closesocket(listensocket);
 
@@ -138,14 +139,14 @@ void MC_Initialize()
 	g_microphoneCapture = winrt::make_self<MicrophoneCapture>();
 	g_microphoneCapture->Initialize();
 
-	g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
 	g_thread = CreateThread(NULL, 0, MC_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
 void MC_Quit()
 {
-	SetEvent(g_quitevent);
+	SetEvent(g_event_quit);
 }
 
 // OK
@@ -154,9 +155,9 @@ void MC_Cleanup()
 	WaitForSingleObject(g_thread, INFINITE);
 
 	CloseHandle(g_thread);
-	CloseHandle(g_quitevent);
+	CloseHandle(g_event_quit);
 
 	g_thread = NULL;
-	g_quitevent = NULL;
+	g_event_quit = NULL;
 	g_microphoneCapture = nullptr;
 }
