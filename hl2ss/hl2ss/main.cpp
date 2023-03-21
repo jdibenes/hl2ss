@@ -87,6 +87,8 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		SU_Initialize();
 		VI_Initialize();
 
+		PrintSystemInfo();
+
 		m_init = true;
 	}
 

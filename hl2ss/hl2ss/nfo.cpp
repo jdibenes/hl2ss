@@ -1,4 +1,7 @@
 
+#include <Windows.h>
+#include "log.h"
+
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Networking.h>
@@ -35,4 +38,22 @@ void GetLocalIPv4Address(std::vector<wchar_t> &address)
     return;
     }
     }
+}
+
+// OK
+void PrintSystemInfo()
+{
+    SYSTEM_INFO si;
+    DWORD_PTR pam;
+    DWORD_PTR sam;
+
+    GetSystemInfo(&si);
+
+    ShowMessage("Active Processor Mask %llX", si.dwActiveProcessorMask);
+    ShowMessage("Number of Processors %d", si.dwNumberOfProcessors);
+
+    GetProcessAffinityMask(GetCurrentProcess(), &pam, &sam);
+
+    ShowMessage("Process Affinity Mask %llX", pam);
+    ShowMessage("System Affinity Mask %llX", sam);
 }

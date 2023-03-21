@@ -54,6 +54,8 @@ void InitializeStreams(uint32_t enable)
     if (enable & HL2SS_ENABLE_VI) { VI_Initialize(); }
 
     MQ_Initialize();
+
+    PrintSystemInfo();
 }
 
 // OK
