@@ -426,11 +426,11 @@ class consumer:
 #------------------------------------------------------------------------------
 
 def get_sync_period_rm_vlc():
-    return hl2ss.Parameters_RM_VLC.FPS
+    return 2*hl2ss.Parameters_RM_VLC.FPS
 
 
 def get_sync_period_rm_depth_ahat():
-    return hl2ss.Parameters_RM_DEPTH_AHAT.FPS
+    return 2*hl2ss.Parameters_RM_DEPTH_AHAT.FPS
 
 
 def get_sync_period_rm_depth_longthrow():
@@ -442,7 +442,7 @@ def get_sync_period_rm_imu():
 
 
 def get_sync_period_pv(framerate):
-    return framerate
+    return 2*framerate
 
 
 def get_sync_period_microphone():

@@ -585,7 +585,6 @@ class rx_microphone(_context_manager):
         self.host = host
         self.port = port
         self.chunk = chunk
-        self.mode = StreamMode.MODE_0
         self.profile = profile
 
     def open(self):
@@ -603,7 +602,6 @@ class rx_si(_context_manager):
         self.host = host
         self.port = port
         self.chunk = chunk
-        self.mode = StreamMode.MODE_0
 
     def open(self):
         self._client = _connect_client_si(self.host, self.port, self.chunk)
@@ -668,8 +666,8 @@ def get_video_codec_default_factor(profile):
     return 4/420 if (name == 'h264') else 1/140 if (name == 'hevc') else 1.0
 
 
-def get_video_codec_default_bitrate(width, height, fps, profile):
-    return int(width*height*fps*12*get_video_codec_default_factor(profile))
+def get_video_codec_bitrate(width, height, fps, factor):
+    return int(width*height*fps*12*factor)
 
 
 #------------------------------------------------------------------------------
