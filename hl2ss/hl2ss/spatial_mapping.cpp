@@ -33,7 +33,7 @@ static SpatialPerceptionAccessStatus g_status_consent = SpatialPerceptionAccessS
 static SpatialSurfaceObserver g_sso = nullptr;
 static SpatialCoordinateSystem g_world = nullptr;
 static IMapView<winrt::guid, SpatialSurfaceInfo> g_observed = nullptr;
-static std::vector<winrt::guid> g_observed_ids;
+static std::vector<SpatialMapping_SurfaceInfo> g_observed_ids;
 static std::vector<SSM> g_observed_meshes;
 static std::vector<SpatialMapping_MeshInfo> g_observed_meshes_info;
 static std::vector<HANDLE> g_event_observed_meshes; // CloseHandle
@@ -94,12 +94,12 @@ void SpatialMapping_SetVolumes(SpatialMapping_VolumeDescription const* vd, size_
 }
 
 // OK
-void SpatialMapping_GetObservedSurfaces(winrt::guid const*& data, size_t& size)
+void SpatialMapping_GetObservedSurfaces(SpatialMapping_SurfaceInfo const*& data, size_t& size)
 {
     g_observed = g_sso.GetObservedSurfaces();
     int i = 0;
     g_observed_ids.resize(g_observed.Size());
-    for (auto pair : g_observed) { g_observed_ids[i++] = pair.Key(); }
+    for (auto pair : g_observed) { g_observed_ids[i++] = { pair.Key(), pair.Value().UpdateTime().time_since_epoch().count()}; }
     data = g_observed_ids.data();
     size = g_observed_ids.size();
 }
@@ -117,9 +117,11 @@ static void SpatialMapping_ComputeMesh(SpatialMapping_MeshTask* task)
     SpatialSurfaceInfo ssi = nullptr;
     SpatialSurfaceMeshOptions options = nullptr;
     SpatialSurfaceMesh ssm = nullptr;
+    bool compute_normals = (task->md.flags & SPATIALMAPPING_COMPUTE_NORMALS) != 0;
+    bool compute_bounds  = (task->md.flags & SPATIALMAPPING_COMPUTE_BOUNDS)  != 0;
     IBuffer vertex_positions;
     IBuffer triangle_indices;
-    IBuffer vertex_normals;
+    IBuffer vertex_normals;    
 
     g_observed_meshes_info[task->index].index = task->index;
 
@@ -134,7 +136,7 @@ static void SpatialMapping_ComputeMesh(SpatialMapping_MeshTask* task)
     options.VertexPositionFormat((DirectXPixelFormat)task->md.vertex_format);
     options.TriangleIndexFormat((DirectXPixelFormat)task->md.triangle_format);
     options.VertexNormalFormat((DirectXPixelFormat)task->md.normal_format);
-    options.IncludeVertexNormals(task->md.normals);
+    options.IncludeVertexNormals(compute_normals);
 
     ssm = ssi.TryComputeLatestMeshAsync(task->md.maxtpcm, options).get();
     if (!ssm)
@@ -147,19 +149,22 @@ static void SpatialMapping_ComputeMesh(SpatialMapping_MeshTask* task)
 
     vertex_positions = ssm.VertexPositions().Data();
     triangle_indices = ssm.TriangleIndices().Data();
-    vertex_normals   = task->md.normals ? ssm.VertexNormals().Data() : nullptr;
+    vertex_normals   = compute_normals ? ssm.VertexNormals().Data() : nullptr;
 
-    g_observed_meshes_info[task->index].status      = 0;
-    g_observed_meshes_info[task->index].vpl         = vertex_positions.Length();
-    g_observed_meshes_info[task->index].til         = triangle_indices.Length();
-    g_observed_meshes_info[task->index].vnl         = task->md.normals ? vertex_normals.Length() : 0;
-    g_observed_meshes_info[task->index].vpd         = vertex_positions.data();
-    g_observed_meshes_info[task->index].tid         = triangle_indices.data();
-    g_observed_meshes_info[task->index].vnd         = task->md.normals ? vertex_normals.data() : NULL;
-    g_observed_meshes_info[task->index].update_time = ssi.UpdateTime().time_since_epoch().count();
-    g_observed_meshes_info[task->index].pose        = Locator_GetTransformTo(ssm.CoordinateSystem(), g_world);
-    g_observed_meshes_info[task->index].scale       = ssm.VertexPositionScale();
-    g_observed_meshes_info[task->index].bounds      = SpatialMapping_GetBounds(ssi, ssm);
+    g_observed_meshes_info[task->index].status = 0;
+    g_observed_meshes_info[task->index].vpl    = vertex_positions.Length();
+    g_observed_meshes_info[task->index].til    = triangle_indices.Length();
+    g_observed_meshes_info[task->index].vnl    = compute_normals ? vertex_normals.Length() : 0;
+    g_observed_meshes_info[task->index].vpd    = vertex_positions.data();
+    g_observed_meshes_info[task->index].tid    = triangle_indices.data();
+    g_observed_meshes_info[task->index].vnd    = compute_normals ? vertex_normals.data() : NULL;
+    g_observed_meshes_info[task->index].pose   = Locator_GetTransformTo(ssm.CoordinateSystem(), g_world);
+    g_observed_meshes_info[task->index].scale  = ssm.VertexPositionScale();
+    g_observed_meshes_info[task->index].bsz    = compute_bounds ? sizeof(SpatialBoundingOrientedBox) : 0;
+    if (compute_bounds)
+    {
+    g_observed_meshes_info[task->index].bounds = SpatialMapping_GetBounds(ssi, ssm);
+    }
 }
 
 // OK

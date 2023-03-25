@@ -89,7 +89,7 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
 static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
 {
     WSABUF wsaBuf[2];
-    winrt::guid const* ids;
+    SpatialMapping_SurfaceInfo const* ids;
     size_t count;
     bool ok;
 
@@ -99,7 +99,7 @@ static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
     wsaBuf[0].len = sizeof(count);
 
     wsaBuf[1].buf = (char*)ids;
-    wsaBuf[1].len = (ULONG)(count * sizeof(winrt::guid));
+    wsaBuf[1].len = (ULONG)(count * sizeof(SpatialMapping_SurfaceInfo));
 
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
@@ -154,7 +154,7 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
     info = SpatialMapping_GetNextMesh();
 
     wsaBuf[0].buf = (char*)info;
-    wsaBuf[0].len = SM_MESH_INFO_HEADER_SIZE;
+    wsaBuf[0].len = SM_MESH_INFO_HEADER_SIZE + info->bsz;
 
     wsaBuf[1].buf = (char*)info->vpd;
     wsaBuf[1].len = info->vpl;

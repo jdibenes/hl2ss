@@ -1567,13 +1567,19 @@ class sm_bounding_volume:
         return self._count, self._data
 
 
+class _sm_surface_info:
+    def __init__(self, id, update_time):
+        self.id = id
+        self.update_time = struct.unpack('<Q', update_time)[0]
+
+
 class sm_mesh_task:
     def __init__(self):
         self._count = 0
         self._data = bytearray()
 
-    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals):
-        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, 1 if include_vertex_normals else 0))
+    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals, include_bounds):
+        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, (1 if include_vertex_normals else 0) | (2 if include_bounds else 0)))
         self._count += 1
 
     def _get(self):
@@ -1581,9 +1587,8 @@ class sm_mesh_task:
 
 
 class _sm_mesh:
-    def __init__(self, vertex_position_scale, update_time, pose, bounds, vertex_positions, triangle_indices, vertex_normals):
+    def __init__(self, vertex_position_scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals):
         self.vertex_position_scale = vertex_position_scale
-        self.update_time           = update_time
         self.pose                  = pose
         self.bounds                = bounds        
         self.vertex_positions      = vertex_positions
@@ -1592,7 +1597,6 @@ class _sm_mesh:
 
     def unpack(self, vertex_position_format, triangle_index_format, vertex_normal_format):
         self.vertex_position_scale = np.frombuffer(self.vertex_position_scale, dtype=np.float32).reshape((1, 3))
-        self.update_time           = np.frombuffer(self.update_time,           dtype=np.uint64)
         self.pose                  = np.frombuffer(self.pose,                  dtype=np.float32).reshape((4, 4))
         self.bounds                = np.frombuffer(self.bounds,                dtype=np.float32)        
         self.vertex_positions      = np.frombuffer(self.vertex_positions,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_position_format]).reshape((-1, 4))
@@ -1627,35 +1631,37 @@ class ipc_sm(_context_manager):
     def get_observed_surfaces(self):
         self._client.sendall(struct.pack('<B', ipc_sm._CMD_GET_OBSERVED_SURFACES))
         count = struct.unpack('<Q', self._client.download(_SIZEOF.QWORD, ChunkSize.SINGLE_TRANSFER))[0]
-        ids = self._client.download(count * 16, ChunkSize.SINGLE_TRANSFER)
-        return [ids[(i*16):((i+1)*16)] for i in range(0, count)]
+        ids = self._client.download(count * 24, ChunkSize.SINGLE_TRANSFER)
+        return [_sm_surface_info(ids[(i*24):(i*24+16)], ids[(i*24+16):(i*24+24)]) for i in range(0, count)]
     
     def _download_mesh(self):
-        header = self._client.download(144, ChunkSize.SINGLE_TRANSFER)
+        header = self._client.download(100, ChunkSize.SINGLE_TRANSFER)
+
         index, status, vpl, til, vnl = struct.unpack('<IIIII', header[:20])
+        scale = header[20:32]
+        pose = header[32:96]
+        bsz = struct.unpack('<I', header[96:100])[0]
 
         if (status != 0):
             return index, None
         
-        payload = self._client.download(vpl + til + vnl, ChunkSize.SINGLE_TRANSFER)
+        payload = self._client.download(bsz + vpl + til + vnl, ChunkSize.SINGLE_TRANSFER)
 
-        scale       = header[20:32]
-        update_time = header[32:40]
-        pose        = header[40:104]
-        bounds      = header[104:144]
-
-        vpd_b = 0
+        osb_b = 0
+        osb_e = osb_b + bsz
+        vpd_b = osb_e
         vpd_e = vpd_b + vpl
         tid_b = vpd_e
         tid_e = tid_b + til
         vnd_b = tid_e
         vnd_e = vnd_b + vnl
-        
-        vpd = payload[vpd_b:vpd_e]
-        tid = payload[tid_b:tid_e]
-        vnd = payload[vnd_b:vnd_e]
 
-        return index, _sm_mesh(scale, update_time, pose, bounds, vpd, tid, vnd)
+        bounds           = payload[osb_b:osb_e]
+        vertex_positions = payload[vpd_b:vpd_e]
+        triangle_indices = payload[tid_b:tid_e]
+        vertex_normals   = payload[vnd_b:vnd_e]
+
+        return index, _sm_mesh(scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals)
     
     def _download_meshes(self, count):
         for _ in range(0, count):
