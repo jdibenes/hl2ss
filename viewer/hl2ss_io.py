@@ -702,15 +702,15 @@ class sequencer:
 
 def get_sync_period(wr):
     if   (wr.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss_mp.get_sync_period_rm_vlc()
+        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
     elif (wr.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss_mp.get_sync_period_rm_vlc()
+        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
     elif (wr.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss_mp.get_sync_period_rm_vlc()
+        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
     elif (wr.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss_mp.get_sync_period_rm_vlc()
+        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
     elif (wr.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss_mp.get_sync_period_rm_depth_ahat()
+        return hl2ss_mp.get_sync_period_rm_depth_ahat(wr.profile)
     elif (wr.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
         return hl2ss_mp.get_sync_period_rm_depth_longthrow()
     elif (wr.port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
@@ -720,7 +720,7 @@ def get_sync_period(wr):
     elif (wr.port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
         return hl2ss_mp.get_sync_period_rm_imu()
     elif (wr.port == hl2ss.StreamPort.PERSONAL_VIDEO):
-        return hl2ss_mp.get_sync_period_pv(wr.framerate)
+        return hl2ss_mp.get_sync_period_pv(wr.profile, wr.framerate)
     elif (wr.port == hl2ss.StreamPort.MICROPHONE):
         return hl2ss_mp.get_sync_period_microphone()
     elif (wr.port == hl2ss.StreamPort.SPATIAL_INPUT):
@@ -781,6 +781,6 @@ class wr_process_producer(mp.Process):
             elif ((not previous) and self._stopping):
                 self._stop_stamp = self._sink.get_frame_stamp()
 
-        self._sink.detach()
         self._wr.close()
-
+        self._sink.detach()
+        

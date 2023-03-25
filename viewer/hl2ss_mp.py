@@ -425,12 +425,12 @@ class consumer:
 # Stream Sync Period
 #------------------------------------------------------------------------------
 
-def get_sync_period_rm_vlc():
-    return hl2ss.Parameters_RM_VLC.FPS
+def get_sync_period_rm_vlc(profile):
+    return hl2ss.get_gop_size(profile, hl2ss.Parameters_RM_VLC.FPS)
 
 
-def get_sync_period_rm_depth_ahat():
-    return hl2ss.Parameters_RM_DEPTH_AHAT.FPS
+def get_sync_period_rm_depth_ahat(profile):
+    return hl2ss.get_gop_size(profile, hl2ss.Parameters_RM_DEPTH_AHAT.FPS)
 
 
 def get_sync_period_rm_depth_longthrow():
@@ -441,8 +441,8 @@ def get_sync_period_rm_imu():
     return 1
 
 
-def get_sync_period_pv(framerate):
-    return framerate
+def get_sync_period_pv(profile, framerate):
+    return hl2ss.get_gop_size(profile, framerate)
 
 
 def get_sync_period_microphone():
