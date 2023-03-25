@@ -658,7 +658,7 @@ def get_audio_codec_bitrate(profile):
 
 def get_gop_size(profile, framerate):
     name = get_video_codec_name(profile)
-    return 1 if ((name != 'h264') and (name != 'hevc')) else (2 * framerate)
+    return 1 if ((name != 'h264') and (name != 'hevc')) else framerate
 
 
 def get_video_codec_default_factor(profile):

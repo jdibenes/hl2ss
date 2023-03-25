@@ -326,7 +326,7 @@ class _reader:
         self._file.close()
 
 
-def probe(filename, chunk):
+def _probe(filename, chunk):
     r = _reader()
     r.open(filename, chunk)
     magic = r.get_magic()
@@ -483,7 +483,7 @@ def _create_rd_si(filename, chunk):
 
 
 def _create_rd(filename, chunk):
-    magic, port = probe(filename, chunk)
+    magic, port = _probe(filename, chunk)
     if   (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
         return _create_rd_rm_vlc(filename, chunk)
     elif (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
@@ -636,7 +636,7 @@ class _rd_decoded_microphone(_rd):
 #------------------------------------------------------------------------------
 
 def create_rd(decoded, filename, chunk, format):
-    magic, port = probe(filename, chunk)
+    magic, port = _probe(filename, chunk)
     if   (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
         return _rd_decoded_rm_vlc(filename, chunk) if (decoded) else _rd(filename, chunk)
     elif (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
