@@ -367,15 +367,10 @@ def _load_calibration_rm(port, path):
 # Calibration Manager
 #------------------------------------------------------------------------------
 
-class _Mode2_PV_E:
+class _Mode2_PV(hl2ss._Mode2_PV):
     def __init__(self, mode2, extrinsics):
-        self.focal_length          = mode2.focal_length
-        self.principal_point       = mode2.principal_point
-        self.radial_distortion     = mode2.radial_distortion
-        self.tangential_distortion = mode2.tangential_distortion
-        self.projection            = mode2.projection
-        self.intrinsics            = mode2.intrinsics
-        self.extrinsics            = extrinsics
+        super().__init__(mode2.focal_length, mode2.principal_point, mode2.radial_distortion, mode2.tangential_distortion, mode2.projection, mode2.intrinsics)
+        self.extrinsics = extrinsics
 
 
 def _check_calibration_directory(path):
@@ -420,7 +415,7 @@ def get_calibration_pv(host, port, path, focus, width, height, framerate, load_e
         os.makedirs(base, exist_ok=True)
         _save_calibration_pv(calibration, base)
         
-    return _Mode2_PV_E(calibration, extrinsics)
+    return _Mode2_PV(calibration, extrinsics)
 
 
 def save_extrinsics_pv(port, extrinsics, path):
