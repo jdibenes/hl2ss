@@ -34,7 +34,7 @@ static void CreateSingleStreamSinkWriter(CustomMediaSink** ppSink, IMFSinkWriter
 	CustomMediaSink::CreateInstance(&pSink, MEDIASINK_RATELESS, pHook);
 
 	MFCreateAttributes(&pSinkAttr, 3);
-	MFCreateAttributes(&pEncoderAttr, 2);
+	MFCreateAttributes(&pEncoderAttr, 1);
 
 	pSinkAttr->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
 	pSinkAttr->SetUINT32(MF_LOW_LATENCY, TRUE);
