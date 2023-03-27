@@ -1,0 +1,99 @@
+version: '3.7'
+
+x-multicast-container: &multicast
+    image: hl2ss_multicast
+    build:
+      context: .
+    environment:
+      API_URL: streamer:8000
+      HOLOLENS_URL: ${HOLOLENS_URL:-10.18.172.12}
+    restart: unless-stopped
+
+services:
+  streamer:
+    build: redis-streamer
+    container_name: redis-streamer
+    ports:
+     - 8000:8000
+    environment:
+      REDIS_URL: redis://redis:6379
+      DISABLE_MULTI_DEVICE_PREFIXING: "1"
+      REDIS_STREAM_MAXLEN: "500"
+      REDIS_MAX_CONNECTIONS: 2000
+    depends_on:
+     - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis_streamer/redis/redis_6789.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      ALLOW_EMPTY_PASSWORD: 'yes'
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  # a dashboard to view redis
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    container_name: redisinsight
+    restart: unless-stopped
+    depends_on:
+      - redis
+    ports:
+      - '8001:8001'
+
+  rm_vlc_leftleft_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "rm_vlc_leftleft"]
+
+  rm_vlc_leftfront_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "rm_vlc_leftfront"]
+
+  rm_vlc_rightfront_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "rm_vlc_rightfront"]
+
+  rm_vlc_rightright_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "rm_vlc_rightright"]
+
+  #rm_depth_ahat_adapter:
+  #  <<: *multicast
+  #  command: ["BBN_redis_adapters.py", "rm_depth_ahat"]
+
+  rm_depth_longthrow_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "rm_depth_longthrow"]
+
+  rm_imu_accelerometer_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "rm_imu_accelerometer"]
+
+  rm_imu_gyroscope_adapter:
+      <<: *multicast
+      command: ["BBN_redis_adapters.py", "rm_imu_gyroscope"]
+
+  rm_imu_magnetometer_adapter:
+      <<: *multicast
+      command: ["BBN_redis_adapters.py", "rm_imu_magnetometer"]
+
+  personal_video_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "personal_video"]
+
+  microphone_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "microphone"]
+
+  spatial_input_adapter:
+    <<: *multicast
+    command: ["BBN_redis_adapters.py", "spatial_input"]
