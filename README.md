@@ -18,7 +18,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Magnetometer
 - Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
 - Microphone (2 channels @ 48000 Hz, PCM 16, AAC encoded)
-- Spatial Input (60 Hz)
+- Spatial Input (30 Hz)
   - Head Tracking
   - Eye Tracking
   - Hand Tracking
