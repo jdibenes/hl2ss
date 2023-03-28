@@ -81,6 +81,6 @@ else:
 
     client.close()
     listener.join()
-    time.sleep(2) # wait for last capture
+    time.sleep(10) # wait for last capture
 
 hl2ss.stop_subsystem_pv(host, port)

@@ -34,7 +34,7 @@ video_bitrate = 5*1024*1024
 audio_profile = hl2ss.AudioProfile.AAC_24000
 
 # Video filename
-video_filename = 'video.mp4'
+video_filename = './data/video.mp4'
 
 #------------------------------------------------------------------------------
 
