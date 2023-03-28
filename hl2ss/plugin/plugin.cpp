@@ -67,13 +67,6 @@ void DebugMessage(char const* str)
 
 // OK
 UNITY_EXPORT
-void SI_Update()
-{
-    SI_NotifyNextFrame(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp()));
-}
-
-// OK
-UNITY_EXPORT
 void GetLocalIPv4Address(wchar_t *buffer, int size)
 {
     std::vector<wchar_t> address;
