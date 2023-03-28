@@ -23,7 +23,7 @@ import numpy as np
 host = '192.168.1.7'
 
 # Ports
-port_mq = rus.Port.IPC
+port_mq = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 port_lt = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 
 # Quad scale in meters
@@ -62,13 +62,15 @@ listener.start()
 with open(texture_file, mode='rb') as file:
     image = file.read()
 
-ipc = rus.connect_client_mq(host, port_mq)
+ipc = hl2ss.ipc_umq(host, port_mq)
+ipc.open()
+
 key = 0
 
-command_buffer = rus.create_command_buffer()
+command_buffer = rus.command_buffer()
 command_buffer.remove_all()
 ipc.push(command_buffer)
-results = ipc.pop(command_buffer)
+results = ipc.pull(command_buffer)
 
 previous  = False
 calib  = hl2ss.download_calibration_rm_depth_longthrow(host, port_lt)
@@ -144,7 +146,7 @@ while (enable):
     rotation = [axis[0,0] * sin, axis[0,1] * sin, axis[0,2] * sin, cos]
 
     # Add quad to Unity scene
-    display_list = rus.create_command_buffer()
+    display_list = rus.command_buffer()
     display_list.begin_display_list() # Begin sequence
     display_list.create_primitive(rus.PrimitiveType.Quad) # Create quad, returns id which can be used to modify its properties
     display_list.set_target_mode(1) # Set server to use the last created object as target (this avoids waiting for the id)
@@ -155,18 +157,18 @@ while (enable):
     display_list.end_display_list() # End sequence
 
     ipc.push(display_list) # Send commands to server
-    results = ipc.pop(display_list) # Get results from server
+    results = ipc.pull(display_list) # Get results from server
     
     key = results[1]
 
     print('Created quad with id {iid}'.format(iid=key))
 
 
-command_buffer = rus.create_command_buffer()
+command_buffer = rus.command_buffer()
 command_buffer.remove_all()
 
 ipc.push(command_buffer)
-results = ipc.pop(command_buffer)
+results = ipc.pull(command_buffer)
 
 ipc.close()
 

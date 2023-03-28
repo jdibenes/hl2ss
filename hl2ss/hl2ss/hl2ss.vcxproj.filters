@@ -127,6 +127,12 @@
     <ClCompile Include="ipc_su.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
+    <ClCompile Include="voice_input.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="ipc_vi.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -367,6 +373,12 @@
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="ipc_su.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="voice_input.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="ipc_vi.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
   </ItemGroup>

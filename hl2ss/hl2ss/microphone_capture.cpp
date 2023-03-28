@@ -51,7 +51,10 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	WORD const bitspersample = 16;
 	DWORD const samplerate = 48000;
 	WORD const channels = 2;
-	REFERENCE_TIME const buffersizehns = (HNS_BASE * 16000ULL * 3ULL) / samplerate; // 1 second
+	UINT32 defaultPeriodInFrames;
+	UINT32 fundamentalPeriodInFrames;
+	UINT32 minPeriodInFrames;
+	UINT32 maxPeriodInFrames;
 
 	winrt::com_ptr<IUnknown> punkAudioInterface;
 	HRESULT activateStatus;
@@ -77,8 +80,11 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	wfe->Format.nBlockAlign = wfe->Format.nChannels * (wfe->Format.wBitsPerSample / 8);
 	wfe->Format.nAvgBytesPerSec = wfe->Format.nBlockAlign * wfe->Format.nSamplesPerSec;
 	wfe->Samples.wValidBitsPerSample = wfe->Format.wBitsPerSample;
+	
+	hr = m_audioClient->GetSharedModeEnginePeriod(m_wfx, &defaultPeriodInFrames, &fundamentalPeriodInFrames, &minPeriodInFrames, &maxPeriodInFrames);
+	if (FAILED(hr)) { return hr; }
 
-	hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, buffersizehns, 0, m_wfx, NULL);
+	hr = m_audioClient->InitializeSharedAudioStream(AUDCLNT_STREAMFLAGS_EVENTCALLBACK, defaultPeriodInFrames, m_wfx, NULL);
 	if (FAILED(hr)) { return hr; }
 
 	m_eventData = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -111,7 +117,7 @@ void MicrophoneCapture::Start()
 void MicrophoneCapture::Stop()
 {
 	m_audioClient->Stop();
-	//m_audioClient->Reset();
+	m_audioClient->Reset();
 }
 
 // OK

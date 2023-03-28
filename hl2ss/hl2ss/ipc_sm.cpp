@@ -14,8 +14,8 @@ using namespace winrt::Windows::Perception::Spatial;
 //-----------------------------------------------------------------------------
 
 static HANDLE g_thread = NULL;
-static HANDLE g_quitevent = NULL;
-static HANDLE g_clientevent = NULL;
+static HANDLE g_event_quit = NULL;
+static HANDLE g_event_client = NULL;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -24,7 +24,7 @@ static HANDLE g_clientevent = NULL;
 // OK
 static void SM_TransferError()
 {
-    SetEvent(g_clientevent);
+    SetEvent(g_event_client);
 }
 
 // OK
@@ -37,7 +37,7 @@ static void SM_MSG_CreateObserver(SOCKET clientsocket)
 // OK
 static void SM_MSG_SetVolumes(SOCKET clientsocket)
 {
-    std::vector<VolumeDescription> vd;
+    std::vector<SpatialMapping_VolumeDescription> vd;
     uint32_t type;
     uint8_t count;
     int size;
@@ -51,7 +51,7 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
     }
 
     vd.resize(count);
-    VolumeDescription* data = vd.data();
+    SpatialMapping_VolumeDescription* data = vd.data();
 
     for (int i = 0; i < count; ++i)
     {
@@ -64,16 +64,16 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
 
     switch (type)
     {
-    case VolumeType::VolumeType_Box:         size = sizeof(SpatialBoundingBox);         break;
-    case VolumeType::VolumeType_Frustum:     size = sizeof(SpatialBoundingFrustum);     break;
-    case VolumeType::VolumeType_OrientedBox: size = sizeof(SpatialBoundingOrientedBox); break;
-    case VolumeType::VolumeType_Sphere:      size = sizeof(SpatialBoundingSphere);      break;
+    case SpatialMapping_VolumeType::VolumeType_Box:         size = sizeof(SpatialBoundingBox);         break;
+    case SpatialMapping_VolumeType::VolumeType_Frustum:     size = sizeof(SpatialBoundingFrustum);     break;
+    case SpatialMapping_VolumeType::VolumeType_OrientedBox: size = sizeof(SpatialBoundingOrientedBox); break;
+    case SpatialMapping_VolumeType::VolumeType_Sphere:      size = sizeof(SpatialBoundingSphere);      break;
     default:
         SM_TransferError();
         return;
     }
 
-    vd[i].type = (VolumeType)type;
+    vd[i].type = (SpatialMapping_VolumeType)type;
     ok = recv(clientsocket, (char*)&(data[i].data), size);
     if (!ok)
     {
@@ -89,7 +89,7 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
 static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
 {
     WSABUF wsaBuf[2];
-    winrt::guid const* ids;
+    SpatialMapping_SurfaceInfo const* ids;
     size_t count;
     bool ok;
 
@@ -99,20 +99,24 @@ static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
     wsaBuf[0].len = sizeof(count);
 
     wsaBuf[1].buf = (char*)ids;
-    wsaBuf[1].len = (ULONG)(count * sizeof(winrt::guid));
+    wsaBuf[1].len = (ULONG)(count * sizeof(SpatialMapping_SurfaceInfo));
 
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SM_TransferError(); }
+    if (!ok)
+    {
+        SM_TransferError();
+        return;
+    }
 }
 
 // OK
 static void SM_MSG_GetMeshes(SOCKET clientsocket)
 {
-    std::vector<MeshTask> md;
+    std::vector<SpatialMapping_MeshTask> md;
     uint32_t count;
     uint32_t maxtasks;
-    MeshTask* task;
-    MeshInfo* info;
+    SpatialMapping_MeshTask* task;
+    SpatialMapping_MeshInfo* info;
     WSABUF wsaBuf[4];
     bool ok;
 
@@ -135,7 +139,7 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
 
     for (uint32_t i = 0; i < count; ++i)
     {
-    ok = recv(clientsocket, (char*)(task + i), sizeof(MeshDescription));
+    ok = recv(clientsocket, (char*)(task + i), sizeof(SpatialMapping_MeshDescription));
     if (!ok)
     {
         SM_TransferError();
@@ -150,7 +154,7 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
     info = SpatialMapping_GetNextMesh();
 
     wsaBuf[0].buf = (char*)info;
-    wsaBuf[0].len = MESH_INFO_HEADER_SIZE;
+    wsaBuf[0].len = SM_MESH_INFO_HEADER_SIZE + info->bsz;
 
     wsaBuf[1].buf = (char*)info->vpd;
     wsaBuf[1].len = info->vpl;
@@ -200,9 +204,8 @@ static void SM_Dispatch(SOCKET clientsocket)
 // OK
 static void SM_Translate(SOCKET clientsocket)
 {
-    g_clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    do { SM_Dispatch(clientsocket); } while (WaitForSingleObject(g_clientevent, 0) == WAIT_TIMEOUT);
-    CloseHandle(g_clientevent);
+    ResetEvent(g_event_client);
+    do { SM_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
 }
 
 // OK
@@ -236,7 +239,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
 
     ShowMessage("SM: Client disconnected");
     }
-    while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
     closesocket(listensocket);
 
@@ -248,14 +251,15 @@ static DWORD WINAPI SM_EntryPoint(void* param)
 // OK
 void SM_Initialize()
 {
-    g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, SM_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
 void SM_Quit()
 {
-    SetEvent(g_quitevent);
+    SetEvent(g_event_quit);
 }
 
 // OK
@@ -264,8 +268,10 @@ void SM_Cleanup()
     WaitForSingleObject(g_thread, INFINITE);
 
     CloseHandle(g_thread);
-    CloseHandle(g_quitevent);
+    CloseHandle(g_event_client);
+    CloseHandle(g_event_quit);
 
     g_thread = NULL;
-    g_quitevent = NULL;
+    g_event_client = NULL;
+    g_event_quit = NULL;
 }

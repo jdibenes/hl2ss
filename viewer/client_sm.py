@@ -24,6 +24,9 @@ vnf = hl2ss.SM_VertexNormalFormat.R32G32B32A32Float
 # Include normals
 normals = True
 
+# include bounds
+bounds = False
+
 # Maximum number of active threads (on the HoloLens) to compute meshes
 threads = 2
 
@@ -49,23 +52,24 @@ volumes = hl2ss.sm_bounding_volume()
 volumes.add_box(center, extents)
 client.set_volumes(volumes)
 
-ids = client.get_observed_surfaces()
+surface_infos = client.get_observed_surfaces()
 tasks = hl2ss.sm_mesh_task()
-for id in ids:
-    tasks.add_task(id, tpcm, vpf, tif, vnf, normals)
+for surface_info in surface_infos:
+    tasks.add_task(surface_info.id, tpcm, vpf, tif, vnf, normals, bounds)
 
 meshes = client.get_meshes(tasks, threads)
 
 client.close()
 
-print(f'Observed {len(ids)} surfaces')
+print(f'Observed {len(surface_infos)} surfaces')
 
 # Display meshes --------------------------------------------------------------
 
 open3d_meshes = []
 
 for index, mesh in meshes.items():
-    id_hex = ids[index].hex()
+    id_hex = surface_infos[index].id.hex()
+    timestamp = surface_infos[index].update_time
 
     if (mesh is None):
         print(f'Task {index}: surface id {id_hex} compute mesh failed')
@@ -73,7 +77,7 @@ for index, mesh in meshes.items():
 
     mesh.unpack(vpf, tif, vnf)
 
-    print(f'Task {index}: surface id {id_hex} has {mesh.vertex_positions.shape[0]} vertices {mesh.triangle_indices.shape[0]} triangles {mesh.vertex_normals.shape[0]} normals')
+    print(f'Task {index}: surface id {id_hex} @ {timestamp} has {mesh.vertex_positions.shape[0]} vertices {mesh.triangle_indices.shape[0]} triangles {mesh.vertex_normals.shape[0]} normals')
 
     mesh.vertex_positions[:, 0:3] = mesh.vertex_positions[:, 0:3] * mesh.vertex_position_scale
     mesh.vertex_positions = mesh.vertex_positions @ mesh.pose

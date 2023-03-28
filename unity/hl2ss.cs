@@ -22,8 +22,6 @@ public class hl2ss : MonoBehaviour
     [DllImport("hl2ss")]
     private static extern void MQ_Restart();
     [DllImport("hl2ss")]
-    private static extern void SI_Update();
-    [DllImport("hl2ss")]
     private static extern void GetLocalIPv4Address(byte[] data, int size);
 #else
     private void InitializeStreams(uint enable)
@@ -50,10 +48,6 @@ public class hl2ss : MonoBehaviour
     }
 
     private void MQ_Restart()
-    {
-    }
-
-    private void SI_Update()
     {
     }
 
@@ -87,6 +81,9 @@ public class hl2ss : MonoBehaviour
     [Tooltip("Enable Scene Understanding interface. Has no effect if InitializeStreams is called from the cpp code.")]
     public bool enableSU = true;
 
+    [Tooltip("Enable Voice Input interface. Has no effect if InitializeStreams is called from the cpp code.")]
+    public bool enableVI = false;
+    
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
 
@@ -104,7 +101,7 @@ public class hl2ss : MonoBehaviour
         m_loop = false;
         m_mode = false;
 
-        if (!skipInitialization) { InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U)); }
+        if (!skipInitialization) { InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U)); }
 
         byte[] ipaddress = new byte[16 * 2];
         GetLocalIPv4Address(ipaddress, ipaddress.Length);
@@ -115,7 +112,6 @@ public class hl2ss : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (enableSI) { SI_Update(); }
         do
         {
             uint size = MQ_SI_Peek();

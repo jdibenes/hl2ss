@@ -1,5 +1,6 @@
 
 #include <mfapi.h>
+#include <codecapi.h>
 #include "server.h"
 #include "custom_media_sink.h"
 #include "custom_media_types.h"
@@ -22,22 +23,34 @@ static void CreateSingleStreamSinkWriter(CustomMediaSink** ppSink, IMFSinkWriter
 	HookSinkCallback* pHook; // Release
 	CustomMediaSink* pSink;
 	IMFAttributes* pSinkAttr; // Release
+	IMFAttributes* pEncoderAttr; // Release
 	IMFSinkWriter* pSinkWriter;
 	DWORD dwStreamIndex;
+	GUID mmt;
+	UINT32 fps_num;
+	UINT32 fps_den;
 
 	HookSinkCallback::CreateInstance(&pHook, hookproc, hookparam);
 	CustomMediaSink::CreateInstance(&pSink, MEDIASINK_RATELESS, pHook);
 
 	MFCreateAttributes(&pSinkAttr, 3);
+	MFCreateAttributes(&pEncoderAttr, 1);
 
 	pSinkAttr->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
 	pSinkAttr->SetUINT32(MF_LOW_LATENCY, TRUE);
 	pSinkAttr->SetUINT32(MF_SINK_WRITER_DISABLE_THROTTLING, TRUE);
 
+	pInputType->GetGUID(MF_MT_MAJOR_TYPE, &mmt);
+	if (mmt == MFMediaType_Video)
+	{
+	MFGetAttributeRatio(pInputType, MF_MT_FRAME_RATE, &fps_num, &fps_den);
+	pEncoderAttr->SetUINT32(CODECAPI_AVEncMPVGOPSize, fps_num);
+	}
+
 	MFCreateSinkWriterFromMediaSink(pSink, pSinkAttr, &pSinkWriter);
 
 	pSinkWriter->AddStream(pOutputType, &dwStreamIndex);
-	pSinkWriter->SetInputMediaType(dwStreamIndex, pInputType, NULL);
+	pSinkWriter->SetInputMediaType(dwStreamIndex, pInputType, pEncoderAttr);
 	pSinkWriter->BeginWriting();
 
 	*ppSink = pSink;
@@ -45,8 +58,8 @@ static void CreateSingleStreamSinkWriter(CustomMediaSink** ppSink, IMFSinkWriter
 	*pdwStreamIndex = dwStreamIndex;
 
 	pHook->Release();
-	//pSink->Release();
 	pSinkAttr->Release();
+	pEncoderAttr->Release();
 }
 
 // OK

@@ -5,7 +5,7 @@
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
-enum VolumeType
+enum SpatialMapping_VolumeType
 {
     VolumeType_Box,
     VolumeType_Frustum,
@@ -13,9 +13,9 @@ enum VolumeType
     VolumeType_Sphere
 };
 
-struct VolumeDescription
+struct SpatialMapping_VolumeDescription
 {
-    VolumeType type;
+    SpatialMapping_VolumeType type;
     union
     {
     winrt::Windows::Perception::Spatial::SpatialBoundingBox box;
@@ -26,24 +26,33 @@ struct VolumeDescription
     data;
 };
 
-struct MeshDescription
+struct SpatialMapping_SurfaceInfo
+{
+    winrt::guid id;
+    int64_t update_time;
+};
+
+#define SPATIALMAPPING_COMPUTE_NORMALS 0x01
+#define SPATIALMAPPING_COMPUTE_BOUNDS  0x02
+
+struct SpatialMapping_MeshDescription
 {
     winrt::guid id;
     double maxtpcm;
     uint32_t vertex_format;
     uint32_t triangle_format;
     uint32_t normal_format;
-    bool normals;
+    uint32_t flags;
 };
 
-struct MeshTask
+struct SpatialMapping_MeshTask
 {
-    MeshDescription md;
+    SpatialMapping_MeshDescription md;
     uint32_t index;
     uint32_t reserved;
 };
 
-struct MeshInfo
+struct SpatialMapping_MeshInfo
 {
     uint32_t index;
     uint32_t status;
@@ -51,21 +60,21 @@ struct MeshInfo
     uint32_t til;
     uint32_t vnl;
     winrt::Windows::Foundation::Numerics::float3 scale;
-    int64_t update_time;
     winrt::Windows::Foundation::Numerics::float4x4 pose;
+    uint32_t bsz;
     winrt::Windows::Perception::Spatial::SpatialBoundingOrientedBox bounds;
     uint8_t* vpd;
     uint8_t* tid;
     uint8_t* vnd;
 };
 
-int const MESH_INFO_HEADER_SIZE = 144;
+int const SM_MESH_INFO_HEADER_SIZE = 100;
 
 void SpatialMapping_Initialize();
 bool SpatialMapping_WaitForConsent();
 void SpatialMapping_CreateObserver();
-void SpatialMapping_SetVolumes(VolumeDescription const* vd, size_t size);
-void SpatialMapping_GetObservedSurfaces(winrt::guid const*& data, size_t& size);
-void SpatialMapping_BeginComputeMeshes(MeshTask* task, size_t size, int maxtasks);
-MeshInfo* SpatialMapping_GetNextMesh();
+void SpatialMapping_SetVolumes(SpatialMapping_VolumeDescription const* vd, size_t size);
+void SpatialMapping_GetObservedSurfaces(SpatialMapping_SurfaceInfo const*& data, size_t& size);
+void SpatialMapping_BeginComputeMeshes(SpatialMapping_MeshTask* task, size_t size, int maxtasks);
+SpatialMapping_MeshInfo* SpatialMapping_GetNextMesh();
 void SpatialMapping_EndComputeMeshes();

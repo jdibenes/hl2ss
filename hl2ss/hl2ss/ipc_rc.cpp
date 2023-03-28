@@ -12,26 +12,103 @@
 //-----------------------------------------------------------------------------
 
 static HANDLE g_thread = NULL; // CloseHandle
-static HANDLE g_quitevent = NULL; // CloseHandle
+static HANDLE g_event_quit = NULL; // CloseHandle
+static HANDLE g_event_client = NULL; // CloseHandle
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void RC_EnableMarker(SOCKET clientsocket)
+static void RC_TransferError()
+{
+    SetEvent(g_event_client);
+}
+
+// OK
+static void RC_MSG_GetApplicationVersion(SOCKET clientsocket)
+{
+    uint16_t data[4];
+    WSABUF wsaBuf;
+    bool ok;
+
+    GetApplicationVersion(data);
+
+    wsaBuf.buf = (char*)data;
+    wsaBuf.len = sizeof(data);
+
+    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+}
+
+// OK
+static void RC_MSG_GetUTCOffset(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t samples;
+    UINT64 offset;
+    WSABUF wsaBuf;
+
+    ok = recv_u32(clientsocket, samples);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    offset = GetQPCToUTCOffset(samples);
+
+    wsaBuf.buf = (char*)&offset;
+    wsaBuf.len = sizeof(offset);
+
+    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+}
+
+// OK
+static void RC_MSG_SetHSMarkerState(SOCKET clientsocket)
 {
     bool ok;
     uint32_t state;
-    
+
     ok = recv_u32(clientsocket, state);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     HolographicSpace_EnableMarker(state != 0);
 }
 
 // OK
-static void RC_SetFocus(SOCKET clientsocket)
+static void RC_MSG_GetPVSubsystemStatus(SOCKET clientsocket)
+{
+    bool status = PersonalVideo_Status();
+    WSABUF wsaBuf;
+    bool ok;
+
+    wsaBuf.len = sizeof(status);
+    wsaBuf.buf = (char*)&status;
+
+    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+}
+
+// OK
+static void RC_MSG_SetPVFocus(SOCKET clientsocket)
 {
     bool ok;
     uint32_t focusmode;
@@ -41,179 +118,220 @@ static void RC_SetFocus(SOCKET clientsocket)
     uint32_t disabledriverfallback;
 
     ok = recv_u32(clientsocket, focusmode);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
     ok = recv_u32(clientsocket, autofocusrange);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
     ok = recv_u32(clientsocket, distance);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
     ok = recv_u32(clientsocket, value);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
     ok = recv_u32(clientsocket, disabledriverfallback);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     PersonalVideo_SetFocus(focusmode, autofocusrange, distance, value, disabledriverfallback);
 }
 
 // OK
-static void RC_SetVideoTemporalDenoising(SOCKET clientsocket)
+static void RC_MSG_SetPVVideoTemporalDenoising(SOCKET clientsocket)
 {
     bool ok;
     uint32_t mode;
 
     ok = recv_u32(clientsocket, mode);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     PersonalVideo_SetVideoTemporalDenoising(mode);
 }
 
 // OK
-static void RC_SetWhiteBalance_Preset(SOCKET clientsocket)
+static void RC_MSG_SetPVWhiteBalancePreset(SOCKET clientsocket)
 {
     bool ok;
     uint32_t preset;
 
     ok = recv_u32(clientsocket, preset);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     PersonalVideo_SetWhiteBalance_Preset(preset);
 }
 
 // OK
-static void RC_SetWhiteBalance_Value(SOCKET clientsocket)
+static void RC_MSG_SetPVWhiteBalanceValue(SOCKET clientsocket)
 {
     bool ok;
     uint32_t value;
 
     ok = recv_u32(clientsocket, value);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     PersonalVideo_SetWhiteBalance_Value(value);
 }
 
 // OK
-static void RC_SetExposure(SOCKET clientsocket)
+static void RC_MSG_SetPVExposure(SOCKET clientsocket)
 {
     bool ok;
     uint32_t mode;
     uint32_t value;
 
     ok = recv_u32(clientsocket, mode);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
     ok = recv_u32(clientsocket, value);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     PersonalVideo_SetExposure(mode, value);
 }
 
 // OK
-static void RC_GetApplicationVersion(SOCKET clientsocket)
-{
-    uint16_t data[4];
-    WSABUF wsaBuf;
-
-    GetApplicationVersion(data);    
-
-    wsaBuf.buf = (char*)data;
-    wsaBuf.len = sizeof(data);
-  
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-}
-
-// OK
-static void RC_GetUTCOffset(SOCKET clientsocket)
-{
-    bool ok;
-    uint32_t samples;
-    UINT64 offset;
-    WSABUF wsaBuf;
-    
-    ok = recv_u32(clientsocket, samples);
-    if (!ok) { return; }
-
-    offset = GetQPCToUTCOffset(samples);
-
-    wsaBuf.buf = (char*)&offset;
-    wsaBuf.len = sizeof(offset);
-
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-}
-
-// OK
-static void RC_SetExposurePriorityVideo(SOCKET clientsocket)
+static void RC_MSG_SetPVExposurePriorityVideo(SOCKET clientsocket)
 {
     bool ok;
     uint32_t enabled;
 
     ok = recv_u32(clientsocket, enabled);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     PersonalVideo_SetExposurePriorityVideo(enabled);
 }
 
 // OK
-static void RC_SetSceneMode(SOCKET clientsocket)
-{
-    bool ok;
-    uint32_t mode;
-
-    ok = recv_u32(clientsocket, mode);
-    if (!ok) { return; }
-
-    PersonalVideo_SetSceneMode(mode);
-}
-
-// OK
-static void RC_SetIsoSpeed(SOCKET clientsocket)
+static void RC_MSG_SetPVIsoSpeed(SOCKET clientsocket)
 {
     bool ok;
     uint32_t setauto;
     uint32_t value;
 
     ok = recv_u32(clientsocket, setauto);
-    if (!ok) { return; }
-
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
     ok = recv_u32(clientsocket, value);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     PersonalVideo_SetIsoSpeed(setauto, value);
 }
 
 // OK
-static void RC_GetSubsystemStatus(SOCKET clientsocket)
+static void RC_MSG_SetPVBacklightCompensation(SOCKET clientsocket)
 {
-    bool status = PersonalVideo_Status();
-    WSABUF wsaBuf;
+    bool ok;
+    uint32_t state;
 
-    wsaBuf.len = sizeof(status);
-    wsaBuf.buf = (char*)&status;
+    ok = recv_u32(clientsocket, state);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    PersonalVideo_SetBacklightCompensation(state != 0);
 }
 
 // OK
-static void RC_Translate(SOCKET clientsocket)
+static void RC_MSG_SetPVSceneMode(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    PersonalVideo_SetSceneMode(mode);
+}
+
+// OK
+static void RC_Dispatch(SOCKET clientsocket)
 {
     uint8_t state;
     bool ok;
 
     ok = recv_u8(clientsocket, state);
-    if (!ok) { return; }
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
 
     switch (state)
     {
-    case 0x00: RC_EnableMarker(clientsocket);              break;
-    case 0x01: RC_SetFocus(clientsocket);                  break;
-    case 0x02: RC_SetVideoTemporalDenoising(clientsocket); break;
-    case 0x03: RC_SetWhiteBalance_Preset(clientsocket);    break;
-    case 0x04: RC_SetWhiteBalance_Value(clientsocket);     break;
-    case 0x05: RC_SetExposure(clientsocket);               break;
-    case 0x06: RC_GetApplicationVersion(clientsocket);     break;
-    case 0x07: RC_GetUTCOffset(clientsocket);              break;
-    case 0x08: RC_SetExposurePriorityVideo(clientsocket);  break;
-    case 0x09: RC_SetSceneMode(clientsocket);              break;
-    case 0x0A: RC_SetIsoSpeed(clientsocket);               break;
-    case 0x0B: RC_GetSubsystemStatus(clientsocket);        break;
+    case 0x00: RC_MSG_GetApplicationVersion(clientsocket);       break;
+    case 0x01: RC_MSG_GetUTCOffset(clientsocket);                break;
+    case 0x02: RC_MSG_SetHSMarkerState(clientsocket);            break;
+    case 0x03: RC_MSG_GetPVSubsystemStatus(clientsocket);        break;
+    case 0x04: RC_MSG_SetPVFocus(clientsocket);                  break;
+    case 0x05: RC_MSG_SetPVVideoTemporalDenoising(clientsocket); break;
+    case 0x06: RC_MSG_SetPVWhiteBalancePreset(clientsocket);     break;
+    case 0x07: RC_MSG_SetPVWhiteBalanceValue(clientsocket);      break;
+    case 0x08: RC_MSG_SetPVExposure(clientsocket);               break;
+    case 0x09: RC_MSG_SetPVExposurePriorityVideo(clientsocket);  break;
+    case 0x0A: RC_MSG_SetPVIsoSpeed(clientsocket);               break;
+    case 0x0B: RC_MSG_SetPVBacklightCompensation(clientsocket);  break;
+    case 0x0C: RC_MSG_SetPVSceneMode(clientsocket);              break;
+    default:
+        RC_TransferError();
+        return;
     }
+}
+
+// OK
+static void RC_Translate(SOCKET clientsocket)
+{
+    ResetEvent(g_event_client);
+    do { RC_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
 }
 
 // OK
@@ -243,7 +361,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 
     ShowMessage("RC: Client disconnected");
     }
-    while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
     closesocket(listensocket);
 
@@ -255,14 +373,15 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 // OK
 void RC_Initialize()
 {
-    g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, RC_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
 void RC_Quit()
 {
-    SetEvent(g_quitevent);
+    SetEvent(g_event_quit);
 }
 
 // OK
@@ -271,8 +390,10 @@ void RC_Cleanup()
     WaitForSingleObject(g_thread, INFINITE);
 
     CloseHandle(g_thread);
-    CloseHandle(g_quitevent);
+    CloseHandle(g_event_client);
+    CloseHandle(g_event_quit);
 
     g_thread = NULL;
-    g_quitevent = NULL;
+    g_event_client = NULL;
+    g_event_quit = NULL;
 }

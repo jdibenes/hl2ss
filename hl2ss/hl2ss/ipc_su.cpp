@@ -31,8 +31,8 @@ struct Task
 //-----------------------------------------------------------------------------
 
 static HANDLE g_thread = NULL;
-static HANDLE g_quitevent = NULL;
-static HANDLE g_clientevent = NULL;
+static HANDLE g_event_quit = NULL;
+static HANDLE g_event_client = NULL;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -41,9 +41,10 @@ static HANDLE g_clientevent = NULL;
 // OK
 static void SU_TransferError()
 {
-    SetEvent(g_clientevent);
+    SetEvent(g_event_client);
 }
 
+// OK
 static void SU_TransferMeshes(SOCKET clientsocket, std::vector<std::shared_ptr<SceneMesh>> const& meshes)
 {
     uint32_t const vertex_fields = 3;
@@ -111,7 +112,7 @@ static void SU_Dispatch(SOCKET clientsocket)
 {
     Task task;
     std::vector<GUID> guids;
-    Result const* result;
+    SceneUnderstanding_Result const* result;
     std::shared_ptr<SceneObject> item;
     std::shared_ptr<SceneQuad> quad;
     GUID item_id;
@@ -203,9 +204,8 @@ static void SU_Dispatch(SOCKET clientsocket)
 // OK
 static void SU_Translate(SOCKET clientsocket)
 {
-    g_clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    do { SU_Dispatch(clientsocket); } while (WaitForSingleObject(g_clientevent, 0) == WAIT_TIMEOUT);
-    CloseHandle(g_clientevent);
+    ResetEvent(g_event_client);
+    do { SU_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
 }
 
 // OK
@@ -239,7 +239,7 @@ static DWORD WINAPI SU_EntryPoint(void *param)
 
     ShowMessage("SU: Client disconnected");
     }
-    while (WaitForSingleObject(g_quitevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
     closesocket(listensocket);
 
@@ -251,14 +251,15 @@ static DWORD WINAPI SU_EntryPoint(void *param)
 // OK
 void SU_Initialize()
 {
-    g_quitevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
+    g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, SU_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
 void SU_Quit()
 {
-    SetEvent(g_quitevent);
+    SetEvent(g_event_quit);
 }
 
 // OK
@@ -266,5 +267,6 @@ void SU_Cleanup()
 {
     WaitForSingleObject(g_thread, INFINITE);
     CloseHandle(g_thread);
-    CloseHandle(g_quitevent);
+    CloseHandle(g_event_client);
+    CloseHandle(g_event_quit);
 }

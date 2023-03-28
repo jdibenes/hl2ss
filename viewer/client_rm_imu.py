@@ -66,7 +66,7 @@ while (enable):
     imu_data = hl2ss.unpack_rm_imu(data.payload)
     count = imu_data.get_count()
     sample = imu_data.get_frame(0)
-    print('Got {count} samples at time {ts}, first sample is (ticks = {st}, x = {x}, y = {y}, z = {z})'.format(count=count, ts=data.timestamp, st=sample.sensor_ticks_ns, x=sample.x, y=sample.y, z=sample.z))
+    print(f'Got {count} samples at time {data.timestamp}, first sample is (ticks = {sample.vinyl_hup_ticks} | {sample.soc_ticks}, x = {sample.x}, y = {sample.y}, z = {sample.z}, temperature={sample.temperature})')
 
 client.close()
 listener.join()

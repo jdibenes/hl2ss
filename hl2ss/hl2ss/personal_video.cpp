@@ -15,7 +15,8 @@ using namespace winrt::Windows::Media::Capture::Frames;
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static CRITICAL_SECTION g_lock;
+static CRITICAL_SECTION g_lock; // DeleteCriticalSection
+
 static bool g_ready = false;
 static MediaCapture g_mediaCapture = nullptr;
 static MediaFrameSource g_videoSource = nullptr;
@@ -260,8 +261,7 @@ void PersonalVideo_SetWhiteBalance_Value(uint32_t value)
     if (!g_ready) { return; }
 
     temperature = value * 25;
-    if ((temperature < 2300) || (temperature > 7500)) { return; }
-    g_mediaCapture.VideoDeviceController().WhiteBalanceControl().SetValueAsync(temperature).get();
+    if ((temperature >= 2300) && (temperature <= 7500)) { g_mediaCapture.VideoDeviceController().WhiteBalanceControl().SetValueAsync(temperature).get(); }    
 }
 
 // OK
@@ -273,12 +273,11 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
     CriticalSection cs(&g_lock);
     if (!g_ready) { return; }
     
-    exposure = value * 10;
     mode = setauto != 0;
-    if ((exposure < 1000) || (exposure > 660000)) { return; }
     g_mediaCapture.VideoDeviceController().ExposureControl().SetAutoAsync(mode).get();
     if (mode) { return; }
-    g_mediaCapture.VideoDeviceController().ExposureControl().SetValueAsync(winrt::Windows::Foundation::TimeSpan(exposure)).get();
+    exposure = value * 10;
+    if ((exposure >= 1000) && (exposure <= 660000)) { g_mediaCapture.VideoDeviceController().ExposureControl().SetValueAsync(winrt::Windows::Foundation::TimeSpan(exposure)).get(); }    
 }
 
 // OK
@@ -286,7 +285,6 @@ void PersonalVideo_SetExposurePriorityVideo(uint32_t enabled)
 {
     CriticalSection cs(&g_lock);
     if (!g_ready) { return; }
-
     g_mediaCapture.VideoDeviceController().ExposurePriorityVideoControl().Enabled(enabled != 0);
 }
 
@@ -321,11 +319,15 @@ void PersonalVideo_SetSceneMode(uint32_t mode)
 // OK
 void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value)
 {
-    bool mode;
-
     CriticalSection cs(&g_lock);
     if (!g_ready) { return; }
-        
-    mode = setauto != 0;
-    if (mode) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetAutoAsync().get(); } else if ((value >= 100) && (value <= 3200)) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetValueAsync(value).get(); }
+    if (setauto != 0) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetAutoAsync().get(); } else if ((value >= 100) && (value <= 3200)) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetValueAsync(value).get(); }
+}
+
+// OK
+void PersonalVideo_SetBacklightCompensation(bool enable)
+{
+    CriticalSection cs(&g_lock);
+    if (!g_ready) { return; }
+    g_mediaCapture.VideoDeviceController().BacklightCompensation().TrySetValue(enable ? 1.0 : 0.0);
 }

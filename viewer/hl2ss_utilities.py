@@ -124,3 +124,78 @@ class stream_report:
         self._report_continuity(data.timestamp)
         self._report_framerate_and_pose(data.timestamp, data.pose)
 
+
+
+
+
+
+#------------------------------------------------------------------------------
+# Unpack to MP4
+#------------------------------------------------------------------------------
+
+class entry_bin2mp4:
+    def __init__(self, filename, codec_name, framerate):
+        self.filename = filename
+        self.codec_name = codec_name
+        self.framerate = framerate
+
+
+def unpack_to_mp4(filename, chunk_size, entries, time_base):
+    n = len(entries)
+
+    readers = [hl2ss.reader() for _ in range(0, n)]
+    container = av.open(filename, mode='w')
+    streams = [container.add_stream(entries[i].codec_name, rate=entries[i].framerate) for i in range(0, n)]
+    codecs = [av.CodecContext.create(entries[i].codec_name, "r") for i in range(0, n)]
+
+    [readers[i].open(entries[i].filename, chunk_size) for i in range(0, n)]
+
+    base = hl2ss._RANGEOF.U64_MAX
+
+    for i in range(0, n):
+        data = readers[i].read()
+        if (data is not None):
+            if (data.timestamp < base):
+                base = data.timestamp
+
+    [readers[i].close() for i in range(0, n)]
+    [readers[i].open(entries[i].filename, chunk_size) for i in range(0, n)]
+
+    for i in range(0, n):
+        while (True):
+            data = readers[i].read()
+            if (data is None):
+                break
+            for packet in codecs[i].parse(data.payload):
+                packet.stream = streams[i]
+                packet.pts = data.timestamp - base
+                packet.dts = packet.pts
+                packet.time_base = time_base
+                container.mux(packet)
+
+    container.close()
+    [readers[i].close() for i in range(0, n)]
+
+
+def entry_mp4_rm_vlc(filename):
+    header = probe_file(filename)
+    return entry_bin2mp4(filename, hl2ss.get_video_codec_name(header.profile), hl2ss.Parameters_RM_VLC.FPS)
+
+
+def entry_mp4_rm_depth_ahat(filename):
+    header = probe_file(filename)
+    return entry_bin2mp4(filename, hl2ss.get_video_codec_name(header.profile), hl2ss.Parameters_RM_DEPTH_AHAT.FPS)
+
+
+def entry_mp4_pv(filename, framerate):
+    header = probe_file(filename)
+    return entry_bin2mp4(filename, hl2ss.get_video_codec_name(header.profile), framerate)
+
+
+def entry_mp4_microphone(filename):
+    header = probe_file(filename)
+    return entry_bin2mp4(filename, hl2ss.get_audio_codec_name(header.profile), hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
+
+
+def unpack_to_mp4_time_base():
+    return fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)

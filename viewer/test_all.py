@@ -19,13 +19,18 @@ host = '192.168.1.7'
 
 # Ports
 ports = [
-    hl2ss.StreamPort.PERSONAL_VIDEO,
     hl2ss.StreamPort.RM_VLC_LEFTFRONT,
     hl2ss.StreamPort.RM_VLC_LEFTLEFT,
     hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
     hl2ss.StreamPort.RM_VLC_RIGHTRIGHT,
-    #hl2ss.StreamPort.RM_DEPTH_AHAT,
-    hl2ss.StreamPort.RM_DEPTH_LONGTHROW
+    hl2ss.StreamPort.RM_DEPTH_AHAT,
+    #hl2ss.StreamPort.RM_DEPTH_LONGTHROW
+    hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
+    hl2ss.StreamPort.RM_IMU_GYROSCOPE,
+    hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
+    hl2ss.StreamPort.PERSONAL_VIDEO,
+    hl2ss.StreamPort.MICROPHONE,
+    hl2ss.StreamPort.SPATIAL_INPUT
     ]
 
 # RM VLC parameters
@@ -42,6 +47,9 @@ ahat_bitrate = 8*1024*1024
 lt_mode = hl2ss.StreamMode.MODE_1
 lt_filter = hl2ss.PngFilterMode.Paeth
 
+# RM IMU parameters
+imu_mode = hl2ss.StreamMode.MODE_1
+
 # PV parameters
 pv_mode = hl2ss.StreamMode.MODE_1
 pv_width = 1280
@@ -57,20 +65,7 @@ buffer_elements = 60
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    if ((hl2ss.StreamPort.PERSONAL_VIDEO in ports) and (hl2ss.StreamPort.RM_DEPTH_AHAT in ports)):
-        print('Error: Simultaneous PV and RM Depth AHAT streaming is not supported. See known issues at https://github.com/jdibenes/hl2ss.')
-        quit()
-
-    if ((hl2ss.StreamPort.RM_DEPTH_LONGTHROW in ports) and (hl2ss.StreamPort.RM_DEPTH_AHAT in ports)):
-        print('Error: Simultaneous RM Depth Long Throw and RM Depth AHAT streaming is not supported. See known issues at https://github.com/jdibenes/hl2ss.')
-        quit()
-
-    client_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
-    client_rc.open()
-
-    if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
-        hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-        client_rc.wait_for_pv_subsystem(True)
+    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     producer = hl2ss_mp.producer()
     producer.configure_rm_vlc(True, host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.ChunkSize.RM_VLC, vlc_mode, vlc_profile, vlc_bitrate)
@@ -79,7 +74,12 @@ if __name__ == '__main__':
     producer.configure_rm_vlc(True, host, hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, hl2ss.ChunkSize.RM_VLC, vlc_mode, vlc_profile, vlc_bitrate)
     producer.configure_rm_depth_ahat(True, host, hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.ChunkSize.RM_DEPTH_AHAT, ahat_mode, ahat_profile, ahat_bitrate)
     producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, lt_mode, lt_filter)
+    producer.configure_rm_imu(host, hl2ss.StreamPort.RM_IMU_ACCELEROMETER, hl2ss.ChunkSize.RM_IMU_ACCELEROMETER, imu_mode)
+    producer.configure_rm_imu(host, hl2ss.StreamPort.RM_IMU_GYROSCOPE, hl2ss.ChunkSize.RM_IMU_GYROSCOPE, imu_mode)
+    producer.configure_rm_imu(host, hl2ss.StreamPort.RM_IMU_MAGNETOMETER, hl2ss.ChunkSize.RM_IMU_MAGNETOMETER, imu_mode)
     producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, pv_mode, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, pv_format)
+    producer.configure_microphone(True, host, hl2ss.StreamPort.MICROPHONE, hl2ss.ChunkSize.MICROPHONE, hl2ss.AudioProfile.AAC_24000)
+    producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
 
     for port in ports:
         producer.initialize(port, buffer_elements)
@@ -93,26 +93,6 @@ if __name__ == '__main__':
         sinks[port] = consumer.create_sink(producer, port, manager, None)
         sinks[port].get_attach_response()
 
-    def display_pv(port, payload):
-        cv2.imshow(hl2ss.get_port_name(port), payload.image)
-
-    def display_basic(port, payload):
-        cv2.imshow(hl2ss.get_port_name(port), payload)
-
-    def display_depth(port, payload):
-        cv2.imshow(hl2ss.get_port_name(port) + '-depth', payload.depth * 8) # Scaled for visibility
-        cv2.imshow(hl2ss.get_port_name(port) + '-ab', payload.ab / np.max(payload.ab)) # Normalized for visibility
-
-    DISPLAY_MAP = {
-        hl2ss.StreamPort.RM_VLC_LEFTFRONT   : display_basic,
-        hl2ss.StreamPort.RM_VLC_LEFTLEFT    : display_basic,
-        hl2ss.StreamPort.RM_VLC_RIGHTFRONT  : display_basic,
-        hl2ss.StreamPort.RM_VLC_RIGHTRIGHT  : display_basic,
-        hl2ss.StreamPort.RM_DEPTH_AHAT      : display_depth,
-        hl2ss.StreamPort.RM_DEPTH_LONGTHROW : display_depth,
-        hl2ss.StreamPort.PERSONAL_VIDEO     : display_pv
-    }
-
     enable = True
 
     def on_press(key):
@@ -125,10 +105,13 @@ if __name__ == '__main__':
 
     while (enable):
         for port in ports:
-            _, data = sinks[port].get_most_recent_frame()
-            if (data is not None):
-                DISPLAY_MAP[port](port, data.payload)
-        cv2.waitKey(1)
+            f, data = sinks[port].get_most_recent_frame()
+            if (f >= 0):
+                sinks[port].get_buffered_frame(f)
+            if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
+                if (data is not None):
+                    acc = hl2ss.unpack_rm_imu(data.payload)
+                    print(acc.get_frame(0).temperature)
 
     for port in ports:
         sinks[port].detach()
@@ -136,10 +119,6 @@ if __name__ == '__main__':
     for port in ports:
         producer.stop(port)
 
-    if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
-        hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-        client_rc.wait_for_pv_subsystem(False)
-
-    client_rc.close()
-
     listener.join()
+
+    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)

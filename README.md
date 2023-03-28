@@ -18,7 +18,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Magnetometer
 - Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
 - Microphone (2 channels @ 48000 Hz, PCM 16, AAC encoded)
-- Spatial Input (60 Hz)
+- Spatial Input (30 Hz)
   - Head Tracking
   - Eye Tracking
   - Hand Tracking
@@ -32,6 +32,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Client can configure the resolution and framerate of the Front Camera. See [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
+- Client can register voice commands (Experimental).
 
 ## Preparation
 
@@ -86,6 +87,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Remote Configuration: [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py)
 - Spatial Mapping: [viewer/client_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_sm.py)
 - Scene Understanding: [viewer/client_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_su.py)
+- Voice Input: [viewer/client_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_vi.py)
 
 **Required packages**
 
@@ -100,15 +102,6 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [MMDetection](https://github.com/open-mmlab/mmdetection)
-
-**Data Details**
-
-- Right-handed coordinate system with +y => up, +x => right, and -z => forward.
-- For 3D points the order is [x, y, z] expressed in meters.
-- For quaternions (orientations) the order is [x, y, z, w].
-- For RM Depth Long Throw divide depth by 1000 to convert to meters.
-- For RM Depth AHAT divide depth by 250 to convert to meters.
-- [Hand data format](https://learn.microsoft.com/en-us/uwp/api/windows.perception.people.jointpose?view=winrt-22621).
 
 ## Known issues and limitations
 

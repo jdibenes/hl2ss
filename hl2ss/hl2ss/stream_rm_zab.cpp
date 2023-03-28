@@ -209,7 +209,7 @@ void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, Spati
 void RM_ZHT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
     float const scale = 1000.0f;
-    float const alias =  999.0f;
+    float const alias = 1055.0f;
 
     std::vector<float> uv2x;
     std::vector<float> uv2y;

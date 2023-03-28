@@ -29,6 +29,8 @@ class IPCPort:
     REMOTE_CONFIGURATION = 3809
     SPATIAL_MAPPING      = 3813
     SCENE_UNDERSTANDING  = 3814
+    VOICE_INPUT          = 3815
+    UNITY_MESSAGE_QUEUE  = 3816
 
 
 # Default Chunk Sizes
@@ -140,146 +142,6 @@ class Parameters_SI:
 # Time base for all timestamps
 class TimeBase:
     HUNDREDS_OF_NANOSECONDS = 10*1000*1000
-
-
-# Hand Joints
-class SI_HandJointKind:
-    Palm = 0
-    Wrist = 1
-    ThumbMetacarpal = 2
-    ThumbProximal = 3
-    ThumbDistal = 4
-    ThumbTip = 5
-    IndexMetacarpal = 6
-    IndexProximal = 7
-    IndexIntermediate = 8
-    IndexDistal = 9
-    IndexTip = 10
-    MiddleMetacarpal = 11
-    MiddleProximal = 12
-    MiddleIntermediate = 13
-    MiddleDistal = 14
-    MiddleTip = 15
-    RingMetacarpal = 16
-    RingProximal = 17
-    RingIntermediate = 18
-    RingDistal = 19
-    RingTip = 20
-    LittleMetacarpal = 21
-    LittleProximal = 22
-    LittleIntermediate = 23
-    LittleDistal = 24
-    LittleTip = 25
-    TOTAL = 26
-
-
-# Display Marker
-class HS_MarkerState:
-    Disable = 0
-    Enable = 1
-
-
-# Focus Modes
-class PV_FocusMode:
-    Auto = 0
-    Single = 1
-    Continuous = 2
-    Manual = 3
-
-
-# Auto Focus Range
-class PV_AutoFocusRange:
-    FullRange = 0
-    Macro = 1
-    Normal = 2
-
-
-# Manual Focus Distance
-class PV_ManualFocusDistance:
-    Infinity = 0
-    Nearest = 2
-
-
-# Minimum and maximum allowed focus values
-class PV_FocusValue:
-    Min = 170
-    Max = 10000
-
-
-# Driver configuration for auto focus
-class PV_DriverFallback:
-    Enable = 0
-    Disable = 1
-
-
-# Video Temporal Denoising
-class PV_VideoTemporalDenoisingMode:
-    Off = 0
-    On = 1
-
-
-# White Balance Presets
-class PV_ColorTemperaturePreset:
-    Auto = 0
-    Manual = 1
-    Cloudy = 2
-    Daylight = 3
-    Flash = 4
-    Fluorescent = 5
-    Tungsten = 6
-    Candlelight = 7
-
-
-# Minimum and maximum allowed values for white balance
-class PV_WhiteBalanceValue:
-    Min = 2300 // 25
-    Max = 7500 // 25
-
-
-# Exposure mode
-class PV_ExposureMode:
-    Manual = 0
-    Auto = 1
-    
-
-# Minimum and maximum allowed values for exposure
-class PV_ExposureValue:
-    Min = 1000 // 10
-    Max = 660000 // 10
-
-
-# Exposure priority video mode
-class PV_ExposurePriorityVideo:
-    Disabled = 0
-    Enabled = 1
-
-
-# Capture scene mode
-class PV_CaptureSceneMode:
-    Auto = 0
-    Macro = 2
-    Portrait = 3
-    Sport = 4
-    Snow = 5
-    Night = 6
-    Beach = 7
-    Sunset = 8
-    Candlelight = 9
-    Landscape = 10
-    NightPortrait = 11
-    Backlit = 12
-
-
-# Iso speed mode
-class PV_IsoSpeedMode:
-    Manual = 0
-    Auto = 1
-
-
-# Minimum and maximum allowed values for iso speed
-class PV_IsoSpeedValue:
-    Min = 100
-    Max = 3200
 
 
 #------------------------------------------------------------------------------
@@ -636,10 +498,7 @@ class rx_rm_vlc(_context_manager):
         self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
 
     def get_next_packet(self):
-        data = self._client.get_next_packet()
-        if (self.profile == VideoProfile.RAW):
-            self._client.sendall(b'\x00')
-        return data
+        return self._client.get_next_packet()
 
     def close(self):
         self._client.close()
@@ -726,7 +585,6 @@ class rx_microphone(_context_manager):
         self.host = host
         self.port = port
         self.chunk = chunk
-        self.mode = StreamMode.MODE_0
         self.profile = profile
 
     def open(self):
@@ -744,7 +602,6 @@ class rx_si(_context_manager):
         self.host = host
         self.port = port
         self.chunk = chunk
-        self.mode = StreamMode.MODE_0
 
     def open(self):
         self._client = _connect_client_si(self.host, self.port, self.chunk)
@@ -801,7 +658,7 @@ def get_audio_codec_bitrate(profile):
 
 def get_gop_size(profile, framerate):
     name = get_video_codec_name(profile)
-    return 1 if ((name != 'h264') and (name != 'hevc')) else (2 * framerate)
+    return 1 if ((name != 'h264') and (name != 'hevc')) else framerate
 
 
 def get_video_codec_default_factor(profile):
@@ -809,8 +666,8 @@ def get_video_codec_default_factor(profile):
     return 4/420 if (name == 'h264') else 1/140 if (name == 'hevc') else 1.0
 
 
-def get_video_codec_default_bitrate(width, height, fps, profile):
-    return int(width*height*fps*12*get_video_codec_default_factor(profile))
+def get_video_codec_bitrate(width, height, fps, factor):
+    return int(width*height*fps*12*factor)
 
 
 #------------------------------------------------------------------------------
@@ -891,24 +748,26 @@ def decode_rm_depth_longthrow(payload):
 #------------------------------------------------------------------------------
 
 class _RM_IMU_Frame:
-    def __init__(self, sensor_ticks_ns, x, y, z):
-        self.sensor_ticks_ns = sensor_ticks_ns
+    def __init__(self, vinyl_hup_ticks, soc_ticks, x, y, z, temperature):
+        self.vinyl_hup_ticks = vinyl_hup_ticks
+        self.soc_ticks       = soc_ticks
         self.x               = x
         self.y               = y
         self.z               = z
+        self.temperature     = temperature
 
 
 class unpack_rm_imu:
     def __init__(self, payload):
-        self._count = len(payload) // 28
+        self._count = len(payload) // 32
         self._batch = payload
 
     def get_count(self):
         return self._count
 
     def get_frame(self, index):
-        data = struct.unpack('<QQfff', self._batch[(index * 28):((index + 1) * 28)])
-        return _RM_IMU_Frame(data[0], data[2], data[3], data[4])
+        data = struct.unpack('<QQffff', self._batch[(index * 32):((index + 1) * 32)])
+        return _RM_IMU_Frame(data[0], data[1], data[2], data[3], data[4], data[5])
 
 
 #------------------------------------------------------------------------------
@@ -920,6 +779,22 @@ class _PV_Frame:
         self.image           = image
         self.focal_length    = np.frombuffer(focal_length, dtype=np.float32)
         self.principal_point = np.frombuffer(principal_point, dtype=np.float32)
+
+
+def create_pv_intrinsics(focal_length, principal_point):
+    return np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
+
+
+def create_pv_intrinsics_placeholder():
+    return np.eye(4, 4, dtype=np.float32)
+
+
+def update_pv_intrinsics(intrinsics, focal_length, principal_point):
+    intrinsics[0, 0] = -focal_length[0]
+    intrinsics[1, 1] =  focal_length[1]
+    intrinsics[2, 0] = principal_point[0]
+    intrinsics[2, 1] = principal_point[1]
+    return intrinsics
 
 
 def unpack_pv(payload):
@@ -965,6 +840,36 @@ class decode_microphone:
 #------------------------------------------------------------------------------
 # SI Unpacker
 #------------------------------------------------------------------------------
+
+class SI_HandJointKind:
+    Palm = 0
+    Wrist = 1
+    ThumbMetacarpal = 2
+    ThumbProximal = 3
+    ThumbDistal = 4
+    ThumbTip = 5
+    IndexMetacarpal = 6
+    IndexProximal = 7
+    IndexIntermediate = 8
+    IndexDistal = 9
+    IndexTip = 10
+    MiddleMetacarpal = 11
+    MiddleProximal = 12
+    MiddleIntermediate = 13
+    MiddleDistal = 14
+    MiddleTip = 15
+    RingMetacarpal = 16
+    RingProximal = 17
+    RingIntermediate = 18
+    RingDistal = 19
+    RingTip = 20
+    LittleMetacarpal = 21
+    LittleProximal = 22
+    LittleIntermediate = 23
+    LittleDistal = 24
+    LittleTip = 25
+    TOTAL = 26
+
 
 class _SI_Field:
     HEAD  = 1
@@ -1401,7 +1306,9 @@ class _PortName:
           'microphone', 
           'spatial_input', 
           'spatial_mapping', 
-          'scene_understanding']
+          'scene_understanding',
+          'voice_input',
+          'unity_message_queue']
 
 
 def get_port_index(port):
@@ -1416,99 +1323,193 @@ def get_port_name(port):
 # Remote Configuration
 #------------------------------------------------------------------------------
 
-class ipc_rc:
+class HS_MarkerState:
+    Disable = 0
+    Enable = 1
+
+
+class PV_FocusMode:
+    Auto = 0
+    Single = 1
+    Continuous = 2
+    Manual = 3
+
+
+class PV_AutoFocusRange:
+    FullRange = 0
+    Macro = 1
+    Normal = 2
+
+
+class PV_ManualFocusDistance:
+    Infinity = 0
+    Nearest = 2
+
+
+class PV_FocusValue:
+    Min = 170
+    Max = 10000
+
+
+class PV_DriverFallback:
+    Enable = 0
+    Disable = 1
+
+
+class PV_VideoTemporalDenoisingMode:
+    Off = 0
+    On = 1
+
+
+class PV_ColorTemperaturePreset:
+    Auto = 0
+    Manual = 1
+    Cloudy = 2
+    Daylight = 3
+    Flash = 4
+    Fluorescent = 5
+    Tungsten = 6
+    Candlelight = 7
+
+
+class PV_WhiteBalanceValue:
+    Min = 2300 // 25
+    Max = 7500 // 25
+
+
+class PV_ExposureMode:
+    Manual = 0
+    Auto = 1
+    
+
+class PV_ExposureValue:
+    Min = 1000 // 10
+    Max = 660000 // 10
+
+
+class PV_ExposurePriorityVideo:
+    Disabled = 0
+    Enabled = 1
+
+
+class PV_IsoSpeedMode:
+    Manual = 0
+    Auto = 1
+
+
+class PV_IsoSpeedValue:
+    Min = 100
+    Max = 3200
+
+
+class PV_CaptureSceneMode:
+    Auto = 0
+    Macro = 2
+    Portrait = 3
+    Sport = 4
+    Snow = 5
+    Night = 6
+    Beach = 7
+    Sunset = 8
+    Candlelight = 9
+    Landscape = 10
+    NightPortrait = 11
+    Backlit = 12
+
+
+class PV_BacklightCompensationState:
+    Disable = 0
+    Enable = 1
+
+
+class ipc_rc(_context_manager):
+    _CMD_GET_APPLICATION_VERSION = 0x00
+    _CMD_GET_UTC_OFFSET = 0x01
+    _CMD_SET_HS_MARKER_STATE = 0x02
+    _CMD_GET_PV_SUBSYSTEM_STATUS = 0x03
+    _CMD_SET_PV_FOCUS = 0x04
+    _CMD_SET_PV_VIDEO_TEMPORAL_DENOISING = 0x05
+    _CMD_SET_PV_WHITE_BALANCE_PRESET = 0x06
+    _CMD_SET_PV_WHITE_BALANCE_VALUE = 0x07
+    _CMD_SET_PV_EXPOSURE = 0x08
+    _CMD_SET_PV_EXPOSURE_PRIORITY_VIDEO = 0x09
+    _CMD_SET_PV_ISO_SPEED = 0x0A
+    _CMD_SET_PV_BACKLIGHT_COMPENSATION = 0x0B
+    _CMD_SET_PV_SCENE_MODE = 0x0C
+
     def __init__(self, host, port):
         self.host = host
         self.port = port
 
-    def _open(self):
+    def open(self):
         self._client = _client()
         self._client.open(self.host, self.port)
 
-    def _close(self):
+    def close(self):
         self._client.close()
 
-    def set_hs_marker_state(self, state):
-        self._open()
-        command = struct.pack('<BI', 0x00, state)
-        self._client.sendall(command)
-        self._close()
-
-    def set_pv_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
-        self._open()
-        command = struct.pack('<BIIIII', 0x01, focusmode, autofocusrange, distance, value, driverfallback)
-        self._client.sendall(command)
-        self._close()
-
-    def set_pv_video_temporal_denoising(self, mode):
-        self._open()
-        command = struct.pack('<BI', 0x02, mode)
-        self._client.sendall(command)
-        self._close()
-
-    def set_pv_white_balance_preset(self, preset):
-        self._open()
-        command = struct.pack('<BI', 0x03, preset)
-        self._client.sendall(command)
-        self._close()
-
-    def set_pv_white_balance_value(self, value):
-        self._open()
-        command = struct.pack('<BI', 0x04, value)
-        self._client.sendall(command)
-        self._close()
-
-    def set_pv_exposure(self, mode, value):
-        self._open()
-        command = struct.pack('<BII', 0x05, mode, value)
-        self._client.sendall(command)
-        self._close()
-
     def get_application_version(self):
-        self._open()
-        command = struct.pack('<B', 0x06)
+        command = struct.pack('<B', ipc_rc._CMD_GET_APPLICATION_VERSION)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.SHORT * 4, ChunkSize.SINGLE_TRANSFER)
         version = struct.unpack('<HHHH', data)
-        self._close()
         return version
 
     def get_utc_offset(self, samples):
-        self._open()
-        command = struct.pack('<BI', 0x07, samples)
+        command = struct.pack('<BI', ipc_rc._CMD_GET_UTC_OFFSET, samples)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
-        self._close()
         return struct.unpack('<Q', data)[0]
 
-    def set_pv_exposure_priority_video(self, enabled):
-        self._open()
-        command = struct.pack('<BI', 0x08, enabled)
+    def set_hs_marker_state(self, state):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_HS_MARKER_STATE, state)
         self._client.sendall(command)
-        self._client.close()
-
-    def set_pv_scene_mode(self, mode):
-        self._open()
-        command = struct.pack('<BI', 0x09, mode)
-        self._client.sendall(command)
-        self._client.close()
-
-    def set_pv_iso_speed(self, mode, value):
-        self._open()
-        command = struct.pack('<BII', 0x0A, mode, value)
-        self._client.sendall(command)
-        self._client.close()
 
     def get_pv_subsystem_status(self):
-        self._open()
-        command = struct.pack('<B', 0x0B)
+        command = struct.pack('<B', ipc_rc._CMD_GET_PV_SUBSYSTEM_STATUS)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
         return struct.unpack('<B', data)[0] != 0
-
+    
     def wait_for_pv_subsystem(self, status):
         while (self.get_pv_subsystem_status() != status):
             pass
+
+    def set_pv_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
+        command = struct.pack('<BIIIII', ipc_rc._CMD_SET_PV_FOCUS, focusmode, autofocusrange, distance, value, driverfallback)
+        self._client.sendall(command)
+
+    def set_pv_video_temporal_denoising(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_VIDEO_TEMPORAL_DENOISING, mode)
+        self._client.sendall(command)
+
+    def set_pv_white_balance_preset(self, preset):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_PRESET, preset)
+        self._client.sendall(command)
+
+    def set_pv_white_balance_value(self, value):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_VALUE, value)
+        self._client.sendall(command)
+
+    def set_pv_exposure(self, mode, value):
+        command = struct.pack('<BII', ipc_rc._CMD_SET_PV_EXPOSURE, mode, value)
+        self._client.sendall(command)
+    
+    def set_pv_exposure_priority_video(self, enabled):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_EXPOSURE_PRIORITY_VIDEO, enabled)
+        self._client.sendall(command)
+
+    def set_pv_iso_speed(self, mode, value):
+        command = struct.pack('<BII', ipc_rc._CMD_SET_PV_ISO_SPEED, mode, value)
+        self._client.sendall(command)
+
+    def set_pv_backlight_compensation(self, state):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_BACKLIGHT_COMPENSATION, state)
+        self._client.sendall(command)
+
+    def set_pv_scene_mode(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_SCENE_MODE, mode)
+        self._client.sendall(command)
 
 
 #------------------------------------------------------------------------------
@@ -1544,26 +1545,32 @@ class _SM_Convert:
 class sm_bounding_volume:
     def __init__(self):
         self._count = 0
-        self._data = bytearray()        
+        self._data = bytearray()
+
+    def _add(self, data):
+        self._data.extend(data)
+        self._count += 1
 
     def add_box(self, center, extents):
-        self._data.extend(struct.pack('<Iffffff', _SM_VolumeType.Box, center[0], center[1], center[2], extents[0], extents[1], extents[2]))
-        self._count += 1
+        self._add(struct.pack('<Iffffff', _SM_VolumeType.Box, center[0], center[1], center[2], extents[0], extents[1], extents[2]))
 
     def add_frustum(self, near, far, right, left, top, bottom):
-        self._data.extend(struct.pack('<Iffffffffffffffffffffffff', _SM_VolumeType.Frustum, near[0], near[1], near[2], near[3], far[0], far[1], far[2], far[3], right[0], right[1], right[2], right[3], left[0], left[1], left[2], left[3], top[0], top[1], top[2], top[3], bottom[0], bottom[1], bottom[2], bottom[3]))
-        self._count += 1
+        self._add(struct.pack('<Iffffffffffffffffffffffff', _SM_VolumeType.Frustum, near[0], near[1], near[2], near[3], far[0], far[1], far[2], far[3], right[0], right[1], right[2], right[3], left[0], left[1], left[2], left[3], top[0], top[1], top[2], top[3], bottom[0], bottom[1], bottom[2], bottom[3]))
 
     def add_oriented_box(self, center, extents, orientation):
-        self._data.extend(struct.pack('<Iffffffffff', _SM_VolumeType.OrientedBox, center[0], center[1], center[2], extents[0], extents[1], extents[2], orientation[0], orientation[1], orientation[2], orientation[3]))
-        self._count += 1
+        self._add(struct.pack('<Iffffffffff', _SM_VolumeType.OrientedBox, center[0], center[1], center[2], extents[0], extents[1], extents[2], orientation[0], orientation[1], orientation[2], orientation[3]))
 
     def add_sphere(self, center, radius):
-        self._data.extend(struct.pack('<Iffff', _SM_VolumeType.Sphere, center[0], center[1], center[2], radius))
-        self._count += 1
+        self._add(struct.pack('<Iffff', _SM_VolumeType.Sphere, center[0], center[1], center[2], radius))
 
     def _get(self):
         return self._count, self._data
+
+
+class _sm_surface_info:
+    def __init__(self, id, update_time):
+        self.id = id
+        self.update_time = struct.unpack('<Q', update_time)[0]
 
 
 class sm_mesh_task:
@@ -1571,8 +1578,8 @@ class sm_mesh_task:
         self._count = 0
         self._data = bytearray()
 
-    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals):
-        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, 1 if include_vertex_normals else 0))
+    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals, include_bounds):
+        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, (1 if include_vertex_normals else 0) | (2 if include_bounds else 0)))
         self._count += 1
 
     def _get(self):
@@ -1580,9 +1587,8 @@ class sm_mesh_task:
 
 
 class _sm_mesh:
-    def __init__(self, vertex_position_scale, update_time, pose, bounds, vertex_positions, triangle_indices, vertex_normals):
+    def __init__(self, vertex_position_scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals):
         self.vertex_position_scale = vertex_position_scale
-        self.update_time           = update_time
         self.pose                  = pose
         self.bounds                = bounds        
         self.vertex_positions      = vertex_positions
@@ -1591,7 +1597,6 @@ class _sm_mesh:
 
     def unpack(self, vertex_position_format, triangle_index_format, vertex_normal_format):
         self.vertex_position_scale = np.frombuffer(self.vertex_position_scale, dtype=np.float32).reshape((1, 3))
-        self.update_time           = np.frombuffer(self.update_time,           dtype=np.uint64)
         self.pose                  = np.frombuffer(self.pose,                  dtype=np.float32).reshape((4, 4))
         self.bounds                = np.frombuffer(self.bounds,                dtype=np.float32)        
         self.vertex_positions      = np.frombuffer(self.vertex_positions,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_position_format]).reshape((-1, 4))
@@ -1599,20 +1604,18 @@ class _sm_mesh:
         self.vertex_normals        = np.frombuffer(self.vertex_normals,        dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_normal_format]).reshape((-1, 4))
 
 
-class ipc_sm:
+class ipc_sm(_context_manager):
     _CMD_CREATE_OBSERVER       = 0x00
     _CMD_SET_VOLUMES           = 0x01
     _CMD_GET_OBSERVED_SURFACES = 0x02
     _CMD_GET_MESHES            = 0x03
 
-    _MESH_INFO_HEADER_SIZE     = 144
-
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self._client = _client()
         
     def open(self):
+        self._client = _client()
         self._client.open(self.host, self.port)
 
     def create_observer(self):
@@ -1628,35 +1631,37 @@ class ipc_sm:
     def get_observed_surfaces(self):
         self._client.sendall(struct.pack('<B', ipc_sm._CMD_GET_OBSERVED_SURFACES))
         count = struct.unpack('<Q', self._client.download(_SIZEOF.QWORD, ChunkSize.SINGLE_TRANSFER))[0]
-        ids = self._client.download(count * 16, ChunkSize.SINGLE_TRANSFER)
-        return [ids[(i*16):((i+1)*16)] for i in range(0, count)]
+        ids = self._client.download(count * 24, ChunkSize.SINGLE_TRANSFER)
+        return [_sm_surface_info(ids[(i*24):(i*24+16)], ids[(i*24+16):(i*24+24)]) for i in range(0, count)]
     
     def _download_mesh(self):
-        header = self._client.download(ipc_sm._MESH_INFO_HEADER_SIZE, ChunkSize.SINGLE_TRANSFER)
+        header = self._client.download(100, ChunkSize.SINGLE_TRANSFER)
+
         index, status, vpl, til, vnl = struct.unpack('<IIIII', header[:20])
+        scale = header[20:32]
+        pose = header[32:96]
+        bsz = struct.unpack('<I', header[96:100])[0]
 
         if (status != 0):
             return index, None
         
-        payload = self._client.download(vpl + til + vnl, ChunkSize.SINGLE_TRANSFER)
+        payload = self._client.download(bsz + vpl + til + vnl, ChunkSize.SINGLE_TRANSFER)
 
-        scale       = header[20:32]
-        update_time = header[32:40]
-        pose        = header[40:104]
-        bounds      = header[104:144]
-
-        vpd_b = 0
+        osb_b = 0
+        osb_e = osb_b + bsz
+        vpd_b = osb_e
         vpd_e = vpd_b + vpl
         tid_b = vpd_e
         tid_e = tid_b + til
         vnd_b = tid_e
         vnd_e = vnd_b + vnl
-        
-        vpd = payload[vpd_b:vpd_e]
-        tid = payload[tid_b:tid_e]
-        vnd = payload[vnd_b:vnd_e]
 
-        return index, _sm_mesh(scale, update_time, pose, bounds, vpd, tid, vnd)
+        bounds           = payload[osb_b:osb_e]
+        vertex_positions = payload[vpd_b:vpd_e]
+        triangle_indices = payload[tid_b:tid_e]
+        vertex_normals   = payload[vnd_b:vnd_e]
+
+        return index, _sm_mesh(scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals)
     
     def _download_meshes(self, count):
         for _ in range(0, count):
@@ -1731,6 +1736,15 @@ class su_task:
         self.get_collider_meshes = get_collider_meshes
         self.guid_list = guid_list
 
+    def pack(self):
+        self._task = bytearray()
+        self._task.extend(struct.pack('<BBBBIfBBBBBBBBI', self.enable_quads, self.enable_meshes, self.enable_only_observed, self.enable_world_mesh, self.mesh_lod, self.query_radius, self.create_mode, self.kind_flags, self.get_orientation, self.get_position, self.get_location_matrix, self.get_quad, self.get_meshes, self.get_collider_meshes, len(self.guid_list)))
+        for guid in self.guid_list:
+            self._task.extend(guid)
+
+    def _get(self):
+        return self._task
+
 
 class _su_mesh:
     def __init__(self, vertex_positions, triangle_indices):
@@ -1774,13 +1788,13 @@ class _su_result:
         self.pose = np.frombuffer(self.pose, dtype=np.float32).reshape((4, 4))
 
 
-class ipc_su:
+class ipc_su(_context_manager):
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self._client = _client()
-
+        
     def open(self):
+        self._client = _client()
         self._client.open(self.host, self.port)
 
     def _download_mesh(self):
@@ -1798,11 +1812,7 @@ class ipc_su:
         return _su_item(d[bi:bk], d[bk:bo], d[bo:bp], d[bp:bl], d[bl:ba], d[ba:be], d[be:bm], self._download_meshes() if (download_meshes) else [], self._download_meshes() if (download_collider_meshes) else [])
     
     def query(self, task):
-        msg = bytearray()
-        msg.extend(struct.pack('<BBBBIfBBBBBBBBI', task.enable_quads, task.enable_meshes, task.enable_only_observed, task.enable_world_mesh, task.mesh_lod, task.query_radius, task.create_mode, task.kind_flags, task.get_orientation, task.get_position, task.get_location_matrix, task.get_quad, task.get_meshes, task.get_collider_meshes, len(task.guid_list)))
-        for guid in task.guid_list:
-            msg.extend(guid)
-        self._client.sendall(msg)
+        self._client.sendall(task._get())
         header = self._client.download(136, ChunkSize.SINGLE_TRANSFER)
         status = struct.unpack('<I', header[:4])[0]
         if (status != 0):
@@ -1819,6 +1829,128 @@ class ipc_su:
         be = ba + (4 * task.get_quad)
         bm = be + (8 * task.get_quad)
         return _su_result(header[he:hp], header[hp:hi], [self._download_item(bi, bk, bo, bp, bl, ba, be, bm, task.get_meshes, task.get_collider_meshes) for _ in range(0, struct.unpack('<I', header[132:])[0])])
+
+    def close(self):
+        self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Voice Input
+#------------------------------------------------------------------------------
+
+class VI_SpeechRecognitionConfidence:
+    High = 0
+    Medium = 1
+    Low = 2
+    Rejected = 3
+
+
+class vi_result:
+    def __init__(self, index, confidence, phrase_duration, phrase_start_time, raw_confidence):
+        self.index = index
+        self.confidence = confidence
+        self.phrase_duration = phrase_duration
+        self.phrase_start_time = phrase_start_time
+        self.raw_confidence = raw_confidence
+
+    def unpack(self):
+        self.index = struct.unpack('<I', self.index)[0]
+        self.confidence = struct.unpack('<I', self.confidence)[0]
+        self.phrase_duration = struct.unpack('<Q', self.phrase_duration)[0]
+        self.phrase_start_time = struct.unpack('<Q', self.phrase_start_time)[0]
+        self.raw_confidence = struct.unpack('<d', self.raw_confidence)[0]
+
+
+class ipc_vi(_context_manager):
+    _CMD_CREATE_RECOGNIZER = 0x00
+    _CMD_REGISTER_COMMANDS = 0x01
+    _CMD_START = 0x02
+    _CMD_POP = 0x03
+    _CMD_CLEAR = 0x04
+    _CMD_STOP = 0x05
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def open(self):
+        self._client = _client()
+        self._client.open(self.host, self.port)
+
+    def create_recognizer(self):
+        command = struct.pack('<B', ipc_vi._CMD_CREATE_RECOGNIZER)
+        self._client.sendall(command)
+
+    def register_commands(self, clear, strings):
+        command = bytearray()
+        command.extend(struct.pack('<BBB', ipc_vi._CMD_REGISTER_COMMANDS, 1 if (clear) else 0, len(strings)))
+        for string in strings:
+            encoded = string.encode('utf-16')
+            command.extend(struct.pack('<H', len(encoded)))
+            command.extend(encoded)
+        self._client.sendall(command)
+        data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
+        return struct.unpack('<B', data)[0] != 0
+    
+    def start(self):
+        command = struct.pack('<B', ipc_vi._CMD_START)
+        self._client.sendall(command)
+
+    def pop(self):
+        command = struct.pack('<B', ipc_vi._CMD_POP)
+        self._client.sendall(command)
+        data = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
+        count = struct.unpack('<I', data)[0]
+        data = self._client.download(32*count, ChunkSize.SINGLE_TRANSFER)
+        return [vi_result(data[(i*32):(i*32+4)], data[(i*32+4):(i*32+8)], data[(i*32+8):(i*32+16)], data[(i*32+16):(i*32+24)], data[(i*32+24):(i*32+32)]) for i in range(0, count)]
+    
+    def clear(self):
+        command = struct.pack('<B', ipc_vi._CMD_CLEAR)
+        self._client.sendall(command)
+
+    def stop(self):
+        command = struct.pack('<B', ipc_vi._CMD_STOP)
+        self._client.sendall(command)
+
+    def close(self):
+        self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Unity Message Queue
+#------------------------------------------------------------------------------
+
+class umq_command_buffer:
+    def __init__(self):
+        self._buffer = bytearray()
+        self._count = 0
+
+    def add(self, id, data):
+        self._buffer.extend(struct.pack('<II', id, len(data)))
+        self._buffer.extend(data)
+        self._count += 1
+
+    def get_data(self):
+        return bytes(self._buffer)
+    
+    def get_count(self):
+        return self._count
+
+
+class ipc_umq(_context_manager):
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+    
+    def open(self):
+        self._client = _client()
+        self._client.open(self.host, self.port)
+
+    def push(self, buffer):
+        self._client.sendall(buffer.get_data())
+
+    def pull(self, buffer):
+        return np.frombuffer(self._client.download(_SIZEOF.DWORD * buffer.get_count(), ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
 
     def close(self):
         self._client.close()

@@ -29,7 +29,6 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
     DWORD cbData;
     WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     float4x4 pose;
-    uint8_t ack;
     HookCallbackSocket* user;
     bool ok;
 
@@ -59,7 +58,6 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
-    if (user->data_profile == RAW_PROFILE) { recv_u8(user->clientsocket, ack); }
 
     pBuffer->Unlock();
     pBuffer->Release();

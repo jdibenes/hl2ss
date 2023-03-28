@@ -24,6 +24,9 @@ import hl2ss_mp
 # HoloLens 2 address
 host = "192.168.1.7"
 
+# Calibration folder
+calibration_path = '../calibration'
+
 # Port
 port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
@@ -48,7 +51,7 @@ if __name__ == '__main__':
     enable = True
 
     def project_points(image, P, points, radius, color, thickness):
-        for x, y in hl2ss_3dcv.project_to_image(hl2ss_3dcv.to_homogeneous(points), P)[0]:
+        for x, y in hl2ss_3dcv.project(points, P):
             cv2.circle(image, (int(x), (int(y))), radius, color, thickness)
 
     def on_press(key):
@@ -59,7 +62,7 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    model_vlc = hl2ss.download_calibration_rm_vlc(host, port)
+    model_vlc = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
 
     producer = hl2ss_mp.producer()
     producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
@@ -81,7 +84,7 @@ if __name__ == '__main__':
         image = np.dstack((image, image, image))
 
         if (hl2ss.is_valid_pose(data_vlc.pose) and (data_si is not None)):
-            projection = hl2ss_3dcv.projection(model_vlc.intrinsics, hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(model_vlc.extrinsics))
+            projection = hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(model_vlc.extrinsics) @ model_vlc.intrinsics
             si = hl2ss.unpack_si(data_si.payload)
             if (si.is_valid_hand_left()):
                 project_points(image, projection, hl2ss_utilities.si_unpack_hand(si.get_hand_left()).positions, radius, color, thickness)

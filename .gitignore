@@ -11,6 +11,7 @@ release/
 *.pfx
 *.user
 viewer/__pycache__/
+viewer/data/
 unity/__pycache__/
 client/__pycache__/
 tools/__pycache__/

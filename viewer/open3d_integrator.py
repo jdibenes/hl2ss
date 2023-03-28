@@ -43,7 +43,7 @@ if __name__ == '__main__':
     calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
-    xy1, scale, _ = hl2ss_3dcv.rm_depth_registration(uv2xy, calibration_lt.scale, calibration_lt.extrinsics, calibration_lt.intrinsics, calibration_lt.intrinsics)
+    xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
     
     volume = o3d.pipelines.integration.ScalableTSDFVolume(voxel_length=voxel_length, sdf_trunc=sdf_trunc, color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
     intrinsics_depth = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT, calibration_lt.intrinsics[0, 0], calibration_lt.intrinsics[1, 1], calibration_lt.intrinsics[2, 0], calibration_lt.intrinsics[2, 1])
@@ -67,16 +67,17 @@ if __name__ == '__main__':
     while (enable):
         sink_depth.acquire()
 
-        data_depth = sink_depth.get_most_recent_frame()
-        if (not hl2ss.is_valid_pose(data_depth.pose)):
+        _, data_depth = sink_depth.get_most_recent_frame()
+        if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
             continue
 
-        depth = hl2ss_3dcv.rm_depth_normalize(data_depth.payload.depth, calibration_lt.undistort_map, scale)
-        rgb = cv2.remap(data_depth.payload.ab, calibration_lt.undistort_map[:, :, 0], calibration_lt.undistort_map[:, :, 1], cv2.INTER_LINEAR)
-        rgb, depth = hl2ss_3dcv.rm_depth_rgbd(depth, rgb)
-        rgb = hl2ss_3dcv.rm_depth_ab_to_uint8(rgb)
-        rgb = hl2ss_3dcv.rm_vlc_to_rgb(rgb)
-        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
+        depth = hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_lt.undistort_map)
+        depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
+        color = cv2.remap(data_depth.payload.ab, calibration_lt.undistort_map[:, :, 0], calibration_lt.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        color = hl2ss_3dcv.rm_depth_to_uint8(color)
+        color = hl2ss_3dcv.rm_depth_to_rgb(color)
+
+        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(color), o3d.geometry.Image(depth), depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
         depth_world_to_camera = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
 
         volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())

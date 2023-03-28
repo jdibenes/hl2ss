@@ -37,26 +37,24 @@ client.close()
 # Compute depth-to-depth registration constants
 
 uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
-xy1, scale, _ = hl2ss_3dcv.rm_depth_registration(uv2xy, calibration_lt.scale, calibration_lt.extrinsics, calibration_lt.intrinsics, calibration_lt.extrinsics)
+xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
 
 # Generate RGBD pair
 
-depth = hl2ss_3dcv.rm_depth_normalize(data_lt.payload.depth, calibration_lt.undistort_map, scale)
+depth = hl2ss_3dcv.rm_depth_undistort(data_lt.payload.depth, calibration_lt.undistort_map)
+depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
 ab = cv2.remap(data_lt.payload.ab, calibration_lt.undistort_map[:, :, 0], calibration_lt.undistort_map[:, :, 1], cv2.INTER_LINEAR)
-ab = hl2ss_3dcv.rm_depth_ab_to_uint8(ab / np.max(ab) * 0xFFFF) # AB scaled for visibility
-rgb, depth = hl2ss_3dcv.rm_depth_rgbd(depth, ab)
+ab = hl2ss_3dcv.rm_depth_to_uint8(ab / np.max(ab) * 0xFFFF) # AB scaled for visibility
 
 # Show RGBD image
 
-image = np.hstack((depth / max_depth, rgb / np.max(rgb))) # Depth and AB scaled for visibility
+image = np.hstack((depth[:, :, 0] / max_depth, ab / np.max(ab))) # Depth and AB scaled for visibility
 cv2.imshow('RGBD', image)
 cv2.waitKey(0)
 
 # Create Open3D RGBD Image
 
-print(rgb.dtype)
-
-o3d_rgb = o3d.geometry.Image(hl2ss_3dcv.rm_vlc_to_rgb(rgb))
+o3d_rgb = o3d.geometry.Image(hl2ss_3dcv.rm_vlc_to_rgb(ab))
 o3d_depth = o3d.geometry.Image(depth)
 
 rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d_rgb, o3d_depth, depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)

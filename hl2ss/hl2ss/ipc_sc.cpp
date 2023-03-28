@@ -92,7 +92,6 @@ bool ReceivePNGFilter(SOCKET clientsocket, PngFilterMode& filter)
 	case static_cast<int>(PngFilterMode::Average):   filter =  PngFilterMode::Average;    break;
 	case static_cast<int>(PngFilterMode::Paeth):     filter =  PngFilterMode::Paeth;      break;
 	case static_cast<int>(PngFilterMode::Adaptive):  filter =  PngFilterMode::Adaptive;   break;
-	//case RAW_PROFILE:                                filter = (PngFilterMode)RAW_PROFILE; break;
 	default: return false;
 	}
 

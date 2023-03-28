@@ -260,6 +260,7 @@
     <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sm.cpp" />
     <ClCompile Include="..\hl2ss\ipc_su.cpp" />
+    <ClCompile Include="..\hl2ss\ipc_vi.cpp" />
     <ClCompile Include="..\hl2ss\locator.cpp" />
     <ClCompile Include="..\hl2ss\lock.cpp" />
     <ClCompile Include="..\hl2ss\log.cpp" />
@@ -280,6 +281,7 @@
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\timestamps.cpp" />
+    <ClCompile Include="..\hl2ss\voice_input.cpp" />
     <ClCompile Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp" />
     <ClCompile Include="holographic_space_stub.cpp" />
     <ClCompile Include="plugin.cpp" />
@@ -298,6 +300,7 @@
     <ClInclude Include="..\hl2ss\ipc_sc.h" />
     <ClInclude Include="..\hl2ss\ipc_sm.h" />
     <ClInclude Include="..\hl2ss\ipc_su.h" />
+    <ClInclude Include="..\hl2ss\ipc_vi.h" />
     <ClInclude Include="..\hl2ss\locator.h" />
     <ClInclude Include="..\hl2ss\lock.h" />
     <ClInclude Include="..\hl2ss\log.h" />
@@ -320,6 +323,7 @@
     <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\timestamps.h" />
     <ClInclude Include="..\hl2ss\types.h" />
+    <ClInclude Include="..\hl2ss\voice_input.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="hl2ss.h" />
     <ClInclude Include="plugin.h" />

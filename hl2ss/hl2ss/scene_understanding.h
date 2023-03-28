@@ -4,7 +4,7 @@
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <Microsoft.MixedReality.SceneUnderstanding.h>
 
-enum KindFlag
+enum SceneUnderstanding_KindFlag
 {
     Background = 1,
     Wall = 2,
@@ -16,7 +16,7 @@ enum KindFlag
     CompletelyInferred = 128
 };
 
-struct Result
+struct SceneUnderstanding_Result
 {
     Microsoft::MixedReality::SceneUnderstanding::Status status;
     Microsoft::MixedReality::SceneUnderstanding::Matrix4x4 extrinsics;
@@ -28,4 +28,4 @@ struct Result
 void SceneUnderstanding_Initialize();
 bool SceneUnderstanding_WaitForConsent();
 void SceneUnderstanding_Query(Microsoft::MixedReality::SceneUnderstanding::SceneQuerySettings sqs, float query_radius, bool use_previous, GUID const* guid_match, size_t guid_count, uint8_t kind_flags);
-Result const* SceneUnderstanding_WaitForResult();
+SceneUnderstanding_Result const* SceneUnderstanding_WaitForResult();

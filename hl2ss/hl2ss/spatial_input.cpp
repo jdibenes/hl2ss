@@ -22,8 +22,8 @@ using namespace winrt::Windows::Perception::People;
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_event_consent = NULL;
-static HANDLE g_thread_consent = NULL;
+static HANDLE g_thread_consent = NULL; // CloseHandle
+
 static GazeInputAccessStatus g_status_consent = GazeInputAccessStatus::Unspecified;
 static SpatialInteractionManager g_sim = nullptr;
 static std::vector<HandJointKind> g_joints;
@@ -36,24 +36,21 @@ static std::vector<HandJointKind> g_joints;
 static DWORD WINAPI SpatialInput_RequestEyeAccess(void* param)
 {
     (void)param;
-
     g_status_consent = EyesPose::RequestAccessAsync().get();
-    SetEvent(g_event_consent);
-
     return 0;
 }
 
 // OK
 bool SpatialInput_WaitForEyeConsent()
 {
-    WaitForSingleObject(g_event_consent, INFINITE);
+    WaitForSingleObject(g_thread_consent, INFINITE);
+    CloseHandle(g_thread_consent);
     return g_status_consent == GazeInputAccessStatus::Allowed;
 }
 
 // OK
 void SpatialInput_Initialize()
 {
-    g_event_consent = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread_consent = CreateThread(NULL, 0, SpatialInput_RequestEyeAccess, NULL, 0, NULL);
 
     g_joints.resize(HAND_JOINTS);
@@ -63,7 +60,7 @@ void SpatialInput_Initialize()
 }
 
 // OK
-int SpatialInput_GetHeadPoseAndEyeRay(SpatialCoordinateSystem const& world, PerceptionTimestamp const& ts, Frame& head_pose, Ray& eye_ray)
+int SpatialInput_GetHeadPoseAndEyeRay(SpatialCoordinateSystem const& world, PerceptionTimestamp const& ts, SpatialInput_Frame& head_pose, SpatialInput_Ray& eye_ray)
 {
     SpatialPointerPose pointer = SpatialPointerPose::TryGetAtTimestamp(world, ts);
     int ret = 0;

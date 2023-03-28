@@ -13,6 +13,9 @@ import hl2ss_utilities
 # HoloLens address
 host = '192.168.1.7'
 
+# Calibration folder
+calibration_path = '../calibration'
+
 # Max depth in meters
 max_depth = 3.0
 
@@ -20,11 +23,11 @@ max_depth = 3.0
 
 # Get camera calibration
 
-calibration = hl2ss.download_calibration_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+calibration = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
 
 # Compute depth-to-rgb registration constants
 
-xy1, scale, _ = hl2ss_3dcv.rm_depth_registration(calibration.uv2xy, calibration.scale, calibration.extrinsics, calibration.extrinsics, calibration.extrinsics)
+xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(calibration.uv2xy, calibration.scale)
 
 # Get single depth image
 
@@ -35,9 +38,9 @@ rx_depth.close()
 
 # Convert depth to 3D points
 
-depth = hl2ss_3dcv.rm_depth_scale(data.payload.depth, scale)
-
+depth = hl2ss_3dcv.rm_depth_normalize(data.payload.depth, scale)
 xyz = hl2ss_3dcv.rm_depth_to_points(depth, xy1)
+xyz = hl2ss_3dcv.block_to_list(xyz)
 xyz = xyz[(xyz[:, 2] > 0) & (xyz[:, 2] < max_depth), :] 
 
 pcd = o3d.geometry.PointCloud()
