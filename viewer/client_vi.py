@@ -28,7 +28,7 @@ def on_press(key):
     return enable
 
 def get_word(strings, index):
-    if ((index < 0) or (index > len(strings))):
+    if ((index < 0) or (index >= len(strings))):
         return '_UNKNOWN_'
     else:
         return strings[index]
