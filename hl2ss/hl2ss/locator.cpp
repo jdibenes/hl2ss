@@ -1,6 +1,4 @@
 
-#include "types.h"
-
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>
@@ -14,6 +12,7 @@ using namespace winrt::Windows::Perception::Spatial;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static SpatialCoordinateSystem g_world_override = nullptr;
 static SpatialLocator g_locator = nullptr;
 static SpatialLocatability g_locatability = SpatialLocatability::Unavailable;
 static SpatialStationaryFrameOfReference g_referenceFrame = nullptr;
@@ -56,5 +55,11 @@ float4x4 Locator_GetTransformTo(SpatialCoordinateSystem const& src, SpatialCoord
 // OK
 SpatialCoordinateSystem Locator_GetWorldCoordinateSystem(PerceptionTimestamp const& ts)
 {
-    return (g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(ts);
+    return g_world_override ? g_world_override : ((g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(ts));
+}
+
+// OK
+void Locator_OverrideWorldCoordinateSystem(SpatialCoordinateSystem const &scs)
+{
+    g_world_override = scs;
 }

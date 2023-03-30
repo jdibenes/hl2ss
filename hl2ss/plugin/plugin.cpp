@@ -73,3 +73,12 @@ void GetLocalIPv4Address(wchar_t *buffer, int size)
     GetLocalIPv4Address(address);
     wcscpy_s(buffer, size / sizeof(wchar_t), address.data());
 }
+
+// OK
+UNITY_EXPORT
+void OverrideWorldCoordinateSystem(void* scs)
+{
+    winrt::Windows::Perception::Spatial::SpatialCoordinateSystem iscs = nullptr;
+    if (scs) { iscs = winrt::Windows::Perception::Spatial::SpatialCoordinateSystem(scs, winrt::take_ownership_from_abi); }
+    Locator_OverrideWorldCoordinateSystem(iscs);
+}
