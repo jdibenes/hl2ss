@@ -21,7 +21,7 @@ ports = [
     #hl2ss.StreamPort.RM_IMU_GYROSCOPE,
     #hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
     hl2ss.StreamPort.PERSONAL_VIDEO,
-    #hl2ss.StreamPort.MICROPHONE,
+    hl2ss.StreamPort.MICROPHONE,
     #hl2ss.StreamPort.SPATIAL_INPUT
     ]
 

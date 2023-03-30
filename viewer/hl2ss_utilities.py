@@ -1,12 +1,9 @@
 
 import fractions
 import numpy as np
-import os
-import cv2
 import time
 import av
 import hl2ss
-import hl2ss_mp
 import hl2ss_io
 
 
@@ -55,6 +52,80 @@ def si_head_pose_rotation_matrix(head_pose):
     z = -head_pose.forward
     x = np.cross(y, z)
     return np.hstack((x, y, z)).reshape((3, 3)).transpose()
+
+
+#------------------------------------------------------------------------------
+# Unpack to MP4
+#------------------------------------------------------------------------------
+
+def get_av_codec_name(reader):
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
+        return hl2ss.get_video_codec_name(reader.header.profile)
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
+        return hl2ss.get_video_codec_name(reader.header.profile)
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
+        return hl2ss.get_video_codec_name(reader.header.profile)
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
+        return hl2ss.get_video_codec_name(reader.header.profile)
+    if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
+        return hl2ss.get_video_codec_name(reader.header.profile)
+    if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
+        return hl2ss.get_video_codec_name(reader.header.profile)
+    if (reader.header.port == hl2ss.StreamPort.MICROPHONE):
+        return hl2ss.get_audio_codec_name(reader.header.profile)
+    
+
+def get_av_framerate(reader):
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
+        return hl2ss.Parameters_RM_VLC.FPS
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
+        return hl2ss.Parameters_RM_VLC.FPS
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
+        return hl2ss.Parameters_RM_VLC.FPS
+    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
+        return hl2ss.Parameters_RM_VLC.FPS
+    if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
+        return hl2ss.Parameters_RM_DEPTH_AHAT.FPS
+    if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
+        return reader.header.framerate
+    if (reader.header.port == hl2ss.StreamPort.MICROPHONE):
+        return hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
+
+
+def unpack_to_mp4(input_filenames, output_filename):
+    readers = [hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
+    [reader.open() for reader in readers]
+
+    container = av.open(output_filename, mode='w')
+    streams = [container.add_stream(get_av_codec_name(reader), rate=get_av_framerate(reader)) for reader in readers]
+    codecs = [av.CodecContext.create(get_av_codec_name(reader), "r") for reader in readers]
+
+    base = hl2ss._RANGEOF.U64_MAX
+
+    for reader in readers:
+        data = reader.read()
+        if ((data is not None) and (data.timestamp < base)):
+            base = data.timestamp
+
+    [reader.close() for reader in readers]
+    [reader.open() for reader in readers]
+
+    time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
+
+    for i in range(0, len(input_filenames)):
+        while (True):
+            data = readers[i].read()
+            if (data is None):
+                break
+            for packet in codecs[i].parse(data.payload):
+                packet.stream = streams[i]
+                packet.pts = data.timestamp - base
+                packet.dts = packet.pts
+                packet.time_base = time_base
+                container.mux(packet)
+
+    container.close()
+    [reader.close() for reader in readers]
 
 
 #------------------------------------------------------------------------------
@@ -125,82 +196,4 @@ class stream_report:
     def push(self, data):
         self._report_continuity(data.timestamp)
         self._report_framerate_and_pose(data.timestamp, data.pose)
-
-
-
-
-
-
-#------------------------------------------------------------------------------
-# Unpack to MP4
-#------------------------------------------------------------------------------
-
-def get_av_codec_name(reader):
-    if (reader.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss.get_video_codec_name(reader.profile)
-    if (reader.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss.get_video_codec_name(reader.profile)
-    if (reader.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss.get_video_codec_name(reader.profile)
-    if (reader.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss.get_video_codec_name(reader.profile)
-    if (reader.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss.get_video_codec_name(reader.profile)
-    if (reader.port == hl2ss.StreamPort.PERSONAL_VIDEO):
-        return hl2ss.get_video_codec_name(reader.profile)
-    if (reader.port == hl2ss.StreamPort.MICROPHONE):
-        return hl2ss.get_audio_codec_name(reader.profile)
-    
-
-def get_av_framerate(reader):
-    if (reader.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss.Parameters_RM_DEPTH_AHAT.FPS
-    if (reader.port == hl2ss.StreamPort.PERSONAL_VIDEO):
-        return reader.framerate
-    if (reader.port == hl2ss.StreamPort.MICROPHONE):
-        return hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
-
-
-def unpack_to_mp4(input_filenames, output_filename):
-    readers = [hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
-    [reader.open() for reader in readers]
-
-    container = av.open(output_filename, mode='w')
-    streams = [container.add_stream(get_av_codec_name(reader), rate=get_av_framerate(reader)) for reader in readers]
-    codecs = [av.CodecContext.create(get_av_codec_name(reader), "r") for reader in readers]
-
-    base = hl2ss._RANGEOF.U64_MAX
-
-    for reader in readers:
-        data = reader.read()
-        if ((data is not None) and (data.timestamp < base)):
-            base = data.timestamp
-
-    [reader.close() for reader in readers]
-    [reader.open() for reader in readers]
-
-    time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
-
-    for i in range(0, len(input_filenames)):
-        while (True):
-            data = readers[i].read()
-            if (data is None):
-                break
-            for packet in codecs[i].parse(data.payload):
-                packet.stream = streams[i]
-                packet.pts = data.timestamp - base
-                packet.dts = packet.pts
-                packet.time_base = time_base
-                container.mux(packet)
-
-    container.close()
-    [reader.close() for reader in readers]
 
