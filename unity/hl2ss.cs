@@ -23,6 +23,8 @@ public class hl2ss : MonoBehaviour
     private static extern void MQ_Restart();
     [DllImport("hl2ss")]
     private static extern void GetLocalIPv4Address(byte[] data, int size);
+    [DllImport("hl2ss")]
+    private static extern void OverrideWorldCoordinateSystem(IntPtr scs);
 #else
     private void InitializeStreams(uint enable)
     {
@@ -52,6 +54,11 @@ public class hl2ss : MonoBehaviour
     }
 
     private void GetLocalIPv4Address(byte[] data, int size)
+    {
+
+    }
+
+    private void OverrideWorldCoordinateSystem(IntPtr scs)
     {
 
     }
@@ -93,6 +100,16 @@ public class hl2ss : MonoBehaviour
     private bool m_mode;
     private int m_last_key;
 
+    void SetCoordinateSystem()
+    {
+        //https://learn.microsoft.com/en-us/dotnet/api/microsoft.mixedreality.openxr.perceptioninterop.getscenecoordinatesystem?view=mixedreality-openxr-plugin-1.7
+        //TODO: Must be continuously updated
+        var cs = Microsoft.MixedReality.OpenXR.PerceptionInterop.GetSceneCoordinateSystem(Pose.identity);
+        var x = Marshal.GetIUnknownForObject(cs);
+        DebugMessage(string.Format("UNITY: Override Coordinate System {0}", x));
+        OverrideWorldCoordinateSystem(x);
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -107,6 +124,7 @@ public class hl2ss : MonoBehaviour
         GetLocalIPv4Address(ipaddress, ipaddress.Length);
         string ip = System.Text.Encoding.Unicode.GetString(ipaddress);
         DebugMessage(string.Format("UNITY: Local IP Address is: {0}", ip));
+        SetCoordinateSystem();
     }
 
     // Update is called once per frame
