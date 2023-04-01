@@ -1,4 +1,6 @@
 
+#include "lock.h"
+
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>
@@ -12,6 +14,7 @@ using namespace winrt::Windows::Perception::Spatial;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static SRWLOCK g_lock;
 static SpatialCoordinateSystem g_world_override = nullptr;
 static SpatialLocator g_locator = nullptr;
 static SpatialLocatability g_locatability = SpatialLocatability::Unavailable;
@@ -31,6 +34,8 @@ static void Locator_OnLocatabilityChanged(winrt::Windows::Perception::Spatial::S
 // OK
 void Locator_Initialize()
 {
+    InitializeSRWLock(&g_lock);
+
     g_locator = SpatialLocator::GetDefault();
     g_locator.LocatabilityChanged(Locator_OnLocatabilityChanged);
     g_locatability = g_locator.Locatability();
@@ -55,11 +60,13 @@ float4x4 Locator_GetTransformTo(SpatialCoordinateSystem const& src, SpatialCoord
 // OK
 SpatialCoordinateSystem Locator_GetWorldCoordinateSystem(PerceptionTimestamp const& ts)
 {
+    SRWLock srw(&g_lock, false);
     return g_world_override ? g_world_override : ((g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(ts));
 }
 
 // OK
 void Locator_OverrideWorldCoordinateSystem(SpatialCoordinateSystem const &scs)
 {
+    SRWLock srw(&g_lock, true);
     g_world_override = scs;
 }
