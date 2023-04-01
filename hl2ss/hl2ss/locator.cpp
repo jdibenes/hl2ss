@@ -58,10 +58,19 @@ float4x4 Locator_GetTransformTo(SpatialCoordinateSystem const& src, SpatialCoord
 }
 
 // OK
+SpatialCoordinateSystem Locator_GetWorldCoordinateSystemInternal(PerceptionTimestamp const& ts)
+{
+    return (g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(ts);
+}
+
+// OK
 SpatialCoordinateSystem Locator_GetWorldCoordinateSystem(PerceptionTimestamp const& ts)
 {
+    {
     SRWLock srw(&g_lock, false);
-    return g_world_override ? g_world_override : ((g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(ts));
+    if (g_world_override) { return g_world_override; }
+    }
+    return Locator_GetWorldCoordinateSystemInternal(ts);
 }
 
 // OK
