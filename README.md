@@ -130,14 +130,14 @@ This process is described later in this section.
 
 **Using the plugin**
 
-1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project.
+1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) zip file and extract the Assets folder into your Unity project.
     - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction), and then continue with the instructions presented in this section.
 2. In the Unity Editor, configure the plugin as UWP ARM64.
     1. Find the plugin in the Project window, select it, then go to the Inspector window.
     2. Set SDK to UWP.
     3. Set CPU to ARM64.
     4. Click Apply.
-3. Add the [hl2ss.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/hl2ss.cs) script to the Main Camera and set the Material field to [BasicMaterial](https://github.com/jdibenes/hl2ss/blob/main/unity/BasicMaterial.mat).
+3. Add the [Hololens2SensorStreaming.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/Hololens2SensorStreaming.cs) script to the Main Camera and set the Material field to [BasicMaterial](https://github.com/jdibenes/hl2ss/blob/main/unity/BasicMaterial.mat).
     - The streams are initialized in the Start function (unless Skip Initialization is set). When the streams are initialized in this way, Spatial Input streaming is not supported and Enable SI must be unset.
 4. Build the project for UWP (File -> Build Settings).
     1. Add your Unity scenes to Scenes in Build.
@@ -173,7 +173,7 @@ This process is described later in this section.
 **Using the plugin with Spatial Input support**
 
 1. Follow steps 1 through 3 of the previous section.
-2. For the hl2ss script component of the Main Camera, set Skip Initialization and set Enable SI.
+2. For the Hololens2SensorStreaming script component of the Main Camera, set Skip Initialization and set Enable SI.
 3. Follow steps 4 through 10 of the previous section.
 4. In the Solution Explorer, right click the project and select Properties.
 5. Nagivate to Configuration Properties -> C/C++ -> General -> Additional Include Directories and add the include directory of the plugin folder.
@@ -197,6 +197,8 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Set text: sets the text, font size and color of a TextMeshPro object.
 - Remove: destroy game object.
 - Remove all: destroy all game objects created by the plugin.
+
+To enable this functionality, add the [RemoteUnityScene.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/RemoteUnityScene.cs) script to the Main Camera.
 
 ## References
 
