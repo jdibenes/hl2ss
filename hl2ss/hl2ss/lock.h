@@ -12,3 +12,14 @@ public:
     CriticalSection(CRITICAL_SECTION* pcs);
     ~CriticalSection();
 };
+
+class SRWLock
+{
+private:
+    SRWLOCK* m_psrwl;
+    bool m_exclusive;
+
+public:
+    SRWLock(SRWLOCK* psrwl, bool exclusive);
+    ~SRWLock();
+};
