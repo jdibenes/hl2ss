@@ -10,3 +10,4 @@ winrt::Windows::Foundation::Numerics::float4x4 Locator_Locate(winrt::Windows::Pe
 winrt::Windows::Foundation::Numerics::float4x4 Locator_GetTransformTo(winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& src, winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& dst);
 winrt::Windows::Perception::Spatial::SpatialCoordinateSystem Locator_GetWorldCoordinateSystem(winrt::Windows::Perception::PerceptionTimestamp const& ts);
 void Locator_OverrideWorldCoordinateSystem(winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& scs);
+winrt::Windows::Perception::Spatial::SpatialCoordinateSystem Locator_GetWorldCoordinateSystemInternal(winrt::Windows::Perception::PerceptionTimestamp const& ts);

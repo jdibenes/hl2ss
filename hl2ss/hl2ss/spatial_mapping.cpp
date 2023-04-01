@@ -24,6 +24,9 @@ struct SSM
     SpatialSurfaceMesh mesh = nullptr;
 };
 
+// Notes
+// GetObservedSurfaces crashes when using OpenXR coordinate system (in Windows.Mirage.dll)
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -77,7 +80,7 @@ void SpatialMapping_SetVolumes(SpatialMapping_VolumeDescription const* vd, size_
 {
     std::vector<SpatialBoundingVolume> volumes;
 
-    g_world = Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp()));
+    g_world = Locator_GetWorldCoordinateSystemInternal(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp()));
     
     for (int i = 0; i < size; ++i)
     {
@@ -158,7 +161,7 @@ static void SpatialMapping_ComputeMesh(SpatialMapping_MeshTask* task)
     g_observed_meshes_info[task->index].vpd    = vertex_positions.data();
     g_observed_meshes_info[task->index].tid    = triangle_indices.data();
     g_observed_meshes_info[task->index].vnd    = compute_normals ? vertex_normals.data() : NULL;
-    g_observed_meshes_info[task->index].pose   = Locator_GetTransformTo(ssm.CoordinateSystem(), g_world);
+    g_observed_meshes_info[task->index].pose   = Locator_GetTransformTo(ssm.CoordinateSystem(), g_world) * Locator_GetTransformTo(g_world, Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(GetCurrentQPCTimestamp())));
     g_observed_meshes_info[task->index].scale  = ssm.VertexPositionScale();
     g_observed_meshes_info[task->index].bsz    = compute_bounds ? sizeof(SpatialBoundingOrientedBox) : 0;
     if (compute_bounds)

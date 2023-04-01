@@ -32,7 +32,7 @@ public class Hololens2SensorStreaming : MonoBehaviour
 
     void Start()
     {
-        if (!skipInitialization) { hl2ss.Initialize(enableRM, enablePV, enableMC, enableRC, enableSM, enableSU, enableVI); }
         hl2ss.UpdateCoordinateSystem();
+        if (!skipInitialization) { hl2ss.Initialize(enableRM, enablePV, enableMC, enableRC, enableSM, enableSU, enableVI); }
     }
 }
