@@ -206,9 +206,6 @@
     <ClInclude Include="..\hl2ss\stream_si.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
-    <ClInclude Include="ports.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hl2ss.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -2,9 +2,9 @@
 #include <queue>
 #include <malloc.h>
 #include "plugin.h"
-#include "ports.h"
 
 #include "../hl2ss/server.h"
+#include "../hl2ss/ports.h"
 #include "../hl2ss/lock.h"
 #include "../hl2ss/log.h"
 
@@ -194,10 +194,10 @@ static DWORD WINAPI MQ_EntryPoint(void* param)
 {
 	(void)param;
 
-	SOCKET listensocket = CreateSocket(PORT_MQ);
+	SOCKET listensocket = CreateSocket(PORT_NAME_MQ);
 	SOCKET clientsocket;
 
-	ShowMessage("MQ: Listening at port %s", PORT_MQ);
+	ShowMessage("MQ: Listening at port %s", PORT_NAME_MQ);
 
 	do
 	{

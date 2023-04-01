@@ -328,7 +328,6 @@
     <ClInclude Include="hl2ss.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="ipc.h" />
-    <ClInclude Include="ports.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\runtimes\win10-arm64\native\Microsoft.MixedReality.SceneUnderstanding.dll" />
