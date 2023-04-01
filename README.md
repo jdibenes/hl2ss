@@ -137,6 +137,7 @@ This process is described later in this section.
     2. Set SDK to UWP.
     3. Set CPU to ARM64.
     4. Click Apply.
+    5. Do the same for the Scene Understanding DLL.
 3. Add the [Hololens2SensorStreaming.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/Hololens2SensorStreaming.cs) script to the Main Camera and set the Material field to [BasicMaterial](https://github.com/jdibenes/hl2ss/blob/main/unity/BasicMaterial.mat).
     - The streams are initialized in the Start function (unless Skip Initialization is set). When the streams are initialized in this way, Spatial Input streaming is not supported and Enable SI must be unset.
 4. Build the project for UWP (File -> Build Settings).
