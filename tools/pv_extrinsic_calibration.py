@@ -37,6 +37,8 @@ invalid = False
 print('Connecting to HL2 (' + host +  ')...')
 
 hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+
+client_rc.open()
 client_rc.wait_for_pv_subsystem(True)
 
 client_pv.open()
@@ -58,6 +60,7 @@ client_rn.close()
 
 hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 client_rc.wait_for_pv_subsystem(False)
+client_rc.close()
 
 if (invalid):
     print('Invalid pose detected')

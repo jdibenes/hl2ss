@@ -5,10 +5,12 @@
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>
 #include <winrt/Windows.Perception.Spatial.h>
+#include <winrt/Windows.Perception.Spatial.Preview.h>
 
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
+using namespace winrt::Windows::Perception::Spatial::Preview;
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -58,7 +60,7 @@ float4x4 Locator_GetTransformTo(SpatialCoordinateSystem const& src, SpatialCoord
 }
 
 // OK
-SpatialCoordinateSystem Locator_GetWorldCoordinateSystemInternal(PerceptionTimestamp const& ts)
+static SpatialCoordinateSystem Locator_GetWorldCoordinateSystemInternal(PerceptionTimestamp const& ts)
 {
     return (g_locatability == SpatialLocatability::PositionalTrackingActive) ? g_referenceFrame.CoordinateSystem() : g_attachedReferenceFrame.GetStationaryCoordinateSystemAtTimestamp(ts);
 }
@@ -78,4 +80,13 @@ void Locator_OverrideWorldCoordinateSystem(SpatialCoordinateSystem const &scs)
 {
     SRWLock srw(&g_lock, true);
     g_world_override = scs;
+}
+
+// OK
+SpatialCoordinateSystem Locator_SanitizeSpatialCoordinateSystem(SpatialCoordinateSystem const& scs)
+{
+    // Workaround for SM GetObservedSurfaces crash (sanitizes scs somehow)
+    // GetObservedSurfaces crashes when using OpenXR coordinate system directly (Windows.Mirage.dll)
+    SpatialGraphInteropFrameOfReferencePreview sgiforp = SpatialGraphInteropPreview::TryCreateFrameOfReference(scs);
+    return sgiforp ? sgiforp.CoordinateSystem() : nullptr;
 }

@@ -74,9 +74,15 @@ void GetLocalIPv4Address(wchar_t *buffer, int size)
 
 // OK
 UNITY_EXPORT
-void OverrideWorldCoordinateSystem(void* scs)
+int OverrideWorldCoordinateSystem(void* scs_ptr)
 {
-    winrt::Windows::Perception::Spatial::SpatialCoordinateSystem iscs = nullptr;
-    if (scs) { iscs = winrt::Windows::Perception::Spatial::SpatialCoordinateSystem(scs, winrt::take_ownership_from_abi); }
-    Locator_OverrideWorldCoordinateSystem(iscs);
+    winrt::Windows::Perception::Spatial::SpatialCoordinateSystem scs = nullptr;
+    if (scs_ptr)
+    {
+    winrt::copy_from_abi(scs, scs_ptr);
+    scs = Locator_SanitizeSpatialCoordinateSystem(scs);
+    if (!scs) { return false; }
+    }
+    Locator_OverrideWorldCoordinateSystem(scs);
+    return true;
 }
