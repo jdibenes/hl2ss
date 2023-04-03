@@ -6,3 +6,5 @@
 - For RM Depth Long Throw divide depth by 1000 to convert to meters.
 - For RM Depth AHAT divide depth by 250 to convert to meters.
 - [Hand data format](https://learn.microsoft.com/en-us/uwp/api/windows.perception.people.jointpose?view=winrt-22621).
+- Right (Open3D, Windows Perception APIs) to Left (Unity) coordinate system conversions:
+  https://learn.microsoft.com/en-us/windows/mixed-reality/develop/unity/unity-xrdevice-advanced?tabs=wsa
