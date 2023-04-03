@@ -21,7 +21,7 @@ public static class hl2ss
     [DllImport("hl2ss")]
     private static extern void GetLocalIPv4Address(byte[] data, int size);
     [DllImport("hl2ss")]
-    private static extern void OverrideWorldCoordinateSystem(IntPtr scs);
+    private static extern int OverrideWorldCoordinateSystem(IntPtr scs);
 #else
     private static void InitializeStreams(uint enable)
     {
@@ -54,8 +54,9 @@ public static class hl2ss
     {
     }
 
-    private static void OverrideWorldCoordinateSystem(IntPtr scs)
+    private static int OverrideWorldCoordinateSystem(IntPtr scs)
     {
+        return 1;
     }
 #endif
 
@@ -81,8 +82,9 @@ public static class hl2ss
         var scs = Microsoft.MixedReality.OpenXR.PerceptionInterop.GetSceneCoordinateSystem(Pose.identity);
         if (scs == null) { return false; }
         var unk = Marshal.GetIUnknownForObject(scs);
-        OverrideWorldCoordinateSystem(unk);
-        return true;
+        bool ret = OverrideWorldCoordinateSystem(unk) != 0;
+        Marshal.Release(unk);
+        return ret;
     }
 
     public static bool PullMessage(out uint command, out byte[] data)
