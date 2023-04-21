@@ -22,3 +22,4 @@ void VoiceInput_Stop();
 size_t VoiceInput_GetCount();
 VoiceInput_Result VoiceInput_Pop();
 void VoiceInput_Clear();
+bool VoiceInput_IsRunning();

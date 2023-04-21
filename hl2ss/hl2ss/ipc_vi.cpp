@@ -177,6 +177,9 @@ static void VI_Translate(SOCKET clientsocket)
 {
     ResetEvent(g_event_client);
     do { VI_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
+    if (!VoiceInput_IsRunning()) { return; }
+    VoiceInput_Stop();
+    VoiceInput_Clear();
 }
 
 // OK

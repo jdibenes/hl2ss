@@ -122,3 +122,9 @@ void VoiceInput_Clear()
     CriticalSection cs(&g_lock);
     g_queue = {};
 }
+
+// OK
+bool VoiceInput_IsRunning()
+{
+    return WaitForSingleObject(g_event_completed, 0) == WAIT_TIMEOUT;
+}
