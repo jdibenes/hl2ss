@@ -62,7 +62,7 @@ else:
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    client = hl2ss.rx_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, 1)
+    client = hl2ss.rx_raw_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, 1, 'bgr24')
     client.open()
 
     stride = hl2ss.get_nv12_stride(width)
@@ -73,10 +73,7 @@ else:
         print('Pose at time {ts}'.format(ts=data.timestamp))
         print(data.pose)
 
-        frame_nv12 = np.frombuffer(data.payload, dtype=np.uint8, count=int((stride*height*3)/2)).reshape((int(height*3/2), stride))
-        frame_bgr = cv2.cvtColor(frame_nv12[:, :width], cv2.COLOR_YUV2BGR_NV12)
-        
-        cv2.imshow('Video', frame_bgr)
+        cv2.imshow('Video', data.payload.image)
         cv2.waitKey(1)
 
     client.close()

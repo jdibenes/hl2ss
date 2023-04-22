@@ -55,14 +55,14 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_rm_vlc(host, port, hl2ss.ChunkSize.RM_VLC, mode, profile, 1)
+client = hl2ss.rx_raw_rm_vlc(host, port, hl2ss.ChunkSize.RM_VLC, mode, profile, 1)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
-    cv2.imshow('Video', np.frombuffer(data.payload, dtype=np.uint8).reshape((hl2ss.Parameters_RM_VLC.SHAPE)))
+    cv2.imshow('Video', data.payload)
     cv2.waitKey(1)
 
 client.close()

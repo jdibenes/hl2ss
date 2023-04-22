@@ -55,7 +55,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, profile, 1)
+client = hl2ss.rx_raw_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, profile, 1)
 client.open()
 
 while (enable):
@@ -64,11 +64,8 @@ while (enable):
     print('Pose at time {ts}'.format(ts=data.timestamp))
     print(data.pose)
 
-    depth = np.frombuffer(data.payload, dtype=np.uint16, count=hl2ss.Parameters_RM_DEPTH_AHAT.PIXELS).reshape(hl2ss.Parameters_RM_DEPTH_AHAT.SHAPE)
-    ab = np.frombuffer(data.payload, dtype=np.uint16, offset=hl2ss.Parameters_RM_DEPTH_AHAT.PIXELS*hl2ss._SIZEOF.WORD, count=hl2ss.Parameters_RM_DEPTH_AHAT.PIXELS).reshape(hl2ss.Parameters_RM_DEPTH_AHAT.SHAPE)
-
-    cv2.imshow('Depth', depth)
-    cv2.imshow('AB', ab) # max ~ 12000
+    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth))
+    cv2.imshow('AB', data.payload.ab) # max ~ 12000
     cv2.waitKey(1)
 
 client.close()
