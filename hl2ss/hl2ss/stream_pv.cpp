@@ -35,6 +35,7 @@ struct PV_Projection
 
 static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_thread = NULL; // CloseHandle
+static bool g_reader_status = false;
 
 // Mode: 0, 1
 static IMFSinkWriter* g_pSinkWriter = NULL; // Release
@@ -61,6 +62,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     PV_Projection pj;
     int64_t timestamp;
 
+    if (!g_reader_status) { return; }
     frame = sender.TryAcquireLatestFrame();
     if (!frame) { return; }
 
@@ -204,8 +206,10 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 
     reader.FrameArrived(PV_OnVideoFrameArrived<ENABLE_LOCATION>);
 
+    g_reader_status = true;
     reader.StartAsync().get();
     WaitForSingleObject(clientevent, INFINITE);
+    g_reader_status = false;
     reader.StopAsync().get();
 
     g_pSinkWriter->Flush(g_dwVideoIndex);
