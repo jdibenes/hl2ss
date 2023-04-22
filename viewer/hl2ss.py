@@ -1082,6 +1082,48 @@ class rx_decoded_microphone(rx_microphone):
 
 
 #------------------------------------------------------------------------------
+# RAW Receivers
+#------------------------------------------------------------------------------
+
+class rx_raw_rm_vlc(rx_rm_vlc):
+    def get_next_packet(self):
+        data = super().get_next_packet()
+        data.payload = np.frombuffer(data.payload, dtype=np.uint8).reshape(Parameters_RM_VLC.SHAPE)
+        return data
+
+
+class rx_raw_rm_depth_ahat(rx_rm_depth_ahat):
+    def get_next_packet(self):
+        data = super().get_next_packet()
+        depth = np.frombuffer(data.payload, dtype=np.uint16, offset=0,                                            count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        ab    = np.frombuffer(data.payload, dtype=np.uint16, offset=Parameters_RM_DEPTH_AHAT.PIXELS*_SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        depth[depth >= 4090] = 0
+        data.payload = _RM_Depth_Frame(depth, ab)
+        return data
+
+
+class rx_raw_pv(rx_pv):
+    _cv2_nv12_format = {
+        'rgb24' : cv2.COLOR_YUV2RGB_NV12,
+        'bgr24' : cv2.COLOR_YUV2BGR_NV12,
+        'rgba'  : cv2.COLOR_YUV2RGBA_NV12,
+        'bgra'  : cv2.COLOR_YUV2BGRA_NV12,
+        'gray8' : cv2.COLOR_YUV2GRAY_NV12,
+    }
+
+    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
+        super().__init__(host, port, chunk, mode, width, height, framerate, profile, bitrate)
+        self.format = rx_raw_pv._cv2_nv12_format[format]
+        self.stride = get_nv12_stride(self.width)
+
+    def get_next_packet(self):
+        data = super().get_next_packet()
+        data.payload = unpack_pv(data.payload)
+        data.payload.image = cv2.cvtColor(np.frombuffer(data.payload.image, dtype=np.uint8).reshape((int(self.height*3/2), self.stride))[:, :self.width], self.format)
+        return data
+
+
+#------------------------------------------------------------------------------
 # Mode 2 Data Acquisition
 #------------------------------------------------------------------------------
 
