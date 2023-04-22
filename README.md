@@ -2,7 +2,7 @@
 
 HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes but also works on Windows and OS X. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
 
-**Supported streams**
+**Supported interfaces**
 
 - Research Mode Visible Light Cameras (640x480 @ 30 FPS, Grayscale, H264 or HEVC encoded)
   - Left Front
@@ -22,17 +22,18 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Head Tracking
   - Eye Tracking
   - Hand Tracking
+- Spatial Mapping
+- Scene Understanding
+- Voice Input
   
 **Additional features**
 
-- Access to Spatial Mapping and Scene Understanding data (Experimental).
 - Download calibration data for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
-- Optional per-frame pose for the Front Camera and Research Mode sensors streams.
+- Optional per-frame pose for the Front Camera and Research Mode sensors.
 - Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
 - Client can configure the resolution and framerate of the Front Camera. See [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
-- Client can register voice commands (Experimental).
 
 ## Preparation
 
@@ -125,7 +126,7 @@ Building the server application and the Unity plugin requires a Windows 10 machi
 
 For streaming sensor data from a Unity application.
 All streams are supported.
-However, to enable Spatial Input stream support, the plugin must be initialized from the UI thread.
+However, to enable Spatial Input stream support the plugin must be initialized from the UI thread.
 This process is described later in this section.
 
 **Using the plugin**
@@ -138,8 +139,8 @@ This process is described later in this section.
     3. Set CPU to ARM64.
     4. Click Apply.
     5. Do the same for the Scene Understanding DLL.
-3. Add the [Hololens2SensorStreaming.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/Hololens2SensorStreaming.cs) script to the Main Camera and set the Material field to [BasicMaterial](https://github.com/jdibenes/hl2ss/blob/main/unity/BasicMaterial.mat).
-    - The streams are initialized in the Start function (unless Skip Initialization is set). When the streams are initialized in this way, Spatial Input streaming is not supported and Enable SI must be unset.
+3. Add the [Hololens2SensorStreaming.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/Hololens2SensorStreaming.cs) script to the Main Camera.
+    - The streams are initialized in the Start function (unless Skip Initialization is set). When the streams are initialized in this way Spatial Input streaming is not supported.
 4. Build the project for UWP (File -> Build Settings).
     1. Add your Unity scenes to Scenes in Build.
     2. Set Platform to Universal Windows Platform.
@@ -174,7 +175,7 @@ This process is described later in this section.
 **Using the plugin with Spatial Input support**
 
 1. Follow steps 1 through 3 of the previous section.
-2. For the Hololens2SensorStreaming script component of the Main Camera, set Skip Initialization and set Enable SI.
+2. For the Hololens2SensorStreaming script component of the Main Camera, set Skip Initialization.
 3. Follow steps 4 through 10 of the previous section.
 4. In the Solution Explorer, right click the project and select Properties.
 5. Nagivate to Configuration Properties -> C/C++ -> General -> Additional Include Directories and add the include directory of the plugin folder.
@@ -182,7 +183,7 @@ This process is described later in this section.
 7. Navigate to Configuration Properties -> Linker -> Input -> Additional Dependencies and add hl2ss.lib.
 8. Open App.cpp and edit it as follows:
     1. `#include <hl2ss.h>` after the other includes.
-    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_MC | HL2SS_ENABLE_PV | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU | HL2SS_ENABLE_VI);`.
+    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_MC | HL2SS_ENABLE_PV | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU | HL2SS_ENABLE_VI | HL2SS_ENABLE_MQ);`.
 9. Follow step 11 of the previous section.
 
 **Remote Unity Scene**
@@ -199,7 +200,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Remove: destroy game object.
 - Remove all: destroy all game objects created by the plugin.
 
-To enable this functionality, add the [RemoteUnityScene.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/RemoteUnityScene.cs) script to the Main Camera.
+To enable this functionality, add the [RemoteUnityScene.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/RemoteUnityScene.cs) script to the Main Camera  and set the Material field to [BasicMaterial](https://github.com/jdibenes/hl2ss/blob/main/unity/BasicMaterial.mat).
 
 ## References
 
