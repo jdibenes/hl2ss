@@ -113,15 +113,14 @@ This process is described later in this section.
 
 **Using the plugin without Spatial Input support**
 
-1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) zip file and extract the Assets folder into your Unity project.
-    - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction), and then continue with the instructions presented in this section.
-2. In the Unity Editor, configure the plugin as UWP ARM64.
-    1. Find the plugin in the Project window, select it, then go to the Inspector window.
+1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project.
+    - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction) and then continue with the instructions presented in this section.
+2. In the Unity Editor, configure the hl2ss and Scene Understanding DLLs as UWP ARM64.
+    1. In the Project window navigate to Assets/Plugins/WSA, select the DLL, then go to the Inspector window.
     2. Set SDK to UWP.
     3. Set CPU to ARM64.
     4. Click Apply.
-    5. Do the same for the Scene Understanding DLL.
-3. Add the [Hololens2SensorStreaming.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/Hololens2SensorStreaming.cs) script to the Main Camera.
+3. Add the Hololens2SensorStreaming.cs script to the Main Camera.
 4. Build the project for UWP (File -> Build Settings).
     1. Add your Unity scenes to Scenes in Build.
     2. Set Platform to Universal Windows Platform.
@@ -147,25 +146,24 @@ This process is described later in this section.
     1. In Package add `xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"`.
     2. Under Capabilities add `<rescap:Capability Name="perceptionSensorsExperimental"/>`.
     3. Under Capabilities add `<DeviceCapability Name="backgroundSpatialPerception"/>`.
-    - See the [Package.appxmanifest](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) of the server for an example. Note that [the order in which Capabilites are declared matters](https://docs.microsoft.com/en-us/answers/questions/92754/how-to-use-extendedexecutionunconstrained.html).
-8. Build Release ARM64.
-9. In the Solution Explorer, right click the project and select Properties.
-10. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-11. Run. The application will remain installed on the HoloLens even after power off.
+    - See the [Package.appxmanifest](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) of the server for an example. Note that the order in which Capabilites are declared matters.
+8. Set build configuration to Release ARM64.
+9. Right click the project in bold and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
+10. Run. The application will remain installed on the HoloLens even after power off.
 
 **Using the plugin with Spatial Input support**
 
 1. Follow steps 1 through 3 of the previous section.
-2. For the Hololens2SensorStreaming script component of the Main Camera, set Skip Initialization.
-3. Follow steps 4 through 10 of the previous section.
-4. In the Solution Explorer, right click the project and select Properties.
-5. Nagivate to Configuration Properties -> C/C++ -> General -> Additional Include Directories and add the include directory of the plugin folder.
-6. Nagivate to Configuration Properties -> Linker -> General -> Additional Library Directories and add the lib folder of the plugin folder.
+2. For the Hololens2SensorStreaming script component of the Main Camera, enable Skip Initialization.
+3. Follow steps 4 through 9 of the previous section.
+4. Right click the project in bold and select Properties.
+5. Nagivate to Configuration Properties -> C/C++ -> General -> Additional Include Directories and add the include folder of the plugin.
+6. Nagivate to Configuration Properties -> Linker -> General -> Additional Library Directories and add the lib folder of the plugin.
 7. Navigate to Configuration Properties -> Linker -> Input -> Additional Dependencies and add hl2ss.lib.
 8. Open App.cpp and edit it as follows:
     1. `#include <hl2ss.h>` after the other includes.
-    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_MC | HL2SS_ENABLE_PV | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU | HL2SS_ENABLE_VI | HL2SS_ENABLE_MQ);`.
-9. Follow step 11 of the previous section.
+    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_PV | HL2SS_ENABLE_MC | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU | HL2SS_ENABLE_VI | HL2SS_ENABLE_MQ);`.
+9. Follow step 10 of the previous section.
 
 **Remote Unity Scene**
 
