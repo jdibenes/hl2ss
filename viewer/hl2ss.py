@@ -777,8 +777,8 @@ class unpack_rm_imu:
 class _PV_Frame:
     def __init__(self, image, focal_length, principal_point):
         self.image           = image
-        self.focal_length    = np.frombuffer(focal_length, dtype=np.float32)
-        self.principal_point = np.frombuffer(principal_point, dtype=np.float32)
+        self.focal_length    = focal_length
+        self.principal_point = principal_point
 
 
 def create_pv_intrinsics(focal_length, principal_point):
@@ -798,7 +798,7 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
 
 
 def unpack_pv(payload):
-    return _PV_Frame(payload[:-16], payload[-16:-8], payload[-8:])
+    return _PV_Frame(payload[:-16], np.frombuffer(payload[-16:-8], dtype=np.float32), np.frombuffer(payload[-8:], dtype=np.float32))
 
 
 def get_nv12_stride(width):
@@ -1950,7 +1950,10 @@ class ipc_umq(_context_manager):
         self._client.sendall(buffer.get_data())
 
     def pull(self, buffer):
-        return np.frombuffer(self._client.download(_SIZEOF.DWORD * buffer.get_count(), ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
+        return self.pull_n(buffer.get_count())
+    
+    def pull_n(self, count):
+        return np.frombuffer(self._client.download(_SIZEOF.DWORD * count, ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
 
     def close(self):
         self._client.close()
@@ -1996,7 +1999,11 @@ def _rs_get_stream_url_pull(host, port):
 
 class _rs_client:
     def open(self, host, port, max_size):
-        self._loop = asyncio.get_event_loop()
+        try:
+            self._loop = asyncio.get_event_loop()
+        except:
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
         self._client = self._loop.run_until_complete(websockets.client.connect(_rs_get_stream_url_pull(host, port), max_size=max_size, compression=None))
 
     def recv(self):
