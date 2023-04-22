@@ -104,45 +104,23 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [MMDetection](https://github.com/open-mmlab/mmdetection)
 
-## Known issues and limitations
-
-- Multiple streams can be active at the same time but only one client per stream is allowed.
-- Ocassionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
-- Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens OS. See https://github.com/microsoft/HoloLens2ForCV/issues/133.
-- The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
-
-## Build from source and deploy
-
-Building the server application and the Unity plugin requires a Windows 10 machine.
-
-1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
-2. Open the Visual Studio solution (sln file in the [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
-3. Set build configuration to Release ARM64. Building for x86 and x64 (HoloLens emulator), and ARM is not supported. 
-4. In the Solution Explorer, right click the hl2ss project and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-5. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](https://github.com/jdibenes/hl2ss/tree/main/etc) into the hl2ss\ARM64\Release\hl2ss folder. You can find the Unity plugin in the hl2ss\ARM64\Release\plugin folder.
-6. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device). The server application will remain installed on the HoloLens even after power off.
-
-You can find the server application (hl2ss) in the All apps list.
-
-## Unity plugin (DLL)
+## Unity plugin
 
 For streaming sensor data from a Unity application.
 All streams are supported.
 However, to enable Spatial Input stream support the plugin must be initialized from the UI thread.
 This process is described later in this section.
 
-**Using the plugin**
+**Using the plugin without Spatial Input support**
 
-1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) zip file and extract the Assets folder into your Unity project.
-    - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction), and then continue with the instructions presented in this section.
-2. In the Unity Editor, configure the plugin as UWP ARM64.
-    1. Find the plugin in the Project window, select it, then go to the Inspector window.
+1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project.
+    - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction) and then continue with the instructions presented in this section.
+2. In the Unity Editor, configure the hl2ss and Scene Understanding DLLs as UWP ARM64.
+    1. In the Project window navigate to Assets/Plugins/WSA, select the DLL, then go to the Inspector window.
     2. Set SDK to UWP.
     3. Set CPU to ARM64.
     4. Click Apply.
-    5. Do the same for the Scene Understanding DLL.
-3. Add the [Hololens2SensorStreaming.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/Hololens2SensorStreaming.cs) script to the Main Camera.
-    - The streams are initialized in the Start function (unless Skip Initialization is set). When the streams are initialized in this way Spatial Input streaming is not supported.
+3. Add the Hololens2SensorStreaming.cs script to the Main Camera.
 4. Build the project for UWP (File -> Build Settings).
     1. Add your Unity scenes to Scenes in Build.
     2. Set Platform to Universal Windows Platform.
@@ -155,7 +133,7 @@ This process is described later in this section.
     9. Set Build and Run on Local Machine.
     10. Set Build configuration to Release.
     11. Click Build. Unity will ask for a destination folder. You can create a new one named Build.
-5. Navigate to the Build folder and open the Visual Studio solution.
+5. Navigate to the Build folder and open the Visual Studio solution in Visual Studio 2022.
 6. Open Package.appxmanifest and enable the following capabilities:
     - Gaze Input
     - Internet (Client & Server)
@@ -168,25 +146,24 @@ This process is described later in this section.
     1. In Package add `xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"`.
     2. Under Capabilities add `<rescap:Capability Name="perceptionSensorsExperimental"/>`.
     3. Under Capabilities add `<DeviceCapability Name="backgroundSpatialPerception"/>`.
-    - See the [Package.appxmanifest](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) of the server for an example. Note that [the order in which Capabilites are declared matters](https://docs.microsoft.com/en-us/answers/questions/92754/how-to-use-extendedexecutionunconstrained.html).
-8. Build Release ARM64.
-9. In the Solution Explorer, right click the project and select Properties.
-10. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-11. Run. The application will remain installed on the HoloLens even after power off.
+    - See the [Package.appxmanifest](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) of the server for an example. Note that the order in which Capabilites are declared matters.
+8. Set build configuration to Release ARM64.
+9. Right click the project in bold and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
+10. Run. The application will remain installed on the HoloLens even after power off.
 
 **Using the plugin with Spatial Input support**
 
 1. Follow steps 1 through 3 of the previous section.
-2. For the Hololens2SensorStreaming script component of the Main Camera, set Skip Initialization.
-3. Follow steps 4 through 10 of the previous section.
-4. In the Solution Explorer, right click the project and select Properties.
-5. Nagivate to Configuration Properties -> C/C++ -> General -> Additional Include Directories and add the include directory of the plugin folder.
-6. Nagivate to Configuration Properties -> Linker -> General -> Additional Library Directories and add the lib folder of the plugin folder.
+2. For the Hololens2SensorStreaming script component of the Main Camera, enable Skip Initialization.
+3. Follow steps 4 through 9 of the previous section.
+4. Right click the project in bold and select Properties.
+5. Nagivate to Configuration Properties -> C/C++ -> General -> Additional Include Directories and add the include folder of the plugin.
+6. Nagivate to Configuration Properties -> Linker -> General -> Additional Library Directories and add the lib folder of the plugin.
 7. Navigate to Configuration Properties -> Linker -> Input -> Additional Dependencies and add hl2ss.lib.
 8. Open App.cpp and edit it as follows:
     1. `#include <hl2ss.h>` after the other includes.
-    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_MC | HL2SS_ENABLE_PV | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU | HL2SS_ENABLE_VI | HL2SS_ENABLE_MQ);`.
-9. Follow step 11 of the previous section.
+    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_PV | HL2SS_ENABLE_MC | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU | HL2SS_ENABLE_VI | HL2SS_ENABLE_MQ);`.
+9. Follow step 10 of the previous section.
 
 **Remote Unity Scene**
 
@@ -203,6 +180,27 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Remove all: destroy all game objects created by the plugin.
 
 To enable this functionality, add the [RemoteUnityScene.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/RemoteUnityScene.cs) script to the Main Camera  and set the Material field to [BasicMaterial](https://github.com/jdibenes/hl2ss/blob/main/unity/BasicMaterial.mat).
+
+## Build from source and deploy
+
+Building the server application and the Unity plugin requires a Windows 10 machine. If you have previously installed the server application using the appxbundle it is recommended that you uninstall it first.
+
+1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
+2. Open the Visual Studio solution (sln file in the [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
+3. Set build configuration to Release ARM64. Building for x86 and x64 (HoloLens emulator), and ARM is not supported.
+4. Right click the hl2ss project and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
+5. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](https://github.com/jdibenes/hl2ss/tree/main/etc) into the hl2ss\ARM64\Release\hl2ss folder.
+6. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device) first. 
+
+The server application will remain installed on the HoloLens even after power off. The Unity plugin is in the hl2ss\ARM64\Release\plugin folder.
+If you wish to create the server application appxbundle, right click the hl2ss project and select Publish -> Create App Packages.
+
+## Known issues and limitations
+
+- Multiple streams can be active at the same time but only one client per stream is allowed.
+- Ocassionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
+- Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens OS. See https://github.com/microsoft/HoloLens2ForCV/issues/133.
+- The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
 
 ## References
 
