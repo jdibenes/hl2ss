@@ -60,9 +60,9 @@ public static class hl2ss
     }
 #endif
 
-    public static void Initialize(bool enableRM, bool enablePV, bool enableMC, bool enableRC, bool enableSM, bool enableSU, bool enableVI)
+    public static void Initialize(bool enableRM, bool enablePV, bool enableMC, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ)
     {
-        InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U));
+        InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U) | (enableMQ ? 256U : 0U));
     }
 
     public static void Print(string str)

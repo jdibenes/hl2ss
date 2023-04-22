@@ -1,9 +1,14 @@
 ﻿
 #include <mfapi.h>
+#include "configuration.h"
 #include "ipc.h"
 #include "plugin.h"
 
 #include "../hl2ss/server.h"
+#include "../hl2ss/timestamps.h"
+#include "../hl2ss/log.h"
+#include "../hl2ss/nfo.h"
+#include "../hl2ss/types.h"
 #include "../hl2ss/locator.h"
 #include "../hl2ss/research_mode.h"
 #include "../hl2ss/spatial_input.h"
@@ -19,10 +24,6 @@
 #include "../hl2ss/ipc_sm.h"
 #include "../hl2ss/ipc_su.h"
 #include "../hl2ss/ipc_vi.h"
-#include "../hl2ss/timestamps.h"
-#include "../hl2ss/log.h"
-#include "../hl2ss/nfo.h"
-#include "../hl2ss/types.h"
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -52,8 +53,7 @@ void InitializeStreams(uint32_t enable)
     if (enable & HL2SS_ENABLE_SM) { SM_Initialize(); }
     if (enable & HL2SS_ENABLE_SU) { SU_Initialize(); }
     if (enable & HL2SS_ENABLE_VI) { VI_Initialize(); }
-
-    MQ_Initialize();
+    if (enable & HL2SS_ENABLE_MQ) { MQ_Initialize(); }
 }
 
 // OK
