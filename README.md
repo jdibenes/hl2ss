@@ -116,7 +116,7 @@ Building the server application and the Unity plugin requires a Windows 10 machi
 6. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device) first. 
 
 The server application will remain installed on the HoloLens even after power off. The Unity plugin is in the hl2ss\ARM64\Release\plugin folder.
-If you wish to create the server appxbundle, right click the hl2ss project and select Publish -> Create App Packages.
+If you wish to create the server application appxbundle, right click the hl2ss project and select Publish -> Create App Packages.
 
 ## Known issues and limitations
 
