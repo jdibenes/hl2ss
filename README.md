@@ -106,7 +106,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 ## Build from source and deploy
 
-Building the server application and the Unity plugin requires a Windows 10 machine.
+Building the server application and the Unity plugin requires a Windows 10 machine. If you have previously installed the server application using the appxbundle it is recommended that you uninstall it first.
 
 1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
 2. Open the Visual Studio solution (sln file in the [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
