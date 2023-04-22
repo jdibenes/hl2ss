@@ -122,6 +122,8 @@ Building the server application and the Unity plugin requires a Windows 10 machi
 5. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](https://github.com/jdibenes/hl2ss/tree/main/etc) into the hl2ss\ARM64\Release\hl2ss folder. You can find the Unity plugin in the hl2ss\ARM64\Release\plugin folder.
 6. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device). The server application will remain installed on the HoloLens even after power off.
 
+You can find the server application (hl2ss) in the All apps list.
+
 ## Unity plugin (DLL)
 
 For streaming sensor data from a Unity application.
