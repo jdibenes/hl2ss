@@ -104,14 +104,14 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [MMDetection](https://github.com/open-mmlab/mmdetection)
 
-## Unity plugin (DLL)
+## Unity plugin
 
 For streaming sensor data from a Unity application.
 All streams are supported.
 However, to enable Spatial Input stream support the plugin must be initialized from the UI thread.
 This process is described later in this section.
 
-**Using the plugin**
+**Using the plugin without Spatial Input support**
 
 1. Download the [plugin](https://github.com/jdibenes/hl2ss/releases) zip file and extract the Assets folder into your Unity project.
     - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction), and then continue with the instructions presented in this section.
@@ -122,7 +122,6 @@ This process is described later in this section.
     4. Click Apply.
     5. Do the same for the Scene Understanding DLL.
 3. Add the [Hololens2SensorStreaming.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/Hololens2SensorStreaming.cs) script to the Main Camera.
-    - The streams are initialized in the Start function (unless Skip Initialization is set). When the streams are initialized in this way Spatial Input streaming is not supported.
 4. Build the project for UWP (File -> Build Settings).
     1. Add your Unity scenes to Scenes in Build.
     2. Set Platform to Universal Windows Platform.
@@ -135,7 +134,7 @@ This process is described later in this section.
     9. Set Build and Run on Local Machine.
     10. Set Build configuration to Release.
     11. Click Build. Unity will ask for a destination folder. You can create a new one named Build.
-5. Navigate to the Build folder and open the Visual Studio solution.
+5. Navigate to the Build folder and open the Visual Studio solution in Visual Studio 2022.
 6. Open Package.appxmanifest and enable the following capabilities:
     - Gaze Input
     - Internet (Client & Server)
