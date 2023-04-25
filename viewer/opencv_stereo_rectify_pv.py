@@ -60,7 +60,7 @@ rotation_lf = hl2ss_3dcv.rm_vlc_get_rotation(port_left)
 pv_intrinsics = hl2ss.create_pv_intrinsics(data_rf.payload.focal_length, data_rf.payload.principal_point)
 
 K1, Rt1 = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_lf.intrinsics, calibration_lf.extrinsics, rotation_lf)
-K2, Rt2, X1 = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, np.eye(4, 4))
+K2, Rt2 = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, np.eye(4, 4))
 
 # Get calibration and rectify
 

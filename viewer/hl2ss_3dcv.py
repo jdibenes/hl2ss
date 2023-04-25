@@ -191,7 +191,7 @@ def pv_fix_calibration(intrinsics, extrinsics):
     R = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=extrinsics.dtype)
     intrinsics[0, 0] = -intrinsics[0, 0]
     extrinsics = extrinsics @ R
-    return (intrinsics, extrinsics, R)
+    return (intrinsics, extrinsics)
 
 
 #------------------------------------------------------------------------------
