@@ -165,7 +165,7 @@ public class RemoteUnityScene : MonoBehaviour
 
         GameObject go = GameObject.CreatePrimitive(t);
 
-        go.GetComponent<Renderer>().material = m_material; // TODO new Material instead?
+        go.GetComponent<Renderer>().material = m_material;
         go.SetActive(false);
 
         return AddGameObject(go);
@@ -199,6 +199,7 @@ public class RemoteUnityScene : MonoBehaviour
         UnpackTransform(data, 4, out position, out rotation, out locscale);
 
         go.transform.parent = null;
+
         go.transform.SetPositionAndRotation(position, rotation);
         go.transform.localScale = locscale;
 
@@ -213,29 +214,17 @@ public class RemoteUnityScene : MonoBehaviour
         GameObject go;
         if (!m_remote_objects.TryGetValue(GetKey(data), out go)) { return 0; }
 
-        go.transform.parent = transform;
-
         Vector3 position;
         Quaternion rotation;
         Vector3 locscale;
 
         UnpackTransform(data, 4, out position, out rotation, out locscale);
 
-        Camera cam = gameObject.GetComponent<Camera>();
+        go.transform.parent = transform;
 
-        var half = locscale / 2;
-
-        var cc = transform.InverseTransformPoint(cam.ScreenToWorldPoint(position));
-        var ul = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y - half.y, cc.z)));
-        var ur = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x + half.x, cc.y - half.y, cc.z)));
-        var bl = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y + half.y, cc.z)));
-
-        var dx = ul - ur;
-        var dy = ul - bl;
-
-        go.transform.localPosition = cc;
+        go.transform.localPosition = position;
         go.transform.localRotation = rotation;
-        go.transform.localScale = new Vector3(Mathf.Abs(dx.x), Mathf.Abs(dy.y), locscale.z);
+        go.transform.localScale    = locscale;
 
         return 1;
     }
@@ -336,3 +325,25 @@ public class RemoteUnityScene : MonoBehaviour
         return 0;
     }
 }
+
+
+
+
+
+/*
+Camera cam = gameObject.GetComponent<Camera>();
+
+var half = locscale / 2;
+
+var cc = transform.InverseTransformPoint(cam.ScreenToWorldPoint(position));
+var ul = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y - half.y, cc.z)));
+var ur = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x + half.x, cc.y - half.y, cc.z)));
+var bl = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y + half.y, cc.z)));
+
+var dx = ul - ur;
+var dy = ul - bl;
+
+go.transform.localPosition = cc;
+go.transform.localRotation = rotation;
+go.transform.localScale = new Vector3(Mathf.Abs(dx.x), Mathf.Abs(dy.y), locscale.z);
+*/
