@@ -109,47 +109,45 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 ## Unity plugin
 
-For streaming sensor data from a Unity application. All interfaces are supported. A sample Unity project can be found in the [unity](https://github.com/jdibenes/hl2ss/tree/main/unity) directory.
+For streaming sensor data from a Unity application.
+All interfaces are supported.
+A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.com/jdibenes/hl2ss/tree/main/unity) directory. If you wish to create a new project you can start [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction).
 
-**Using the plugin**
+**Build and run the sample project**
 
-1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project.
-    - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction) and then continue with the instructions presented in this section.
-2. In the Unity Editor, configure the hl2ss, Eye Tracking, and Scene Understanding DLLs as UWP ARM64.
-    1. In the Project window navigate to Assets/Plugins/WSA, select the DLL, then go to the Inspector window.
+1. Go to File -> Build Settings.
+2. Set Build and Run on Remote Device (via Device Portal).
+3. Set Device Portal Address to your HoloLens IP address (e.g., https://192.168.1.7) and set your Username/Password.
+4. Click Build and Run.
+
+**Build and run the sample project using Visual Studio**
+
+1. Go to File -> Build Settings.
+2. Set Build and Run on Local Machine.
+3. Click Build. Unity will ask for a destination folder. You can create a new one named Build.
+4. Navigate to the Build folder and open the Visual Studio solution in Visual Studio 2022.
+5. Set build configuration to Release ARM64.
+6. Right click the project in bold and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
+7. Run.
+
+**Adding the plugin to an existing Unity Project (UWP ARM64 only)**
+
+1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project folder.
+2. In the Unity Editor configure the hl2ss, Eye Tracking, and Scene Understanding DLLs as UWP ARM64.
+    1. In the Project window navigate to Assets/Plugins/WSA, select the DLL, and then go to the Inspector window.
     2. Set SDK to UWP.
     3. Set CPU to ARM64.
     4. Click Apply.
 3. Add the Hololens2SensorStreaming.cs script to the Main Camera.
-4. Build the project for UWP (File -> Build Settings).
-    1. Add your Unity scenes to Scenes in Build.
-    2. Set Platform to Universal Windows Platform.
-    3. Click Switch Platform.
-    4. Set Target Device to HoloLens.
-    5. Set Architecture to ARM64.
-    6. Set Build Type to D3D Project.
-    7. Set Target SDK Version to Latest installed.
-    8. Set Visual Studio Version to Latest installed.
-    9. Set Build and Run on Local Machine.
-    10. Set Build configuration to Release.
-    11. Click Build. Unity will ask for a destination folder. You can create a new one named Build.
-5. Navigate to the Build folder and open the Visual Studio solution in Visual Studio 2022.
-6. Open Package.appxmanifest and enable the following capabilities:
-    - Gaze Input
-    - Internet (Client & Server)
-    - Internet (Client)
-    - Microphone
-    - Private Networks (Client & Server)
-    - Spatial Perception
+4. Enable the following capabilities (Edit -> Project Settings -> Player -> Publishing Settings):
+    - InternetClientServer
+    - InternetClient
+    - PrivateNetworkClientServer
     - Webcam
-7. Right click Package.appxmanifest, select Open With, and select HTML Editor. Edit Package.appxmanifest as follows:
-    1. In Package add `xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"`.
-    2. Under Capabilities add `<rescap:Capability Name="perceptionSensorsExperimental"/>`.
-    3. Under Capabilities add `<DeviceCapability Name="backgroundSpatialPerception"/>`.
-    - See the [Package.appxmanifest](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) of the server for an example. Note that the order in which Capabilites are declared matters.
-8. Set build configuration to Release ARM64.
-9. Right click the project in bold and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-10. Run. The application will remain installed on the HoloLens even after power off.
+    - Microphone    
+    - Spatial Perception
+    - Gaze Input
+5. The plugin also requires the perceptionSensorsExperimental and backgroundSpatialPerception capabilities, which are not available in the Publishing Settings capabilities list. You can extract the Editor folder (plugin zip file) into the Assets folder (in your Unity project) which contains a script (BuildPostProcessor.cs) that adds the capabilities automatically after building the project. Alternatively, you can manually edit the Package.appxmanifest after building. See [here](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) for an example.
 
 **Remote Unity Scene**
 
