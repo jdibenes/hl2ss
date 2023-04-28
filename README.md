@@ -25,6 +25,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Spatial Mapping
 - Scene Understanding
 - Voice Input
+- Extended Eye Tracking
   
 **Additional features**
 
@@ -89,6 +90,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Spatial Mapping: [viewer/client_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_sm.py)
 - Scene Understanding: [viewer/client_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_su.py)
 - Voice Input: [viewer/client_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_vi.py)
+- Extended Eye Tracking: [viewer/client_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_eet.py)
 
 **Required packages**
 
@@ -107,9 +109,6 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 ## Unity plugin
 
 For streaming sensor data from a Unity application.
-All streams are supported.
-However, to enable Spatial Input stream support the plugin must be initialized from the UI thread.
-This process is described later in this section.
 
 **Using the plugin without Spatial Input support**
 
