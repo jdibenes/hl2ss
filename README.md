@@ -117,7 +117,7 @@ A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.
 
 1. Go to File -> Build Settings.
 2. Set Build and Run on Remote Device (via Device Portal).
-3. Set Device Portal Address to your HoloLens IP address (e.g., https://192.168.1.7) and set your Username/Password.
+3. Set Device Portal Address to your HoloLens IP address (e.g., https://192.168.1.7) and set your Device Portal Username and Password.
 4. Click Build and Run.
 
 **Build and run the sample project using Visual Studio**
