@@ -22,6 +22,7 @@ class StreamPort:
     PERSONAL_VIDEO       = 3810
     MICROPHONE           = 3811
     SPATIAL_INPUT        = 3812
+    EXTENDED_EYE_TRACKER = 3817
 
 
 # IPC TCP Ports
@@ -359,6 +360,10 @@ def _create_configuration_for_microphone(profile):
     return _create_configuration_for_audio_encoding(profile)
 
 
+def _create_configuration_for_eet(fps):
+    return struct.pack('<B', fps)
+
+
 def _create_configuration_for_rm_mode2(mode):
     return _create_configuration_for_mode(mode)
 
@@ -447,6 +452,17 @@ def _connect_client_si(host, port, chunk_size):
     else:
         c = _gatherer()
         c.open(host, port, chunk_size, StreamMode.MODE_0)
+    return c
+
+
+def _connect_client_eet(host, port, chunk_size, fps):
+    if (is_rs_host(host)):
+        c = _rs_gatherer()
+        c.open(host, port, None)
+    else:
+        c = _gatherer()
+        c.open(host, port, chunk_size, StreamMode.MODE_1)
+        c.sendall(_create_configuration_for_eet(fps))
     return c
 
 
@@ -609,6 +625,23 @@ class rx_si(_context_manager):
     def get_next_packet(self):
         return self._client.get_next_packet()
 
+    def close(self):
+        self._client.close()
+
+
+class rx_eet(_context_manager):
+    def __init__(self, host, port, chunk, fps):
+        self.host = host
+        self.port = port
+        self.chunk = chunk
+        self.fps = fps
+
+    def open(self):
+        self._client = _connect_client_eet(self.host, self.port, self.chunk, self.fps)
+
+    def get_next_packet(self):
+        return self._client.get_next_packet()
+    
     def close(self):
         self._client.close()
 
@@ -985,6 +1018,42 @@ class unpack_si:
 
 
 #------------------------------------------------------------------------------
+# EET Unpacker
+#------------------------------------------------------------------------------
+
+class _EET_Frame:
+    def __init__(self, reserved, combined_origin, combined_direction, left_origin, left_direction, right_origin, right_direction, left_openness, right_openness, vergence_distance, combined_ray_valid, left_ray_valid, right_ray_valid, left_openness_valid, right_openness_valid, vergence_distance_valid, calibration_valid):
+        self._reserved = reserved
+        self.combined_ray = _SI_EyeRay(combined_origin, combined_direction)
+        self.left_ray = _SI_EyeRay(left_origin, left_direction)
+        self.right_ray = _SI_EyeRay(right_origin, right_direction)
+        self.left_openness = left_openness
+        self.right_openness = right_openness
+        self.vergence_distance = vergence_distance
+        self.combined_ray_valid = combined_ray_valid
+        self.left_ray_valid = left_ray_valid
+        self.right_ray_valid = right_ray_valid
+        self.left_openness_valid = left_openness_valid
+        self.right_openness_valid = right_openness_valid
+        self.vergence_distance_valid = vergence_distance_valid
+        self.calibration_valid = calibration_valid
+
+
+def unpack_eet(payload):
+    reserved = payload[:4]
+    f = np.frombuffer(payload[4:-4], dtype=np.float32)
+    valid = struct.unpack('<I', payload[-4:])[0]
+    vd = valid & 0x40 != 0
+    ro = valid & 0x20 != 0
+    lo = valid & 0x10 != 0
+    rg = valid & 0x08 != 0
+    lg = valid & 0x04 != 0
+    cg = valid & 0x02 != 0
+    ec = valid & 0x01 != 0
+    return _EET_Frame(reserved, f[0:3], f[3:6], f[6:9], f[9:12], f[12:15], f[15:18], f[18], f[19], f[20], cg, lg, rg, lo, ro, vd, ec)
+
+
+#------------------------------------------------------------------------------
 # Decoded Receivers
 #------------------------------------------------------------------------------
 
@@ -1350,7 +1419,8 @@ class _PortName:
           'spatial_mapping', 
           'scene_understanding',
           'voice_input',
-          'unity_message_queue']
+          'unity_message_queue',
+          'extended_eye_tracker',]
 
 
 def get_port_index(port):
