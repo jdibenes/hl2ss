@@ -108,9 +108,9 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 ## Unity plugin
 
-For streaming sensor data from a Unity application.
+For streaming sensor data from a Unity application. All interfaces are supported.
 
-**Using the plugin without Spatial Input support**
+**Using the plugin**
 
 1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project.
     - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction) and then continue with the instructions presented in this section.
@@ -149,20 +149,6 @@ For streaming sensor data from a Unity application.
 8. Set build configuration to Release ARM64.
 9. Right click the project in bold and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
 10. Run. The application will remain installed on the HoloLens even after power off.
-
-**Using the plugin with Spatial Input support**
-
-1. Follow steps 1 through 3 of the previous section.
-2. For the Hololens2SensorStreaming script component of the Main Camera, enable Skip Initialization.
-3. Follow steps 4 through 9 of the previous section.
-4. Right click the project in bold and select Properties.
-5. Nagivate to Configuration Properties -> C/C++ -> General -> Additional Include Directories and add the include folder of the plugin.
-6. Nagivate to Configuration Properties -> Linker -> General -> Additional Library Directories and add the lib folder of the plugin.
-7. Navigate to Configuration Properties -> Linker -> Input -> Additional Dependencies and add hl2ss.lib.
-8. Open App.cpp and edit it as follows:
-    1. `#include <hl2ss.h>` after the other includes.
-    2. At the end of the `App::SetWindow(CoreWindow^ window)` method, right before the closing `}`, add `InitializeStreams(HL2SS_ENABLE_RM | HL2SS_ENABLE_PV | HL2SS_ENABLE_MC | HL2SS_ENABLE_SI | HL2SS_ENABLE_RC | HL2SS_ENABLE_SM | HL2SS_ENABLE_SU | HL2SS_ENABLE_VI | HL2SS_ENABLE_MQ);`.
-9. Follow step 10 of the previous section.
 
 **Remote Unity Scene**
 
