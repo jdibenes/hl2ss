@@ -129,6 +129,12 @@
     <ClCompile Include="..\hl2ss\voice_input.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_eet.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -249,6 +255,12 @@
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\voice_input.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\extended_eye_tracking.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_eet.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>

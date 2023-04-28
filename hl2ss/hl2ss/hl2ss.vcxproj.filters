@@ -133,6 +133,12 @@
     <ClCompile Include="ipc_vi.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
+    <ClCompile Include="extended_eye_tracking.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_eet.cpp">
+      <Filter>Source Files\streams</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -379,6 +385,12 @@
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="ipc_vi.h">
+      <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="extended_eye_tracking.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_eet.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
   </ItemGroup>
