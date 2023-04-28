@@ -90,6 +90,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Spatial Mapping: [viewer/client_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_sm.py)
 - Scene Understanding: [viewer/client_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_su.py)
 - Voice Input: [viewer/client_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_vi.py)
+- Unity Message Queue: [viewer/client_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_umq.py)
 - Extended Eye Tracking: [viewer/client_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_eet.py)
 
 **Required packages**
