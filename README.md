@@ -158,7 +158,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Create primitive: sphere, capsule, cylinder, cube, plane, and quad.
 - Set active: enable or disable game object.
 - Set world transform: position, rotation, and scale.
-- Set local transform (w.r.t. Main Camera).
+- Set local transform: position, rotation, and scale w.r.t. Main Camera.
 - Set color: rgba with support for semi-transparency.
 - Set texture: upload png or jpg file.
 - Create text: creates a TextMeshPro object.
@@ -166,11 +166,11 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Remove: destroy game object.
 - Remove all: destroy all game objects created by the plugin.
 
-To enable this functionality, add the RemoteUnityScene.cs script to the Main Camera  and set the Material field to BasicMaterial.
+To enable this functionality add the RemoteUnityScene.cs script to the Main Camera and set the Material field to BasicMaterial.
 
 ## Build from source and deploy
 
-Building the server application and the Unity plugin requires a Windows 10 machine. If you have previously installed the server application using the appxbundle it is recommended that you uninstall it first.
+Building the server application and the Unity plugin requires a Windows 10 machine.
 
 1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
 2. Open the Visual Studio solution (sln file in the [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
