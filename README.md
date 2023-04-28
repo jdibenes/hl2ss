@@ -109,7 +109,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 ## Unity plugin
 
-For streaming sensor data from a Unity application. All interfaces are supported. A sample Unity project can be found in the [unity directory](https://github.com/jdibenes/hl2ss/tree/main/unity).
+For streaming sensor data from a Unity application. All interfaces are supported. A sample Unity project can be found in the [unity](https://github.com/jdibenes/hl2ss/tree/main/unity) directory.
 
 **Using the plugin**
 
@@ -158,6 +158,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Create primitive: sphere, capsule, cylinder, cube, plane, and quad.
 - Set active: enable or disable game object.
 - Set world transform: position, rotation, and scale.
+- Set local transform (w.r.t. Main Camera).
 - Set color: rgba with support for semi-transparency.
 - Set texture: upload png or jpg file.
 - Create text: creates a TextMeshPro object.
@@ -165,7 +166,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Remove: destroy game object.
 - Remove all: destroy all game objects created by the plugin.
 
-To enable this functionality, add the [RemoteUnityScene.cs](https://github.com/jdibenes/hl2ss/blob/main/unity/RemoteUnityScene.cs) script to the Main Camera  and set the Material field to [BasicMaterial](https://github.com/jdibenes/hl2ss/blob/main/unity/BasicMaterial.mat).
+To enable this functionality, add the RemoteUnityScene.cs script to the Main Camera  and set the Material field to BasicMaterial.
 
 ## Build from source and deploy
 
