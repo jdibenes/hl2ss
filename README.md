@@ -114,7 +114,7 @@ For streaming sensor data from a Unity application. All interfaces are supported
 
 1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project.
     - If you wish to create a new Unity project to test the plugin, first follow the intructions [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction) and then continue with the instructions presented in this section.
-2. In the Unity Editor, configure the hl2ss and Scene Understanding DLLs as UWP ARM64.
+2. In the Unity Editor, configure the hl2ss, Eye Tracking, and Scene Understanding DLLs as UWP ARM64.
     1. In the Project window navigate to Assets/Plugins/WSA, select the DLL, then go to the Inspector window.
     2. Set SDK to UWP.
     3. Set CPU to ARM64.
