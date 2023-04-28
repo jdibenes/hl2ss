@@ -1,0 +1,8 @@
+AreLeftAndRightGazesSupported: 1
+IsEyeOpennessSupported: 0
+IsRestrictedModeSupported: 1
+IsVergenceDistanceSupported: 0
+SupportedTargetFrameRates:
+    30 FPS
+    60 FPS
+    90 FPS
