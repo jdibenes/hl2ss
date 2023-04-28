@@ -30,9 +30,12 @@ public class Hololens2SensorStreaming : MonoBehaviour
     [Tooltip("Enable Message Queue interface.")]
     public bool enableMQ = true;
 
+    [Tooltip("Enable Extended Eye Tracking Interface.")]
+    public bool enableEET = true;
+
     void Start()
     {
         hl2ss.UpdateCoordinateSystem();
-        hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ);
+        hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ, enableEET);
     }
 }
