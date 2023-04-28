@@ -108,7 +108,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 ## Unity plugin
 
-For streaming sensor data from a Unity application. All interfaces are supported.
+For streaming sensor data from a Unity application. All interfaces are supported. A sample Unity project can be found in the [unity directory](https://github.com/jdibenes/hl2ss/tree/main/unity).
 
 **Using the plugin**
 
