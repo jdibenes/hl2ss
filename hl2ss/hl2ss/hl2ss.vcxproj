@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" />
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.props')" />
+  <Import Project="..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props" Condition="Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props')" />
   <PropertyGroup Label="Globals">
     <CppWinRTOptimized>true</CppWinRTOptimized>
     <CppWinRTRootNamespaceAutoMerge>true</CppWinRTRootNamespaceAutoMerge>
@@ -160,6 +161,7 @@
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
     <ClInclude Include="display7s.h" />
+    <ClInclude Include="extended_eye_tracking.h" />
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="ipc_sc.h" />
     <ClInclude Include="ipc_sm.h" />
@@ -175,6 +177,7 @@
     <ClInclude Include="scene_understanding.h" />
     <ClInclude Include="spatial_input.h" />
     <ClInclude Include="spatial_mapping.h" />
+    <ClInclude Include="stream_eet.h" />
     <ClInclude Include="stream_mc.h" />
     <ClInclude Include="microphone_capture.h" />
     <ClInclude Include="ports.h" />
@@ -207,6 +210,7 @@
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
     <ClCompile Include="display7s.cpp" />
+    <ClCompile Include="extended_eye_tracking.cpp" />
     <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="ipc_sc.cpp" />
     <ClCompile Include="ipc_sm.cpp" />
@@ -222,6 +226,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="personal_video.cpp" />
     <ClCompile Include="spatial_mapping.cpp" />
+    <ClCompile Include="stream_eet.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />
@@ -270,15 +275,18 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
     <Import Project="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets" Condition="Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" />
+    <Import Project="..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets" Condition="Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets')" />
+    <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
     <Error Condition="!Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.230225.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
   </Target>
 </Project>

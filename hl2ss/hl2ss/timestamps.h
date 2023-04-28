@@ -12,3 +12,4 @@ UINT64 GetCurrentUTCTimestamp();
 UINT64 GetQPCToUTCOffset();
 UINT64 GetQPCToUTCOffset(int samples);
 winrt::Windows::Perception::PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime);
+winrt::Windows::Foundation::TimeSpan QPCTimestampToTimeSpan(LONGLONG qpctime);

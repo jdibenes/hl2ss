@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hl2ss", "hl2ss\hl2ss.vcxproj", "{C9CAFDBC-ADB4-4E28-85C8-8B175CCBB969}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin", "plugin\plugin.vcxproj", "{0728170D-ECEE-430C-85B0-0E1709801D31}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C9CAFDBC-ADB4-4E28-85C8-8B175CCBB969} = {C9CAFDBC-ADB4-4E28-85C8-8B175CCBB969}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

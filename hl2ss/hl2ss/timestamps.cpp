@@ -3,6 +3,10 @@
 #include "timestamps.h"
 #include "types.h"
 
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Perception.h>
+
+using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Perception;
 
 //-----------------------------------------------------------------------------
@@ -80,5 +84,11 @@ UINT64 GetQPCToUTCOffset(int samples)
 // OK
 PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime)
 {
-	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime));
+	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(QPCTimestampToTimeSpan(qpctime));
+}
+
+// OK
+TimeSpan QPCTimestampToTimeSpan(LONGLONG qpctime)
+{
+	return std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime);
 }

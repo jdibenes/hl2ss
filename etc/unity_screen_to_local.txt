@@ -1,0 +1,18 @@
+
+/*
+Camera cam = gameObject.GetComponent<Camera>();
+
+var half = locscale / 2;
+
+var cc = transform.InverseTransformPoint(cam.ScreenToWorldPoint(position));
+var ul = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y - half.y, cc.z)));
+var ur = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x + half.x, cc.y - half.y, cc.z)));
+var bl = transform.InverseTransformPoint(cam.ScreenToWorldPoint(new Vector3(cc.x - half.x, cc.y + half.y, cc.z)));
+
+var dx = ul - ur;
+var dy = ul - bl;
+
+go.transform.localPosition = cc;
+go.transform.localRotation = rotation;
+go.transform.localScale = new Vector3(Mathf.Abs(dx.x), Mathf.Abs(dy.y), locscale.z);
+*/
