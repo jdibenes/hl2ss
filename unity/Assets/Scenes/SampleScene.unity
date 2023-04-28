@@ -389,7 +389,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e2223fd09ed51e40885a20747418fc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_material: {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  m_material: {fileID: 2100000, guid: 6df6d884fb365b14a843a562dfe3da67, type: 2}
 --- !u!114 &963194232
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -417,15 +417,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1f4554c40a672247a33f6a49da2f850, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  skipInitialization: 0
   enableRM: 1
   enablePV: 1
   enableMC: 1
+  enableSI: 1
   enableRC: 1
   enableSM: 1
   enableSU: 1
   enableVI: 1
   enableMQ: 1
+  enableEET: 1
 --- !u!114 &963194234
 MonoBehaviour:
   m_ObjectHideFlags: 0
