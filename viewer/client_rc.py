@@ -66,7 +66,7 @@ client.open()
 version = client.get_application_version()
 print('Installed version {v0}.{v1}.{v2}.{v3}'.format(v0=version[0], v1=version[1], v2=version[2], v3=version[3]))
 
-utc_offset = client.get_utc_offset(32)
+utc_offset = client.get_utc_offset(32) # Add this offset to timestamps to convert to utc
 print('QPC timestamp to UTC offset is {offset} hundreds of nanoseconds'.format(offset=utc_offset))
 
 client.set_hs_marker_state(marker_state)
