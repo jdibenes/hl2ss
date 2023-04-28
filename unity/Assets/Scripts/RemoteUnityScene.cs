@@ -4,7 +4,6 @@ using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
-//using Dummiesman;
 
 public class RemoteUnityScene : MonoBehaviour
 {
@@ -52,7 +51,6 @@ public class RemoteUnityScene : MonoBehaviour
         case   5: ret = MSG_SetTexture(data);        break;
         case   6: ret = MSG_CreateText(data);        break;
         case   7: ret = MSG_SetText(data);           break;
-        case   8: ret = MSG_LoadMesh(data);          break;
 
         case  16: ret = MSG_Remove(data);            break;
         case  17: ret = MSG_RemoveAll(data);         break;
@@ -313,15 +311,5 @@ public class RemoteUnityScene : MonoBehaviour
         tmp.text = str;
 
         return 1;
-    }
-
-    // OK
-    uint MSG_LoadMesh(byte[] data)
-    {
-        //var stream = new MemoryStream(data);
-        //var go = new OBJLoader().Load(stream);
-
-        //return AddGameObject(go);
-        return 0;
     }
 }
