@@ -25,12 +25,18 @@
 #include "../hl2ss/ipc_su.h"
 #include "../hl2ss/ipc_vi.h"
 
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.ApplicationModel.Core.h>
+
+using namespace winrt::Windows::UI::Core;
+using namespace winrt::Windows::ApplicationModel::Core;
+
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-UNITY_EXPORT
 void InitializeStreams(uint32_t enable)
 {
     InitializeSockets();
@@ -54,6 +60,16 @@ void InitializeStreams(uint32_t enable)
     if (enable & HL2SS_ENABLE_SU) { SU_Initialize(); }
     if (enable & HL2SS_ENABLE_VI) { VI_Initialize(); }
     if (enable & HL2SS_ENABLE_MQ) { MQ_Initialize(); }
+}
+
+// OK
+UNITY_EXPORT
+void InitializeStreamsOnUI(uint32_t enable)
+{
+    HANDLE event_done = CreateEvent(NULL, TRUE, FALSE, NULL);
+    CoreApplication::Views().GetAt(0).Dispatcher().RunAsync(CoreDispatcherPriority::High, [=]() { InitializeStreams(enable); SetEvent(event_done); }).get();
+    WaitForSingleObject(event_done, INFINITE);
+    CloseHandle(event_done);
 }
 
 // OK

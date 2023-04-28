@@ -3,9 +3,6 @@ using UnityEngine;
 
 public class Hololens2SensorStreaming : MonoBehaviour
 {
-    [Tooltip("Must be enabled if InitializeStreams is called from the cpp code and disabled otherwise.")]
-    public bool skipInitialization = false;
-
     [Tooltip("Enable Research Mode streams.")]
     public bool enableRM = true;
 
@@ -14,6 +11,9 @@ public class Hololens2SensorStreaming : MonoBehaviour
 
     [Tooltip("Enable Microphone stream.")]
     public bool enableMC = true;
+
+    [Tooltip("Enable Spatial Input stream.")]
+    public bool enableSI = true;
 
     [Tooltip("Enable Remote Configuration interface.")]
     public bool enableRC = true;
@@ -33,6 +33,6 @@ public class Hololens2SensorStreaming : MonoBehaviour
     void Start()
     {
         hl2ss.UpdateCoordinateSystem();
-        if (!skipInitialization) { hl2ss.Initialize(enableRM, enablePV, enableMC, enableRC, enableSM, enableSU, enableVI, enableMQ); }
+        hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ);
     }
 }

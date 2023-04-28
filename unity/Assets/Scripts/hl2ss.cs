@@ -7,7 +7,7 @@ public static class hl2ss
 {
 #if WINDOWS_UWP
     [DllImport("hl2ss")]
-    private static extern void InitializeStreams(uint enable);
+    private static extern void InitializeStreamsOnUI(uint enable);
     [DllImport("hl2ss")]
     private static extern void DebugMessage(string str);
     [DllImport("hl2ss")]
@@ -23,7 +23,7 @@ public static class hl2ss
     [DllImport("hl2ss")]
     private static extern int OverrideWorldCoordinateSystem(IntPtr scs);
 #else
-    private static void InitializeStreams(uint enable)
+    private static void InitializeStreamsOnUI(uint enable)
     {
     }
 
@@ -60,9 +60,9 @@ public static class hl2ss
     }
 #endif
 
-    public static void Initialize(bool enableRM, bool enablePV, bool enableMC, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ)
+    public static void Initialize(bool enableRM, bool enablePV, bool enableMC, bool enableSI, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ)
     {
-        InitializeStreams((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U) | (enableMQ ? 256U : 0U));
+        InitializeStreamsOnUI((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableSI ? 8U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U) | (enableMQ ? 256U : 0U));
     }
 
     public static void Print(string str)
