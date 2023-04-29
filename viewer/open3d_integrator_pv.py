@@ -19,7 +19,7 @@ import hl2ss_3dcv
 # HoloLens address
 host = '192.168.1.7'
 
-# Calibration path
+# Calibration path (must exist but can be empty)
 calibration_path = '../calibration'
 
 # Camera parameters
@@ -69,6 +69,7 @@ if __name__ == '__main__':
     ipc_rc.close()
 
     # Get RM Depth Long Throw calibration -------------------------------------
+    # Calibration data will be downloaded if it's not in the calibration folder
     calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
