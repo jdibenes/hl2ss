@@ -86,7 +86,7 @@ if __name__ == '__main__':
         # Wait for RM Depth Long Throw frame ----------------------------------
         sink_depth.acquire()
 
-        # Get RM Depth Long Throw frame and nearest (in time) RM VLC frame --------
+        # Get RM Depth Long Throw frame and nearest (in time) RM VLC frame ----
         _, data_depth = sink_depth.get_most_recent_frame()
         if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
             continue
