@@ -25,6 +25,16 @@ def microphone_packed_to_planar(array):
     return data
 
 
+class microphone_resampler:
+    def open(self, target_format=None, target_layout=None, target_rate=None):
+        self._resampler = av.AudioResampler(format=target_format, layout=target_layout, rate=target_rate)
+
+    def resample(self, data, format, layout):
+        in_frame = av.AudioFrame.from_ndarray(data, format=format, layout=layout)
+        out_frames = self._resampler.resample(in_frame)
+        return [frame.to_ndarray() for frame in out_frames]
+
+
 #------------------------------------------------------------------------------
 # SI
 #------------------------------------------------------------------------------
