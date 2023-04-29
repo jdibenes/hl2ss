@@ -120,16 +120,6 @@ A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.
 3. Set Device Portal Address to your HoloLens IP address (e.g., https://192.168.1.7) and set your Device Portal Username and Password.
 4. Click Build and Run.
 
-**Build and run the sample project using Visual Studio**
-
-1. Go to File -> Build Settings.
-2. Set Build and Run on Local Machine.
-3. Click Build. Unity will ask for a destination folder. You can create a new one named Build.
-4. Navigate to the Build folder and open the Visual Studio solution in Visual Studio 2022.
-5. Set build configuration to Release ARM64.
-6. Right click the project in bold and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-7. Run.
-
 **Adding the plugin to an existing Unity Project (UWP ARM64 only)**
 
 1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project folder.
