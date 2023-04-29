@@ -10,7 +10,7 @@ import hl2ss_utilities
 path = './data'
 
 # Ports
-port = hl2ss.StreamPort.RM_VLC_RIGHTFRONT
+port = hl2ss.StreamPort.MICROPHONE
 '''
 hl2ss.StreamPort.RM_VLC_LEFTFRONT,
 hl2ss.StreamPort.RM_VLC_LEFTLEFT,
@@ -59,12 +59,17 @@ def display_pv(data):
     cv2.imshow('vlc', data.payload.image)
     cv2.waitKey(1)
 
-microphone_buffer = np.empty((1,0), dtype=np.float32)
 
-def display_microphone(data):
+
+def display_microphone_aac(data):
     global microphone_buffer
     print(f'Samples at time {data.timestamp}')
     microphone_buffer = np.hstack((microphone_buffer, hl2ss_utilities.microphone_planar_to_packed(data.payload)))
+
+def display_microphone_raw(data):
+    global microphone_buffer
+    print(f'Samples at time {data.timestamp}')
+    microphone_buffer = np.hstack((microphone_buffer, data.payload))
 
 def display_si(data):
     si = hl2ss.unpack_si(data.payload)
@@ -112,6 +117,33 @@ def display_si(data):
     else:
         print('No right hand data')
 
+def display_eet(data):
+    data.payload = hl2ss.unpack_eet(data.payload)
+
+    # See
+    # https://learn.microsoft.com/en-us/windows/mixed-reality/develop/native/extended-eye-tracking-native
+    # for details
+
+    print(f'Tracking status at time {data.timestamp}')
+    print('Pose')
+    print(data.pose)
+    print(f'Calibration valid: {data.payload.calibration_valid}')
+    print(f'Combined eye gaze: Valid={data.payload.combined_ray_valid} Origin={data.payload.combined_ray.origin} Direction={data.payload.combined_ray.direction}')
+    print(f'Left eye gaze: Valid={data.payload.left_ray_valid} Origin={data.payload.left_ray.origin} Direction={data.payload.left_ray.direction}')
+    print(f'Right eye gaze: Valid={data.payload.right_ray_valid} Origin={data.payload.right_ray.origin} Direction={data.payload.right_ray.direction}')
+
+    # "...not supported by HoloLens 2 at this time"
+    print(f'Left eye openness: Valid={data.payload.left_openness_valid} Value={data.payload.left_openness}')
+    print(f'Right eye openness: Valid={data.payload.right_openness_valid} Value={data.payload.right_openness}')
+    print(f'Vergence distance: Valid={data.payload.vergence_distance_valid} Value={data.payload.vergence_distance}')
+
+
+
+filename = os.path.join(path, f'{hl2ss.get_port_name(port)}.bin')
+reader = hl2ss_io.create_rd(True, filename, hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24')
+reader.open()
+
+microphone_buffer = np.empty((1,0), dtype=np.int16 if (reader.header.profile == hl2ss.AudioProfile.RAW) else np.float32)
 
 display_method = {
     hl2ss.StreamPort.RM_VLC_LEFTFRONT : display_vlc,
@@ -124,13 +156,10 @@ display_method = {
     hl2ss.StreamPort.RM_IMU_GYROSCOPE : display_imu,
     hl2ss.StreamPort.RM_IMU_MAGNETOMETER : display_imu,
     hl2ss.StreamPort.PERSONAL_VIDEO : display_pv,
-    hl2ss.StreamPort.MICROPHONE : display_microphone,
-    hl2ss.StreamPort.SPATIAL_INPUT : display_si
+    hl2ss.StreamPort.MICROPHONE : display_microphone_raw if (reader.header.profile == hl2ss.AudioProfile.RAW) else display_microphone_aac,
+    hl2ss.StreamPort.SPATIAL_INPUT : display_si,
+    hl2ss.StreamPort.EXTENDED_EYE_TRACKER : display_eet,
 }
-
-filename = os.path.join(path, f'{hl2ss.get_port_name(port)}.bin')
-reader = hl2ss_io.create_rd(True, filename, hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24')
-reader.open()
 
 while (True):
     data = reader.read()
@@ -140,8 +169,13 @@ while (True):
 
 reader.close()
 
+if (reader.header.port != hl2ss.StreamPort.MICROPHONE):
+    quit()
+
+print(reader.header.profile)
+
 p = pyaudio.PyAudio()
-stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
+stream = p.open(format=pyaudio.paInt16 if (reader.header.profile == hl2ss.AudioProfile.RAW) else pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
 stream.start_stream()
 stream.write(microphone_buffer.tobytes())
 stream.stop_stream()

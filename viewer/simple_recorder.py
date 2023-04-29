@@ -1,5 +1,4 @@
 
-import multiprocessing as mp
 import time
 import os
 import hl2ss
@@ -11,7 +10,7 @@ path = './data'
 
 # Ports
 ports = [
-    hl2ss.StreamPort.RM_VLC_LEFTFRONT,
+    #hl2ss.StreamPort.RM_VLC_LEFTFRONT,
     #hl2ss.StreamPort.RM_VLC_LEFTLEFT,
     #hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
     #hl2ss.StreamPort.RM_VLC_RIGHTRIGHT,
@@ -20,36 +19,43 @@ ports = [
     #hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
     #hl2ss.StreamPort.RM_IMU_GYROSCOPE,
     #hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
-    hl2ss.StreamPort.PERSONAL_VIDEO,
+    #hl2ss.StreamPort.PERSONAL_VIDEO,
     hl2ss.StreamPort.MICROPHONE,
-    #hl2ss.StreamPort.SPATIAL_INPUT
+    #hl2ss.StreamPort.SPATIAL_INPUT,
+    #hl2ss.StreamPort.EXTENDED_EYE_TRACKER,
     ]
 
 # RM VLC parameters
 vlc_mode    = hl2ss.StreamMode.MODE_1
-vlc_profile = hl2ss.VideoProfile.H264_BASE
-vlc_bitrate = 1*1024*1024
+vlc_profile = hl2ss.VideoProfile.RAW
+vlc_bitrate = 2*1024*1024
 
 # RM Depth AHAT parameters
-ahat_mode = hl2ss.StreamMode.MODE_1
-ahat_profile = hl2ss.VideoProfile.H264_BASE
+ahat_mode    = hl2ss.StreamMode.MODE_1
+ahat_profile = hl2ss.VideoProfile.RAW
 ahat_bitrate = 8*1024*1024
 
 # RM Depth Long Throw parameters
-lt_mode = hl2ss.StreamMode.MODE_1
+lt_mode   = hl2ss.StreamMode.MODE_1
 lt_filter = hl2ss.PngFilterMode.Paeth
 
 # RM IMU parameters
 imu_mode = hl2ss.StreamMode.MODE_1
 
 # PV parameters
-pv_mode = hl2ss.StreamMode.MODE_1
-pv_width = 760
-pv_height = 428
+pv_mode      = hl2ss.StreamMode.MODE_1
+pv_width     = 760
+pv_height    = 428
 pv_framerate = 30
-pv_profile = hl2ss.VideoProfile.H264_BASE
-pv_bitrate = 1*1024*1024
-pv_format = 'bgr24'
+pv_profile   = hl2ss.VideoProfile.RAW
+pv_bitrate   = 1*1024*1024
+pv_format    = 'bgr24'
+
+# Microphone parameters
+microphone_profile = hl2ss.AudioProfile.RAW
+
+# EET parameters
+eet_fps = 90
 
 # Maximum number of frames in buffer
 buffer_elements = 300
@@ -68,8 +74,9 @@ if __name__ == '__main__':
     producer.configure_rm_imu(host, hl2ss.StreamPort.RM_IMU_GYROSCOPE, hl2ss.ChunkSize.RM_IMU_GYROSCOPE, imu_mode)
     producer.configure_rm_imu(host, hl2ss.StreamPort.RM_IMU_MAGNETOMETER, hl2ss.ChunkSize.RM_IMU_MAGNETOMETER, imu_mode)
     producer.configure_pv(False, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, pv_mode, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, pv_format)
-    producer.configure_microphone(False, host, hl2ss.StreamPort.MICROPHONE, hl2ss.ChunkSize.MICROPHONE, hl2ss.AudioProfile.AAC_24000)
+    producer.configure_microphone(False, host, hl2ss.StreamPort.MICROPHONE, hl2ss.ChunkSize.MICROPHONE, microphone_profile)
     producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.configure_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, eet_fps)
 
     for port in ports:
         producer.initialize(port, buffer_elements)
