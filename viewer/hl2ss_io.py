@@ -623,7 +623,7 @@ class _rd_decoded_pv(_rd_pv):
     def open(self):
         super().open()
         self._codec = hl2ss.decode_pv(self.header.profile)
-        self._codec.create()
+        self._codec.create(self.header.width, self.header.height)
         self.read()
 
     def read(self):
