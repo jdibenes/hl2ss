@@ -33,9 +33,21 @@ get_collider_meshes = True
 # To track surfaces between scenes
 # Create a new scene using SU_Create.NewFromPrevious and add the GUID of the 
 # surface(s) of interest found in the previous scene
+# If the surface is found in the new scene it will be returned
 guid_list = [] 
 
 #------------------------------------------------------------------------------
+
+kind_color = {
+    hl2ss.SU_Kind.Background         : [0, 0, 0],
+    hl2ss.SU_Kind.Ceiling            : [0, 0, 1],
+    hl2ss.SU_Kind.CompletelyInferred : [0, 1, 0],
+    hl2ss.SU_Kind.Floor              : [0, 1, 1],
+    hl2ss.SU_Kind.Platform           : [1, 0, 0],
+    hl2ss.SU_Kind.Unknown            : [1, 0, 1],
+    hl2ss.SU_Kind.Wall               : [1, 1, 0],
+    hl2ss.SU_Kind.World              : [1, 1, 1],
+}
 
 # Download data ---------------------------------------------------------------
 # See
@@ -90,6 +102,7 @@ for item in result.items:
         open3d_mesh.vertices = o3d.utility.Vector3dVector((mesh.vertex_positions @ item.location[:3, :3]) + item.location[3, :3])
         open3d_mesh.triangles = o3d.utility.Vector3iVector(mesh.triangle_indices)
         open3d_mesh.compute_vertex_normals()
+        open3d_mesh.paint_uniform_color(kind_color[int(item.kind)])
         open3d_meshes.append(open3d_mesh)
 
 o3d.visualization.draw_geometries(open3d_meshes, mesh_show_back_face=True)
