@@ -52,7 +52,9 @@ if (client.register_commands(True, strings)):
         events = client.pop()
         for event in events:
             event.unpack()
-            # Start timestamps are given in Windows FILETIME (utc)
+            # See
+            # https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition.speechrecognitionresult?view=winrt-22621
+            # for result details
             print(f'Event: Command={get_word(strings, event.index)} Index={event.index} Confidence={event.confidence} Duration={event.phrase_duration} Start={event.phrase_start_time} RawConfidence={event.raw_confidence}')
     client.stop()
     client.clear()
