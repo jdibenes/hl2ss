@@ -1156,13 +1156,28 @@ class rx_decoded_microphone(rx_microphone):
 #------------------------------------------------------------------------------
 
 class rx_raw_rm_vlc(rx_rm_vlc):
+    def __init__(self, host, port, chunk, mode, profile, bitrate):
+        super().__init__(host, port, chunk, mode, profile, bitrate)
+
+    def open(self):
+        super().open()
+
     def get_next_packet(self):
         data = super().get_next_packet()
         data.payload = np.frombuffer(data.payload, dtype=np.uint8).reshape(Parameters_RM_VLC.SHAPE)
         return data
+    
+    def close(self):
+        super().close()
 
 
 class rx_raw_rm_depth_ahat(rx_rm_depth_ahat):
+    def __init__(self, host, port, chunk, mode, profile, bitrate):
+        super().__init__(host, port, chunk, mode, profile, bitrate)
+
+    def open(self):
+        super().open()
+
     def get_next_packet(self):
         data = super().get_next_packet()
         depth = np.frombuffer(data.payload, dtype=np.uint16, offset=0,                                            count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
@@ -1170,6 +1185,9 @@ class rx_raw_rm_depth_ahat(rx_rm_depth_ahat):
         depth[depth >= 4090] = 0
         data.payload = _RM_Depth_Frame(depth, ab)
         return data
+    
+    def close(self):
+        super().close()
 
 
 class rx_raw_pv(rx_pv):
@@ -1186,18 +1204,33 @@ class rx_raw_pv(rx_pv):
         self.format = rx_raw_pv._cv2_nv12_format[format]
         self.stride = get_nv12_stride(self.width)
 
+    def open(self):
+        super().open()
+
     def get_next_packet(self):
         data = super().get_next_packet()
         data.payload = unpack_pv(data.payload)
         data.payload.image = cv2.cvtColor(np.frombuffer(data.payload.image, dtype=np.uint8).reshape((int(self.height*3/2), self.stride))[:, :self.width], self.format)
         return data
+    
+    def close(self):
+        super().close()
 
 
 class rx_raw_microphone(rx_microphone):
+    def __init__(self, host, port, chunk, profile):
+        super().__init__(host, port, chunk, profile)
+
+    def open(self):
+        super().open()
+
     def get_next_packet(self):
         data = super().get_next_packet()
         data.payload = np.frombuffer(data.payload, dtype=np.int16).reshape((1, -1))
         return data
+    
+    def close(self):
+        super().close()
 
 
 #------------------------------------------------------------------------------
