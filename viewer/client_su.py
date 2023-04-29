@@ -1,5 +1,6 @@
 #------------------------------------------------------------------------------
-# This script downloads Scene Understanding data.
+# This script downloads Scene Understanding data from the HoloLens and displays
+# it.
 #------------------------------------------------------------------------------
 
 import open3d as o3d
@@ -28,7 +29,11 @@ get_location_matrix = True
 get_quad = True
 get_meshes = True
 get_collider_meshes = True
-guid_list = []
+
+# To track surfaces between scenes
+# Create a new scene using SU_Create.NewFromPrevious and add the GUID of the 
+# surface(s) of interest found in the previous scene
+guid_list = [] 
 
 #------------------------------------------------------------------------------
 
