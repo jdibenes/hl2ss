@@ -25,7 +25,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Spatial Mapping
 - Scene Understanding
 - Voice Input
-- Extended Eye Tracking
+- Extended Eye Tracking (30, 60, or 90 FPS)
   
 **Additional features**
 
@@ -120,7 +120,7 @@ A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.
 3. Set Device Portal Address to your HoloLens IP address (e.g., https://192.168.1.7) and set your Device Portal Username and Password.
 4. Click Build and Run.
 
-**Adding the plugin to an existing Unity Project (UWP ARM64 only)**
+**Adding the plugin to an existing Unity Project**
 
 1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project folder.
 2. In the Unity Editor configure the hl2ss, Eye Tracking, and Scene Understanding DLLs as UWP ARM64.
