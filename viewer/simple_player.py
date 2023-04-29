@@ -10,7 +10,7 @@ import hl2ss_utilities
 path = './data'
 
 # Ports
-port = hl2ss.StreamPort.MICROPHONE
+port = hl2ss.StreamPort.RM_VLC_RIGHTFRONT
 '''
 hl2ss.StreamPort.RM_VLC_LEFTFRONT,
 hl2ss.StreamPort.RM_VLC_LEFTLEFT,
