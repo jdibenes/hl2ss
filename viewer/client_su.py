@@ -90,7 +90,7 @@ collider_meshes = []
 
 for item in result.items:
     item.unpack()
-    print(f'SceneObject {item.id.hex()} {item.kind} {item.orientation} {item.position} {item.alignment} {item.extents}')
+    print(f'SceneObject id={item.id.hex()} kind={item.kind} orientation={item.orientation} position={item.position} alignment={item.alignment} extents={item.extents}')
     print('Location')
     print(item.location)
     print(f'Meshes: {len(item.meshes)}')
