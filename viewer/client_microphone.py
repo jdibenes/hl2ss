@@ -27,12 +27,14 @@ profile = hl2ss.AudioProfile.AAC_24000
 
 #------------------------------------------------------------------------------
 
+audio_format = pyaudio.paInt16 if (profile == hl2ss.AudioProfile.RAW) else pyaudio.paFloat32
 enable = True
 
 def pcmworker(pcmqueue):
     global enable
+    global audio_format
     p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
+    stream = p.open(format=audio_format, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
     stream.start_stream()
     while (enable):
         stream.write(pcmqueue.get())
@@ -55,7 +57,10 @@ client.open()
 
 while (enable): 
     data = client.get_next_packet()
-    audio = hl2ss_utilities.microphone_planar_to_packed(data.payload)
+    if (profile != hl2ss.AudioProfile.RAW):
+        audio = hl2ss_utilities.microphone_planar_to_packed(data.payload)
+    else:
+        audio = data.payload
     pcmqueue.put(audio.tobytes())
 
 client.close()
