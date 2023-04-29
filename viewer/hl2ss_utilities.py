@@ -29,7 +29,7 @@ def microphone_packed_to_planar(array):
 # SI
 #------------------------------------------------------------------------------
 
-class SI_Hand:
+class _SI_Hand:
     def __init__(self, poses, orientations, positions, radii, accuracies):
         self.poses = poses
         self.orientations = orientations
@@ -44,7 +44,7 @@ def si_unpack_hand(hand):
     positions = np.array([pose.position for pose in poses])
     radii = np.array([pose.radius for pose in poses])
     accuracies = np.array([pose.accuracy for pose in poses])
-    return SI_Hand(poses, orientations, positions, radii, accuracies)
+    return _SI_Hand(poses, orientations, positions, radii, accuracies)
 
 
 def si_head_pose_rotation_matrix(head_pose):
@@ -86,6 +86,8 @@ def get_av_framerate(reader):
         return hl2ss.Parameters_RM_VLC.FPS
     if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
         return hl2ss.Parameters_RM_DEPTH_AHAT.FPS
+    if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
+        return hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS
     if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
         return reader.header.framerate
     if (reader.header.port == hl2ss.StreamPort.MICROPHONE):
