@@ -1193,6 +1193,13 @@ class rx_raw_pv(rx_pv):
         return data
 
 
+class rx_raw_microphone(rx_microphone):
+    def get_next_packet(self):
+        data = super().get_next_packet()
+        data.payload = np.frombuffer(data.payload, dtype=np.int16).reshape((1, -1))
+        return data
+
+
 #------------------------------------------------------------------------------
 # Mode 2 Data Acquisition
 #------------------------------------------------------------------------------
