@@ -507,51 +507,124 @@ def _create_rd_eet(filename, chunk):
 # Reader Wrapper
 #------------------------------------------------------------------------------
 
-class _rd(hl2ss._context_manager):
+class _rd_rm_vlc(hl2ss._context_manager):
     def __init__(self, filename, chunk):
         self.filename = filename
         self.chunk = chunk
 
     def open(self):
-        self._rd, self.header = self._create_rd(self.filename, self.chunk)
+        self._rd, self.header = _create_rd_rm_vlc(self.filename, self.chunk)
 
     def read(self):
         return self._rd.read()
-
+    
     def close(self):
         self._rd.close()
 
 
-class _rd_rm_vlc(_rd):
-    _create_rd = _create_rd_rm_vlc
+class _rd_rm_depth_ahat(hl2ss._context_manager):
+    def __init__(self, filename, chunk):
+        self.filename = filename
+        self.chunk = chunk
+
+    def open(self):
+        self._rd, self.header = _create_rd_rm_depth_ahat(self.filename, self.chunk)
+
+    def read(self):
+        return self._rd.read()
+    
+    def close(self):
+        self._rd.close()
 
 
-class _rd_rm_depth_ahat(_rd):
-    _create_rd = _create_rd_rm_depth_ahat
+class _rd_rm_depth_longthrow(hl2ss._context_manager):
+    def __init__(self, filename, chunk):
+        self.filename = filename
+        self.chunk = chunk
+
+    def open(self):
+        self._rd, self.header = _create_rd_rm_depth_longthrow(self.filename, self.chunk)
+
+    def read(self):
+        return self._rd.read()
+    
+    def close(self):
+        self._rd.close()
 
 
-class _rd_rm_depth_longthrow(_rd):
-    _create_rd = _create_rd_rm_depth_longthrow
+class _rd_rm_imu(hl2ss._context_manager):
+    def __init__(self, filename, chunk):
+        self.filename = filename
+        self.chunk = chunk
+
+    def open(self):
+        self._rd, self.header = _create_rd_rm_imu(self.filename, self.chunk)
+
+    def read(self):
+        return self._rd.read()
+    
+    def close(self):
+        self._rd.close()
 
 
-class _rd_rm_imu(_rd):
-    _create_rd = _create_rd_rm_imu
+class _rd_pv(hl2ss._context_manager):
+    def __init__(self, filename, chunk):
+        self.filename = filename
+        self.chunk = chunk
+
+    def open(self):
+        self._rd, self.header = _create_rd_pv(self.filename, self.chunk)
+
+    def read(self):
+        return self._rd.read()
+    
+    def close(self):
+        self._rd.close()
 
 
-class _rd_pv(_rd):
-    _create_rd = _create_rd_pv
+class _rd_microphone(hl2ss._context_manager):
+    def __init__(self, filename, chunk):
+        self.filename = filename
+        self.chunk = chunk
+
+    def open(self):
+        self._rd, self.header = _create_rd_microphone(self.filename, self.chunk)
+
+    def read(self):
+        return self._rd.read()
+    
+    def close(self):
+        self._rd.close()
 
 
-class _rd_microphone(_rd):
-    _create_rd = _create_rd_microphone
+class _rd_si(hl2ss._context_manager):
+    def __init__(self, filename, chunk):
+        self.filename = filename
+        self.chunk = chunk
+
+    def open(self):
+        self._rd, self.header = _create_rd_si(self.filename, self.chunk)
+
+    def read(self):
+        return self._rd.read()
+    
+    def close(self):
+        self._rd.close()
 
 
-class _rd_si(_rd):
-    _create_rd = _create_rd_si
+class _rd_eet(hl2ss._context_manager):
+    def __init__(self, filename, chunk):
+        self.filename = filename
+        self.chunk = chunk
 
+    def open(self):
+        self._rd, self.header = _create_rd_eet(self.filename, self.chunk)
 
-class _rd_eet(_rd):
-    _create_rd = _create_rd_eet
+    def read(self):
+        return self._rd.read()
+    
+    def close(self):
+        self._rd.close()
 
 
 #------------------------------------------------------------------------------
