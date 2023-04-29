@@ -31,23 +31,10 @@ data.payload = hl2ss.unpack_eet(data.payload)
 print(f'Tracking status at time {data.timestamp}')
 print('Pose')
 print(data.pose)
-
 print(f'Calibration valid: {data.payload.calibration_valid}')
-
-print('Combined eye gaze')
-print(f'Valid: {data.payload.combined_ray_valid}')
-print(data.payload.combined_ray.origin)
-print(data.payload.combined_ray.direction)
-
-print('Left eye gaze')
-print(f'Valid: {data.payload.left_ray_valid}')
-print(data.payload.left_ray.origin)
-print(data.payload.left_ray.direction)
-
-print('Right eye gaze')
-print(f'Valid: {data.payload.right_ray_valid}')
-print(data.payload.right_ray.origin)
-print(data.payload.right_ray.direction)
+print(f'Combined eye gaze: Valid={data.payload.combined_ray_valid} Origin={data.payload.combined_ray.origin} Direction={data.payload.combined_ray.direction}')
+print(f'Left eye gaze: Valid={data.payload.left_ray_valid} Origin={data.payload.left_ray.origin} Direction={data.payload.left_ray.direction}')
+print(f'Right eye gaze: Valid={data.payload.right_ray_valid} Origin={data.payload.right_ray.origin} Direction={data.payload.right_ray.direction}')
 
 # "...not supported by HoloLens 2 at this time"
 print(f'Left eye openness: Valid={data.payload.left_openness_valid} Value={data.payload.left_openness}')
