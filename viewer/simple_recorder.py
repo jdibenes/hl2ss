@@ -10,7 +10,7 @@ path = './data'
 
 # Ports
 ports = [
-    #hl2ss.StreamPort.RM_VLC_LEFTFRONT,
+    hl2ss.StreamPort.RM_VLC_LEFTFRONT,
     #hl2ss.StreamPort.RM_VLC_LEFTLEFT,
     #hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
     #hl2ss.StreamPort.RM_VLC_RIGHTRIGHT,
@@ -19,7 +19,7 @@ ports = [
     #hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
     #hl2ss.StreamPort.RM_IMU_GYROSCOPE,
     #hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
-    #hl2ss.StreamPort.PERSONAL_VIDEO,
+    hl2ss.StreamPort.PERSONAL_VIDEO,
     hl2ss.StreamPort.MICROPHONE,
     #hl2ss.StreamPort.SPATIAL_INPUT,
     #hl2ss.StreamPort.EXTENDED_EYE_TRACKER,
@@ -27,12 +27,12 @@ ports = [
 
 # RM VLC parameters
 vlc_mode    = hl2ss.StreamMode.MODE_1
-vlc_profile = hl2ss.VideoProfile.RAW
+vlc_profile = hl2ss.VideoProfile.H264_MAIN
 vlc_bitrate = 2*1024*1024
 
 # RM Depth AHAT parameters
 ahat_mode    = hl2ss.StreamMode.MODE_1
-ahat_profile = hl2ss.VideoProfile.RAW
+ahat_profile = hl2ss.VideoProfile.H264_MAIN
 ahat_bitrate = 8*1024*1024
 
 # RM Depth Long Throw parameters
@@ -47,12 +47,12 @@ pv_mode      = hl2ss.StreamMode.MODE_1
 pv_width     = 760
 pv_height    = 428
 pv_framerate = 30
-pv_profile   = hl2ss.VideoProfile.RAW
+pv_profile   = hl2ss.VideoProfile.H264_MAIN
 pv_bitrate   = 1*1024*1024
 pv_format    = 'bgr24'
 
 # Microphone parameters
-microphone_profile = hl2ss.AudioProfile.RAW
+microphone_profile = hl2ss.AudioProfile.AAC_24000
 
 # EET parameters
 eet_fps = 90
