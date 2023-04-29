@@ -45,6 +45,7 @@ class ChunkSize:
     PERSONAL_VIDEO       = 4096
     MICROPHONE           = 512
     SPATIAL_INPUT        = 1024
+    EXTENDED_EYE_TRACKER = 256
     SINGLE_TRANSFER      = 4096
 
 
