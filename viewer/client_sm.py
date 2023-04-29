@@ -77,6 +77,7 @@ for index, mesh in meshes.items():
 
     mesh.unpack(vpf, tif, vnf)
 
+    # Surface timestamps are given in Windows FILETIME (utc)
     print(f'Task {index}: surface id {id_hex} @ {timestamp} has {mesh.vertex_positions.shape[0]} vertices {mesh.triangle_indices.shape[0]} triangles {mesh.vertex_normals.shape[0]} normals')
 
     mesh.vertex_positions[:, 0:3] = mesh.vertex_positions[:, 0:3] * mesh.vertex_position_scale
