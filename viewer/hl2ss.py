@@ -1843,14 +1843,14 @@ class SU_Create:
 
 
 class SU_Kind:
-    Background = 0,
-    Wall = 1,
-    Floor = 2,
-    Ceiling = 3,
-    Platform = 4,
-    Unknown = 247,
-    World = 248,
-    CompletelyInferred = 249,
+    Background = 0
+    Wall = 1
+    Floor = 2
+    Ceiling = 3
+    Platform = 4
+    Unknown = 247
+    World = 248
+    CompletelyInferred = 249
 
 
 class su_task:
