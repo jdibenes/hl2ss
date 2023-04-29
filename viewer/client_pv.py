@@ -1,11 +1,11 @@
 #------------------------------------------------------------------------------
-# This script receives encoded video from the HoloLens front RGB camera and
-# plays it. The camera support various resolutions and framerates. See
-# etc/hl2_capture_formats.txt for a list of supported formats. The default
-# configuration is 1080p 30 FPS. The stream supports three operating modes:
-# 0) video, 1) video + camera pose, 2) query calibration (single transfer).
-# Press esc to stop. Note that the ahat stream cannot be used while the pv
-# subsystem is on.
+# This script receives video from the HoloLens front RGB camera and plays it.
+# The camera supports various resolutions and framerates. See
+# https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt
+# for a list of supported formats. The default configuration is 1080p 30 FPS. 
+# The stream supports three operating modes: 0) video, 1) video + camera pose, 
+# 2) query calibration (single transfer).
+# Press esc to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -38,9 +38,15 @@ profile = hl2ss.VideoProfile.H265_MAIN
 
 # Encoded stream average bits per second
 # Must be > 0
-bitrate = 5*1024*1024
+bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
 
 # Decoded format
+# Options include:
+# 'bgr24'
+# 'rgb24'
+# 'bgra'
+# 'rgba'
+# 'gray8'
 decoded_format = 'bgr24'
 
 #------------------------------------------------------------------------------
@@ -50,11 +56,13 @@ hl2ss.start_subsystem_pv(host, port)
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss.download_calibration_pv(host, port, width, height, framerate)
     print('Calibration')
-    print(data.focal_length)
-    print(data.principal_point)
-    print(data.radial_distortion)
-    print(data.tangential_distortion)
+    print(f'Focal length: {data.focal_length}')
+    print(f'Principal point: {data.principal_point}')
+    print(f'Radial distortion: {data.radial_distortion}')
+    print(f'Tangential distortion: {data.tangential_distortion}')
+    print('Projection')
     print(data.projection)
+    print('Intrinsics')
     print(data.intrinsics)
 else:
     enable = True
@@ -72,12 +80,12 @@ else:
 
     while (enable):
         data = client.get_next_packet()
+
         print('Pose at time {ts}'.format(ts=data.timestamp))
         print(data.pose)
-        print('Focal length')
-        print(data.payload.focal_length)
-        print('Principal point')
-        print(data.payload.principal_point)
+        print(f'Focal length: {data.payload.focal_length}')
+        print(f'Principal point: {data.payload.principal_point}')
+
         cv2.imshow('Video', data.payload.image)
         cv2.waitKey(1)
 
