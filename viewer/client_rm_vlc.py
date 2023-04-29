@@ -1,8 +1,9 @@
 #------------------------------------------------------------------------------
-# This script receives encoded video from one of the HoloLens sideview
-# grayscale cameras and plays it. The camera resolution is 640x480 @ 30 FPS.
-# The stream supports three operating modes: 0) video, 1) video + rig pose,
-# 2) query calibration (single transfer). Press esc to stop.
+# This script receives video from one of the HoloLens sideview grayscale
+# cameras and plays it. The camera resolution is 640x480 @ 30 FPS. The stream 
+# supports three operating modes: 0) video, 1) video + rig pose, 2) query 
+# calibration (single transfer).
+# Press esc to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -42,9 +43,13 @@ bitrate = 1*1024*1024
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss.download_calibration_rm_vlc(host, port)
     print('Calibration data')
-    print(data.uv2xy.shape)
+    print('Image point to unit plane')
+    print(data.uv2xy)
+    print('Extrinsics')
     print(data.extrinsics)
-    print(data.undistort_map.shape)
+    print('Undistort map')
+    print(data.undistort_map)
+    print('Intrinsics (undistorted only)')
     print(data.intrinsics)
     quit()
 
@@ -63,7 +68,7 @@ client.open()
 
 while (enable):
     data = client.get_next_packet()
-    print('Pose at time {ts}'.format(ts=data.timestamp))
+    print(f'Pose at time {data.timestamp}')
     print(data.pose)
     cv2.imshow('Video', data.payload)
     cv2.waitKey(1)
