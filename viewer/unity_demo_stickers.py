@@ -13,7 +13,6 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_3dcv
-import hl2ss_utilities
 import rus
 import numpy as np
 
@@ -39,6 +38,9 @@ brightness = 8
 
 enable = True
 trigger = False
+
+def clamp(v, min, max):
+    return min if (v < min) else max if (v > max) else v
 
 def on_press(key):
     global enable
@@ -137,7 +139,7 @@ while (enable):
     canonical_normal = np.array([0, 0, -1]).reshape((1, 3)) # Normal that looks at the camera when the camera transform is the identity
     axis = np.cross(canonical_normal, normal)
     axis = axis / np.linalg.norm(axis)
-    angle = np.arccos(hl2ss_utilities.clamp(np.dot(canonical_normal, normal), -1, 1))
+    angle = np.arccos(clamp(np.dot(canonical_normal, normal), -1, 1))
 
     # Convert axis-angle rotation to quaternion
     cos = np.cos(angle / 2)
