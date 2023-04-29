@@ -1,6 +1,7 @@
 #------------------------------------------------------------------------------
 # RGBD integration using Open3D. Color information comes from the front RGB
-# camera. Press space to stop.
+# camera.
+# Press space to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
