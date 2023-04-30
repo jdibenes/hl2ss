@@ -2,6 +2,7 @@
 import numpy as np
 import os
 import cv2
+import open3d as o3d
 import hl2ss
 
 
@@ -192,6 +193,115 @@ def pv_fix_calibration(intrinsics, extrinsics):
     intrinsics[0, 0] = -intrinsics[0, 0]
     extrinsics = extrinsics @ R
     return (intrinsics, extrinsics)
+
+
+#------------------------------------------------------------------------------
+# SM
+#------------------------------------------------------------------------------
+
+def sm_mesh_cast(mesh, vertex_positions_type, triangle_indices_type, vertex_normals_type):
+    mesh.vertex_positions = mesh.vertex_positions.astype(vertex_positions_type)
+    mesh.triangle_indices = mesh.triangle_indices.astype(triangle_indices_type)
+    mesh.vertex_normals   = mesh.vertex_normals.astype(vertex_normals_type)
+
+
+def sm_mesh_normalize_positions(mesh):
+    mesh.vertex_positions[:, 0:3] *= mesh.vertex_position_scale
+    mesh.vertex_positions = (mesh.vertex_positions / mesh.vertex_positions[:, 3:]) @ mesh.pose
+
+
+def sm_mesh_normalize_normals(mesh):
+    d = np.linalg.norm(mesh.vertex_normals, axis=1)
+    mesh.vertex_normals[d > 0, :] = mesh.vertex_normals[d > 0, :] / d[d > 0, np.newaxis]
+    mesh.vertex_normals = mesh.vertex_normals @ mesh.pose
+
+
+def sm_mesh_normalize(mesh):
+    sm_mesh_normalize_positions(mesh)
+    sm_mesh_normalize_normals(mesh)
+
+
+def sm_mesh_to_open3d_triangle_mesh(mesh):
+    open3d_mesh = o3d.geometry.TriangleMesh()
+
+    open3d_mesh.vertices       = o3d.utility.Vector3dVector(mesh.vertex_positions[:, 0:3])
+    open3d_mesh.vertex_normals = o3d.utility.Vector3dVector(mesh.vertex_normals[:, 0:3])
+    open3d_mesh.triangles      = o3d.utility.Vector3iVector(mesh.triangle_indices)
+
+    return open3d_mesh
+
+
+class _sm_manager_entry:
+    def __init__(self, update_time, mesh, rcs):
+        self.update_time = update_time
+        self.mesh = mesh
+        self.rcs = rcs
+
+
+class sm_manager:
+    def __init__(self, host, triangles_per_cubic_meter, threads):
+        self._tpcm = triangles_per_cubic_meter
+        self._threads = threads
+        self._vpf = hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized
+        self._tif = hl2ss.SM_TriangleIndexFormat.R16UInt
+        self._vnf = hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized
+        self._normals = False
+        self._bounds = False
+        self._ipc = hl2ss.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
+        self._surfaces = {}
+
+    def open(self):
+        self._ipc.open()
+
+    def close(self):
+        self._ipc.close()
+
+    def create_observer(self):
+        self._ipc.create_observer()
+
+    def set_volumes(self, volumes):
+        self._ipc.set_volumes(volumes)
+
+    def update(self):
+        surfaces = {}
+        tasks = hl2ss.sm_mesh_task()        
+        updated_surfaces = []
+        
+        for surface_info in self._ipc.get_observed_surfaces():
+            id = surface_info.id
+            surface_info.id = surface_info.id.hex()
+            if (surface_info.id in self._surfaces):
+                previous_entry = self._surfaces[surface_info.id]
+                if (surface_info.update_time <= previous_entry.update_time):
+                    surfaces[surface_info.id] = previous_entry
+                    continue
+            tasks.add_task(id, self._tpcm, self._vpf, self._tif, self._vnf, self._normals, self._bounds)
+            updated_surfaces.append(surface_info)
+
+        count = len(updated_surfaces)
+        if (count <= 0):
+            return count
+
+        for index, mesh in self._ipc.get_meshes(tasks, self._threads).items():
+            if (mesh is None):
+                continue
+            mesh.unpack(self._vpf, self._tif, self._vnf)
+            sm_mesh_cast(mesh, np.float64, np.uint32, np.float64)
+            sm_mesh_normalize(mesh)
+            rcs = o3d.t.geometry.RaycastingScene()
+            rcs.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(sm_mesh_to_open3d_triangle_mesh(mesh)))
+            surface_info = updated_surfaces[index]
+            surfaces[surface_info.id] = _sm_manager_entry(surface_info.update_time, mesh, rcs)
+
+        self._surfaces = surfaces
+        return count
+
+    def cast_rays(self, rays):
+        distances = np.zeros(rays.shape[0:-1] + (len(self._surfaces),))
+        for index, entry in enumerate(self._surfaces.values()):
+            distances[..., index] = entry.rcs.cast_rays(rays)['t_hit'].numpy()
+        distances = np.min(distances, axis=-1)
+        return distances
 
 
 #------------------------------------------------------------------------------
