@@ -1,10 +1,10 @@
 #------------------------------------------------------------------------------
-# This script receives encoded video from the HoloLens depth camera in long 
-# throw mode and plays it. The resolution is 320x288 @ 5 FPS. The stream
-# supports three operating modes: 0) video, 1) video + rig pose, 2) query
-# calibration (single transfer). Press esc to stop. Depth and AB data are 
-# scaled for visibility. Note that the ahat and long throw streams cannot be
-# used simultaneously.
+# This script receives video from the HoloLens depth camera in long throw mode
+# and plays it. The resolution is 320x288 @ 5 FPS. The stream supports three
+# operating modes: 0) video, 1) video + rig pose, 2) query calibration (single 
+# transfer). Depth and AB data are scaled for visibility. The ahat and long 
+# throw streams cannot be used simultaneously.
+# Press esc to stop. 
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -36,10 +36,14 @@ png_filter = hl2ss.PngFilterMode.Paeth
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss.download_calibration_rm_depth_longthrow(host, port)
     print('Calibration data')
-    print(data.uv2xy.shape)
+    print('Image point to unit plane')
+    print(data.uv2xy)
+    print('Extrinsics')
     print(data.extrinsics)
-    print(data.scale)
-    print(data.undistort_map.shape)
+    print(f'Scale: {data.scale}')
+    print('Undistort map')
+    print(data.undistort_map)
+    print('Intrinsics (undistorted only)')
     print(data.intrinsics)
     quit()
 
@@ -58,10 +62,10 @@ client.open()
 
 while (enable):
     data = client.get_next_packet()
-    print('Pose at time {ts}'.format(ts=data.timestamp))
+    print(f'Pose at time {data.timestamp}')
     print(data.pose)
-    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Normalized for visibility
-    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Normalized for visibility
+    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
+    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
     cv2.waitKey(1)
 
 client.close()

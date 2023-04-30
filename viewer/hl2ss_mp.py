@@ -381,6 +381,9 @@ class producer:
     def configure_si(self, host, port, chunk):
         self.configure(port, hl2ss.rx_si(host, port, chunk))
 
+    def configure_eet(self, host, port, chunk, fps):
+        self.configure(port, hl2ss.rx_eet(host, port, chunk, fps))
+
     def initialize(self, port, buffer_size):
         self._producer[port] = _module(self._rx[port], buffer_size)
 
@@ -450,6 +453,10 @@ def get_sync_period_microphone():
 
 
 def get_sync_period_si():
+    return 1
+
+
+def get_sync_period_eet():
     return 1
 
 

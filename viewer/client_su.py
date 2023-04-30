@@ -1,5 +1,6 @@
 #------------------------------------------------------------------------------
-# This script downloads Scene Understanding data.
+# This script downloads Scene Understanding data from the HoloLens and displays
+# it.
 #------------------------------------------------------------------------------
 
 import open3d as o3d
@@ -28,9 +29,25 @@ get_location_matrix = True
 get_quad = True
 get_meshes = True
 get_collider_meshes = True
-guid_list = []
+
+# To track surfaces between scenes
+# Create a new scene using SU_Create.NewFromPrevious and add the GUID of the 
+# surface(s) of interest found in the previous scene
+# If the surface is found in the new scene it will be returned
+guid_list = [] 
 
 #------------------------------------------------------------------------------
+
+kind_color = {
+    hl2ss.SU_Kind.Background         : [0, 0, 0],
+    hl2ss.SU_Kind.Ceiling            : [0, 0, 1],
+    hl2ss.SU_Kind.CompletelyInferred : [0, 1, 0],
+    hl2ss.SU_Kind.Floor              : [0, 1, 1],
+    hl2ss.SU_Kind.Platform           : [1, 0, 0],
+    hl2ss.SU_Kind.Unknown            : [1, 0, 1],
+    hl2ss.SU_Kind.Wall               : [1, 1, 0],
+    hl2ss.SU_Kind.World              : [1, 1, 1],
+}
 
 # Download data ---------------------------------------------------------------
 # See
@@ -73,7 +90,7 @@ collider_meshes = []
 
 for item in result.items:
     item.unpack()
-    print(f'SceneObject {item.id.hex()} {item.kind} {item.orientation} {item.position} {item.alignment} {item.extents}')
+    print(f'SceneObject ID={item.id.hex()} Kind={item.kind} Orientation={item.orientation} Position={item.position} Alignment={item.alignment} Extents={item.extents}')
     print('Location')
     print(item.location)
     print(f'Meshes: {len(item.meshes)}')
@@ -85,6 +102,7 @@ for item in result.items:
         open3d_mesh.vertices = o3d.utility.Vector3dVector((mesh.vertex_positions @ item.location[:3, :3]) + item.location[3, :3])
         open3d_mesh.triangles = o3d.utility.Vector3iVector(mesh.triangle_indices)
         open3d_mesh.compute_vertex_normals()
+        open3d_mesh.paint_uniform_color(kind_color[int(item.kind)])
         open3d_meshes.append(open3d_mesh)
 
 o3d.visualization.draw_geometries(open3d_meshes, mesh_show_back_face=True)

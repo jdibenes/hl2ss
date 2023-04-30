@@ -13,8 +13,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_3dcv
-import hl2ss_utilities
-import rus
+import hl2ss_rus
 import numpy as np
 
 # Settings --------------------------------------------------------------------
@@ -39,6 +38,9 @@ brightness = 8
 
 enable = True
 trigger = False
+
+def clamp(v, min, max):
+    return min if (v < min) else max if (v > max) else v
 
 def on_press(key):
     global enable
@@ -67,7 +69,7 @@ ipc.open()
 
 key = 0
 
-command_buffer = rus.command_buffer()
+command_buffer = hl2ss_rus.command_buffer()
 command_buffer.remove_all()
 ipc.push(command_buffer)
 results = ipc.pull(command_buffer)
@@ -137,7 +139,7 @@ while (enable):
     canonical_normal = np.array([0, 0, -1]).reshape((1, 3)) # Normal that looks at the camera when the camera transform is the identity
     axis = np.cross(canonical_normal, normal)
     axis = axis / np.linalg.norm(axis)
-    angle = np.arccos(hl2ss_utilities.clamp(np.dot(canonical_normal, normal), -1, 1))
+    angle = np.arccos(clamp(np.dot(canonical_normal, normal), -1, 1))
 
     # Convert axis-angle rotation to quaternion
     cos = np.cos(angle / 2)
@@ -146,9 +148,9 @@ while (enable):
     rotation = [axis[0,0] * sin, axis[0,1] * sin, axis[0,2] * sin, cos]
 
     # Add quad to Unity scene
-    display_list = rus.command_buffer()
+    display_list = hl2ss_rus.command_buffer()
     display_list.begin_display_list() # Begin sequence
-    display_list.create_primitive(rus.PrimitiveType.Quad) # Create quad, returns id which can be used to modify its properties
+    display_list.create_primitive(hl2ss_rus.PrimitiveType.Quad) # Create quad, returns id which can be used to modify its properties
     display_list.set_target_mode(1) # Set server to use the last created object as target (this avoids waiting for the id)
     display_list.set_world_transform(key, centroid, rotation, scale) # Set the quad's world transform
     display_list.set_texture(key, image) # Set the quad's texture
@@ -164,7 +166,7 @@ while (enable):
     print('Created quad with id {iid}'.format(iid=key))
 
 
-command_buffer = rus.command_buffer()
+command_buffer = hl2ss_rus.command_buffer()
 command_buffer.remove_all()
 
 ipc.push(command_buffer)

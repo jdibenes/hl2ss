@@ -64,17 +64,19 @@ client = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 client.open()
 
 version = client.get_application_version()
-print('Installed version {v0}.{v1}.{v2}.{v3}'.format(v0=version[0], v1=version[1], v2=version[2], v3=version[3]))
+print(f'Installed version {version[0]}.{version[1]}.{version[2]}.{version[3]}')
 
-utc_offset = client.get_utc_offset(32) # Add this offset to timestamps to convert to utc
-print('QPC timestamp to UTC offset is {offset} hundreds of nanoseconds'.format(offset=utc_offset))
+# Add this offset to timestamps to convert to utc (Windows FILETIME)
+utc_offset = client.get_utc_offset(32)
+print(f'QPC timestamp to UTC offset is {utc_offset} hundreds of nanoseconds')
 
 client.set_hs_marker_state(marker_state)
 
 # PV camera configuration
 pv_status = client.get_pv_subsystem_status()
-print('PV subsystem is {status}'.format(status=('On' if pv_status else 'Off')))
+print(f'PV subsystem is {("On" if (pv_status) else "Off")}')
 
+# Ignored if PV subsystem is Off
 client.set_pv_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)
 client.set_pv_video_temporal_denoising(video_temporal_denoising)
 client.set_pv_white_balance_preset(white_balance_preset)

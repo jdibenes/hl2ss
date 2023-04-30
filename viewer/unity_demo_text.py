@@ -7,7 +7,7 @@ from pynput import keyboard
 
 import threading
 import hl2ss
-import rus
+import hl2ss_rus
 
 # Settings --------------------------------------------------------------------
 
@@ -50,15 +50,15 @@ ipc.open()
 
 key = 0
 
-display_list = rus.command_buffer()
+display_list = hl2ss_rus.command_buffer()
 display_list.begin_display_list() # Begin command sequence
 display_list.remove_all() # Remove all objects that were created remotely
 display_list.create_text() # Create text object, server will return its id
-display_list.set_target_mode(rus.TargetMode.UseLast) # Set server to use the last created object as target, this avoids waiting for the id of the text object
+display_list.set_target_mode(hl2ss_rus.TargetMode.UseLast) # Set server to use the last created object as target, this avoids waiting for the id of the text object
 display_list.set_text(key, font_size, rgba, text) # Set text
 display_list.set_world_transform(key, position, rotation, [1, 1, 1]) # Set the world transform of the text object
-display_list.set_active(key, rus.ActiveState.Active) # Make the text object visible
-display_list.set_target_mode(rus.TargetMode.UseID) # Restore target mode
+display_list.set_active(key, hl2ss_rus.ActiveState.Active) # Make the text object visible
+display_list.set_target_mode(hl2ss_rus.TargetMode.UseID) # Restore target mode
 display_list.end_display_list() # End command sequence
 ipc.push(display_list) # Send commands to server
 results = ipc.pull(display_list) # Get results from server
@@ -68,7 +68,7 @@ print('Created text object with id {iid}'.format(iid=key))
 
 stop_event.wait()
 
-command_buffer = rus.command_buffer()
+command_buffer = hl2ss_rus.command_buffer()
 command_buffer.remove(key) # Destroy text object
 ipc.push(command_buffer)
 results = ipc.pull(command_buffer)

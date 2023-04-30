@@ -25,11 +25,21 @@ def microphone_packed_to_planar(array):
     return data
 
 
+class microphone_resampler:
+    def open(self, target_format=None, target_layout=None, target_rate=None):
+        self._resampler = av.AudioResampler(format=target_format, layout=target_layout, rate=target_rate)
+
+    def resample(self, data, format, layout):
+        in_frame = av.AudioFrame.from_ndarray(data, format=format, layout=layout)
+        out_frames = self._resampler.resample(in_frame)
+        return [frame.to_ndarray() for frame in out_frames]
+
+
 #------------------------------------------------------------------------------
 # SI
 #------------------------------------------------------------------------------
 
-class SI_Hand:
+class _SI_Hand:
     def __init__(self, poses, orientations, positions, radii, accuracies):
         self.poses = poses
         self.orientations = orientations
@@ -44,7 +54,7 @@ def si_unpack_hand(hand):
     positions = np.array([pose.position for pose in poses])
     radii = np.array([pose.radius for pose in poses])
     accuracies = np.array([pose.accuracy for pose in poses])
-    return SI_Hand(poses, orientations, positions, radii, accuracies)
+    return _SI_Hand(poses, orientations, positions, radii, accuracies)
 
 
 def si_head_pose_rotation_matrix(head_pose):
@@ -86,6 +96,8 @@ def get_av_framerate(reader):
         return hl2ss.Parameters_RM_VLC.FPS
     if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
         return hl2ss.Parameters_RM_DEPTH_AHAT.FPS
+    if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
+        return hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS
     if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
         return reader.header.framerate
     if (reader.header.port == hl2ss.StreamPort.MICROPHONE):
@@ -126,14 +138,6 @@ def unpack_to_mp4(input_filenames, output_filename):
 
     container.close()
     [reader.close() for reader in readers]
-
-
-#------------------------------------------------------------------------------
-# Math
-#------------------------------------------------------------------------------
-
-def clamp(v, min, max):
-    return min if (v < min) else max if (v > max) else v
 
 
 #------------------------------------------------------------------------------

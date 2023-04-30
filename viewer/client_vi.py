@@ -1,5 +1,6 @@
 #------------------------------------------------------------------------------
-# This script registers voice commands on the HoloLens.
+# This script registers voice commands on the HoloLens and continously checks
+# if any of the registered commands has been heard.
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
@@ -46,12 +47,15 @@ client.open()
 client.create_recognizer()
 if (client.register_commands(True, strings)):
     print('Ready. Try saying any of the commands you defined.')
-    client.start()
+    client.start()    
     while (enable):
         events = client.pop()
         for event in events:
             event.unpack()
-            print(f'Event: {get_word(strings, event.index)} {event.index} {event.confidence} {event.phrase_duration} {event.phrase_start_time} {event.raw_confidence}')
+            # See
+            # https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition.speechrecognitionresult?view=winrt-22621
+            # for result details
+            print(f'Event: Command={get_word(strings, event.index)} Index={event.index} Confidence={event.confidence} Duration={event.phrase_duration} Start={event.phrase_start_time} RawConfidence={event.raw_confidence}')
     client.stop()
     client.clear()
 

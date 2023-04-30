@@ -45,6 +45,7 @@ class ChunkSize:
     PERSONAL_VIDEO       = 4096
     MICROPHONE           = 512
     SPATIAL_INPUT        = 1024
+    EXTENDED_EYE_TRACKER = 256
     SINGLE_TRANSFER      = 4096
 
 
@@ -707,7 +708,7 @@ def get_video_codec_bitrate(width, height, fps, factor):
 # RM VLC Decoder
 #------------------------------------------------------------------------------
 
-class decode_rm_vlc:
+class _decode_rm_vlc:
     def __init__(self, profile):
         self.profile = profile
 
@@ -719,6 +720,18 @@ class decode_rm_vlc:
             for frame in self._codec.decode(packet):
                 return frame.to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
         return None
+
+
+class _unpack_rm_vlc:
+    def create(self):
+        pass
+
+    def decode(self, payload):
+        return np.frombuffer(payload, dtype=np.uint8).reshape(Parameters_RM_VLC.SHAPE)
+    
+
+def decode_rm_vlc(profile):
+    return _unpack_rm_vlc() if (profile == VideoProfile.RAW) else _decode_rm_vlc(profile)
 
 
 #------------------------------------------------------------------------------
@@ -755,7 +768,7 @@ def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv):
     return _RM_Depth_Frame(y, ab)
 
 
-class decode_rm_depth_ahat:
+class _decode_rm_depth_ahat:
     def __init__(self, profile):
         self.profile = profile
    
@@ -767,6 +780,21 @@ class decode_rm_depth_ahat:
             for frame in self._codec.decode(packet):
                 return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray())
         return None
+
+
+class _unpack_rm_depth_ahat:
+    def create(self):
+        pass
+
+    def decode(self, payload):
+        depth = np.frombuffer(payload, dtype=np.uint16, offset=0,                                            count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        ab    = np.frombuffer(payload, dtype=np.uint16, offset=Parameters_RM_DEPTH_AHAT.PIXELS*_SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        depth[depth >= 4090] = 0
+        return _RM_Depth_Frame(depth, ab)
+
+
+def decode_rm_depth_ahat(profile):
+    return _unpack_rm_depth_ahat() if (profile == VideoProfile.RAW) else _decode_rm_depth_ahat(profile)
 
 
 def decode_rm_depth_longthrow(payload):
@@ -838,11 +866,11 @@ def get_nv12_stride(width):
     return width + ((64 - (width & 63)) & 63)
 
 
-class decode_pv:
+class _decode_pv:
     def __init__(self, profile):
         self.profile = profile
 
-    def create(self):
+    def create(self, width, height):
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
     def decode(self, payload, format):
@@ -852,11 +880,36 @@ class decode_pv:
         return None
 
 
+class _unpack_pv:
+    _cv2_nv12_format = {
+        'rgb24' : cv2.COLOR_YUV2RGB_NV12,
+        'bgr24' : cv2.COLOR_YUV2BGR_NV12,
+        'rgba'  : cv2.COLOR_YUV2RGBA_NV12,
+        'bgra'  : cv2.COLOR_YUV2BGRA_NV12,
+        'gray8' : cv2.COLOR_YUV2GRAY_NV12,
+        'nv12'  : None
+    }
+
+    def create(self, width, height):
+        self.width = width
+        self.height = height
+        self.stride = get_nv12_stride(width)
+
+    def decode(self, payload, format):
+        image = np.frombuffer(payload, dtype=np.uint8).reshape((int(self.height*3/2), self.stride))[:, :self.width]
+        sf = _unpack_pv._cv2_nv12_format[format]
+        return image if (sf is None) else cv2.cvtColor(image, sf)
+
+
+def decode_pv(profile):
+    return _unpack_pv() if (profile == VideoProfile.RAW) else _decode_pv(profile)
+
+
 #------------------------------------------------------------------------------
 # Microphone Decoder
 #------------------------------------------------------------------------------
 
-class decode_microphone:
+class _decode_microphone:
     def __init__(self, profile):
         self.profile = profile
 
@@ -868,6 +921,18 @@ class decode_microphone:
             for frame in self._codec.decode(packet):
                 return frame.to_ndarray()
         return None
+
+
+class _unpack_microphone:
+    def create(self):
+        pass
+
+    def decode(self, payload):
+        return np.frombuffer(payload, dtype=np.int16).reshape((1, -1))
+
+
+def decode_microphone(profile):
+    return _unpack_microphone() if (profile == AudioProfile.RAW) else _decode_microphone(profile)
 
 
 #------------------------------------------------------------------------------
@@ -1118,7 +1183,7 @@ class rx_decoded_pv(rx_pv):
         self._codec = decode_pv(profile)
 
     def open(self):        
-        self._codec.create()
+        self._codec.create(self.width, self.height)
         super().open()
         self.get_next_packet()
 
@@ -1148,48 +1213,6 @@ class rx_decoded_microphone(rx_microphone):
 
     def close(self):
         super().close()
-
-
-#------------------------------------------------------------------------------
-# RAW Receivers
-#------------------------------------------------------------------------------
-
-class rx_raw_rm_vlc(rx_rm_vlc):
-    def get_next_packet(self):
-        data = super().get_next_packet()
-        data.payload = np.frombuffer(data.payload, dtype=np.uint8).reshape(Parameters_RM_VLC.SHAPE)
-        return data
-
-
-class rx_raw_rm_depth_ahat(rx_rm_depth_ahat):
-    def get_next_packet(self):
-        data = super().get_next_packet()
-        depth = np.frombuffer(data.payload, dtype=np.uint16, offset=0,                                            count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        ab    = np.frombuffer(data.payload, dtype=np.uint16, offset=Parameters_RM_DEPTH_AHAT.PIXELS*_SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        depth[depth >= 4090] = 0
-        data.payload = _RM_Depth_Frame(depth, ab)
-        return data
-
-
-class rx_raw_pv(rx_pv):
-    _cv2_nv12_format = {
-        'rgb24' : cv2.COLOR_YUV2RGB_NV12,
-        'bgr24' : cv2.COLOR_YUV2BGR_NV12,
-        'rgba'  : cv2.COLOR_YUV2RGBA_NV12,
-        'bgra'  : cv2.COLOR_YUV2BGRA_NV12,
-        'gray8' : cv2.COLOR_YUV2GRAY_NV12,
-    }
-
-    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
-        super().__init__(host, port, chunk, mode, width, height, framerate, profile, bitrate)
-        self.format = rx_raw_pv._cv2_nv12_format[format]
-        self.stride = get_nv12_stride(self.width)
-
-    def get_next_packet(self):
-        data = super().get_next_packet()
-        data.payload = unpack_pv(data.payload)
-        data.payload.image = cv2.cvtColor(np.frombuffer(data.payload.image, dtype=np.uint8).reshape((int(self.height*3/2), self.stride))[:, :self.width], self.format)
-        return data
 
 
 #------------------------------------------------------------------------------
@@ -1820,14 +1843,14 @@ class SU_Create:
 
 
 class SU_Kind:
-    Background = 0,
-    Wall = 1,
-    Floor = 2,
-    Ceiling = 3,
-    Platform = 4,
-    Unknown = 247,
-    World = 248,
-    CompletelyInferred = 249,
+    Background = 0
+    Wall = 1
+    Floor = 2
+    Ceiling = 3
+    Platform = 4
+    Unknown = 247
+    World = 248
+    CompletelyInferred = 249
 
 
 class su_task:
