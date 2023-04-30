@@ -1086,36 +1086,26 @@ class unpack_si:
 # EET Unpacker
 #------------------------------------------------------------------------------
 
-class _EET_Frame:
-    def __init__(self, reserved, combined_origin, combined_direction, left_origin, left_direction, right_origin, right_direction, left_openness, right_openness, vergence_distance, combined_ray_valid, left_ray_valid, right_ray_valid, left_openness_valid, right_openness_valid, vergence_distance_valid, calibration_valid):
-        self._reserved = reserved
-        self.combined_ray = _SI_EyeRay(combined_origin, combined_direction)
-        self.left_ray = _SI_EyeRay(left_origin, left_direction)
-        self.right_ray = _SI_EyeRay(right_origin, right_direction)
-        self.left_openness = left_openness
-        self.right_openness = right_openness
-        self.vergence_distance = vergence_distance
-        self.combined_ray_valid = combined_ray_valid
-        self.left_ray_valid = left_ray_valid
-        self.right_ray_valid = right_ray_valid
-        self.left_openness_valid = left_openness_valid
-        self.right_openness_valid = right_openness_valid
-        self.vergence_distance_valid = vergence_distance_valid
-        self.calibration_valid = calibration_valid
+class unpack_eet:
+    def __init__(self, payload):
+        self._reserved = payload[:4]
+        f = np.frombuffer(payload[4:-4], dtype=np.float32)
+        valid = struct.unpack('<I', payload[-4:])[0]
 
+        self.combined_ray = _SI_EyeRay(f[0:3], f[3:6])
+        self.left_ray = _SI_EyeRay(f[6:9], f[9:12])
+        self.right_ray = _SI_EyeRay(f[12:15], f[15:18])
+        self.left_openness = f[18]
+        self.right_openness = f[19]
+        self.vergence_distance = f[20]
 
-def unpack_eet(payload):
-    reserved = payload[:4]
-    f = np.frombuffer(payload[4:-4], dtype=np.float32)
-    valid = struct.unpack('<I', payload[-4:])[0]
-    vd = valid & 0x40 != 0
-    ro = valid & 0x20 != 0
-    lo = valid & 0x10 != 0
-    rg = valid & 0x08 != 0
-    lg = valid & 0x04 != 0
-    cg = valid & 0x02 != 0
-    ec = valid & 0x01 != 0
-    return _EET_Frame(reserved, f[0:3], f[3:6], f[6:9], f[9:12], f[12:15], f[15:18], f[18], f[19], f[20], cg, lg, rg, lo, ro, vd, ec)
+        self.calibration_valid = valid & 0x01 != 0
+        self.combined_ray_valid = valid & 0x02 != 0
+        self.left_ray_valid = valid & 0x04 != 0
+        self.right_ray_valid = valid & 0x08 != 0
+        self.left_openness_valid = valid & 0x10 != 0
+        self.right_openness_valid = valid & 0x20 != 0
+        self.vergence_distance_valid = valid & 0x40 != 0
 
 
 #------------------------------------------------------------------------------
@@ -1705,7 +1695,7 @@ class sm_bounding_volume:
 class _sm_surface_info:
     def __init__(self, id, update_time):
         self.id = id
-        self.update_time = struct.unpack('<Q', update_time)[0]
+        self.update_time = update_time
 
 
 class sm_mesh_task:
@@ -1767,7 +1757,7 @@ class ipc_sm(_context_manager):
         self._client.sendall(struct.pack('<B', ipc_sm._CMD_GET_OBSERVED_SURFACES))
         count = struct.unpack('<Q', self._client.download(_SIZEOF.QWORD, ChunkSize.SINGLE_TRANSFER))[0]
         ids = self._client.download(count * 24, ChunkSize.SINGLE_TRANSFER)
-        return [_sm_surface_info(ids[(i*24):(i*24+16)], ids[(i*24+16):(i*24+24)]) for i in range(0, count)]
+        return [_sm_surface_info(ids[(i*24):(i*24+16)], struct.unpack('<Q', ids[(i*24+16):(i*24+24)])[0]) for i in range(0, count)]
     
     def _download_mesh(self):
         header = self._client.download(100, ChunkSize.SINGLE_TRANSFER)
