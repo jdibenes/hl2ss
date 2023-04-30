@@ -192,7 +192,7 @@ if __name__ == '__main__':
         if (si.is_valid_head_pose()):
             head_pose = si.get_head_pose()
             head_frame.translate(head_pose.position, False)
-            head_rotation = hl2ss_utilities.si_head_pose_rotation_matrix(head_pose)
+            head_rotation = hl2ss_utilities.si_head_pose_rotation_matrix(head_pose.up, head_pose.forward)
             head_frame.rotate(head_rotation @ head_previous_rotation.transpose())
             head_previous_rotation = head_rotation
         else:
