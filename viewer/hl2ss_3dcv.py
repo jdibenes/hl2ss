@@ -95,14 +95,6 @@ def essential_to_fundamental(image_to_camera_1, image_to_camera_2, essential):
     return image_to_camera_1 @ essential @ image_to_camera_2.transpose()
 
 
-def ray_to_vector(origin, direction):
-    return np.hstack((origin.reshape((1, -1)), direction.reshape((1, -1))))
-
-
-def ray_to_point(origin, direction, d):
-    return origin + d * direction
-
-
 #------------------------------------------------------------------------------
 # RM VLC
 #------------------------------------------------------------------------------
