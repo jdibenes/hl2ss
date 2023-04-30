@@ -75,6 +75,10 @@ def transform(points, transform4x4):
     return points @ transform4x4[:3, :3] + transform4x4[3, :3].reshape(([1] * (len(points.shape) - 1)).append(3))
 
 
+def orient(directions, transform4x4):
+    return directions @ transform4x4[:3, :3]
+
+
 def project(points, projection4x4):
     return to_inhomogeneous(transform(points, projection4x4))
 
