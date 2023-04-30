@@ -57,11 +57,19 @@ def si_unpack_hand(hand):
     return _SI_Hand(poses, orientations, positions, radii, accuracies)
 
 
-def si_head_pose_rotation_matrix(head_pose):
-    y = head_pose.up
-    z = -head_pose.forward
+def si_head_pose_rotation_matrix(up, forward):
+    y = up
+    z = -forward
     x = np.cross(y, z)
     return np.hstack((x, y, z)).reshape((3, 3)).transpose()
+
+
+def si_ray_to_vector(origin, direction):
+    return np.hstack((origin.reshape((-1, 3)), direction.reshape((-1, 3))))
+
+
+def si_ray_to_point(origin, direction, d):
+    return (origin + d * direction).reshape((-1, 3))
 
 
 #------------------------------------------------------------------------------
