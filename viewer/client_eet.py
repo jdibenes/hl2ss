@@ -18,7 +18,7 @@ fps = 90
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.rx_eet(host, port, hl2ss.ChunkSize.SPATIAL_INPUT, fps)
+client = hl2ss.rx_eet(host, port, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps)
 client.open()
 
 data = client.get_next_packet()
