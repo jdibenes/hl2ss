@@ -17,6 +17,7 @@ import hl2ss
 import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
+import hl2ss_sa
 
 # Settings --------------------------------------------------------------------
 
@@ -68,12 +69,11 @@ if __name__ == '__main__':
     volumes = hl2ss.sm_bounding_volume()
     volumes.add_sphere([0, 0, 0], 5)
 
-    sm_manager = hl2ss_3dcv.sm_manager(host, 1000, 2)
+    sm_manager = hl2ss_sa.sm_mp_manager(host, 1000, 2)
     sm_manager.open()
-    sm_manager.create_observer()
     sm_manager.set_volumes(volumes)
-    sm_manager.update()
-    sm_manager.close()
+    sm_manager.get_observed_surfaces()
+    #sm_manager.close()
     
     hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
@@ -96,6 +96,8 @@ if __name__ == '__main__':
     image = np.zeros((height, width, 3), dtype=np.uint8)
 
     while (enable):
+        sm_manager.get_observed_surfaces()
+
         cv2.imshow('Video', image)
         cv2.waitKey(1)
 
@@ -141,6 +143,8 @@ if __name__ == '__main__':
 
         image = cv2.circle(image, (x, y), radius, gaze_color, thickness)
         
+    sm_manager.close()
+
     sink_pv.detach()
     sink_si.detach()
     producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
