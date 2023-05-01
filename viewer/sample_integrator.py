@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RGBD integration using Open3D. "Color" information come from AB component.
+# RGBD integration using Open3D. "Color" information comes from AB component.
 # Press space to stop.
 #------------------------------------------------------------------------------
 
