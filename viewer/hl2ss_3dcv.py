@@ -561,6 +561,8 @@ def _save_stereo_rectification(rectification, path):
     rectification.map1.tofile(os.path.join(path, 'map1.bin'))
     rectification.map2.tofile(os.path.join(path, 'map2.bin'))
 
+    np.array(rectification.map1.shape, dtype=np.int32).tofile(os.path.join(path, 'map_shape.bin'))
+
 
 def _load_stereo_calibration(path):
     R    = np.fromfile(os.path.join(path, 'R.bin'),    dtype=np.float32).reshape((3, 3))
@@ -571,8 +573,8 @@ def _load_stereo_calibration(path):
     return _StereoCalibration(R, t, E, F)
 
 
-def _load_stereo_rectification(map_shape, path):
-    lut_shape = map_shape + (2,)
+def _load_stereo_rectification(path):
+    lut_shape = tuple(np.fromfile(os.path.join(path, 'map_shape.bin'), dtype=np.int32).tolist())
 
     R1   = np.fromfile(os.path.join(path, 'R1.bin'),   dtype=np.float64).reshape((3, 3))
     R2   = np.fromfile(os.path.join(path, 'R2.bin'),   dtype=np.float64).reshape((3, 3))
@@ -607,8 +609,8 @@ def load_stereo_calibration(port_1, port_2, path):
     return _load_stereo_calibration(base)
 
 
-def load_stereo_rectification(port_1, port_2, path, map_shape):
+def load_stereo_rectification(port_1, port_2, path):
     _check_calibration_directory(path)
     base = _stereo_subdirectory(port_1, port_2, path)
-    return _load_stereo_rectification(map_shape, base)
+    return _load_stereo_rectification(base)
 
