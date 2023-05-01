@@ -5,6 +5,7 @@
 
 import open3d as o3d
 import hl2ss
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
@@ -98,9 +99,8 @@ for item in result.items:
 
     for mesh in item.meshes:
         mesh.unpack()
-        open3d_mesh = o3d.geometry.TriangleMesh()
-        open3d_mesh.vertices = o3d.utility.Vector3dVector((mesh.vertex_positions @ item.location[:3, :3]) + item.location[3, :3])
-        open3d_mesh.triangles = o3d.utility.Vector3iVector(mesh.triangle_indices)
+        hl2ss_3dcv.su_normalize(mesh, item.location)
+        open3d_mesh = hl2ss_3dcv.su_mesh_to_open3d_triangle_mesh(mesh)
         open3d_mesh.compute_vertex_normals()
         open3d_mesh.paint_uniform_color(kind_color[int(item.kind)])
         open3d_meshes.append(open3d_mesh)

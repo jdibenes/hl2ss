@@ -1,14 +1,18 @@
 
+# Recording example
+
 import time
 import os
 import hl2ss
 import hl2ss_io
 import hl2ss_mp
 
+# Settings --------------------------------------------------------------------
+
 host = '192.168.1.7'
 path = './data'
 
-# Ports
+# Ports to record
 ports = [
     hl2ss.StreamPort.RM_VLC_LEFTFRONT,
     #hl2ss.StreamPort.RM_VLC_LEFTLEFT,
@@ -28,7 +32,7 @@ ports = [
 # RM VLC parameters
 vlc_mode    = hl2ss.StreamMode.MODE_1
 vlc_profile = hl2ss.VideoProfile.H264_MAIN
-vlc_bitrate = 2*1024*1024
+vlc_bitrate = hl2ss.get_video_codec_bitrate(hl2ss.Parameters_RM_VLC.WIDTH, hl2ss.Parameters_RM_VLC.HEIGHT, hl2ss.Parameters_RM_VLC.FPS, hl2ss.get_video_codec_default_factor(vlc_profile))
 
 # RM Depth AHAT parameters
 ahat_mode    = hl2ss.StreamMode.MODE_1
@@ -48,17 +52,22 @@ pv_width     = 760
 pv_height    = 428
 pv_framerate = 30
 pv_profile   = hl2ss.VideoProfile.H264_MAIN
-pv_bitrate   = 1*1024*1024
+pv_bitrate   = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_framerate, hl2ss.get_video_codec_default_factor(pv_profile))
 pv_format    = 'bgr24'
 
 # Microphone parameters
 microphone_profile = hl2ss.AudioProfile.AAC_24000
 
 # EET parameters
-eet_fps = 90
+eet_fps = 90 # 30, 60, 90
 
 # Maximum number of frames in buffer
 buffer_elements = 300
+
+# Recording length (seconds)
+duration = 30
+
+#------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
@@ -90,7 +99,11 @@ if __name__ == '__main__':
         writers[port] = hl2ss_io.wr_process_producer(filenames[port], producer, port, 'MULTI RECORDER TEST'.encode())
         writers[port].start()
 
-    time.sleep(20)
+    print(f'Recording for {duration} seconds...')
+
+    time.sleep(duration)
+
+    print(f'End recording...')
 
     for port in ports:
         writers[port].stop()
@@ -102,4 +115,3 @@ if __name__ == '__main__':
         producer.stop(port)
 
     hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-

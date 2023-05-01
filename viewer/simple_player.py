@@ -1,4 +1,6 @@
 
+# Player example
+
 import numpy as np
 import pyaudio
 import cv2
@@ -7,26 +9,14 @@ import hl2ss
 import hl2ss_io
 import hl2ss_utilities
 
+# Settings --------------------------------------------------------------------
+
 path = './data'
 
-# Ports
-port = hl2ss.StreamPort.RM_VLC_RIGHTFRONT
-'''
-hl2ss.StreamPort.RM_VLC_LEFTFRONT,
-hl2ss.StreamPort.RM_VLC_LEFTLEFT,
-hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
-hl2ss.StreamPort.RM_VLC_RIGHTRIGHT,
-#hl2ss.StreamPort.RM_DEPTH_AHAT,
-hl2ss.StreamPort.RM_DEPTH_LONGTHROW,
-hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
-hl2ss.StreamPort.RM_IMU_GYROSCOPE,
-hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
-hl2ss.StreamPort.PERSONAL_VIDEO,
-hl2ss.StreamPort.MICROPHONE,
-hl2ss.StreamPort.SPATIAL_INPUT
-'''
+# Port
+port = hl2ss.StreamPort.PERSONAL_VIDEO
 
-
+#------------------------------------------------------------------------------
 
 def display_vlc(data):
     print(f'Pose at time {data.timestamp}')
@@ -58,8 +48,6 @@ def display_pv(data):
     print(data.payload.principal_point)
     cv2.imshow('vlc', data.payload.image)
     cv2.waitKey(1)
-
-
 
 def display_microphone_aac(data):
     global microphone_buffer
@@ -137,8 +125,6 @@ def display_eet(data):
     print(f'Right eye openness: Valid={data.payload.right_openness_valid} Value={data.payload.right_openness}')
     print(f'Vergence distance: Valid={data.payload.vergence_distance_valid} Value={data.payload.vergence_distance}')
 
-
-
 filename = os.path.join(path, f'{hl2ss.get_port_name(port)}.bin')
 reader = hl2ss_io.create_rd(True, filename, hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24')
 reader.open()
@@ -172,12 +158,9 @@ reader.close()
 if (reader.header.port != hl2ss.StreamPort.MICROPHONE):
     quit()
 
-print(reader.header.profile)
-
 p = pyaudio.PyAudio()
 stream = p.open(format=pyaudio.paInt16 if (reader.header.profile == hl2ss.AudioProfile.RAW) else pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
 stream.start_stream()
 stream.write(microphone_buffer.tobytes())
 stream.stop_stream()
 stream.close()
-

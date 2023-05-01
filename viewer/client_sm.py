@@ -4,6 +4,7 @@
 
 import open3d as o3d
 import hl2ss
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
@@ -80,15 +81,10 @@ for index, mesh in meshes.items():
     # Surface timestamps are given in Windows FILETIME (utc)
     print(f'Task {index}: surface id {id_hex} @ {timestamp} has {mesh.vertex_positions.shape[0]} vertices {mesh.triangle_indices.shape[0]} triangles {mesh.vertex_normals.shape[0]} normals')
 
-    mesh.vertex_positions[:, 0:3] = mesh.vertex_positions[:, 0:3] * mesh.vertex_position_scale
-    mesh.vertex_positions = mesh.vertex_positions @ mesh.pose
-    mesh.vertex_normals = mesh.vertex_normals @ mesh.pose
-
-    open3d_mesh = o3d.geometry.TriangleMesh()
-    open3d_mesh.vertices = o3d.utility.Vector3dVector(mesh.vertex_positions[:, 0:3])
-    open3d_mesh.vertex_colors = o3d.utility.Vector3dVector(mesh.vertex_normals[:, 0:3])
-    open3d_mesh.triangles = o3d.utility.Vector3iVector(mesh.triangle_indices)
-
+    hl2ss_3dcv.sm_mesh_normalize(mesh)
+    
+    open3d_mesh = hl2ss_3dcv.sm_mesh_to_open3d_triangle_mesh(mesh)
+    open3d_mesh.vertex_colors = open3d_mesh.vertex_normals
     open3d_meshes.append(open3d_mesh)
 
 o3d.visualization.draw_geometries(open3d_meshes, mesh_show_back_face=True)

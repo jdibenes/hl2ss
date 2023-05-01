@@ -1,4 +1,6 @@
 
+# Sequencer example
+
 import cv2
 import hl2ss
 import hl2ss_io

@@ -2,6 +2,7 @@
 import numpy as np
 import os
 import cv2
+import open3d as o3d
 import hl2ss
 
 
@@ -72,6 +73,10 @@ def slice_to_block(slice):
 
 def transform(points, transform4x4):
     return points @ transform4x4[:3, :3] + transform4x4[3, :3].reshape(([1] * (len(points.shape) - 1)).append(3))
+
+
+def orient(directions, transform4x4):
+    return directions @ transform4x4[:3, :3]
 
 
 def project(points, projection4x4):
@@ -192,6 +197,59 @@ def pv_fix_calibration(intrinsics, extrinsics):
     intrinsics[0, 0] = -intrinsics[0, 0]
     extrinsics = extrinsics @ R
     return (intrinsics, extrinsics)
+
+
+#------------------------------------------------------------------------------
+# SM
+#------------------------------------------------------------------------------
+
+def sm_mesh_cast(mesh, vertex_positions_type, triangle_indices_type, vertex_normals_type):
+    mesh.vertex_positions = mesh.vertex_positions.astype(vertex_positions_type)
+    mesh.triangle_indices = mesh.triangle_indices.astype(triangle_indices_type)
+    mesh.vertex_normals   = mesh.vertex_normals.astype(vertex_normals_type)
+
+
+def sm_mesh_normalize_positions(mesh):
+    mesh.vertex_positions[:, 0:3] = mesh.vertex_positions[:, 0:3] * mesh.vertex_position_scale
+    mesh.vertex_positions = (mesh.vertex_positions / mesh.vertex_positions[:, 3:]) @ mesh.pose
+
+
+def sm_mesh_normalize_normals(mesh):
+    d = np.linalg.norm(mesh.vertex_normals, axis=1)
+    mesh.vertex_normals[d > 0, :] = mesh.vertex_normals[d > 0, :] / d[d > 0, np.newaxis]
+    mesh.vertex_normals = mesh.vertex_normals @ mesh.pose
+
+
+def sm_mesh_normalize(mesh):
+    sm_mesh_normalize_positions(mesh)
+    sm_mesh_normalize_normals(mesh)
+
+
+def sm_mesh_to_open3d_triangle_mesh(mesh):
+    open3d_mesh = o3d.geometry.TriangleMesh()
+
+    open3d_mesh.vertices       = o3d.utility.Vector3dVector(mesh.vertex_positions[:, 0:3])
+    open3d_mesh.vertex_normals = o3d.utility.Vector3dVector(mesh.vertex_normals[:, 0:3])
+    open3d_mesh.triangles      = o3d.utility.Vector3iVector(mesh.triangle_indices)
+
+    return open3d_mesh
+
+
+#------------------------------------------------------------------------------
+# SU
+#------------------------------------------------------------------------------
+
+def su_normalize(mesh, location):
+    mesh.vertex_positions = transform(mesh.vertex_positions, location)
+
+
+def su_mesh_to_open3d_triangle_mesh(mesh):
+    open3d_mesh = o3d.geometry.TriangleMesh()
+
+    open3d_mesh.vertices  = o3d.utility.Vector3dVector(mesh.vertex_positions)
+    open3d_mesh.triangles = o3d.utility.Vector3iVector(mesh.triangle_indices)
+
+    return open3d_mesh
 
 
 #------------------------------------------------------------------------------

@@ -1,21 +1,14 @@
-#------------------------------------------------------------------------------
-# This script receives video frames and spatial input data from the HoloLens.
-# The received head pointer, hand joint positions and gaze point are projected
-# onto the video frame.
-# Press esc to stop.
-#------------------------------------------------------------------------------
 
 from pynput import keyboard
 
 import multiprocessing as mp
 import numpy as np
 import cv2
-import hl2ss_imshow
 import hl2ss
-import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
 import hl2ss_sa
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -35,11 +28,14 @@ profile = hl2ss.VideoProfile.H265_MAIN
 # Must be > 0
 bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
 
+# EET parameters
+eet_fps = 30
+
 # Marker properties
 radius = 5
-head_color = (  0,   0, 255)
-hand_color = (  0, 255,   0)
-gaze_color = (255,   0, 255)
+combined_color = (255, 0, 255)
+left_color = (0, 0, 255)
+right_color = (255, 0, 0)
 thickness = -1
 
 # Buffer length in seconds
@@ -73,27 +69,27 @@ if __name__ == '__main__':
     volumes = hl2ss.sm_bounding_volume()
     volumes.add_sphere(sphere_center, sphere_radius)
 
-    sm_manager = hl2ss_sa.sm_mp_manager(host, triangles_per_cubic_meter, mesh_threads)
+    sm_manager = hl2ss_sa.sm_manager(host, triangles_per_cubic_meter, mesh_threads)
     sm_manager.open()
     sm_manager.set_volumes(volumes)
     sm_manager.get_observed_surfaces()
-    
+
     hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     producer = hl2ss_mp.producer()
     producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
-    producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.configure_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, eet_fps)
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
-    producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
+    producer.initialize(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
     producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.start(hl2ss.StreamPort.SPATIAL_INPUT)
+    producer.start(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)
 
     consumer = hl2ss_mp.consumer()
     manager = mp.Manager()
     sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, ...)
-    sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, None)
+    sink_eet = consumer.create_sink(producer, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, manager, None)
     sink_pv.get_attach_response()
-    sink_si.get_attach_response()
+    sink_eet.get_attach_response()
 
     while (enable):
         sm_manager.get_observed_surfaces()
@@ -104,12 +100,12 @@ if __name__ == '__main__':
         if ((data_pv is None) or (not hl2ss.is_valid_pose(data_pv.pose))):
             continue
 
-        _, data_si = sink_si.get_nearest(data_pv.timestamp)
-        if (data_si is None):
+        _, data_eet = sink_eet.get_nearest(data_pv.timestamp)
+        if ((data_eet is None) or (not hl2ss.is_valid_pose(data_eet.pose))):
             continue
 
         image = data_pv.payload.image
-        si = hl2ss.unpack_si(data_si.payload)
+        eet = hl2ss.unpack_eet(data_eet.payload)
 
         pv_intrinsics = hl2ss.create_pv_intrinsics(data_pv.payload.focal_length, data_pv.payload.principal_point)
         pv_extrinsics = np.eye(4, 4, dtype=np.float32)
@@ -117,38 +113,48 @@ if __name__ == '__main__':
 
         world_to_image = hl2ss_3dcv.world_to_reference(data_pv.pose) @ hl2ss_3dcv.rignode_to_camera(pv_extrinsics) @ hl2ss_3dcv.camera_to_image(pv_intrinsics)
 
-        if (si.is_valid_head_pose()):
-            head_pose = si.get_head_pose()
-            d = sm_manager.cast_rays(hl2ss_utilities.si_ray_to_vector(head_pose.position, head_pose.forward))
-            if (np.isfinite(d)):
-                head_point = hl2ss_utilities.si_ray_to_point(head_pose.position, head_pose.forward, d)
-                project_points(image, head_point, world_to_image, radius, head_color, thickness)
+        if (eet.left_ray_valid):
+            left_ray = eet.left_ray
 
-        if (si.is_valid_hand_left()):
-            left_points = hl2ss_utilities.si_unpack_hand(si.get_hand_left()).positions
-            project_points(image, left_points, world_to_image, radius, hand_color, thickness)
-        
-        if (si.is_valid_hand_right()):
-            right_points = hl2ss_utilities.si_unpack_hand(si.get_hand_right()).positions
-            project_points(image, right_points, world_to_image, radius, hand_color, thickness)
+            left_ray.origin = hl2ss_3dcv.transform(left_ray.origin.reshape((1, 3)), data_eet.pose)
+            left_ray.direction = hl2ss_3dcv.orient(left_ray.direction.reshape((1, 3)), data_eet.pose)
 
-        if (si.is_valid_eye_ray()):
-            eye_ray = si.get_eye_ray()
-            d = sm_manager.cast_rays(hl2ss_utilities.si_ray_to_vector(eye_ray.origin, eye_ray.direction))
+            d = sm_manager.cast_rays(hl2ss_utilities.si_ray_to_vector(left_ray.origin, left_ray.direction))
             if (np.isfinite(d)):
-                gaze_point = hl2ss_utilities.si_ray_to_point(eye_ray.origin, eye_ray.direction, d)
-                project_points(image, gaze_point, world_to_image, radius, gaze_color, thickness)
+                left_point = hl2ss_utilities.si_ray_to_point(left_ray.origin, left_ray.direction, d)
+                project_points(image, left_point, world_to_image, radius, left_color, thickness)
+
+        if (eet.right_ray_valid):
+            right_ray = eet.right_ray
+
+            right_ray.origin = hl2ss_3dcv.transform(right_ray.origin.reshape((1, 3)), data_eet.pose)
+            right_ray.direction = hl2ss_3dcv.orient(right_ray.direction.reshape((1, 3)), data_eet.pose)
+
+            d = sm_manager.cast_rays(hl2ss_utilities.si_ray_to_vector(right_ray.origin, right_ray.direction))
+            if (np.isfinite(d)):
+                right_point = hl2ss_utilities.si_ray_to_point(right_ray.origin, right_ray.direction, d)
+                project_points(image, right_point, world_to_image, radius, right_color, thickness)
+
+        if (eet.combined_ray_valid):
+            combined_ray = eet.combined_ray
+
+            combined_ray.origin = hl2ss_3dcv.transform(combined_ray.origin.reshape((1, 3)), data_eet.pose)
+            combined_ray.direction = hl2ss_3dcv.orient(combined_ray.direction.reshape((1, 3)), data_eet.pose)
+
+            d = sm_manager.cast_rays(hl2ss_utilities.si_ray_to_vector(combined_ray.origin, combined_ray.direction))
+            if (np.isfinite(d)):
+                combined_point = hl2ss_utilities.si_ray_to_point(combined_ray.origin, combined_ray.direction, d)
+                project_points(image, combined_point, world_to_image, radius, combined_color, thickness)
 
         cv2.imshow('Video', image)
         cv2.waitKey(1)
-        
+
     sm_manager.close()
 
     sink_pv.detach()
-    sink_si.detach()
+    sink_eet.detach()
     producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.stop(hl2ss.StreamPort.SPATIAL_INPUT)
+    producer.stop(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)
     listener.join()
 
     hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-
