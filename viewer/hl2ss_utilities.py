@@ -2,9 +2,11 @@
 import fractions
 import numpy as np
 import time
+import cv2
 import av
 import hl2ss
 import hl2ss_io
+import hl2ss_3dcv
 
 
 #------------------------------------------------------------------------------
@@ -65,11 +67,29 @@ def si_head_pose_rotation_matrix(up, forward):
 
 
 def si_ray_to_vector(origin, direction):
-    return np.hstack((origin.reshape((-1, 3)), direction.reshape((-1, 3))))
+    return np.vstack((origin, direction)).reshape((-1, 6))
 
 
-def si_ray_to_point(origin, direction, d):
-    return (origin + d * direction).reshape((-1, 3))
+def si_ray_transform(ray, transform4x4):
+    ray_t = ray.copy()
+    ray_t[:, 0:3] = hl2ss_3dcv.transform(ray[:, 0:3], transform4x4)
+    ray_t[:, 3:6] = hl2ss_3dcv.orient(ray[:, 3:6], transform4x4)
+    return ray_t
+
+
+def si_ray_to_point(ray, d):
+    return (ray[:, 0:3] + d * ray[:, 3:6]).reshape((-1, 3))
+
+
+#------------------------------------------------------------------------------
+# Draw
+#------------------------------------------------------------------------------
+
+def draw_points(image, points, radius, color, thickness):
+    for x, y in points:
+        if (x >= 0 and y >= 0 and x < image.shape[1] and y < image.shape[0]):
+            cv2.circle(image, (x, y), radius, color, thickness)
+    return image
 
 
 #------------------------------------------------------------------------------

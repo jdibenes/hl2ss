@@ -46,7 +46,7 @@ while (enable):
     print(f'Tracking status at time {data.timestamp}')
     print('Pose')
     print(data.pose)
-    print(f'Calibration valid: {eet.calibration_valid}')
+    print(f'Calibration: Valid={eet.calibration_valid}')
     print(f'Combined eye gaze: Valid={eet.combined_ray_valid} Origin={eet.combined_ray.origin} Direction={eet.combined_ray.direction}')
     print(f'Left eye gaze: Valid={eet.left_ray_valid} Origin={eet.left_ray.origin} Direction={eet.left_ray.direction}')
     print(f'Right eye gaze: Valid={eet.right_ray_valid} Origin={eet.right_ray.origin} Direction={eet.right_ray.direction}')

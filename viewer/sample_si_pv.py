@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # This script receives video frames and spatial input data from the HoloLens.
-# The received head pointer, hand joint positions and gaze point are projected
-# onto the video frame.
+# The received head pointer, hand joint positions and gaze pointer are 
+# projected onto the video frame.
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
@@ -37,15 +37,16 @@ bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_vide
 
 # Marker properties
 radius = 5
-head_color = (  0,   0, 255)
-hand_color = (  0, 255,   0)
-gaze_color = (255,   0, 255)
+head_color  = (  0,   0, 255)
+left_color  = (  0, 255,   0)
+right_color = (255,   0,   0)
+gaze_color  = (255,   0, 255)
 thickness = -1
 
 # Buffer length in seconds
 buffer_length = 5
 
-# Spatial Mapping manager settings
+# Spatial Mapping settings
 triangles_per_cubic_meter = 1000
 mesh_threads = 2
 sphere_center = [0, 0, 0]
@@ -54,12 +55,7 @@ sphere_radius = 5
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    def project_points(image, points, P, radius, color, thickness):
-        for x, y in hl2ss_3dcv.project(points, P):
-            ix, iy = int(x), int(y)
-            if (ix >= 0 and iy >= 0 and ix < image.shape[1] and iy < image.shape[0]):
-                cv2.circle(image, (ix, iy), radius, color, thickness)
-
+    # Keyboard events ---------------------------------------------------------
     enable = True
 
     def on_press(key):
@@ -70,16 +66,21 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
+    # Start PV Subsystem ------------------------------------------------------
+    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+
+    # Start Spatial Mapping data manager --------------------------------------
+    # Set region of 3D space to sample
     volumes = hl2ss.sm_bounding_volume()
     volumes.add_sphere(sphere_center, sphere_radius)
 
-    sm_manager = hl2ss_sa.sm_mp_manager(host, triangles_per_cubic_meter, mesh_threads)
+    # Download observed surfaces
+    sm_manager = hl2ss_sa.sm_manager(host, triangles_per_cubic_meter, mesh_threads)
     sm_manager.open()
     sm_manager.set_volumes(volumes)
     sm_manager.get_observed_surfaces()
     
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-
+    # Start PV and Spatial Input streams --------------------------------------
     producer = hl2ss_mp.producer()
     producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
     producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
@@ -95,11 +96,15 @@ if __name__ == '__main__':
     sink_pv.get_attach_response()
     sink_si.get_attach_response()
 
+    # Main Loop ---------------------------------------------------------------
     while (enable):
+        # Download observed surfaces ------------------------------------------
         sm_manager.get_observed_surfaces()
 
+        # Wait for PV frame ---------------------------------------------------
         sink_pv.acquire()
 
+        # Get PV frame and nearest (in time) Spatial Input frame --------------
         _, data_pv = sink_pv.get_most_recent_frame()
         if ((data_pv is None) or (not hl2ss.is_valid_pose(data_pv.pose))):
             continue
@@ -111,44 +116,64 @@ if __name__ == '__main__':
         image = data_pv.payload.image
         si = hl2ss.unpack_si(data_si.payload)
 
+        # Update PV intrinsics ------------------------------------------------
+        # PV intrinsics may change between frames due to autofocus
         pv_intrinsics = hl2ss.create_pv_intrinsics(data_pv.payload.focal_length, data_pv.payload.principal_point)
         pv_extrinsics = np.eye(4, 4, dtype=np.float32)
         pv_intrinsics, pv_extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, pv_extrinsics)
 
+        # Compute world to PV image transformation matrix ---------------------
         world_to_image = hl2ss_3dcv.world_to_reference(data_pv.pose) @ hl2ss_3dcv.rignode_to_camera(pv_extrinsics) @ hl2ss_3dcv.camera_to_image(pv_intrinsics)
 
+        # Draw Head Pointer ---------------------------------------------------
         if (si.is_valid_head_pose()):
             head_pose = si.get_head_pose()
-            d = sm_manager.cast_rays(hl2ss_utilities.si_ray_to_vector(head_pose.position, head_pose.forward))
+            head_ray = hl2ss_utilities.si_ray_to_vector(head_pose.position, head_pose.forward)
+            d = sm_manager.cast_rays(head_ray)
             if (np.isfinite(d)):
-                head_point = hl2ss_utilities.si_ray_to_point(head_pose.position, head_pose.forward, d)
-                project_points(image, head_point, world_to_image, radius, head_color, thickness)
+                head_point = hl2ss_utilities.si_ray_to_point(head_ray, d)
+                head_image_point = hl2ss_3dcv.project(head_point, world_to_image)
+                hl2ss_utilities.draw_points(image, head_image_point.astype(np.int32), radius, head_color, thickness)
 
+        # Draw Left Hand joints -----------------------------------------------
         if (si.is_valid_hand_left()):
-            left_points = hl2ss_utilities.si_unpack_hand(si.get_hand_left()).positions
-            project_points(image, left_points, world_to_image, radius, hand_color, thickness)
-        
-        if (si.is_valid_hand_right()):
-            right_points = hl2ss_utilities.si_unpack_hand(si.get_hand_right()).positions
-            project_points(image, right_points, world_to_image, radius, hand_color, thickness)
+            left_hand = si.get_hand_left()
+            left_joints = hl2ss_utilities.si_unpack_hand(left_hand)
+            left_image_points = hl2ss_3dcv.project(left_joints.positions, world_to_image)
+            hl2ss_utilities.draw_points(image, left_image_points.astype(np.int32), radius, left_color, thickness)
 
+        # Draw Right Hand joints ----------------------------------------------
+        if (si.is_valid_hand_right()):
+            right_hand = si.get_hand_right()
+            right_joints = hl2ss_utilities.si_unpack_hand(right_hand)
+            right_image_points = hl2ss_3dcv.project(right_joints.positions, world_to_image)
+            hl2ss_utilities.draw_points(image, right_image_points.astype(np.int32), radius, right_color, thickness)
+
+        # Draw Gaze Pointer ---------------------------------------------------
         if (si.is_valid_eye_ray()):
             eye_ray = si.get_eye_ray()
-            d = sm_manager.cast_rays(hl2ss_utilities.si_ray_to_vector(eye_ray.origin, eye_ray.direction))
+            eye_ray_vector = hl2ss_utilities.si_ray_to_vector(eye_ray.origin, eye_ray.direction)
+            d = sm_manager.cast_rays(eye_ray_vector)
             if (np.isfinite(d)):
-                gaze_point = hl2ss_utilities.si_ray_to_point(eye_ray.origin, eye_ray.direction, d)
-                project_points(image, gaze_point, world_to_image, radius, gaze_color, thickness)
-
+                gaze_point = hl2ss_utilities.si_ray_to_point(eye_ray_vector, d)
+                gaze_image_point = hl2ss_3dcv.project(gaze_point, world_to_image)
+                hl2ss_utilities.draw_points(image, gaze_image_point.astype(np.int32), radius, gaze_color, thickness)
+                
+        # Display frame -------------------------------------------------------
         cv2.imshow('Video', image)
         cv2.waitKey(1)
         
+    # Stop Spatial Mapping data manager ---------------------------------------
     sm_manager.close()
 
+    # Stop PV and Spatial Input streams ---------------------------------------
     sink_pv.detach()
     sink_si.detach()
     producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
     producer.stop(hl2ss.StreamPort.SPATIAL_INPUT)
-    listener.join()
 
+    # Stop PV subsystem -------------------------------------------------------
     hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
+    # Stop keyboard events ----------------------------------------------------
+    listener.join()

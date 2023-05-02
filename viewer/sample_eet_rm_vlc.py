@@ -22,18 +22,18 @@ import hl2ss_sa
 # HoloLens 2 address
 host = "192.168.1.7"
 
-# Camera parameters
-# See etc/hl2_capture_formats.txt for a list of supported formats
-width     = 760
-height    = 428
-framerate = 30
+# Calibration folder (must exist but can be empty)
+calibration_path = '../calibration'
+
+# Port
+port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
 # Video Encoding profiles
 profile = hl2ss.VideoProfile.H265_MAIN
 
 # Encoded stream average bits per second
 # Must be > 0
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
+bitrate = 1*1024*1024
 
 # EET parameters
 eet_fps = 30 # 30, 60, 90
@@ -68,9 +68,6 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    # Start PV Subsystem ------------------------------------------------------
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-
     # Start Spatial Mapping data manager --------------------------------------
     # Set region of 3D space to sample
     volumes = hl2ss.sm_bounding_volume()
@@ -81,21 +78,26 @@ if __name__ == '__main__':
     sm_manager.open()
     sm_manager.set_volumes(volumes)
     sm_manager.get_observed_surfaces()
+
+    # Get RM VLC calibration --------------------------------------------------
+    # Calibration data will be downloaded if it's not in the calibration folder
+    calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
+    rotation_vlc = hl2ss_3dcv.rm_vlc_get_rotation(port)
     
-    # Start PV and EET streams ------------------------------------------------
+    # Start RM VLC and EET streams --------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
+    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
     producer.configure_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, eet_fps)
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
+    producer.initialize(port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
     producer.initialize(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
-    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
+    producer.start(port)
     producer.start(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)
 
     consumer = hl2ss_mp.consumer()
     manager = mp.Manager()
-    sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, ...)
+    sink_vlc = consumer.create_sink(producer, port, manager, ...)
     sink_eet = consumer.create_sink(producer, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, manager, None)
-    sink_pv.get_attach_response()
+    sink_vlc.get_attach_response()
     sink_eet.get_attach_response()
 
     # Main Loop ---------------------------------------------------------------
@@ -103,29 +105,24 @@ if __name__ == '__main__':
         # Download observed surfaces ------------------------------------------
         #sm_manager.get_observed_surfaces()
 
-        # Wait for PV frame ---------------------------------------------------
-        sink_pv.acquire()
+        # Wait for RM VLC frame -----------------------------------------------
+        sink_vlc.acquire()
 
-        # Get PV frame and nearest (in time) EET frame ------------------------
-        _, data_pv = sink_pv.get_most_recent_frame()
-        if ((data_pv is None) or (not hl2ss.is_valid_pose(data_pv.pose))):
+        # Get RM VLC frame and nearest (in time) EET frame --------------------
+        _, data_vlc = sink_vlc.get_most_recent_frame()
+        if ((data_vlc is None) or (not hl2ss.is_valid_pose(data_vlc.pose))):
             continue
 
-        _, data_eet = sink_eet.get_nearest(data_pv.timestamp)
+        _, data_eet = sink_eet.get_nearest(data_vlc.timestamp)
         if ((data_eet is None) or (not hl2ss.is_valid_pose(data_eet.pose))):
             continue
 
-        image = data_pv.payload.image
+        image = cv2.remap(data_vlc.payload, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        image = np.dstack((image, image, image))
         eet = hl2ss.unpack_eet(data_eet.payload)
 
-        # Update PV intrinsics ------------------------------------------------
-        # PV intrinsics may change between frames due to autofocus
-        pv_intrinsics = hl2ss.create_pv_intrinsics(data_pv.payload.focal_length, data_pv.payload.principal_point)
-        pv_extrinsics = np.eye(4, 4, dtype=np.float32)
-        pv_intrinsics, pv_extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, pv_extrinsics)
-
-        # Compute world to PV image transformation matrix ---------------------
-        world_to_image = hl2ss_3dcv.world_to_reference(data_pv.pose) @ hl2ss_3dcv.rignode_to_camera(pv_extrinsics) @ hl2ss_3dcv.camera_to_image(pv_intrinsics)
+        # Compute world to RM VLC image transformation matrix -----------------
+        world_to_image = hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_vlc.extrinsics) @ hl2ss_3dcv.camera_to_image(calibration_vlc.intrinsics)
 
         # Draw Left Gaze Pointer ----------------------------------------------
         if (eet.left_ray_valid):
@@ -158,20 +155,17 @@ if __name__ == '__main__':
                 hl2ss_utilities.draw_points(image, combined_image_point.astype(np.int32), radius, combined_color, thickness)
 
         # Display frame -------------------------------------------------------            
-        cv2.imshow('Video', image)
+        cv2.imshow('Video', hl2ss_3dcv.rm_vlc_rotate_image(image, rotation_vlc))
         cv2.waitKey(1)
 
     # Stop Spatial Mapping data manager ---------------------------------------
     sm_manager.close()
 
-    # Stop PV and EET streams -------------------------------------------------
-    sink_pv.detach()
+    # Stop RM VLC and EET streams ---------------------------------------------
+    sink_vlc.detach()
     sink_eet.detach()
-    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
+    producer.stop(port)
     producer.stop(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)
-
-    # Stop PV subsystem -------------------------------------------------------
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()
