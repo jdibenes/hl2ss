@@ -18,7 +18,7 @@ port = hl2ss.StreamPort.EXTENDED_EYE_TRACKER
 
 # Target Frame Rate
 # Options: 30, 60, 90
-fps = 90
+fps = 30
 
 #------------------------------------------------------------------------------
 
