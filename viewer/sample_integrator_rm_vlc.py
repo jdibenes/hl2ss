@@ -24,7 +24,7 @@ calibration_path = '../calibration'
 # Camera selection and parameters
 port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 profile = hl2ss.VideoProfile.H265_MAIN
-bitrate = hl2ss.get_video_codec_bitrate(hl2ss.Parameters_RM_VLC.WIDTH, hl2ss.Parameters_RM_VLC.HEIGHT, hl2ss.Parameters_RM_VLC.FPS, hl2ss.get_video_codec_default_factor(profile))
+bitrate = 1*1024*1024
 
 # Buffer length in seconds
 buffer_length = 10
