@@ -28,7 +28,7 @@ class command_buffer(hl2ss.umq_command_buffer):
         # Command params: string encoded as utf-8
         self.add(0xFFFFFFFE, text.encode('utf-8')) # Use the add method from hl2ss.umq_command_buffer to pack commands
 
-    # See hl2ss_rus.py and the unity_demo scripts for more examples.
+    # See hl2ss_rus.py and the unity_sample scripts for more examples.
 
 
 client = hl2ss.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE) # Create hl2ss client object
