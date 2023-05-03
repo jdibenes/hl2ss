@@ -70,6 +70,14 @@ def si_ray_to_vector(origin, direction):
     return np.vstack((origin, direction)).reshape((-1, 6))
 
 
+def si_ray_get_origin(ray):
+    return ray[:, 0:3]
+
+
+def si_ray_get_direction(ray):
+    return ray[:, 3:6]
+
+
 def si_ray_transform(ray, transform4x4):
     ray_t = ray.copy()
     ray_t[:, 0:3] = hl2ss_3dcv.transform(ray[:, 0:3], transform4x4)
