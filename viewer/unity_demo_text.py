@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# This script adds a 3D TextMeshPro object to the Unity scene. Press esc to
-# stop.
+# This script adds a 3D TextMeshPro object to the Unity scene.
+# Press esc to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -20,7 +20,7 @@ port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 # Position in world space (x, y, z) in meters
 position = [0, 0, 1]
 
-# Rotation in world space (x, y, w, z) as a quaternion
+# Rotation in world space (x, y, z, w) as a quaternion
 rotation = [0, 0, 0, 1]
 
 # Text
@@ -64,7 +64,7 @@ ipc.push(display_list) # Send commands to server
 results = ipc.pull(display_list) # Get results from server
 key = results[2] # Get the text object id, created by the 3rd command in the list
 
-print('Created text object with id {iid}'.format(iid=key))
+print(f'Created text object with id {key}')
 
 stop_event.wait()
 
