@@ -1,6 +1,7 @@
 #------------------------------------------------------------------------------
 # This script demonstrates how to create aligned "RGBD" images, which can be
 # used with Open3D, from the depth and grayscale cameras of the HoloLens.
+# Press space to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
