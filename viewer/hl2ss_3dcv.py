@@ -441,7 +441,7 @@ def _calibration_subdirectory(port, path):
 
 
 def _calibration_subdirectory_pv(focus, width, height, path):
-    return os.path.join(path, '{focus}_{width}_{height}'.format(focus=int(focus), width=int(width), height=int(height)))
+    return os.path.join(path, f'{int(focus)}_{int(width)}_{int(height)}')
 
 
 def get_calibration_rm(host, port, path):
@@ -489,7 +489,7 @@ def save_extrinsics_pv(port, extrinsics, path):
 # Stereo Calibration / Rectification
 #------------------------------------------------------------------------------
 
-class StereoCalibration:
+class _StereoCalibration:
     def __init__(self, R, t, E, F):
         self.R = R
         self.t = t
@@ -497,7 +497,7 @@ class StereoCalibration:
         self.F = F
 
 
-class StereoRectification:
+class _StereoRectification:
     def __init__(self, R1, R2, P1, P2, Q, roi1, roi2, map1, map2):
         self.R1   = R1
         self.R2   = R2
@@ -517,7 +517,7 @@ def rm_vlc_stereo_calibrate(intrinsics_1, intrinsics_2, extrinsics_1, extrinsics
     E = Rt_to_essential(R, t_skew)
     F = essential_to_fundamental(image_to_camera(intrinsics_1)[:3, :3], image_to_camera(intrinsics_2)[:3, :3], E)
 
-    return StereoCalibration(R, t, E, F)
+    return _StereoCalibration(R, t, E, F)
 
 
 def rm_vlc_stereo_rectify(intrinsics_1, intrinsics_2, R_1_to_2, t_1_to_2, image_shape):
@@ -534,7 +534,7 @@ def rm_vlc_stereo_rectify(intrinsics_1, intrinsics_2, R_1_to_2, t_1_to_2, image_
     roi1 = np.array(roi1, dtype=np.int32)
     roi2 = np.array(roi2, dtype=np.int32)
 
-    return StereoRectification(R1, R2, P1, P2, Q, roi1, roi2, np.dstack((map1x, map1y)), np.dstack((map2x, map2y))) # float64, opencv shape
+    return _StereoRectification(R1, R2, P1, P2, Q, roi1, roi2, np.dstack((map1x, map1y)), np.dstack((map2x, map2y))) # float64, opencv shape
 
 
 def _stereo_subdirectory(port_1, port_2, path):
@@ -561,6 +561,8 @@ def _save_stereo_rectification(rectification, path):
     rectification.map1.tofile(os.path.join(path, 'map1.bin'))
     rectification.map2.tofile(os.path.join(path, 'map2.bin'))
 
+    np.array(rectification.map1.shape, dtype=np.int32).tofile(os.path.join(path, 'map_shape.bin'))
+
 
 def _load_stereo_calibration(path):
     R    = np.fromfile(os.path.join(path, 'R.bin'),    dtype=np.float32).reshape((3, 3))
@@ -568,11 +570,11 @@ def _load_stereo_calibration(path):
     E    = np.fromfile(os.path.join(path, 'E.bin'),    dtype=np.float32).reshape((3, 3))
     F    = np.fromfile(os.path.join(path, 'F.bin'),    dtype=np.float32).reshape((3, 3))
 
-    return StereoCalibration(R, t, E, F)
+    return _StereoCalibration(R, t, E, F)
 
 
-def _load_stereo_rectification(map_shape, path):
-    lut_shape = map_shape + (2,)
+def _load_stereo_rectification(path):
+    lut_shape = tuple(np.fromfile(os.path.join(path, 'map_shape.bin'), dtype=np.int32).tolist())
 
     R1   = np.fromfile(os.path.join(path, 'R1.bin'),   dtype=np.float64).reshape((3, 3))
     R2   = np.fromfile(os.path.join(path, 'R2.bin'),   dtype=np.float64).reshape((3, 3))
@@ -584,7 +586,7 @@ def _load_stereo_rectification(map_shape, path):
     map1 = np.fromfile(os.path.join(path, 'map1.bin'), dtype=np.float32).reshape(lut_shape)
     map2 = np.fromfile(os.path.join(path, 'map2.bin'), dtype=np.float32).reshape(lut_shape)
 
-    return StereoRectification(R1, R2, P1, P2, Q, roi1, roi2, map1, map2)
+    return _StereoRectification(R1, R2, P1, P2, Q, roi1, roi2, map1, map2)
 
 
 def save_stereo_calibration(port_1, port_2, calibration, path):
@@ -607,8 +609,8 @@ def load_stereo_calibration(port_1, port_2, path):
     return _load_stereo_calibration(base)
 
 
-def load_stereo_rectification(port_1, port_2, path, map_shape):
+def load_stereo_rectification(port_1, port_2, path):
     _check_calibration_directory(path)
     base = _stereo_subdirectory(port_1, port_2, path)
-    return _load_stereo_rectification(map_shape, base)
+    return _load_stereo_rectification(base)
 

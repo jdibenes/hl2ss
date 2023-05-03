@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# This script adds a textured quad to the Unity scene in image space. Press esc
-# to stop.
+# This script adds a textured quad to the Unity scene in camera space.
+# Press esc to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -18,19 +18,13 @@ host = '192.168.1.7'
 # Port
 port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 
-# Position in image space (x, y, z)
-# x, y in pixels
-# z is the depth of the object in meters
-#position = [int(1440/2), int(936/2), 40]
+# Position in camera space (x, y, z)
 position = [0,0, 0.5]
 
-# Rotation in camera space (x, y, w, z) as a quaternion
+# Rotation in camera space (x, y, z, w) as a quaternion
 rotation = [0, 0, 0, 1]
 
-# Scale (x, y, z)
-# x, y, in pixels
-# z in meters, for flat objects it should be 1
-#scale = [256, 256, 1]
+# Scale (x, y, z) in meters
 scale = [0.05, 0.05, 1]
 
 # Texture file (must be jpg or png)

@@ -24,7 +24,7 @@ calibration_path = '../calibration'
 # Camera selection and parameters
 port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 profile = hl2ss.VideoProfile.H265_MAIN
-bitrate = hl2ss.get_video_codec_bitrate(hl2ss.Parameters_RM_VLC.WIDTH, hl2ss.Parameters_RM_VLC.HEIGHT, hl2ss.Parameters_RM_VLC.FPS, hl2ss.get_video_codec_default_factor(profile))
+bitrate = 1*1024*1024
 
 # Buffer length in seconds
 buffer_length = 10
@@ -117,12 +117,9 @@ if __name__ == '__main__':
         color_image = o3d.geometry.Image(color)
         depth_image = o3d.geometry.Image(depth)
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color_image, depth_image, depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
-        
-        # Compute world to RM Depth Long Throw camera transformation matrix ---
-        depth_world_to_camera = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
 
         # Integrate RGBD and display point cloud ------------------------------
-        volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())
+        volume.integrate(rgbd, intrinsics_depth, world_to_lt.transpose())
         pcd_tmp = volume.extract_point_cloud()
 
         if (first_pcd):

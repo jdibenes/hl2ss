@@ -3,18 +3,19 @@
 # quads in the Unity scene aligned with the surface the user is observing.
 # A patch of 3D points at the center of the depth frame is used to fit a plane,
 # which is then used to set the world transform of the quad such that the quad
-# is aligned with observed surface (e.g., a wall). Press space to set a quad,
-# esc to stop.
+# is aligned with observed surface (e.g., a wall).
+# Press space to set a quad.
+# Press esc to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
 
+import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_3dcv
 import hl2ss_rus
-import numpy as np
 
 # Settings --------------------------------------------------------------------
 
@@ -24,6 +25,9 @@ host = '192.168.1.7'
 # Ports
 port_mq = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 port_lt = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
+
+# Calibration folder (must exist but can be empty)
+calibration_path = '../calibration'
 
 # Quad scale in meters
 scale = [0.2, 0.2, 1]
@@ -75,8 +79,9 @@ ipc.push(command_buffer)
 results = ipc.pull(command_buffer)
 
 previous  = False
-calib  = hl2ss.download_calibration_rm_depth_longthrow(host, port_lt)
-scaler = np.sqrt(calib.uv2xy[:, :, 0]**2 + calib.uv2xy[:, :, 1]**2 + 1) * calib.scale
+
+calibration_lt = hl2ss_3dcv.get_calibration_rm(host, port_lt, calibration_path)
+xy1, lt_scale = hl2ss_3dcv.rm_depth_compute_rays(calibration_lt.uv2xy, calibration_lt.scale)
 
 u0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  // 2
 v0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT // 2
@@ -86,11 +91,10 @@ client.open()
 
 while (enable):
     data = client.get_next_packet()
-    #images = hl2ss.unpack_rm_depth(data.payload)
-    images = data.payload
+    data_lt = data.payload
 
     # Show depth image
-    cv2.imshow('depth', images.depth / np.max(images.depth))
+    cv2.imshow('depth', data_lt.depth / np.max(data_lt.depth)) # Scaled for visibility
     cv2.waitKey(1)
 
     keydown = (not previous) and trigger
@@ -100,10 +104,11 @@ while (enable):
         continue
 
     # Get the 3D points corresponding to the 7x7 patch in the center of the depth image
-    z = images.depth[(v0-3):(v0+4), (u0-3):(u0+4)] / scaler[(v0-3):(v0+4), (u0-3):(u0+4)]
-    xy = calib.uv2xy[(v0-3):(v0+4), (u0-3):(u0+4), :] * z.reshape((z.shape[0], z.shape[1], 1))
-    xyz = np.hstack((xy[:, :, 0].reshape((-1, 1)), xy[:, :, 1].reshape((-1, 1)), z.reshape((-1, 1))))
-    xyz = xyz[xyz[:, 2] > 0, :]
+    depth = hl2ss_3dcv.rm_depth_normalize(data_lt.depth[(v0-3):(v0+4), (u0-3):(u0+4)], lt_scale[(v0-3):(v0+4), (u0-3):(u0+4)])
+    xyz = hl2ss_3dcv.rm_depth_to_points(depth, xy1[(v0-3):(v0+4), (u0-3):(u0+4), :])
+    xyz = hl2ss_3dcv.block_to_list(xyz)
+    d = hl2ss_3dcv.block_to_list(depth).reshape((-1,))
+    xyz = xyz[d > 0, :]
 
     # Need at least 3 points to fit a plane
     if (xyz.shape[0] < 3):
@@ -111,7 +116,7 @@ while (enable):
         continue
 
     # 4x4 matrix that converts 3D points in depth camera space to world space
-    camera2world = hl2ss_3dcv.camera_to_rignode(calib.extrinsics) @ hl2ss_3dcv.reference_to_world(data.pose)
+    camera2world = hl2ss_3dcv.camera_to_rignode(calibration_lt.extrinsics) @ hl2ss_3dcv.reference_to_world(data.pose)
     points = hl2ss_3dcv.to_homogeneous(xyz) @ camera2world
 
     # Fit plane
@@ -163,8 +168,7 @@ while (enable):
     
     key = results[1]
 
-    print('Created quad with id {iid}'.format(iid=key))
-
+    print(f'Created quad with id {key}')
 
 command_buffer = hl2ss_rus.command_buffer()
 command_buffer.remove_all()

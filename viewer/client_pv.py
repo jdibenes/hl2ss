@@ -81,7 +81,7 @@ else:
     while (enable):
         data = client.get_next_packet()
 
-        print('Pose at time {ts}'.format(ts=data.timestamp))
+        print(f'Pose at time {data.timestamp}')
         print(data.pose)
         print(f'Focal length: {data.payload.focal_length}')
         print(f'Principal point: {data.payload.principal_point}')

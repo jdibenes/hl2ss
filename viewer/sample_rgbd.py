@@ -1,13 +1,18 @@
 #------------------------------------------------------------------------------
-# This script demonstrates how to create aligned "rgbd" images, which can be
-# used with Open3D, from the depth camera of the HoloLens.
+# This script receives depth frames from the HoloLens and converts them to 
+# pointclouds.
+# Press space to stop.
 #------------------------------------------------------------------------------
 
+from pynput import keyboard
+
+import multiprocessing as mp
 import numpy as np
 import open3d as o3d
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_mp
 import hl2ss_3dcv
 
 #------------------------------------------------------------------------------
@@ -15,50 +20,107 @@ import hl2ss_3dcv
 # HoloLens address
 host = '192.168.1.7'
 
-# Calibration folder for the depth camera
-calibration_path = '../calibration/'
+# Port: RM Depth AHAT or RM Depth Long Throw
+port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 
-# Max depth in meters
-max_depth = 3.0 
+# Calibration path (must exist but can be empty)
+calibration_path = '../calibration'
+
+# Use AB data to color the pointcloud
+use_ab = False
+
+# Video encoding profile for AHAT
+ht_profile = hl2ss.VideoProfile.H265_MAIN
+
+# Encoded stream average bits per second for AHAT
+# Must be > 0
+ht_bitrate = 8*1024*1024
+
+# Buffer length in seconds
+buffer_length = 10
 
 #------------------------------------------------------------------------------
 
-# Get camera calibration
+if __name__ == '__main__':
+    # Keyboard events ---------------------------------------------------------
+    enable = True
 
-calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+    def on_press(key):
+        global enable
+        enable = key != keyboard.Key.space
+        return enable
 
-# Get single depth image
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
 
-client = hl2ss.rx_decoded_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_0, hl2ss.PngFilterMode.Paeth)
-client.open()
-data_lt = client.get_next_packet()
-client.close()
+    # Get calibration ---------------------------------------------------------
+    # Calibration data will be downloaded if it's not in the calibration folder
+    calibration = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
+    xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(calibration.uv2xy, calibration.scale)
+    max_depth = 8.0 if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW) else (calibration.alias / calibration.scale)
+    fps = hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW) else hl2ss.Parameters_RM_DEPTH_AHAT.FPS
 
-# Compute depth-to-depth registration constants
+    # Create Open3D visualizer ------------------------------------------------
+    vis = o3d.visualization.Visualizer()
+    vis.create_window()
+    pcd = o3d.geometry.PointCloud()
+    first_pcd = True
 
-uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
-xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
+    # Start stream ------------------------------------------------------------
+    producer = hl2ss_mp.producer()
+    producer.configure_rm_depth_ahat(True, host, hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.ChunkSize.RM_DEPTH_AHAT, hl2ss.StreamMode.MODE_1, ht_profile, ht_bitrate)
+    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.initialize(port, buffer_length * fps)
+    producer.start(port)
 
-# Generate RGBD pair
+    consumer = hl2ss_mp.consumer()
+    manager = mp.Manager()    
+    sink_depth = consumer.create_sink(producer, port, manager, ...)
+    sink_depth.get_attach_response()
 
-depth = hl2ss_3dcv.rm_depth_undistort(data_lt.payload.depth, calibration_lt.undistort_map)
-depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
-ab = cv2.remap(data_lt.payload.ab, calibration_lt.undistort_map[:, :, 0], calibration_lt.undistort_map[:, :, 1], cv2.INTER_LINEAR)
-ab = hl2ss_3dcv.rm_depth_to_uint8(ab / np.max(ab) * 0xFFFF) # AB scaled for visibility
+    # Main Loop ---------------------------------------------------------------
+    while (enable):
+        # Wait for frame ------------------------------------------------------
+        sink_depth.acquire()
 
-# Show RGBD image
+        # Get frame -----------------------------------------------------------
+        _, data = sink_depth.get_most_recent_frame()
+        if (data is None):
+            continue
 
-image = np.hstack((depth[:, :, 0] / max_depth, ab / np.max(ab))) # Depth and AB scaled for visibility
-cv2.imshow('RGBD', image)
-cv2.waitKey(0)
+        depth = hl2ss_3dcv.rm_depth_normalize(data.payload.depth, scale)
+        ab = hl2ss_3dcv.slice_to_block(data.payload.ab) / 65536
 
-# Create Open3D RGBD Image
+        # Display RGBD --------------------------------------------------------
+        image = np.hstack((depth / max_depth, ab)) # Depth scaled for visibility
+        cv2.imshow('RGBD', image)
+        cv2.waitKey(1)
 
-o3d_rgb = o3d.geometry.Image(hl2ss_3dcv.rm_vlc_to_rgb(ab))
-o3d_depth = o3d.geometry.Image(depth)
+        # Display pointcloud --------------------------------------------------
+        xyz = hl2ss_3dcv.rm_depth_to_points(depth, xy1)
+        xyz = hl2ss_3dcv.block_to_list(xyz)
+        rgb = hl2ss_3dcv.block_to_list(ab)
+        d = hl2ss_3dcv.block_to_list(depth).reshape((-1,))
+        xyz = xyz[d > 0, :]
+        rgb = rgb[d > 0, :]
+        rgb = np.hstack((rgb, rgb, rgb))
 
-rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d_rgb, o3d_depth, depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
-intrinsics = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT, calibration_lt.intrinsics[0, 0], calibration_lt.intrinsics[1, 1], calibration_lt.intrinsics[2, 0], calibration_lt.intrinsics[2, 1])
+        pcd.points = o3d.utility.Vector3dVector(xyz)
+        if (use_ab):
+            pcd.colors = o3d.utility.Vector3dVector(rgb)
 
-pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsics)
-o3d.visualization.draw_geometries([pcd])
+        if (first_pcd):
+            vis.add_geometry(pcd)
+            first_pcd = False
+        else:
+            vis.update_geometry(pcd)
+
+        vis.poll_events()
+        vis.update_renderer()
+
+    # Stop stream -------------------------------------------------------------
+    sink_depth.detach()
+    producer.stop(port)
+
+    # Stop keyboard events ----------------------------------------------------
+    listener.join()

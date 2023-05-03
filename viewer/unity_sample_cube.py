@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-# This script adds a cube to the Unity scene and animates it. Press esc to
-# stop.
+# This script adds a cube to the Unity scene and animates it.
+# Press esc to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
@@ -59,7 +59,7 @@ ipc.push(display_list) # Send commands to server
 results = ipc.pull(display_list) # Get results from server
 key = results[2] # Get the cube id, created by the 3rd command in the list
 
-print('Created cube with id {iid}'.format(iid=key))
+print(f'Created cube with id {key}')
 
 z = 0
 delta = 0.01

@@ -39,10 +39,7 @@ while (enable):
 
     if (si.is_valid_head_pose()):
         head_pose = si.get_head_pose()
-        print('Head pose')
-        print(f'Position: {head_pose.position}')
-        print(f'Forward: {head_pose.forward}')
-        print(f'Up: {head_pose.up}')
+        print(f'Head pose: Position={head_pose.position} Forward={head_pose.forward} Up={head_pose.up}')
         # right = cross(up, -forward)
         # up => y, forward => -z, right => x
     else:
@@ -50,9 +47,7 @@ while (enable):
 
     if (si.is_valid_eye_ray()):
         eye_ray = si.get_eye_ray()
-        print('Eye ray')
-        print(f'Origin: {eye_ray.origin}')
-        print(f'Direction: {eye_ray.direction}')
+        print(f'Eye ray: Origin={eye_ray.origin} Direction={eye_ray.direction}')
     else:
         print('No eye tracking data')
 
@@ -63,22 +58,14 @@ while (enable):
     if (si.is_valid_hand_left()):
         hand_left = si.get_hand_left()
         pose = hand_left.get_joint_pose(hl2ss.SI_HandJointKind.Wrist)
-        print('Left wrist pose')
-        print(f'Orientation: {pose.orientation}') # Quaternion: x, y, z, w
-        print(f'Position: {pose.position}')
-        print(f'Radius: {pose.radius}')
-        print(f'Accuracy: {pose.accuracy}') # 0: High, 1: Approximate
+        print(f'Left wrist pose: Position={pose.position} Orientation={pose.orientation} Radius={pose.radius} Accuracy={pose.accuracy}')
     else:
         print('No left hand data')
 
     if (si.is_valid_hand_right()):
         hand_right = si.get_hand_right()
         pose = hand_right.get_joint_pose(hl2ss.SI_HandJointKind.Wrist)
-        print('Right wrist pose')
-        print(f'Orientation: {pose.orientation}')  # Quaternion: x, y, z, w
-        print(f'Position: {pose.position}')
-        print(f'Radius: {pose.radius}')
-        print(f'Accuracy: {pose.accuracy}')  # 0: High, 1: Approximate
+        print(f'Right wrist pose: Position={pose.position} Orientation={pose.orientation} Radius={pose.radius} Accuracy={pose.accuracy}')
     else:
         print('No right hand data')
 
