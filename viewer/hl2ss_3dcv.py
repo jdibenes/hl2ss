@@ -441,7 +441,7 @@ def _calibration_subdirectory(port, path):
 
 
 def _calibration_subdirectory_pv(focus, width, height, path):
-    return os.path.join(path, '{focus}_{width}_{height}'.format(focus=int(focus), width=int(width), height=int(height)))
+    return os.path.join(path, f'{int(focus)}_{int(width)}_{int(height)}')
 
 
 def get_calibration_rm(host, port, path):
