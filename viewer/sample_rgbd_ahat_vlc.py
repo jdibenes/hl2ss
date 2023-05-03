@@ -62,7 +62,7 @@ if __name__ == '__main__':
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_ht.scale / factor)
     max_depth = calibration_ht.alias / calibration_ht.scale
 
-    # Create Open3D integrator and visualizer ---------------------------------
+    # Create Open3D visualizer ------------------------------------------------
     o3d_lt_intrinsics = o3d.camera.PinholeCameraIntrinsic(hl2ss.Parameters_RM_DEPTH_AHAT.WIDTH, hl2ss.Parameters_RM_DEPTH_AHAT.HEIGHT, calibration_ht.intrinsics[0, 0], calibration_ht.intrinsics[1, 1], calibration_ht.intrinsics[2, 0], calibration_ht.intrinsics[2, 1])
     vis = o3d.visualization.Visualizer()
     vis.create_window()
