@@ -758,14 +758,15 @@ def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv):
     u = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_AB_U_Y  : _Mode0Layout_RM_DEPTH_AHAT.END_AB_U_Y,  :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH // 4))
     v = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_AB_V_Y  : _Mode0Layout_RM_DEPTH_AHAT.END_AB_V_Y,  :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH // 4))
 
-    ab = np.zeros((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH), dtype=np.uint8)
+    depth = y.astype(np.uint16) * Parameters_RM_DEPTH_AHAT.FACTOR
+    ab = np.zeros((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH), dtype=np.uint16)
 
-    ab[:, 0::4] = u
-    ab[:, 1::4] = u
-    ab[:, 2::4] = v
-    ab[:, 3::4] = v
+    ab[:, 0::4] = u * 256
+    ab[:, 1::4] = u * 256
+    ab[:, 2::4] = v * 256
+    ab[:, 3::4] = v * 256
 
-    return _RM_Depth_Frame(y, ab)
+    return _RM_Depth_Frame(depth, ab)
 
 
 class _decode_rm_depth_ahat:
