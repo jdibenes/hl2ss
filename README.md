@@ -146,7 +146,7 @@ A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.
 
 **Remote Unity Scene**
 
-The plugin has basic support for creating and controlling 3D primitives and text objects via TCP for the purpose of sending feedback to the HoloLens user. See the unity_demo Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory for some examples. Some of the supported features include:
+The plugin has basic support for creating and controlling 3D primitives and text objects via TCP for the purpose of sending feedback to the HoloLens user. See the unity_sample Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory for some examples. Some of the supported features include:
 
 - Create primitive: sphere, capsule, cylinder, cube, plane, and quad.
 - Set active: enable or disable game object.
