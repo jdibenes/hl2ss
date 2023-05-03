@@ -58,8 +58,7 @@ if __name__ == '__main__':
     calibration_ht = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_AHAT, calibration_path)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_ht.intrinsics, hl2ss.Parameters_RM_DEPTH_AHAT.WIDTH, hl2ss.Parameters_RM_DEPTH_AHAT.HEIGHT)
-    factor = 1.0 if (ht_profile == hl2ss.VideoProfile.RAW) else hl2ss.Parameters_RM_DEPTH_AHAT.FACTOR 
-    xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_ht.scale / factor)
+    xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_ht.scale)
     max_depth = calibration_ht.alias / calibration_ht.scale
 
     # Create Open3D visualizer ------------------------------------------------
