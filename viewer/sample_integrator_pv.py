@@ -145,11 +145,8 @@ if __name__ == '__main__':
         depth_image = o3d.geometry.Image(depth)
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color_image, depth_image, depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
 
-        # Compute world to RM Depth Long Throw camera transformation matrix ---
-        depth_world_to_camera = hl2ss_3dcv.world_to_reference(data_lt.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
-
         # Integrate RGBD and display point cloud ------------------------------
-        volume.integrate(rgbd, intrinsics_depth, depth_world_to_camera.transpose())
+        volume.integrate(rgbd, intrinsics_depth, world_to_lt.transpose())
         pcd_tmp = volume.extract_point_cloud()
 
         if (first_pcd):
