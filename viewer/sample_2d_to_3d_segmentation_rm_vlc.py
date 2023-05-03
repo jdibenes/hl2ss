@@ -33,7 +33,7 @@ vlc_port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 calibration_path = '../calibration/'
 
 # Camera parameters
-vlc_profile = hl2ss.VideoProfile.H264_BASE
+vlc_profile = hl2ss.VideoProfile.H265_MAIN
 vlc_bitrate = 1*1024*1024
 
 # Buffer length in seconds
