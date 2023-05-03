@@ -21,7 +21,7 @@ port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 # Position in camera space (x, y, z)
 position = [0,0, 0.5]
 
-# Rotation in camera space (x, y, w, z) as a quaternion
+# Rotation in camera space (x, y, z, w) as a quaternion
 rotation = [0, 0, 0, 1]
 
 # Scale (x, y, z) in meters
