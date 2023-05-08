@@ -1417,24 +1417,26 @@ def download_calibration_pv(host, port, width, height, framerate):
 #------------------------------------------------------------------------------
 
 class _PortName:
-    OF = ['rm_vlc_leftfront',
-          'rm_vlc_leftleft',
-          'rm_vlc_rightfront', 
-          'rm_vlc_rightright', 
-          'rm_depth_ahat', 
-          'rm_depth_longthrow', 
-          'rm_imu_accelerometer', 
-          'rm_imu_gyroscope', 
-          'rm_imu_magnetometer', 
-          'remote_configuration', 
-          'personal_video', 
-          'microphone', 
-          'spatial_input', 
-          'spatial_mapping', 
-          'scene_understanding',
-          'voice_input',
-          'unity_message_queue',
-          'extended_eye_tracker',]
+    OF = [
+        'rm_vlc_leftfront',
+        'rm_vlc_leftleft',
+        'rm_vlc_rightfront', 
+        'rm_vlc_rightright', 
+        'rm_depth_ahat', 
+        'rm_depth_longthrow', 
+        'rm_imu_accelerometer', 
+        'rm_imu_gyroscope', 
+        'rm_imu_magnetometer', 
+        'remote_configuration', 
+        'personal_video', 
+        'microphone', 
+        'spatial_input', 
+        'spatial_mapping', 
+        'scene_understanding',
+        'voice_input',
+        'unity_message_queue',
+        'extended_eye_tracker',
+    ]
 
 
 def get_port_index(port):
