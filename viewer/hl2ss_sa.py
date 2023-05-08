@@ -62,7 +62,7 @@ class sm_manager:
 
         count = len(updated_surfaces)
         if (count <= 0):
-            return count
+            return
 
         for index, mesh in self._ipc.get_meshes(tasks, self._threads).items():
             if (mesh is None):
@@ -76,7 +76,6 @@ class sm_manager:
             self._updated_surfaces[surface_info.id] = _sm_manager_entry(surface_info.update_time, mesh, rcs)
             
         self._load_updated_surfaces()
-        return count
     
     def close(self):
         self._ipc.close()
@@ -110,7 +109,7 @@ class sm_mt_manager(sm_manager):
     def get_observed_surfaces(self):
         if (self._task is not None):
             if (self._task.is_alive()):
-                return False
+                return
             self._task.join()
         self._task = threading.Thread(target=super().get_observed_surfaces)
         self._task.start()
