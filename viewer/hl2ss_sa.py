@@ -199,6 +199,68 @@ class sm_mp_manager(mp.Process):
 # Scene Understanding Data Manager
 #------------------------------------------------------------------------------
 
+class su_manager:
+    def __init__(self, host):
+        self._enable_scene_object_quads = False
+        self._enable_scene_object_meshes = True
+        self._enable_only_observed_scene_objects = False
+        self._create_mode = hl2ss.SU_Create.NewFromPrevious
+        self._get_orientation = False
+        self._get_position = False
+        self._get_location_matrix = True
+        self._get_quad = False
+        self._get_meshes = True
+        self._get_collider_meshes = False
+        self._guid_list = []
+        self._ipc = hl2ss.ipc_su(host, hl2ss.IPCPort.SCENE_UNDERSTANDING)
+
+    def open(self):
+        self._ipc.open()
+
+    def configure(self, enable_world_mesh, mesh_lod, query_radius, kind_flags):
+        self._enable_world_mesh = enable_world_mesh
+        self._requested_mesh_level_of_detail = mesh_lod
+        self._query_radius = query_radius
+        self._kinds = kind_flags
+
+    def update(self):
+        self._items = {}
+
+        task = hl2ss.su_task(
+            self._enable_scene_object_quads,
+            self._enable_scene_object_meshes, 
+            self._enable_only_observed_scene_objects, 
+            self._enable_world_mesh, 
+            self._requested_mesh_level_of_detail, 
+            self._query_radius, 
+            self._create_mode, 
+            self._kinds, 
+            self._get_orientation, 
+            self._get_position, 
+            self._get_location_matrix, 
+            self._get_quad, 
+            self._get_meshes, 
+            self._get_collider_meshes, 
+            self._guid_list
+        )
+        task.pack()
+
+        result = self._ipc.query(task)
+        result.unpack()
+
+        for item in result.items:
+            item.unpack()
+            for mesh in item.meshes:
+                mesh.unpack()
+                hl2ss_3dcv.su_normalize(mesh, item.location @ result.pose)
+            self._items[item.id.hex()] = item
+
+    def close(self):
+        self._ipc.close()
+
+    def get_items(self):
+        return self._items
+
 
 #------------------------------------------------------------------------------
 # Custom Open3D Integrator
