@@ -139,7 +139,7 @@ if __name__ == '__main__':
         lt_points         = hl2ss_3dcv.rm_depth_to_points(xy1, depth)
         lt_to_world       = hl2ss_3dcv.camera_to_rignode(calibration_lt.extrinsics) @ hl2ss_3dcv.reference_to_world(data_depth.pose)
         world_to_lt       = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_lt.extrinsics)
-        world_to_pv_image = hl2ss_3dcv.world_to_reference(data_pv.pose) @ hl2ss_3dcv.camera_to_image(pv_intrinsics)
+        world_to_pv_image = hl2ss_3dcv.world_to_reference(data_pv.pose) @ hl2ss_3dcv.rignode_to_camera(color_extrinsics) @ hl2ss_3dcv.camera_to_image(color_intrinsics)
         world_points      = hl2ss_3dcv.transform(lt_points, lt_to_world)
         pv_uv             = hl2ss_3dcv.project(world_points, world_to_pv_image)
         color             = cv2.remap(color, pv_uv[:, :, 0], pv_uv[:, :, 1], cv2.INTER_LINEAR)
