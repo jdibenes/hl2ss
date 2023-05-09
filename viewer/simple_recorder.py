@@ -16,7 +16,7 @@ import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
-# HoloLens Address
+# HoloLens address
 host = '192.168.1.7'
 
 # Output directory
@@ -197,4 +197,3 @@ if __name__ == '__main__':
         output_filename = input_filename[:input_filename.rfind('.bin')] + '.csv'
         hl2ss_utilities.unpack_to_csv(input_filename, output_filename)
 
- 
