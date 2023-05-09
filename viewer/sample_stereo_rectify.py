@@ -55,7 +55,7 @@ if (__name__ == '__main__'):
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    # Get camera calibrations -----------------------------------------------------
+    # Get camera calibrations -------------------------------------------------
     calibration_lf = hl2ss_3dcv.get_calibration_rm(host, port_left, calibration_path)
     calibration_rf = hl2ss_3dcv.get_calibration_rm(host, port_right, calibration_path)
 
@@ -65,7 +65,7 @@ if (__name__ == '__main__'):
     K1, Rt1 = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_lf.intrinsics, calibration_lf.extrinsics, rotation_lf)
     K2, Rt2 = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_rf.intrinsics, calibration_rf.extrinsics, rotation_rf)
 
-    # Get stereo calibration and rectify ------------------------------------------
+    # Get stereo calibration and rectify --------------------------------------
     stereo_calibration = hl2ss_3dcv.rm_vlc_stereo_calibrate(K1, K2, Rt1, Rt2)
     stereo_rectification = hl2ss_3dcv.rm_vlc_stereo_rectify(K1, K2, stereo_calibration.R, stereo_calibration.t, shape)
 
