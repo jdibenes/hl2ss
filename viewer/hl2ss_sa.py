@@ -6,6 +6,9 @@ import open3d as o3d
 import hl2ss
 import hl2ss_3dcv
 
+#------------------------------------------------------------------------------
+# Spatial Mapping Data Manager
+#------------------------------------------------------------------------------
 
 class _sm_manager_entry:
     def __init__(self, update_time, mesh, rcs):
@@ -186,4 +189,217 @@ class sm_mp_manager(mp.Process):
                 self._cast_rays()
 
         self._ipc.close()
+
+
+#------------------------------------------------------------------------------
+# Integrator
+#------------------------------------------------------------------------------
+
+class integrator:
+    def __init__(self, voxel_size=3/512, block_resolution=16, block_count=10000, device='cpu:0'):
+        self._voxel_size = float(voxel_size)
+        self._block_resolution = int(block_resolution)
+        self._block_count = int(block_count)
+        self._device = o3d.core.Device(device)
+        self._bin_size = voxel_size * block_resolution
+        attr_names = ('tsdf', 'weight', 'color')
+        attr_dtypes = (o3d.core.float32, o3d.core.uint16, o3d.core.uint16)
+        attr_channels = ((1), (1), (3))
+        self._vbg = o3d.t.geometry.VoxelBlockGrid(attr_names=attr_names, attr_dtypes=attr_dtypes, attr_channels=attr_channels, voxel_size=voxel_size, block_resolution=block_resolution, block_count=block_count, device=self._device)
+        self.set_trunc()
+        self.set_trunc_voxel_multiplier()
+
+    def set_trunc(self, value=None):
+        self._trunc = 4*self._voxel_size if (value is None) else float(value)
+
+    def set_trunc_voxel_multiplier(self, value=8.0):
+        self._trunc_voxel_multiplier = float(value)
+
+    def set_depth_parameters(self, depth_scale, depth_max):
+        self._depth_scale = float(depth_scale)
+        self._depth_max = float(depth_max)
+
+    def set_intrinsics(self, intrinsics):
+        t = o3d.core.Tensor(intrinsics.transpose())
+        self._intrinsics32 = t.to(self._device, o3d.core.float32)
+        self._intrinsics64 = t.to(self._device, o3d.core.float64)
+
+    def set_extrinsics(self, extrinsics):
+        t = o3d.core.Tensor(extrinsics.transpose())
+        self._extrinsics32 = t.to(self._device, o3d.core.float32)
+        self._extrinsics64 = t.to(self._device, o3d.core.float64)
+
+    def set_projection(self, projection):
+        self._projection32 = o3d.core.Tensor(projection).to(self._device, o3d.core.float32)
+
+    def set_depth(self, depth):
+        self._depth = o3d.t.geometry.Image(depth).to(self._device)
+
+    def set_color(self, color):
+        self._color = o3d.t.geometry.Image(color).to(self._device)
+
+    def extract_point_cloud(self, weight_threshold=3.0, estimated_point_number=-1):
+        return self._vbg.extract_point_cloud(float(weight_threshold), int(estimated_point_number))
+
+    def integrate(self):
+        frustum_block_coords = self._vbg.compute_unique_block_coordinates(self._depth, self._intrinsics64, self._extrinsics64, self._depth_scale, self._depth_max, self._trunc_voxel_multiplier)
+        self._vbg.integrate(frustum_block_coords, self._depth, self._color, self._intrinsics64, self._intrinsics64, self._extrinsics64, self._depth_scale, self._depth_max)
+
+    def reset_weights(self, value):
+        weight = self._vbg.attribute('weight').reshape((-1, 1))
+        weight[:, 0] = (weight[:, 0] | (weight[:, 0] >> 1)) & 1
+        #o3d.core.cuda.synchronize()
+
+    def erase_full(self):
+        buf_indices = self._vbg.hashmap().active_buf_indices()
+        #o3d.core.cuda.synchronize()
+        voxel_coords, voxel_indices = self._vbg.voxel_coordinates_and_flattened_indices(buf_indices)
+        #o3d.core.cuda.synchronize()
+        uvd = voxel_coords @ self._projection32[:3, :3] + self._projection32[3:, :3]
+        d = uvd[:, 2]
+        u = (uvd[:, 0] / d).round().to(o3d.core.int64)
+        v = (uvd[:, 1] / d).round().to(o3d.core.int64)
+        #o3d.core.cuda.synchronize()
+        mask_proj = (d > 0) & (u >= 0) & (v >= 0) & (u < self._depth.columns) & (v < self._depth.rows)
+        v_proj = v[mask_proj]
+        u_proj = u[mask_proj]
+        d_proj = d[mask_proj]
+        depth_readings = self._depth.as_tensor()[v_proj, u_proj, 0]
+        sdf = depth_readings - d_proj
+        mask_inlier = sdf > self._trunc
+        #o3d.core.cuda.synchronize()
+        weight = self._vbg.attribute('weight').reshape((-1, 1))
+        valid_voxel_indices = voxel_indices[mask_proj][mask_inlier]
+        weight[valid_voxel_indices] = 0
+        #o3d.core.cuda.synchronize()
+
+    def erase_approximate(self):
+        active_keys = self._vbg.hashmap().key_tensor()
+        voxel_coords = active_keys.to(o3d.core.float32) * self._bin_size
+        uvd = voxel_coords @ self._projection32[:3, :3] + self._projection32[3:, :3]
+        d = uvd[:, 2]
+        u = (uvd[:, 0] / d).round().to(o3d.core.int64)
+        v = (uvd[:, 1] / d).round().to(o3d.core.int64)
+        #o3d.core.cuda.synchronize()
+        mask_proj = (d > 0) & (u >= 0) & (v >= 0) & (u < self._depth.columns) & (v < self._depth.rows)
+        erase_keys = active_keys[mask_proj]
+        buf_indices, masks = self._vbg.hashmap().find(erase_keys)
+        #o3d.core.cuda.synchronize()
+        voxel_coords, voxel_indices = self._vbg.voxel_coordinates_and_flattened_indices(buf_indices)
+        #o3d.core.cuda.synchronize()
+        uvd = voxel_coords @ self._projection32[:3, :3] + self._projection32[3:, :3]
+        d = uvd[:, 2]
+        u = (uvd[:, 0] / d).round().to(o3d.core.int64)
+        v = (uvd[:, 1] / d).round().to(o3d.core.int64)
+        #o3d.core.cuda.synchronize()
+        mask_proj = (d > 0) & (u >= 0) & (v >= 0) & (u < self._depth.columns) & (v < self._depth.rows)
+        v_proj = v[mask_proj]
+        u_proj = u[mask_proj]
+        d_proj = d[mask_proj]
+        depth_readings = self._depth.as_tensor()[v_proj, u_proj, 0]
+        sdf = depth_readings - d_proj
+        mask_inlier = sdf > self._trunc
+        #o3d.core.cuda.synchronize()
+        weight = self._vbg.attribute('weight').reshape((-1, 1))
+        valid_voxel_indices = voxel_indices[mask_proj][mask_inlier]
+        weight[valid_voxel_indices] = 0
+        #o3d.core.cuda.synchronize()
+
+    def update(self):
+        frustum_block_coords = self._vbg.compute_unique_block_coordinates(self._depth, self._intrinsics64, self._extrinsics64, self._depth_scale, self._depth_max)
+        self._vbg.hashmap().activate(frustum_block_coords)
+        buf_indices = self._vbg.hashmap().active_buf_indices()
+        #o3d.core.cuda.synchronize()
+        voxel_coords, voxel_indices = self._vbg.voxel_coordinates_and_flattened_indices(buf_indices)
+        #o3d.core.cuda.synchronize()        
+        uvd = voxel_coords @ self._projection32[:3, :3] + self._projection32[3:, :3]
+        d = uvd[:, 2]
+        u = (uvd[:, 0] / d).round().to(o3d.core.int64)
+        v = (uvd[:, 1] / d).round().to(o3d.core.int64)
+        #o3d.core.cuda.synchronize()
+        mask_proj = (d > 0) & (u >= 0) & (v >= 0) & (u < self._depth.columns) & (v < self._depth.rows)
+        v_proj = v[mask_proj]
+        u_proj = u[mask_proj]
+        d_proj = d[mask_proj]
+        depth_readings = self._depth.as_tensor()[v_proj, u_proj, 0]
+        color_readings = self._color.as_tensor()[v_proj, u_proj]
+        sdf = depth_readings - d_proj
+        mask_base   = (depth_readings > 0) & (sdf >= -self._trunc)
+        mask_erase  = mask_base & (sdf > self._trunc)
+        mask_update = mask_base & (sdf <= self._trunc)
+        #sdf = sdf / self._trunc
+        #o3d.core.cuda.synchronize()
+        weight = self._vbg.attribute('weight').reshape((-1, 1))
+        tsdf = self._vbg.attribute('tsdf').reshape((-1, 1))
+        rgb = self._vbg.attribute('color').reshape((-1, 3))
+        valid_voxel_indices = voxel_indices[mask_proj][mask_update]
+        tsdf[valid_voxel_indices] = sdf[mask_update].reshape((-1, 1))
+        rgb[valid_voxel_indices] = color_readings[mask_update]
+        weight[valid_voxel_indices] = 1
+        #o3d.core.cuda.synchronize()
+        valid_voxel_indices = voxel_indices[mask_proj][mask_erase]
+        weight[valid_voxel_indices] = 0
+        #o3d.core.cuda.synchronize()
+
+    def update_full(self):
+        frustum_block_coords = self._vbg.compute_unique_block_coordinates(self._depth, self._intrinsics64, self._extrinsics64, self._depth_scale, self._depth_max, self._trunc_voxel_multiplier)
+        self._vbg.hashmap().activate(frustum_block_coords)
+        buf_indices, masks = self._vbg.hashmap().find(frustum_block_coords)
+        #o3d.core.cuda.synchronize()
+        voxel_coords, voxel_indices = self._vbg.voxel_coordinates_and_flattened_indices(buf_indices)
+        #o3d.core.cuda.synchronize()
+        uvd = voxel_coords @ self._projection32[:3, :3] + self._projection32[3:, :3]
+        d = uvd[:, 2]
+        u = (uvd[:, 0] / d).round().to(o3d.core.int64)
+        v = (uvd[:, 1] / d).round().to(o3d.core.int64)
+        #o3d.core.cuda.synchronize()
+        mask_proj = (d > 0) & (u >= 0) & (v >= 0) & (u < self._depth.columns) & (v < self._depth.rows)
+        v_proj = v[mask_proj]
+        u_proj = u[mask_proj]
+        d_proj = d[mask_proj]
+        depth_readings = self._depth.as_tensor()[v_proj, u_proj, 0].to(o3d.core.float32)
+        color_readings = self._color.as_tensor()[v_proj, u_proj].to(o3d.core.float32)
+        sdf = depth_readings - d_proj
+        mask_inlier = (depth_readings > 0) & (sdf >= -self._trunc) & (depth_readings < self._depth_max) 
+        sdf[sdf >= self._trunc] = self._trunc
+        sdf = sdf / self._trunc
+        #o3d.core.cuda.synchronize()
+        weight = self._vbg.attribute('weight').reshape((-1, 1))
+        tsdf = self._vbg.attribute('tsdf').reshape((-1, 1))
+        rgb = self._vbg.attribute('color').reshape((-1, 3))
+        valid_voxel_indices = voxel_indices[mask_proj][mask_inlier]
+        tsdf[valid_voxel_indices] = sdf[mask_inlier].reshape((-1, 1))
+        rgb[valid_voxel_indices] = color_readings[mask_inlier]
+        weight[valid_voxel_indices] = 1
+        #o3d.core.cuda.synchronize()
+        active_keys = self._vbg.hashmap().key_tensor()
+        voxel_coords = active_keys.to(o3d.core.float32) * self._bin_size
+        uvd = voxel_coords @ self._projection32[:3, :3] + self._projection32[3:, :3]
+        d = uvd[:, 2]
+        u = (uvd[:, 0] / d).round().to(o3d.core.int64)
+        v = (uvd[:, 1] / d).round().to(o3d.core.int64)
+        #o3d.core.cuda.synchronize()
+        mask_proj = (d > 0) & (u >= 0) & (v >= 0) & (u < self._depth.columns) & (v < self._depth.rows)
+        erase_keys = active_keys[mask_proj]
+        buf_indices, masks = self._vbg.hashmap().find(erase_keys)
+        #o3d.core.cuda.synchronize()
+        voxel_coords, voxel_indices = self._vbg.voxel_coordinates_and_flattened_indices(buf_indices)
+        #o3d.core.cuda.synchronize()
+        uvd = voxel_coords @ self._projection32[:3, :3] + self._projection32[3:, :3]
+        d = uvd[:, 2]
+        u = (uvd[:, 0] / d).round().to(o3d.core.int64)
+        v = (uvd[:, 1] / d).round().to(o3d.core.int64)
+        #o3d.core.cuda.synchronize()
+        mask_proj = (d > 0) & (u >= 0) & (v >= 0) & (u < self._depth.columns) & (v < self._depth.rows)
+        v_proj = v[mask_proj]
+        u_proj = u[mask_proj]
+        d_proj = d[mask_proj]
+        depth_readings = self._depth.as_tensor()[v_proj, u_proj, 0]
+        sdf = depth_readings - d_proj
+        mask_inlier = sdf > self._trunc
+        #o3d.core.cuda.synchronize()
+        weight = self._vbg.attribute('weight').reshape((-1, 1))
+        valid_voxel_indices = voxel_indices[mask_proj][mask_inlier]
+        weight[valid_voxel_indices] = 0
+        #o3d.core.cuda.synchronize()
 
