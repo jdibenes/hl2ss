@@ -101,7 +101,7 @@ if __name__ == '__main__':
     # Main Loop ---------------------------------------------------------------
     while (enable):
         # Download observed surfaces ------------------------------------------
-        #sm_manager.get_observed_surfaces()
+        sm_manager.get_observed_surfaces()
 
         # Wait for PV frame ---------------------------------------------------
         sink_pv.acquire()

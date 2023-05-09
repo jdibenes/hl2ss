@@ -25,15 +25,12 @@ host = "192.168.1.7"
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
 
-# Port
-port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
-
 # Video Encoding profiles
 profile = hl2ss.VideoProfile.H265_MAIN
 
 # Encoded stream average bits per second
 # Must be > 0
-bitrate = 1*1024*1024
+bitrate = 8*1024*1024
 
 # Marker properties
 radius = 5
@@ -77,25 +74,24 @@ if __name__ == '__main__':
     sm_manager.set_volumes(volumes)
     sm_manager.get_observed_surfaces()
 
-    # Get RM VLC calibration --------------------------------------------------
+    # Get RM Depth AHAT calibration -------------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
-    rotation_vlc = hl2ss_3dcv.rm_vlc_get_rotation(port)
+    calibration_ht = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_AHAT, calibration_path)
 
-    # Start RM VLC and Spatial Input streams ----------------------------------
+    # Start RM Depth AHAT and Spatial Input streams ---------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
+    producer.configure_rm_depth_ahat(True, host, hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.ChunkSize.RM_DEPTH_AHAT, hl2ss.StreamMode.MODE_1, profile, bitrate)
     producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
-    producer.initialize(port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
+    producer.initialize(hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.Parameters_RM_DEPTH_AHAT.FPS * buffer_length)
     producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
-    producer.start(port)
+    producer.start(hl2ss.StreamPort.RM_DEPTH_AHAT)
     producer.start(hl2ss.StreamPort.SPATIAL_INPUT)
 
     consumer = hl2ss_mp.consumer()
     manager = mp.Manager()
-    sink_vlc = consumer.create_sink(producer, port, manager, ...)
+    sink_ht = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_AHAT, manager, ...)
     sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, None)
-    sink_vlc.get_attach_response()
+    sink_ht.get_attach_response()
     sink_si.get_attach_response()
 
     # Main Loop ---------------------------------------------------------------
@@ -103,24 +99,25 @@ if __name__ == '__main__':
         # Download observed surfaces ------------------------------------------
         sm_manager.get_observed_surfaces()
 
-        # Wait for RM VLC frame -----------------------------------------------
-        sink_vlc.acquire()
+        # Wait for RM Depth AHAT frame ----------------------------------------
+        sink_ht.acquire()
 
-        # Get RM VLC frame and nearest (in time) Spatial Input frame ----------
-        _, data_vlc = sink_vlc.get_most_recent_frame()
-        if ((data_vlc is None) or (not hl2ss.is_valid_pose(data_vlc.pose))):
+        # Get RM Depth AHAT frame and nearest (in time) Spatial Input frame ---
+        _, data_ht = sink_ht.get_most_recent_frame()
+        if ((data_ht is None) or (not hl2ss.is_valid_pose(data_ht.pose))):
             continue
 
-        _, data_si = sink_si.get_nearest(data_vlc.timestamp)
+        _, data_si = sink_si.get_nearest(data_ht.timestamp)
         if (data_si is None):
             continue
 
-        image = cv2.remap(data_vlc.payload, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        image = cv2.remap(data_ht.payload.depth, calibration_ht.undistort_map[:, :, 0], calibration_ht.undistort_map[:, :, 1], cv2.INTER_NEAREST)
+        image = ((image / np.max(image))*255).astype(np.uint8) # Normalized for visibility
         image = np.dstack((image, image, image))
         si = hl2ss.unpack_si(data_si.payload)
 
-        # Compute world to RM VLC image transformation matrix -----------------
-        world_to_image = hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_vlc.extrinsics) @ hl2ss_3dcv.camera_to_image(calibration_vlc.intrinsics)
+        # Compute world to RM Depth AHAT image transformation matrix ----------
+        world_to_image = hl2ss_3dcv.world_to_reference(data_ht.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_ht.extrinsics) @ hl2ss_3dcv.camera_to_image(calibration_ht.intrinsics)
 
         # Draw Head Pointer ---------------------------------------------------
         if (si.is_valid_head_pose()):
@@ -157,15 +154,15 @@ if __name__ == '__main__':
                 hl2ss_utilities.draw_points(image, gaze_image_point.astype(np.int32), radius, gaze_color, thickness)
                 
         # Display frame -------------------------------------------------------
-        cv2.imshow('Video', hl2ss_3dcv.rm_vlc_rotate_image(image, rotation_vlc))
+        cv2.imshow('Video', image)
         cv2.waitKey(1)
 
     # Stop Spatial Mapping data manager ---------------------------------------
     sm_manager.close()
 
-    sink_vlc.detach()
+    sink_ht.detach()
     sink_si.detach()
-    producer.stop(port)
+    producer.stop(hl2ss.StreamPort.RM_DEPTH_AHAT)
     producer.stop(hl2ss.StreamPort.SPATIAL_INPUT)
 
     # Stop keyboard events ----------------------------------------------------

@@ -1,11 +1,14 @@
 #------------------------------------------------------------------------------
-# This script performs stereo rectification for a pair of RM VLC cameras.
+# This script performs stereo rectification for the RM VLC left front camera
+# and PV. Before running this script, extract the PV rignode extrinsics using
+# tools/pv_extrinsic_calibration.py.
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
 
 import multiprocessing as mp
+
 import numpy as np
 import cv2
 import hl2ss_imshow
@@ -18,22 +21,25 @@ import hl2ss_3dcv
 # HoloLens 2 address
 host = '192.168.1.7'
 
-# Ports
-port_left  = hl2ss.StreamPort.RM_VLC_LEFTFRONT
-port_right = hl2ss.StreamPort.RM_VLC_RIGHTFRONT
-
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
 
 # Camera parameters
-profile = hl2ss.VideoProfile.H265_MAIN
-bitrate = 1*1024*1024
+pv_focus = 1000 # in mm
+pv_width = 640
+pv_height = 360
+pv_framerate = 30
+pv_profile = hl2ss.VideoProfile.H265_MAIN
+pv_bitrate = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_framerate, hl2ss.get_video_codec_default_factor(pv_profile))
+
+vlc_profile = hl2ss.VideoProfile.H265_MAIN
+vlc_bitrate = 1*1024*1024
 
 # Buffer size in seconds
 buffer_size = 10
 
 # Undistort rectify map shape
-shape = hl2ss.Parameters_RM_VLC.SHAPE
+shape = (640,640)
 
 # Line parameters
 line_start = 10
@@ -55,40 +61,44 @@ if (__name__ == '__main__'):
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
+    # Start PV subsystem ------------------------------------------------------
+    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+
+    # Fix PV camera focus so intrinsics do not change between frames ----------
+    ipc_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    ipc_rc.open()
+    ipc_rc.wait_for_pv_subsystem(True)
+    ipc_rc.set_pv_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Infinity, pv_focus, hl2ss.PV_DriverFallback.Disable)
+    ipc_rc.close()
+
     # Get camera calibrations -------------------------------------------------
+    port_left  = hl2ss.StreamPort.RM_VLC_LEFTFRONT
+
     calibration_lf = hl2ss_3dcv.get_calibration_rm(host, port_left, calibration_path)
-    calibration_rf = hl2ss_3dcv.get_calibration_rm(host, port_right, calibration_path)
+    calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_framerate, True)
 
     rotation_lf = hl2ss_3dcv.rm_vlc_get_rotation(port_left)
-    rotation_rf = hl2ss_3dcv.rm_vlc_get_rotation(port_right)
 
     K1, Rt1 = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_lf.intrinsics, calibration_lf.extrinsics, rotation_lf)
-    K2, Rt2 = hl2ss_3dcv.rm_vlc_rotate_calibration(calibration_rf.intrinsics, calibration_rf.extrinsics, rotation_rf)
+    K2, Rt2 = hl2ss_3dcv.pv_fix_calibration(calibration_rf.intrinsics, calibration_rf.extrinsics)
 
     # Get stereo calibration and rectify --------------------------------------
-    stereo_calibration = hl2ss_3dcv.rm_vlc_stereo_calibrate(K1, K2, Rt1, Rt2)
+    stereo_calibration   = hl2ss_3dcv.rm_vlc_stereo_calibrate(K1, K2, Rt1, Rt2)
     stereo_rectification = hl2ss_3dcv.rm_vlc_stereo_rectify(K1, K2, stereo_calibration.R, stereo_calibration.t, shape)
-
-    # You can save stereo calibration and rectification using:
-    # hl2ss_3dcv.save_stereo_calibration(port_left, port_right, stereo_calibration, calibration_path)
-    # hl2ss_3dcv.save_stereo_rectification(port_left, port_right, stereo_rectification, calibration_path)
-    # and load using:
-    # stereo_calibration = hl2ss_3dcv.load_stereo_calibration(port_left, port_right, calibration_path)
-    # stereo_rectification = hl2ss_3dcv.load_stereo_rectification(port_left, port_right, calibration_path)
 
     # Start streams -----------------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port_left, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, profile, bitrate)
-    producer.configure_rm_vlc(True, host, port_right, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, profile, bitrate)
+    producer.configure_rm_vlc(True, host, port_left, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, vlc_profile, vlc_bitrate)
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'bgr24')
     producer.initialize(port_left, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
-    producer.initialize(port_right, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
+    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, buffer_size * pv_framerate)
     producer.start(port_left)
-    producer.start(port_right)
+    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
 
     consumer = hl2ss_mp.consumer()
     manager = mp.Manager()
     sink_left = consumer.create_sink(producer, port_left, manager, ...)
-    sink_right = consumer.create_sink(producer, port_right, manager, None)
+    sink_right = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
     sink_left.get_attach_response()
     sink_right.get_attach_response()
 
@@ -107,17 +117,15 @@ if (__name__ == '__main__'):
 
         # Undistort and rectify frames ----------------------------------------
         lf_u = cv2.remap(data_left.payload, calibration_lf.undistort_map[:, :, 0], calibration_lf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
-        rf_u = cv2.remap(data_right.payload, calibration_rf.undistort_map[:, :, 0], calibration_rf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
-
         lf_ru = hl2ss_3dcv.rm_vlc_rotate_image(lf_u, rotation_lf)
-        rf_ru = hl2ss_3dcv.rm_vlc_rotate_image(rf_u, rotation_rf)
+        rf_ru = data_right.payload.image
 
         r1 = cv2.remap(lf_ru, stereo_rectification.map1[:, :, 0], stereo_rectification.map1[:, :, 1], cv2.INTER_LINEAR)
         r2 = cv2.remap(rf_ru, stereo_rectification.map2[:, :, 0], stereo_rectification.map2[:, :, 1], cv2.INTER_LINEAR)
 
         # Display frames ------------------------------------------------------
         image_l = hl2ss_3dcv.rm_vlc_to_rgb(r1)
-        image_r = hl2ss_3dcv.rm_vlc_to_rgb(r2)
+        image_r = r2
 
         image = np.hstack((image_l, image_r))
 
@@ -131,7 +139,10 @@ if (__name__ == '__main__'):
     sink_left.detach()
     sink_right.detach()
     producer.stop(port_left)
-    producer.stop(port_right)
+    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
+
+    # Stop PV subsystem -------------------------------------------------------
+    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()
