@@ -69,7 +69,7 @@ while (enable):
     count = imu_data.get_count()
     sample = imu_data.get_frame(0)
     print(f'Got {count} samples at time {data.timestamp}')
-    print(f'First sample is (sensor_ticks={sample.vinyl_hup_ticks} soc_ticks={sample.soc_ticks}, x={sample.x}, y={sample.y}, z={sample.z}, temperature={sample.temperature})')
+    print(f'First sample: sensor_ticks={sample.vinyl_hup_ticks} soc_ticks={sample.soc_ticks} x={sample.x} y={sample.y} z={sample.z} temperature={sample.temperature}')
 
 client.close()
 listener.join()

@@ -1,5 +1,8 @@
 
+import io
 import fractions
+import tarfile
+import csv
 import numpy as np
 import time
 import cv2
@@ -7,6 +10,19 @@ import av
 import hl2ss
 import hl2ss_io
 import hl2ss_3dcv
+
+
+#------------------------------------------------------------------------------
+# RM IMU
+#------------------------------------------------------------------------------
+
+def rm_imu_get_batch_size(port):
+    if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
+        return hl2ss.Parameters_RM_IMU_ACCELEROMETER.BATCH_SIZE
+    if (port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
+        return hl2ss.Parameters_RM_IMU_GYROSCOPE.BATCH_SIZE
+    if (port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
+        return hl2ss.Parameters_RM_IMU_MAGNETOMETER.BATCH_SIZE
 
 
 #------------------------------------------------------------------------------
@@ -28,11 +44,12 @@ def microphone_packed_to_planar(array):
 
 
 class microphone_resampler:
-    def open(self, target_format=None, target_layout=None, target_rate=None):
+    def create(self, target_format=None, target_layout=None, target_rate=None):
         self._resampler = av.AudioResampler(format=target_format, layout=target_layout, rate=target_rate)
 
-    def resample(self, data, format, layout):
-        in_frame = av.AudioFrame.from_ndarray(data, format=format, layout=layout)
+    def resample(self, data, profile):
+        in_frame = av.AudioFrame.from_ndarray(data, format='s16' if (profile == hl2ss.AudioProfile.RAW) else 'fltp', layout='stereo')
+        in_frame.rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
         out_frames = self._resampler.resample(in_frame)
         return [frame.to_ndarray() for frame in out_frames]
 
@@ -79,14 +96,46 @@ def si_ray_get_direction(ray):
 
 
 def si_ray_transform(ray, transform4x4):
-    ray_t = ray.copy()
-    ray_t[:, 0:3] = hl2ss_3dcv.transform(ray[:, 0:3], transform4x4)
-    ray_t[:, 3:6] = hl2ss_3dcv.orient(ray[:, 3:6], transform4x4)
-    return ray_t
+    return np.hstack((hl2ss_3dcv.transform(ray[:, 0:3], transform4x4), hl2ss_3dcv.orient(ray[:, 3:6], transform4x4)))
 
 
 def si_ray_to_point(ray, d):
     return (ray[:, 0:3] + d * ray[:, 3:6]).reshape((-1, 3))
+
+
+class _SI_JointName:
+    OF = [
+        'Palm',
+        'Wrist',
+        'ThumbMetacarpal',
+        'ThumbProximal',
+        'ThumbDistal',
+        'ThumbTip',
+        'IndexMetacarpal',
+        'IndexProximal',
+        'IndexIntermediate',
+        'IndexDistal',
+        'IndexTip',
+        'MiddleMetacarpal',
+        'MiddleProximal',
+        'MiddleIntermediate',
+        'MiddleDistal',
+        'MiddleTip',
+        'RingMetacarpal',
+        'RingProximal',
+        'RingIntermediate',
+        'RingDistal',
+        'RingTip',
+        'LittleMetacarpal',
+        'LittleProximal',
+        'LittleIntermediate',
+        'LittleDistal',
+        'LittleTip',
+    ]
+
+
+def si_get_joint_name(joint_kind):
+    return _SI_JointName.OF[joint_kind]
 
 
 #------------------------------------------------------------------------------
@@ -101,42 +150,307 @@ def draw_points(image, points, radius, color, thickness):
 
 
 #------------------------------------------------------------------------------
-# Unpack to MP4
+# Unpacking
 #------------------------------------------------------------------------------
 
-def get_av_codec_name(reader):
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss.get_video_codec_name(reader.header.profile)
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss.get_video_codec_name(reader.header.profile)
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss.get_video_codec_name(reader.header.profile)
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss.get_video_codec_name(reader.header.profile)
-    if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss.get_video_codec_name(reader.header.profile)
-    if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
-        return hl2ss.get_video_codec_name(reader.header.profile)
-    if (reader.header.port == hl2ss.StreamPort.MICROPHONE):
-        return hl2ss.get_audio_codec_name(reader.header.profile)
-    
+def _create_csv_header_for_timestamp():
+    return ['timestamp']
 
-def get_av_framerate(reader):
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
+
+def _create_csv_header_for_pose():
+    return [f'pose {i}{j}' for i in range(0, 4) for j in range(0, 4)]
+
+
+def _create_csv_header_for_rm_imu_sample(index):
+    return [f'sensor ticks {index}', f'soc ticks {index}', f'x {index}', f'y {index}', f'z {index}', f'temperature {index}']
+
+
+def _create_csv_header_for_rm_imu_payload(port):
+    header = []
+    for i in range(0, rm_imu_get_batch_size(port)):
+        header.extend(_create_csv_header_for_rm_imu_sample(i))
+    return header
+
+
+def _create_csv_header_for_pv_payload():
+    return ['fx', 'fy', 'cx', 'cy']
+
+
+def _create_csv_header_for_si_head_pose():
+    return ['head pose valid'] + [f'head position {w}' for w in ['x', 'y', 'z']] + [f'head forward {w}' for w in ['x', 'y', 'z']] + [f'head up {w}' for w in ['x', 'y', 'z']]
+
+
+def _create_csv_header_for_si_eye_ray():
+    return ['eye ray valid'] + [f'eye ray origin {w}'for w in ['x', 'y', 'z']] + [f'eye ray direction {w}' for w in ['x', 'y', 'z']]
+
+
+def _create_csv_header_for_si_hand_joint(hand_name, joint_kind):
+    joint_name = si_get_joint_name(joint_kind)
+    return [f'{hand_name} {joint_name} position {u}' for u in ['x', 'y', 'z']] + [f'{hand_name} {joint_name} orientation {u}' for u in ['x', 'y', 'z', 'w']] + [f'{hand_name} {joint_name} radius'] + [f'{hand_name} {joint_name} accuracy']
+
+
+def _create_csv_header_for_si_hand(hand_name):
+    header = [f'hand {hand_name} valid']
+    for joint_index in range(0, hl2ss.SI_HandJointKind.TOTAL):
+        header.extend(_create_csv_header_for_si_hand_joint(hand_name, joint_index))
+    return header
+
+
+def _create_csv_header_for_si_payload():
+    return _create_csv_header_for_si_head_pose() + _create_csv_header_for_si_eye_ray() + _create_csv_header_for_si_hand('left') + _create_csv_header_for_si_hand('right')
+
+
+def _create_csv_header_for_eet_calibration():
+    return ['calibration valid']
+
+
+def _create_csv_header_for_eet_ray(ray_name):
+    return [f'{ray_name} valid'] + [f'{ray_name} origin {w}'for w in ['x', 'y', 'z']] + [f'{ray_name} direction {w}' for w in ['x', 'y', 'z']]
+
+
+def _create_csv_header_for_eet_field(field_name):
+    return [f'{field_name} valid', f'{field_name} value']
+
+
+def _create_csv_header_for_eet_payload():
+    return  _create_csv_header_for_eet_calibration() + _create_csv_header_for_eet_ray('combined') + _create_csv_header_for_eet_ray('left') + _create_csv_header_for_eet_ray('right') + _create_csv_header_for_eet_field('left openness') + _create_csv_header_for_eet_field('right openness') + _create_csv_header_for_eet_field('vergence distance')
+
+
+def _create_csv_header_for_rm_vlc():
+    return _create_csv_header_for_timestamp() + _create_csv_header_for_pose()
+
+
+def _create_csv_header_for_rm_depth():
+    return _create_csv_header_for_timestamp() + _create_csv_header_for_pose()
+
+
+def _create_csv_header_for_rm_imu(port):
+    return _create_csv_header_for_timestamp() + _create_csv_header_for_rm_imu_payload(port) + _create_csv_header_for_pose()
+
+
+def _create_csv_header_for_pv():
+    return _create_csv_header_for_timestamp() + _create_csv_header_for_pv_payload() + _create_csv_header_for_pose()
+
+
+def _create_csv_header_for_microphone():
+    return _create_csv_header_for_timestamp()
+
+
+def _create_csv_header_for_si():
+    return _create_csv_header_for_timestamp() + _create_csv_header_for_si_payload()
+
+
+def _create_csv_header_for_eet():
+    return _create_csv_header_for_timestamp() + _create_csv_header_for_eet_payload() + _create_csv_header_for_pose()
+
+
+def _create_csv_row_for_timestamp(timestamp):
+    return [str(timestamp)]
+
+
+def _create_csv_row_for_pose(pose):
+    if (pose is None):
+        pose = np.zeros((4, 4), dtype=np.float32)
+    return pose.astype(str).flatten().tolist()
+
+
+def _create_csv_row_for_rm_imu_frame(frame):
+    return [str(frame.vinyl_hup_ticks), str(frame.soc_ticks), str(frame.x), str(frame.y), str(frame.z), str(frame.temperature)]
+
+
+def _create_csv_row_for_rm_imu_payload(payload):
+    frames = []
+    for i in range(0, payload.get_count()):
+        frames.extend(_create_csv_row_for_rm_imu_frame(payload.get_frame(i)))
+    return frames
+
+
+def _create_csv_row_for_pv_payload(payload):
+    return payload.focal_length.astype(str).tolist() + payload.principal_point.astype(str).tolist()
+
+
+def _create_csv_row_for_si_head_pose(valid, pose):
+    return valid.astype(str).tolist() + pose.position.astype(str).tolist() + pose.forward.astype(str).tolist() + pose.up.astype(str).tolist()
+
+
+def _create_csv_row_for_si_eye_ray(valid, ray):
+    return valid.astype(str).tolist() + ray.origin.astype(str).tolist() + ray.direction.astype(str).tolist()
+
+
+def _create_csv_row_for_si_hand_joint(pose):
+    return pose.position.astype(str).tolist() + pose.orientation.astype(str).tolist() + pose.radius.astype(str).tolist() + pose.accuracy.astype(str).tolist()
+
+
+def _create_csv_row_for_si_hand(valid, hand):
+    row = valid.astype(str).tolist()
+    for joint_index in range(0, hl2ss.SI_HandJointKind.TOTAL):
+        row.extend(_create_csv_row_for_si_hand_joint(hand.get_joint_pose(joint_index)))
+    return row
+
+
+def _create_csv_row_for_si_payload(payload):
+    return _create_csv_row_for_si_head_pose(payload.is_valid_head_pose(), payload.get_head_pose()) + _create_csv_row_for_si_eye_ray(payload.is_valid_eye_ray(), payload.get_eye_ray()) + _create_csv_row_for_si_hand(payload.is_valid_hand_left(), payload.get_hand_left()) + _create_csv_row_for_si_hand(payload.is_valid_hand_right(), payload.get_hand_right())
+
+
+def _create_csv_row_for_eet_calibration(valid):
+    return [str(valid)]
+
+
+def _create_csv_row_for_eet_ray(valid, ray):
+    return [str(valid)] + ray.origin.astype(str).tolist() + ray.direction.astype(str).tolist()
+
+
+def _create_csv_row_for_eet_field(valid, value):
+    return [str(valid)] + [value.astype(str).tolist()]
+
+
+def _create_csv_row_for_eet_payload(payload):
+    return _create_csv_row_for_eet_calibration(payload.calibration_valid) + _create_csv_row_for_eet_ray(payload.combined_ray_valid, payload.combined_ray) + _create_csv_row_for_eet_ray(payload.left_ray_valid, payload.left_ray) + _create_csv_row_for_eet_ray(payload.right_ray_valid, payload.right_ray) + _create_csv_row_for_eet_field(payload.left_openness_valid, payload.left_openness) + _create_csv_row_for_eet_field(payload.right_openness_valid, payload.right_openness) + _create_csv_row_for_eet_field(payload.vergence_distance_valid, payload.vergence_distance)
+
+
+def _create_csv_row_for_rm_vlc(data):
+    return _create_csv_row_for_timestamp(data.timestamp) + _create_csv_row_for_pose(data.pose)
+
+
+def _create_csv_row_for_rm_depth(data):
+    return _create_csv_row_for_timestamp(data.timestamp) + _create_csv_row_for_pose(data.pose)
+
+
+def _create_csv_row_for_rm_imu(data):
+    return _create_csv_row_for_timestamp(data.timestamp) + _create_csv_row_for_rm_imu_payload(data.payload) + _create_csv_row_for_pose(data.pose)
+
+
+def _create_csv_row_for_pv(data):
+    return _create_csv_row_for_timestamp(data.timestamp) + _create_csv_row_for_pv_payload(data.payload) + _create_csv_row_for_pose(data.pose)
+
+
+def _create_csv_row_for_microphone(data):
+    return _create_csv_row_for_timestamp(data.timestamp)
+
+
+def _create_csv_row_for_si(data):
+    return _create_csv_row_for_timestamp(data.timestamp) + _create_csv_row_for_si_payload(data.payload)
+
+
+def _create_csv_row_for_eet(data):
+    return _create_csv_row_for_timestamp(data.timestamp) + _create_csv_row_for_eet_payload(data.payload) + _create_csv_row_for_pose(data.pose)
+
+
+def _create_csv_header(port):
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
+        return _create_csv_header_for_rm_vlc()
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
+        return _create_csv_header_for_rm_vlc()
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
+        return _create_csv_header_for_rm_vlc()
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
+        return _create_csv_header_for_rm_vlc()
+    if (port == hl2ss.StreamPort.RM_DEPTH_AHAT):
+        return _create_csv_header_for_rm_depth()
+    if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
+        return _create_csv_header_for_rm_depth()
+    if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
+        return _create_csv_header_for_rm_imu(port)
+    if (port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
+        return _create_csv_header_for_rm_imu(port)
+    if (port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
+        return _create_csv_header_for_rm_imu(port)
+    if (port == hl2ss.StreamPort.PERSONAL_VIDEO):
+        return _create_csv_header_for_pv()
+    if (port == hl2ss.StreamPort.MICROPHONE):
+        return _create_csv_header_for_microphone()
+    if (port == hl2ss.StreamPort.SPATIAL_INPUT):
+        return _create_csv_header_for_si()
+    if (port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
+        return _create_csv_header_for_eet()
+
+
+def _create_csv_row(port, data):
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
+        return _create_csv_row_for_rm_vlc(data)
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
+        return _create_csv_row_for_rm_vlc(data)
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
+        return _create_csv_row_for_rm_vlc(data)
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
+        return _create_csv_row_for_rm_vlc(data)
+    if (port == hl2ss.StreamPort.RM_DEPTH_AHAT):
+        return _create_csv_row_for_rm_depth(data)
+    if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
+        return _create_csv_row_for_rm_depth(data)
+    if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
+        data.payload = hl2ss.unpack_rm_imu(data.payload)
+        return _create_csv_row_for_rm_imu(data)
+    if (port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
+        data.payload = hl2ss.unpack_rm_imu(data.payload)
+        return _create_csv_row_for_rm_imu(data)
+    if (port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
+        data.payload = hl2ss.unpack_rm_imu(data.payload)
+        return _create_csv_row_for_rm_imu(data)
+    if (port == hl2ss.StreamPort.PERSONAL_VIDEO):
+        data.payload = hl2ss.unpack_pv(data.payload)
+        return _create_csv_row_for_pv(data)
+    if (port == hl2ss.StreamPort.MICROPHONE):
+        return _create_csv_row_for_microphone(data)
+    if (port == hl2ss.StreamPort.SPATIAL_INPUT):
+        data.payload = hl2ss.unpack_si(data.payload)
+        return _create_csv_row_for_si(data)
+    if (port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
+        data.payload = hl2ss.unpack_eet(data.payload)
+        return _create_csv_row_for_eet(data)
+
+
+def unpack_to_csv(input_filename, output_filename):    
+    rd = hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
+    rd.open()
+
+    port = rd.header.port
+
+    wr = open(output_filename, 'w', newline='')
+    csv_wr = csv.writer(wr)
+    csv_wr.writerow(_create_csv_header(port))
+
+    while (True):
+        data = rd.read()
+        if (data is None):
+            break
+        csv_wr.writerow(_create_csv_row(port, data))
+
+    wr.close()
+    rd.close()
+
+
+def get_av_codec_name(port, profile):
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
+        return hl2ss.get_video_codec_name(profile)
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
+        return hl2ss.get_video_codec_name(profile)
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
+        return hl2ss.get_video_codec_name(profile)
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
+        return hl2ss.get_video_codec_name(profile)
+    if (port == hl2ss.StreamPort.RM_DEPTH_AHAT):
+        return hl2ss.get_video_codec_name(profile)
+    if (port == hl2ss.StreamPort.PERSONAL_VIDEO):
+        return hl2ss.get_video_codec_name(profile)
+    if (port == hl2ss.StreamPort.MICROPHONE):
+        return hl2ss.get_audio_codec_name(profile)
+
+
+def get_av_framerate(port):
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
         return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
+    if (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
         return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
         return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.header.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
+    if (port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
         return hl2ss.Parameters_RM_VLC.FPS
-    if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
+    if (port == hl2ss.StreamPort.RM_DEPTH_AHAT):
         return hl2ss.Parameters_RM_DEPTH_AHAT.FPS
-    if (reader.header.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
+    if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
         return hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS
-    if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
-        return reader.header.framerate
-    if (reader.header.port == hl2ss.StreamPort.MICROPHONE):
+    if (port == hl2ss.StreamPort.MICROPHONE):
         return hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 
 
@@ -145,8 +459,8 @@ def unpack_to_mp4(input_filenames, output_filename):
     [reader.open() for reader in readers]
 
     container = av.open(output_filename, mode='w')
-    streams = [container.add_stream(get_av_codec_name(reader), rate=get_av_framerate(reader)) for reader in readers]
-    codecs = [av.CodecContext.create(get_av_codec_name(reader), "r") for reader in readers]
+    streams = [container.add_stream(get_av_codec_name(reader.header.port, reader.header.profile), rate=get_av_framerate(reader.header.port) if (get_av_framerate(reader.header.port) is not None) else reader.header.framerate) for reader in readers]
+    codecs = [av.CodecContext.create(get_av_codec_name(reader.header.port, reader.header.profile), "r") for reader in readers]
 
     base = hl2ss._RANGEOF.U64_MAX
 
@@ -160,20 +474,53 @@ def unpack_to_mp4(input_filenames, output_filename):
 
     time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
 
-    for i in range(0, len(input_filenames)):
+    for reader, codec, stream in zip(readers, codecs, streams):
         while (True):
-            data = readers[i].read()
+            data = reader.read()
             if (data is None):
                 break
-            for packet in codecs[i].parse(data.payload):
-                packet.stream = streams[i]
-                packet.pts = data.timestamp - base
-                packet.dts = packet.pts
+
+            if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
+                payload = hl2ss.unpack_pv(data.payload).image
+            else:
+                payload = data.payload
+
+            local_timestamp = data.timestamp - base
+
+            for packet in codec.parse(payload):
+                packet.stream = stream
+                packet.pts = local_timestamp
+                packet.dts = local_timestamp
                 packet.time_base = time_base
                 container.mux(packet)
 
     container.close()
     [reader.close() for reader in readers]
+
+
+def unpack_to_png(input_filename, output_filename):
+    rd = hl2ss_io.create_rd(True, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
+    rd.open()
+
+    tar = tarfile.open(output_filename, 'w')
+    idx = 0
+
+    while (True):
+        data = rd.read()
+        if (data is None):
+            break
+        depth = cv2.imencode('.png', data.payload.depth)[1].tobytes()
+        ab = cv2.imencode('.png', data.payload.ab)[1].tobytes()
+        depth_info = tarfile.TarInfo(f'depth_{idx}.png')        
+        ab_info = tarfile.TarInfo(f'ab_{idx}.png')
+        depth_info.size = len(depth)
+        ab_info.size = len(ab)
+        tar.addfile(depth_info, io.BytesIO(depth))
+        tar.addfile(ab_info, io.BytesIO(ab))
+        idx += 1
+
+    tar.close()
+    rd.close()
 
 
 #------------------------------------------------------------------------------
