@@ -127,6 +127,21 @@ class Parameters_RM_DEPTH_LONGTHROW:
     PERIOD = 1 / FPS
 
 
+# RM IMU Accelerometer Parameters
+class Parameters_RM_IMU_ACCELEROMETER:
+    BATCH_SIZE = 93
+
+
+# RM IMU Gyroscope Parameters
+class Parameters_RM_IMU_GYROSCOPE:
+    BATCH_SIZE = 315
+
+
+# RM IMU Magnetometer Parameters
+class Parameters_RM_IMU_MAGNETOMETER:
+    BATCH_SIZE = 11
+
+
 # Microphone Parameters
 class Parameters_MICROPHONE:
     SAMPLE_RATE = 48000
