@@ -1,5 +1,5 @@
 
-import os
+import io
 import fractions
 import tarfile
 import csv
@@ -270,19 +270,19 @@ def _create_csv_row_for_pv_payload(payload):
 
 
 def _create_csv_row_for_si_head_pose(valid, pose):
-    return [str(valid)] + pose.position.astype(str).tolist() + pose.forward.astype(str).tolist() + pose.up.astype(str).tolist()
+    return valid.astype(str).tolist() + pose.position.astype(str).tolist() + pose.forward.astype(str).tolist() + pose.up.astype(str).tolist()
 
 
 def _create_csv_row_for_si_eye_ray(valid, ray):
-    return [str(valid)] + ray.origin.astype(str).tolist() + ray.direction.astype(str).tolist()
+    return valid.astype(str).tolist() + ray.origin.astype(str).tolist() + ray.direction.astype(str).tolist()
 
 
 def _create_csv_row_for_si_hand_joint(pose):
-    return pose.position.astype(str).tolist() + pose.orientation.astype(str).tolist() + pose.radius.astype(str).tolist() + pose.accuracy.tostr(str).tolist()
+    return pose.position.astype(str).tolist() + pose.orientation.astype(str).tolist() + pose.radius.astype(str).tolist() + pose.accuracy.astype(str).tolist()
 
 
 def _create_csv_row_for_si_hand(valid, hand):
-    row = [str(valid)]
+    row = valid.astype(str).tolist()
     for joint_index in range(0, hl2ss.SI_HandJointKind.TOTAL):
         row.extend(_create_csv_row_for_si_hand_joint(hand.get_joint_pose(joint_index)))
     return row
@@ -301,7 +301,7 @@ def _create_csv_row_for_eet_ray(valid, ray):
 
 
 def _create_csv_row_for_eet_field(valid, value):
-    return [str(valid)] + value.astype(str).tolist()
+    return [str(valid)] + [value.astype(str).tolist()]
 
 
 def _create_csv_row_for_eet_payload(payload):
@@ -406,7 +406,7 @@ def unpack_to_csv(input_filename, output_filename):
 
     port = rd.header.port
 
-    wr = open(output_filename, 'w')
+    wr = open(output_filename, 'w', newline='')
     csv_wr = csv.writer(wr)
     csv_wr.writerow(_create_csv_header(port))
 
@@ -509,8 +509,14 @@ def unpack_to_png(input_filename, output_filename):
         data = rd.read()
         if (data is None):
             break
-        tar.addfile(tarfile.TarInfo(f'depth_{idx}.png'), cv2.imencode('.png', data.payload.depth)[1])
-        tar.addfile(tarfile.TarInfo(f'ab_{idx}.png'), cv2.imencode('.png', data.payload.ab)[1])
+        depth = cv2.imencode('.png', data.payload.depth)[1].tobytes()
+        ab = cv2.imencode('.png', data.payload.ab)[1].tobytes()
+        depth_info = tarfile.TarInfo(f'depth_{idx}.png')        
+        ab_info = tarfile.TarInfo(f'ab_{idx}.png')
+        depth_info.size = len(depth)
+        ab_info.size = len(ab)
+        tar.addfile(depth_info, io.BytesIO(depth))
+        tar.addfile(ab_info, io.BytesIO(ab))
         idx += 1
 
     tar.close()
