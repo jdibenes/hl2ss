@@ -24,7 +24,7 @@ class sm_manager:
         self._vpf = hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized
         self._tif = hl2ss.SM_TriangleIndexFormat.R16UInt
         self._vnf = hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized
-        self._normals = False
+        self._normals = True
         self._bounds = False
         self._ipc = hl2ss.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
         self._surfaces = {}
@@ -82,6 +82,10 @@ class sm_manager:
     
     def close(self):
         self._ipc.close()
+
+    def get_meshes(self):
+        surfaces = self._get_surfaces()
+        return [surface.mesh for surface in surfaces]
 
     def cast_rays(self, rays):
         surfaces = self._get_surfaces()
@@ -192,7 +196,12 @@ class sm_mp_manager(mp.Process):
 
 
 #------------------------------------------------------------------------------
-# Integrator
+# Scene Understanding Data Manager
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# Custom Open3D Integrator
 #------------------------------------------------------------------------------
 
 class integrator:
