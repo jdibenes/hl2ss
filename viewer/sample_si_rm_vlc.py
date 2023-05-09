@@ -82,7 +82,7 @@ if __name__ == '__main__':
     calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
     rotation_vlc = hl2ss_3dcv.rm_vlc_get_rotation(port)
 
-    # Start PV and Spatial Input streams --------------------------------------
+    # Start RM VLC and Spatial Input streams ----------------------------------
     producer = hl2ss_mp.producer()
     producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
     producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
@@ -119,7 +119,7 @@ if __name__ == '__main__':
         image = np.dstack((image, image, image))
         si = hl2ss.unpack_si(data_si.payload)
 
-        # Compute world to PV image transformation matrix ---------------------
+        # Compute world to RM VLC image transformation matrix -----------------
         world_to_image = hl2ss_3dcv.world_to_reference(data_vlc.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_vlc.extrinsics) @ hl2ss_3dcv.camera_to_image(calibration_vlc.intrinsics)
 
         # Draw Head Pointer ---------------------------------------------------
