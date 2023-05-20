@@ -43,7 +43,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		(void)sender;
 		(void)args;
 
-		m_windowClosed = true; // Suspending is not supported
+		CoreApplication::Exit(); // Suspending is not supported
 	}
 	
 	void Initialize(CoreApplicationView const &applicationView)
