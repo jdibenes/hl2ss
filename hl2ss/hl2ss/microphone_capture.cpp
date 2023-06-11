@@ -51,6 +51,7 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	WORD const bitspersample = 16;
 	DWORD const samplerate = 48000;
 	WORD const channels = 2;
+	INT64 const buffer_length = 8 * HNS_BASE;
 	UINT32 defaultPeriodInFrames;
 	UINT32 fundamentalPeriodInFrames;
 	UINT32 minPeriodInFrames;
@@ -84,7 +85,7 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	hr = m_audioClient->GetSharedModeEnginePeriod(m_wfx, &defaultPeriodInFrames, &fundamentalPeriodInFrames, &minPeriodInFrames, &maxPeriodInFrames);
 	if (FAILED(hr)) { return hr; }
 
-	hr = m_audioClient->InitializeSharedAudioStream(AUDCLNT_STREAMFLAGS_EVENTCALLBACK, defaultPeriodInFrames, m_wfx, NULL);
+	hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, buffer_length, 0, m_wfx, NULL);
 	if (FAILED(hr)) { return hr; }
 
 	m_eventData = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -137,7 +138,7 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 
 	WaitForSingleObject(m_eventData, INFINITE);
 
-	while (m_audioCaptureClient->GetBuffer(&data, &framesAvailable, &dwCaptureFlags, NULL, &qpc) == S_OK)
+	if (m_audioCaptureClient->GetBuffer(&data, &framesAvailable, &dwCaptureFlags, NULL, &qpc) == S_OK)
 	{
 	bytes = framesAvailable * m_wfx->nBlockAlign;
 
