@@ -36,11 +36,11 @@ bool MicrophoneCapture::Initialize()
 	winrt::com_ptr<IActivateAudioInterfaceAsyncOperation> asyncOp;
 	HRESULT hr;
 
-	hr = ActivateAudioInterfaceAsync(MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default).c_str(), __uuidof(IAudioClient3), nullptr, this, asyncOp.put());
-	if (FAILED(hr)) { return false; }
-
 	m_eventActivate = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 	if (!m_eventActivate) { return false; }
+
+	hr = ActivateAudioInterfaceAsync(MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default).c_str(), __uuidof(IAudioClient3), nullptr, this, asyncOp.put());
+	if (FAILED(hr)) { return false; }
 
 	return true;
 }
@@ -134,11 +134,12 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 	DWORD dwCaptureFlags;
 	int bytes;
 	BYTE* pDst;
+	UINT64 dps;
 	UINT64 qpc;
 
 	WaitForSingleObject(m_eventData, INFINITE);
 
-	if (m_audioCaptureClient->GetBuffer(&data, &framesAvailable, &dwCaptureFlags, NULL, &qpc) == S_OK)
+	while (m_audioCaptureClient->GetBuffer(&data, &framesAvailable, &dwCaptureFlags, &dps, &qpc) == S_OK)
 	{
 	bytes = framesAvailable * m_wfx->nBlockAlign;
 
