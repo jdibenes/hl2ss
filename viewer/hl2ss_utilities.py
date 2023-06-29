@@ -455,6 +455,8 @@ def get_av_framerate(port):
 
 
 def unpack_to_mp4(input_filenames, output_filename):
+    time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
+
     readers = [hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
     [reader.open() for reader in readers]
 
@@ -462,17 +464,20 @@ def unpack_to_mp4(input_filenames, output_filename):
     streams = [container.add_stream(get_av_codec_name(reader.header.port, reader.header.profile), rate=get_av_framerate(reader.header.port) if (get_av_framerate(reader.header.port) is not None) else reader.header.framerate) for reader in readers]
     codecs = [av.CodecContext.create(get_av_codec_name(reader.header.port, reader.header.profile), "r") for reader in readers]
 
-    base = hl2ss._RANGEOF.U64_MAX
+    for stream in streams:
+        stream.time_base = time_base
+    for codec in codecs:
+        codec.time_base = time_base
+
+    base = 0#hl2ss._RANGEOF.U64_MAX
 
     for reader in readers:
         data = reader.read()
-        if ((data is not None) and (data.timestamp < base)):
+        if ((data is not None) and (data.timestamp > base)):
             base = data.timestamp
 
     [reader.close() for reader in readers]
     [reader.open() for reader in readers]
-
-    time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
 
     for reader, codec, stream in zip(readers, codecs, streams):
         while (True):
@@ -486,6 +491,8 @@ def unpack_to_mp4(input_filenames, output_filename):
                 payload = data.payload
 
             local_timestamp = data.timestamp - base
+            if (local_timestamp < 0):
+                continue
 
             for packet in codec.parse(payload):
                 packet.stream = stream
