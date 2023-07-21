@@ -10,7 +10,6 @@ import multiprocessing as mp
 import open3d as o3d
 import hl2ss
 import hl2ss_mp
-import hl2ss_3dcv
 import hl2ss_sa
 
 # Settings --------------------------------------------------------------------
@@ -86,7 +85,7 @@ if __name__ == '__main__':
         vis.clear_geometries()
 
         meshes = sm_manager.get_meshes()
-        meshes = [hl2ss_3dcv.sm_mesh_to_open3d_triangle_mesh(mesh) for mesh in meshes]
+        meshes = [hl2ss_sa.sm_mesh_to_open3d_triangle_mesh(mesh) for mesh in meshes]
         for mesh in meshes:
             mesh.vertex_colors = mesh.vertex_normals
             vis.add_geometry(mesh, first_geometry)

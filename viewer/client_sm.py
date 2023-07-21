@@ -5,6 +5,7 @@
 import open3d as o3d
 import hl2ss
 import hl2ss_3dcv
+import hl2ss_sa
 
 # Settings --------------------------------------------------------------------
 
@@ -83,7 +84,7 @@ for index, mesh in meshes.items():
 
     hl2ss_3dcv.sm_mesh_normalize(mesh)
     
-    open3d_mesh = hl2ss_3dcv.sm_mesh_to_open3d_triangle_mesh(mesh)
+    open3d_mesh = hl2ss_sa.sm_mesh_to_open3d_triangle_mesh(mesh)
     open3d_mesh.vertex_colors = open3d_mesh.vertex_normals
     open3d_meshes.append(open3d_mesh)
 

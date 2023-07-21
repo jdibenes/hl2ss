@@ -6,6 +6,7 @@
 import open3d as o3d
 import hl2ss
 import hl2ss_3dcv
+import hl2ss_sa
 
 # Settings --------------------------------------------------------------------
 
@@ -101,7 +102,7 @@ for item in result.items:
     for mesh in item.meshes:
         mesh.unpack()
         hl2ss_3dcv.su_normalize(mesh, item.location @ result.pose)
-        open3d_mesh = hl2ss_3dcv.su_mesh_to_open3d_triangle_mesh(mesh)
+        open3d_mesh = hl2ss_sa.su_mesh_to_open3d_triangle_mesh(mesh)
         open3d_mesh.compute_vertex_normals()
         open3d_mesh.paint_uniform_color(kind_color[int(item.kind)])
         open3d_meshes.append(open3d_mesh)

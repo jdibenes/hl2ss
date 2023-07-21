@@ -2,7 +2,6 @@
 import numpy as np
 import os
 import cv2
-import open3d as o3d
 import hl2ss
 
 
@@ -225,31 +224,12 @@ def sm_mesh_normalize(mesh):
     sm_mesh_normalize_normals(mesh)
 
 
-def sm_mesh_to_open3d_triangle_mesh(mesh):
-    open3d_mesh = o3d.geometry.TriangleMesh()
-
-    open3d_mesh.vertices       = o3d.utility.Vector3dVector(mesh.vertex_positions[:, 0:3])
-    open3d_mesh.vertex_normals = o3d.utility.Vector3dVector(mesh.vertex_normals[:, 0:3])
-    open3d_mesh.triangles      = o3d.utility.Vector3iVector(mesh.triangle_indices)
-
-    return open3d_mesh
-
-
 #------------------------------------------------------------------------------
 # SU
 #------------------------------------------------------------------------------
 
 def su_normalize(mesh, location):
     mesh.vertex_positions = transform(mesh.vertex_positions, location)
-
-
-def su_mesh_to_open3d_triangle_mesh(mesh):
-    open3d_mesh = o3d.geometry.TriangleMesh()
-
-    open3d_mesh.vertices  = o3d.utility.Vector3dVector(mesh.vertex_positions)
-    open3d_mesh.triangles = o3d.utility.Vector3iVector(mesh.triangle_indices)
-
-    return open3d_mesh
 
 
 #------------------------------------------------------------------------------

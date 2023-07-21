@@ -6,6 +6,26 @@ import open3d as o3d
 import hl2ss
 import hl2ss_3dcv
 
+
+def sm_mesh_to_open3d_triangle_mesh(mesh):
+    open3d_mesh = o3d.geometry.TriangleMesh()
+
+    open3d_mesh.vertices       = o3d.utility.Vector3dVector(mesh.vertex_positions[:, 0:3])
+    open3d_mesh.vertex_normals = o3d.utility.Vector3dVector(mesh.vertex_normals[:, 0:3])
+    open3d_mesh.triangles      = o3d.utility.Vector3iVector(mesh.triangle_indices)
+
+    return open3d_mesh
+
+
+def su_mesh_to_open3d_triangle_mesh(mesh):
+    open3d_mesh = o3d.geometry.TriangleMesh()
+
+    open3d_mesh.vertices  = o3d.utility.Vector3dVector(mesh.vertex_positions)
+    open3d_mesh.triangles = o3d.utility.Vector3iVector(mesh.triangle_indices)
+
+    return open3d_mesh
+
+
 #------------------------------------------------------------------------------
 # Spatial Mapping Data Manager
 #------------------------------------------------------------------------------
@@ -74,7 +94,7 @@ class sm_manager:
             hl2ss_3dcv.sm_mesh_cast(mesh, np.float64, np.uint32, np.float64)
             hl2ss_3dcv.sm_mesh_normalize(mesh)
             rcs = o3d.t.geometry.RaycastingScene()
-            rcs.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(hl2ss_3dcv.sm_mesh_to_open3d_triangle_mesh(mesh)))
+            rcs.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(sm_mesh_to_open3d_triangle_mesh(mesh)))
             surface_info = updated_surfaces[index]
             self._updated_surfaces[surface_info.id] = _sm_manager_entry(surface_info.update_time, mesh, rcs)
             

@@ -89,7 +89,7 @@ if __name__ == '__main__':
     sm_manager.close()
     meshes = sm_manager.get_meshes()
 
-    meshes = [hl2ss_3dcv.sm_mesh_to_open3d_triangle_mesh(mesh) for mesh in meshes]
+    meshes = [hl2ss_sa.sm_mesh_to_open3d_triangle_mesh(mesh) for mesh in meshes]
     for mesh in meshes:
         mesh.compute_vertex_normals()
         vis.add_geometry(mesh)
