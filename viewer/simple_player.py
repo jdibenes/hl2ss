@@ -10,7 +10,7 @@ import configparser
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
-
+config.read('config.ini')
 # Directory containing the recorded data
 path = './data'
 

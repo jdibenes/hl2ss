@@ -20,7 +20,7 @@ import configparser
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
-
+config.read('config.ini')
 # HoloLens 2 address
 host = config['DEFAULT']['ip']
 
