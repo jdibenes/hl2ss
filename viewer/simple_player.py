@@ -9,6 +9,7 @@ import hl2ss_io
 import configparser
 
 # Settings --------------------------------------------------------------------
+config = configparser.ConfigParser()
 
 # Directory containing the recorded data
 path = './data'

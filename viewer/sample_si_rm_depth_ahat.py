@@ -19,6 +19,7 @@ import hl2ss_sa
 import configparser
 
 # Settings --------------------------------------------------------------------
+config = configparser.ConfigParser()
 
 # HoloLens 2 address
 host = config['DEFAULT']['ip']

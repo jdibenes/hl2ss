@@ -16,7 +16,6 @@ import threading
 import configparser
 
 # Settings --------------------------------------------------------------------
-
 config = configparser.ConfigParser()
 
 # HoloLens address

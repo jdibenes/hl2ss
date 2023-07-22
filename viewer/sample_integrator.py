@@ -14,6 +14,7 @@ import hl2ss_3dcv
 import configparser
 
 # Settings --------------------------------------------------------------------
+config = configparser.ConfigParser()
 
 # HoloLens address
 host = config['DEFAULT']['ip']

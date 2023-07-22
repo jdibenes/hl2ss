@@ -23,6 +23,7 @@ from mmdet.core import INSTANCE_OFFSET
 from mmdet.datasets import CocoPanopticDataset
 
 # Settings --------------------------------------------------------------------
+config = configparser.ConfigParser()
 
 # HoloLens address
 host = config['DEFAULT']['ip']
