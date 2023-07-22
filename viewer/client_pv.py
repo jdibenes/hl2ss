@@ -13,11 +13,12 @@ from pynput import keyboard
 import cv2
 import hl2ss_imshow
 import hl2ss
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = "192.168.1.7"
+host = config['DEFAULT']['ip']
 
 # Port
 port = hl2ss.StreamPort.PERSONAL_VIDEO

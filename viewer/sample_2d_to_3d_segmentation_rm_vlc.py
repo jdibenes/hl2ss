@@ -16,6 +16,7 @@ import hl2ss_imshow
 import hl2ss
 import hl2ss_mp
 import hl2ss_3dcv
+import configparser
 
 from mmdet.apis import inference_detector, init_detector
 from mmdet.core import INSTANCE_OFFSET
@@ -24,7 +25,7 @@ from mmdet.datasets import CocoPanopticDataset
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Port
 vlc_port = hl2ss.StreamPort.RM_VLC_LEFTFRONT

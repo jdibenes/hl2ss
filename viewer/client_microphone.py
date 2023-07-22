@@ -13,11 +13,14 @@ import hl2ss_utilities
 import pyaudio
 import queue
 import threading
+import configparser
 
 # Settings --------------------------------------------------------------------
 
+config = configparser.ConfigParser()
+
 # HoloLens address
-host = "192.168.1.7"
+host = config['DEFAULT']['ip']
 
 # Port
 port = hl2ss.StreamPort.MICROPHONE

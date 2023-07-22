@@ -6,11 +6,12 @@ import open3d as o3d
 import hl2ss
 import hl2ss_3dcv
 import hl2ss_sa
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Port
 port = hl2ss.IPCPort.SPATIAL_MAPPING

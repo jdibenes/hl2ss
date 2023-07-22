@@ -12,11 +12,12 @@ import hl2ss_imshow
 import hl2ss
 import hl2ss_mp
 import hl2ss_3dcv
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens 2 address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Ports
 port_left  = hl2ss.StreamPort.RM_VLC_LEFTFRONT

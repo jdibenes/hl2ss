@@ -16,11 +16,12 @@ import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
 import hl2ss_sa
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens 2 address
-host = "192.168.1.7"
+host = config['DEFAULT']['ip']
 
 # Camera parameters
 # See etc/hl2_capture_formats.txt for a list of supported formats

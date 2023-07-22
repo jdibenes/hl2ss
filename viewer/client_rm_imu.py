@@ -13,11 +13,12 @@
 from pynput import keyboard
 
 import hl2ss
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = "192.168.1.7"
+host = config['DEFAULT']['ip']
 
 # Port
 # Options:

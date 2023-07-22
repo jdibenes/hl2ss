@@ -6,6 +6,7 @@ import cv2
 import os
 import hl2ss
 import hl2ss_io
+import configparser
 
 # Settings --------------------------------------------------------------------
 

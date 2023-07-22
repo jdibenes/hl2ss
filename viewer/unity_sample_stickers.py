@@ -16,11 +16,12 @@ import hl2ss_imshow
 import hl2ss
 import hl2ss_3dcv
 import hl2ss_rus
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Ports
 port_mq = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE

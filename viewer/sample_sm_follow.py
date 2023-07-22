@@ -11,11 +11,12 @@ import open3d as o3d
 import hl2ss
 import hl2ss_mp
 import hl2ss_sa
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Buffer length in seconds
 buffer_size = 10

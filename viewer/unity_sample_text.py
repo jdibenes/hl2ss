@@ -8,11 +8,12 @@ from pynput import keyboard
 import threading
 import hl2ss
 import hl2ss_rus
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Port
 port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE

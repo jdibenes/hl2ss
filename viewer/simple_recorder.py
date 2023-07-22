@@ -13,11 +13,12 @@ import hl2ss
 import hl2ss_io
 import hl2ss_mp
 import hl2ss_utilities
+import configparser
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Output directory
 path = './data'
