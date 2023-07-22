@@ -34,6 +34,10 @@ def compute_norm(array):
     return np.linalg.norm(array, axis=-1)
 
 
+def to_unit(array):
+    return array / compute_norm(array)[..., np.newaxis]
+
+
 def image_to_camera(intrinsics):
     return np.linalg.inv(intrinsics)
 

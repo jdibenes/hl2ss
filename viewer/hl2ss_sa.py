@@ -7,6 +7,10 @@ import hl2ss
 import hl2ss_3dcv
 
 
+#------------------------------------------------------------------------------
+# Open3D Interop
+#------------------------------------------------------------------------------
+
 def sm_mesh_to_open3d_triangle_mesh(mesh):
     open3d_mesh = o3d.geometry.TriangleMesh()
 
@@ -109,7 +113,8 @@ class sm_manager:
 
     def cast_rays(self, rays):
         surfaces = self._get_surfaces()
-        distances = np.ones(rays.shape[0:-1] + (len(surfaces),)) * np.inf
+        n = len(surfaces)
+        distances = np.ones(rays.shape[0:-1] + (n if (n > 0) else 1,)) * np.inf
         for index, entry in enumerate(surfaces):
             distances[..., index] = entry.rcs.cast_rays(rays)['t_hit'].numpy()
         distances = np.min(distances, axis=-1)
