@@ -1,3 +1,20 @@
+# Hololens 2 Communication and Streaming Module
+
+Fork of HL2SS
+
+Installation notes:
+
+**Building Zenoh-C for Hololens 2:**
+
+- Install Visual Studio 2022 with C++, UWP, DotNet, Clang, ARM64
+- Install Strawberry Perl
+- Install recent CMake
+- Install rustup (with rustup-init.exe)
+- git clone https://github.com/TUM-CAMP-NARVIS/zenoh-c
+- build zenoh-c with: cargo +nightly build -Z build-std=panic_abort,std --target=aarch64-uwp-windows-msvc --release
+
+
+
 # HoloLens 2 Sensor Streaming
 
 HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes but also works on Windows and OS X. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
