@@ -10,8 +10,10 @@ Installation notes:
 - Install Strawberry Perl
 - Install recent CMake
 - Install rustup (with rustup-init.exe)
-- git clone https://github.com/TUM-CAMP-NARVIS/zenoh-c
-- build zenoh-c with: cargo +nightly build -Z build-std=panic_abort,std --target=aarch64-uwp-windows-msvc --release
+- Use x86_x64 Cross Tools Command Promt for VS 2022 to run the build commands
+- ```git clone https://github.com/TUM-CAMP-NARVIS/zenoh-c```
+- build zenoh-c with:
+  ```cargo +nightly build -Z build-std=panic_abort,std --target=aarch64-uwp-windows-msvc --release```
 
 
 
