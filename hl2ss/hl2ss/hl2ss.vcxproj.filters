@@ -115,9 +115,6 @@
     <ClCompile Include="scene_understanding.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp">
-      <Filter>Libraries\SceneUnderstanding</Filter>
-    </ClCompile>
     <ClCompile Include="ipc_sm.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
@@ -231,9 +228,6 @@
     </None>
     <None Include="PropertySheet.props">
       <Filter>Metadata</Filter>
-    </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(SceneUnderstanding-Platform)\native\Microsoft.MixedReality.SceneUnderstanding.dll">
-      <Filter>Libraries\SceneUnderstanding</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

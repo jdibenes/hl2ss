@@ -24,6 +24,8 @@
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.UI.Core.h>
 
+#include "zenoh.h"
+
 using namespace winrt::Windows::ApplicationModel;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::UI::Core;
@@ -98,6 +100,27 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		auto window = CoreWindow::GetForCurrentThread();
 		window.Activate();
 
+
+		// testing zenoh in uwp app
+		char* keyexpr = "/hl2c/device0/user0/framecounter";
+		z_owned_config_t config = z_config_default();
+
+		z_owned_session_t zs = z_open(z_move(config));
+		if (!z_check(zs)) {
+			// print some error message ..
+		}
+
+		z_owned_publisher_t pub = z_declare_publisher(z_loan(zs), z_keyexpr(keyexpr), NULL);
+
+		if (!z_check(pub)) {
+			// print some error message ..
+		}
+
+		z_publisher_put_options_t options = z_publisher_put_options_default();
+		options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_INTEGER, NULL);
+		int frame_id{0};
+		// end setup zenoh
+
 		while (!m_windowClosed)
 		{
 		window.Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
@@ -106,6 +129,10 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		HolographicSpace_Clear();
 		// Draw
 		HolographicSpace_Present();
+
+		// send message to zenoh
+		z_publisher_put(z_loan(pub), (const uint8_t*)(&frame_id), sizeof(int), &options);
+
 		}
 	}
 
