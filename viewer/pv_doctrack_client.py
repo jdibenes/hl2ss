@@ -9,12 +9,14 @@
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
-
+import sys
+sys.path.append("EAST")
 import cv2
 import hl2ss_imshow
 import hl2ss
 import configparser
-import docdetect
+from detect import *
+#import docdetect
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
@@ -51,6 +53,23 @@ bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_vide
 # 'rgba'
 # 'gray8'
 decoded_format = 'bgr24'
+def check_empty_img(image):
+    # Reading Image
+    # You can give path to the 
+    # image as first argument
+    ##image = cv2.imread(img)
+  
+    # Checking if the image is empty or not
+    if image is None:
+        return True
+        result = "Image is empty!!"
+    else:
+        return False
+        result = "Image is not empty!!"
+  
+    return result
+      
+
 
 #------------------------------------------------------------------------------
 
@@ -80,7 +99,15 @@ else:
 
     client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, decoded_format)
     client.open()
-
+    #img_path    = '../ICDAR_2015/test_img/img_2.jpg'
+    model_path  = './EAST/pths/east_vgg16.pth'
+    #res_img     = './res.bmp'
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
+    model = EAST().to(device)
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    #img = Image.open(img_path)
     while (enable):
         data = client.get_next_packet()
 
@@ -91,12 +118,20 @@ else:
         #if data.payload.image:
         #print(data.payload.image.shape)
         if True:
-            frame = cv2.resize(data.payload.image, (640, 360),  interpolation=cv2.INTER_AREA)
+            #img = cv2.resize(data.payload.image, (640, 360),  interpolation=cv2.INTER_AREA)
 
-            rects = docdetect.process(frame)
+            img = data.payload.image
+            if check_empty_img(img):
+                continue
+            img = cv2_to_pil(img)
+            boxes = detect(img, model, device)
+            plot_img = plot_boxes(img, boxes)
+            cv2.imshow('frame', pil_to_cv2(plot_img))
+        
+            #rects = docdetect.process(frame)
 
-            frame = docdetect.draw(rects, frame)
-            cv2.imshow('Video', frame)
+            #frame = docdetect.draw(rects, frame)
+            #cv2.imshow('Video', frame)
         #cv2.imshow('Video', data.payload.image)
             cv2.waitKey(1)
     
