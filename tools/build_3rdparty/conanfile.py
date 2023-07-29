@@ -6,7 +6,7 @@ class Build3rdpartyConan(ConanFile):
 	default_options = {
 	 "hl2comm_idl/*:shared": False,
 	 "fast-cdr/*:shared": False,
-	 "zdepth/*:shared": True,
+	 "zdepth/*:shared": False,
 	}
 
 	settings = "os",

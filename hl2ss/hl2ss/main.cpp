@@ -94,21 +94,57 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		const char* client_id = "dev00";
 		uint8_t eye_fps = 60;
 
+		AACFormat mic_format{};
+		mic_format.profile = AACProfile_24000;
 
-		RM_Initialize(client_id, z_loan(zs));
-		MC_Initialize(client_id, z_loan(zs));
+		bool pv_enable_location = true;
+		H26xFormat pv_format{};
+		pv_format.width = 1280;
+		pv_format.height = 720;
+		pv_format.framerate = 30;
+		pv_format.profile = H26xProfile::H264Profile_Base;
+		pv_format.bitrate = static_cast<int>((1280 * 720 * 30 * 12.) * (4. / 420.));
 
-		H26xFormat format{};
-		format.width = 640;
-		format.height = 480;
-		format.framerate = 30;
-		PV_Initialize(client_id, z_loan(zs), true, format);
+		RMStreamConfig rm_config{};
+	
+		// all vlc cams on ..
+		rm_config.enable_location = true;
+		rm_config.enable_left_front = false;
+		rm_config.enable_left_left = false;
+		rm_config.enable_right_front = false;
+		rm_config.enable_right_right = false;
+		rm_config.vlc_format.width = 640;
+		rm_config.vlc_format.height = 480;
+		rm_config.vlc_format.framerate = 30;
+		rm_config.vlc_format.profile = H26xProfile::H264Profile_Base;
+		rm_config.vlc_format.bitrate = static_cast<int>((640 * 480 * 30 * 12.) * (4. / 420.));
 
-		SI_Initialize(client_id, z_loan(zs));
-		RC_Initialize(client_id, z_loan(zs));
-		SM_Initialize(client_id, z_loan(zs));
-		SU_Initialize(client_id, z_loan(zs));
-		VI_Initialize(client_id, z_loan(zs));
+		// zlt sensor on
+		rm_config.enable_depth_long_throw = true;
+		rm_config.enable_depth_ahat = false;
+		// rm_config.depth_format ...
+		
+		// enable imu all
+		rm_config.enable_imu_accel = true;
+		rm_config.enable_imu_gyro = true;
+		rm_config.enable_imu_mag = true;
+
+		// start selected services..
+
+		// Research Mode Streaming
+		RM_Initialize(client_id, z_loan(zs), rm_config);
+
+		// Microphone streaming
+		//MC_Initialize(client_id, z_loan(zs), mic_format);
+
+		// Front Video streaming
+		PV_Initialize(client_id, z_loan(zs), pv_enable_location, pv_format);
+		
+		//SI_Initialize(client_id, z_loan(zs));
+		//RC_Initialize(client_id, z_loan(zs));
+		//SM_Initialize(client_id, z_loan(zs));
+		//SU_Initialize(client_id, z_loan(zs));
+		//VI_Initialize(client_id, z_loan(zs));
 
 		EET_Initialize(client_id, z_loan(zs), eye_fps);
 

@@ -6,6 +6,17 @@
 #include "timestamps.h"
 #include "ipc_sc.h"
 #include "types.h"
+#include "log.h"
+#include <chrono>
+
+#include "zenoh.h"
+
+#define FASTCDR_STATIC_LINK
+#include "fastcdr/Cdr.h"
+
+#include "pcpd_msgs/msg/Hololens2H26xVideoStream.h"
+#include "pcpd_msgs/msg/Hololens2Sensors.h"
+
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>
@@ -27,10 +38,8 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
     LONGLONG sampletime;
     BYTE* pBytes;
     DWORD cbData;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     float4x4 pose;
     HookCallbackSocket* user;
-    bool ok;
 
     user = (HookCallbackSocket*)param;
 
@@ -39,25 +48,65 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    wsaBuf[0].buf = (char*)&sampletime;
-    wsaBuf[0].len = sizeof(sampletime);
-    
-    wsaBuf[1].buf = (char*)&cbData;
-    wsaBuf[1].len = sizeof(cbData);
-    
-    wsaBuf[2].buf = (char*)pBytes;
-    wsaBuf[2].len = cbData;
 
-    if constexpr(ENABLE_LOCATION)
+    // serialization
+
+    // can we cache them so that we do not allocate new memory every image ?
+    eprosima::fastcdr::FastBuffer buffer{};
+    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+
+    pcpd_msgs::msg::Hololens2H26xVideoStream value{};
+
     {
-    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(pose), NULL);
-    
-    wsaBuf[3].buf = (char*)&pose;
-    wsaBuf[3].len = sizeof(pose);
+        using namespace std::chrono;
+        auto ts_ = nanoseconds(sampletime * 100);
+        auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+        auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+        value.header().stamp().sec(ts_sec);
+        value.header().stamp().nanosec(ts_nsec);
+
+        value.header().frame_id(user->client_id);
     }
 
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(user->clientevent); }
+    if constexpr (ENABLE_LOCATION)
+    {
+        pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(pose), NULL);
+        // add flag to note it is enabled?
+        float3 scale;
+        quaternion rotation;
+        float3 translation;
+
+        if (decompose(pose, &scale, &rotation, &translation)) {
+            value.position().x(translation.x);
+            value.position().y(translation.y);
+            value.position().z(translation.z);
+
+            value.orientation().x(rotation.x);
+            value.orientation().y(rotation.y);
+            value.orientation().z(rotation.z);
+            value.orientation().w(rotation.w);
+        }
+    }
+
+    value.data_size(cbData);
+
+    // this allocates and copies the buffer .. is there another way?
+    std::vector<uint8_t> bsbuf(cbData);
+    bsbuf.assign(pBytes, pBytes + cbData);
+    value.data(std::move(bsbuf));
+
+
+    buffer_cdr.reset();
+    value.serialize(buffer_cdr);
+
+    if (z_publisher_put(user->publisher, (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(user->options))) {
+        ShowMessage("RM_VLC: Error publishing message");
+        SetEvent(user->clientevent);
+    }
+    else {
+        //ShowMessage("PV: published frame");
+    }
 
     pBuffer->Unlock();
     pBuffer->Release();
@@ -65,8 +114,101 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
 // OK
 template <bool ENABLE_LOCATION>
-void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format, SpatialLocator const& locator)
 {
+
+    std::string sub_path;
+    pcpd_msgs::msg::Hololens2StreamDescriptor desc{};
+
+    switch (sensor->GetSensorType()) {
+    case LEFT_FRONT:
+        sub_path = "rm/vlc_lf/";
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_LEFT_FRONT);
+        break;
+    case LEFT_LEFT:
+        sub_path = "rm/vlc_ll/";
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_LEFT_LEFT);
+        break;
+    case RIGHT_FRONT:
+        sub_path = "rm/vlc_rf/";
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_RIGHT_FRONT);
+        break;
+    case RIGHT_RIGHT:
+        sub_path = "rm/vlc_rr/";
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_RIGHT_RIGHT);
+        break;
+    default:
+        ShowMessage("RM_VLC: invalid config");
+        return;
+    }
+
+    desc.image_width(RM_VLC_WIDTH);
+    desc.image_height(RM_VLC_HEIGHT);
+    desc.frame_rate(RM_VLC_FPS);
+
+    desc.image_format(pcpd_msgs::msg::PixelFormat_L8);
+    switch (format.profile) {
+    case H26xProfile_None:
+        desc.h26x_profile(pcpd_msgs::msg::H26xProfile_None);
+        desc.image_compression(pcpd_msgs::msg::CompressionType_Raw);
+        break;
+    case H264Profile_Base:
+        desc.h26x_profile(pcpd_msgs::msg::H264Profile_Base);
+        desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        break;
+    case H264Profile_Main:
+        desc.h26x_profile(pcpd_msgs::msg::H264Profile_Main);
+        desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        break;
+    case H264Profile_High:
+        desc.h26x_profile(pcpd_msgs::msg::H264Profile_High);
+        desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        break;
+    case H265Profile_Main:
+        desc.h26x_profile(pcpd_msgs::msg::H265Profile_Main);
+        desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        break;
+
+    }
+
+    std::string keyexpr = "hl2/sensor/" + sub_path + std::string(client_id);
+    desc.stream_topic(keyexpr);
+
+    // publish streamdescriptor
+    eprosima::fastcdr::FastBuffer buffer{};
+    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+
+    // put message to zenoh
+    {
+        buffer_cdr.reset();
+        desc.serialize(buffer_cdr);
+
+        std::string keyexpr1 = "hl2/cfg/" + sub_path + std::string(client_id);
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            ShowMessage("RM_VLC: Error putting info");
+        }
+        else {
+            ShowMessage("RM_VLC: put info");
+        }
+    }
+
+    ShowMessage("RM_VLC: publish on: %s", keyexpr.c_str());
+
+
+    z_owned_publisher_t pub = z_declare_publisher(session, z_keyexpr(keyexpr.c_str()), NULL);
+
+    if (!z_check(pub)) {
+        ShowMessage("RM_VLC: Error creating publisher");
+        return;
+    }
+
+    z_publisher_put_options_t options = z_publisher_put_options_default();
+    options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+
+
     uint32_t const width      = RM_VLC_WIDTH;
     uint32_t const height     = RM_VLC_HEIGHT;
     uint32_t const framerate  = RM_VLC_FPS;
@@ -82,7 +224,6 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     BYTE const* pImage;
     size_t length;
     BYTE* pDst;
-    H26xFormat format;
     CustomMediaSink* pSink; // Release
     IMFSinkWriter* pSinkWriter; // Release
     IMFMediaBuffer* pBuffer; // Release
@@ -93,20 +234,18 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t chromasize;
     uint32_t framebytes;
     HRESULT hr;
-    bool ok;
     
-    ok = ReceiveVideoH26x(clientsocket, format);
-    if (!ok) { return; }
-
     format.width     = width;
     format.height    = height;
     format.framerate = framerate;
 
     clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-    user.clientsocket = clientsocket;
-    user.clientevent  = clientevent;
+    user.publisher = z_loan(pub);
+    user.clientevent = clientevent;
     user.data_profile = format.profile;
+    user.options = options;
+    user.client_id = client_id;
 
     switch (format.profile)
     {
@@ -165,52 +304,54 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pSink->Shutdown();
     pSink->Release();
 
+    z_undeclare_publisher(z_move(pub));
+
     CloseHandle(clientevent);
 }
 
 // OK
-void RM_VLC_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_VLC_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format)
 {
-    RM_VLC_Stream<false>(sensor, clientsocket, nullptr);
+    RM_VLC_Stream<false>(sensor, session, client_id, format, nullptr);
 }
 
 // OK
-void RM_VLC_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_VLC_Stream_Mode1(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format, SpatialLocator const& locator)
 {
-    RM_VLC_Stream<true>(sensor, clientsocket, locator);
+    RM_VLC_Stream<true>(sensor, session, client_id, format, locator);
 }
 
 // OK
-void RM_VLC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    std::vector<float> uv2x;
-    std::vector<float> uv2y;
-    std::vector<float> mapx;
-    std::vector<float> mapy;
-    float K[4];
-    DirectX::XMFLOAT4X4 extrinsics;
-    WSABUF wsaBuf[6];
-
-    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
-    ResearchMode_GetExtrinsics(sensor, extrinsics);
-
-    wsaBuf[0].buf = (char*)uv2x.data();
-    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-    
-    wsaBuf[1].buf = (char*)uv2y.data();
-    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-    
-    wsaBuf[2].buf = (char*)extrinsics.m;
-    wsaBuf[2].len = sizeof(extrinsics.m);
-
-    wsaBuf[3].buf = (char*)mapx.data();
-    wsaBuf[3].len = (ULONG)(mapx.size() * sizeof(float));
-
-    wsaBuf[4].buf = (char*)mapy.data();
-    wsaBuf[4].len = (ULONG)(mapy.size() * sizeof(float));
-
-    wsaBuf[5].buf = (char*)K;
-    wsaBuf[5].len = sizeof(K);
-
-    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-}
+//void RM_VLC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
+//{
+//    std::vector<float> uv2x;
+//    std::vector<float> uv2y;
+//    std::vector<float> mapx;
+//    std::vector<float> mapy;
+//    float K[4];
+//    DirectX::XMFLOAT4X4 extrinsics;
+//    WSABUF wsaBuf[6];
+//
+//    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
+//    ResearchMode_GetExtrinsics(sensor, extrinsics);
+//
+//    wsaBuf[0].buf = (char*)uv2x.data();
+//    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
+//    
+//    wsaBuf[1].buf = (char*)uv2y.data();
+//    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
+//    
+//    wsaBuf[2].buf = (char*)extrinsics.m;
+//    wsaBuf[2].len = sizeof(extrinsics.m);
+//
+//    wsaBuf[3].buf = (char*)mapx.data();
+//    wsaBuf[3].len = (ULONG)(mapx.size() * sizeof(float));
+//
+//    wsaBuf[4].buf = (char*)mapy.data();
+//    wsaBuf[4].len = (ULONG)(mapy.size() * sizeof(float));
+//
+//    wsaBuf[5].buf = (char*)K;
+//    wsaBuf[5].len = sizeof(K);
+//
+//    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+//}

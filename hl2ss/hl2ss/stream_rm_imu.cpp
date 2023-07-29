@@ -3,6 +3,16 @@
 #include "server.h"
 #include "locator.h"
 #include "timestamps.h"
+#include "log.h"
+#include <chrono>
+
+#include "zenoh.h"
+
+#define FASTCDR_STATIC_LINK
+#include "fastcdr/Cdr.h"
+
+#include "pcpd_msgs/msg/Hololens2Sensors.h"
+
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>
@@ -20,8 +30,70 @@ using namespace winrt::Windows::Perception::Spatial;
 
 // OK
 template<class IResearchModeIMUFrame, class IMUDataStruct, bool ENABLE_LOCATION>
-void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, SpatialLocator const& locator)
 {
+
+    std::string sub_path;
+    pcpd_msgs::msg::Hololens2StreamDescriptor desc{};
+
+    switch (sensor->GetSensorType()) {
+    case IMU_ACCEL:
+        sub_path = "rm/imu_acc/";
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_IMU_ACCEL);
+        break;
+    case IMU_GYRO:
+        sub_path = "rm/imu_gyr/";
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_IMU_GYRO);
+        break;
+    case IMU_MAG:
+        sub_path = "rm/imu_mag/";
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_IMU_MAG);
+        break;
+    default:
+        ShowMessage("RM_IMU: invalid config");
+        return;
+
+    }
+
+    std::string keyexpr = "hl2/sensor/" + sub_path + std::string(client_id);
+    desc.stream_topic(keyexpr);
+
+    // publish streamdescriptor
+    eprosima::fastcdr::FastBuffer buffer{};
+    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+
+    // put message to zenoh
+    {
+        buffer_cdr.reset();
+        desc.serialize(buffer_cdr);
+
+        std::string keyexpr1 = "hl2/cfg/" + sub_path + std::string(client_id);
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            ShowMessage("PV: Error putting info");
+        }
+        else {
+            ShowMessage("PV: put info");
+        }
+    }
+
+    // should put another message for extrinsics (need idl for it)
+
+    ShowMessage("PV: publish on: %s", keyexpr.c_str());
+
+    z_owned_publisher_t pub = z_declare_publisher(session, z_keyexpr(keyexpr.c_str()), NULL);
+
+    if (!z_check(pub)) {
+        ShowMessage("PV: Error creating publisher");
+        return;
+    }
+
+    z_publisher_put_options_t options = z_publisher_put_options_default();
+    options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+
+
     PerceptionTimestamp ts = nullptr;
     float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
@@ -29,10 +101,8 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     IResearchModeIMUFrame* pSensorIMUFrame; // Release    
     IMUDataStruct const* pIMUBuffer;
     size_t nIMUSamples;
-    int bufSize;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];    
     HRESULT hr;
-    bool ok;
+    bool ok{ true };
 
     sensor->OpenStream();
 
@@ -46,38 +116,154 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeAccelFrame>)
     {
-    pSensorIMUFrame->GetCalibratedAccelarationSamples(&pIMUBuffer, &nIMUSamples);
+        pSensorIMUFrame->GetCalibratedAccelarationSamples(&pIMUBuffer, &nIMUSamples);
+        
+        pcpd_msgs::msg::Hololens2ImuAccel value{};
+        {
+            using namespace std::chrono;
+            auto ts_ = nanoseconds(timestamp.HostTicks * 100);
+            auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+            auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+            value.header().stamp().sec(ts_sec);
+            value.header().stamp().nanosec(ts_nsec);
+
+            value.header().frame_id(client_id);
+        }
+        value.vinyl_hup_ticks(pIMUBuffer->VinylHupTicks);
+        value.soc_ticks(pIMUBuffer->SocTicks);
+        auto& v = pIMUBuffer->AccelValues;
+        value.values({v[0], v[1], v[2]});
+        value.temperature(pIMUBuffer->temperature);
+
+        if constexpr (ENABLE_LOCATION)
+        {
+            ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+            pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
+
+            float3 scale;
+            quaternion rotation;
+            float3 translation;
+
+            if (decompose(pose, &scale, &rotation, &translation)) {
+                value.position().x(translation.x);
+                value.position().y(translation.y);
+                value.position().z(translation.z);
+
+                value.orientation().x(rotation.x);
+                value.orientation().y(rotation.y);
+                value.orientation().z(rotation.z);
+                value.orientation().w(rotation.w);
+
+            }
+        }
+
+        buffer_cdr.reset();
+        value.serialize(buffer_cdr);
+    
     }
     else if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeGyroFrame>)
     {
-    pSensorIMUFrame->GetCalibratedGyroSamples(&pIMUBuffer, &nIMUSamples);
+        pSensorIMUFrame->GetCalibratedGyroSamples(&pIMUBuffer, &nIMUSamples);
+
+        pcpd_msgs::msg::Hololens2ImuGyro value{};
+        {
+            using namespace std::chrono;
+            auto ts_ = nanoseconds(timestamp.HostTicks * 100);
+            auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+            auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+            value.header().stamp().sec(ts_sec);
+            value.header().stamp().nanosec(ts_nsec);
+
+            value.header().frame_id(client_id);
+        }
+        value.vinyl_hup_ticks(pIMUBuffer->VinylHupTicks);
+        value.soc_ticks(pIMUBuffer->SocTicks);
+        auto& v = pIMUBuffer->GyroValues;
+        value.values({ v[0], v[1], v[2] });
+        value.temperature(pIMUBuffer->temperature);
+
+        if constexpr (ENABLE_LOCATION)
+        {
+            ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+            pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
+
+            float3 scale;
+            quaternion rotation;
+            float3 translation;
+
+            if (decompose(pose, &scale, &rotation, &translation)) {
+                value.position().x(translation.x);
+                value.position().y(translation.y);
+                value.position().z(translation.z);
+
+                value.orientation().x(rotation.x);
+                value.orientation().y(rotation.y);
+                value.orientation().z(rotation.z);
+                value.orientation().w(rotation.w);
+
+            }
+        }
+
+        buffer_cdr.reset();
+        value.serialize(buffer_cdr);
+
     }
     else if constexpr(std::is_same_v<IResearchModeIMUFrame, IResearchModeMagFrame>)
     {
-    pSensorIMUFrame->GetMagnetometerSamples(&pIMUBuffer, &nIMUSamples);
+        pSensorIMUFrame->GetMagnetometerSamples(&pIMUBuffer, &nIMUSamples);
+
+        pcpd_msgs::msg::Hololens2ImuMag value{};
+        {
+            using namespace std::chrono;
+            auto ts_ = nanoseconds(timestamp.HostTicks * 100);
+            auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+            auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+            value.header().stamp().sec(ts_sec);
+            value.header().stamp().nanosec(ts_nsec);
+
+            value.header().frame_id(client_id);
+        }
+        value.vinyl_hup_ticks(pIMUBuffer->VinylHupTicks);
+        value.soc_ticks(pIMUBuffer->SocTicks);
+        auto& v = pIMUBuffer->MagValues;
+        value.values({ v[0], v[1], v[2] });
+
+        if constexpr (ENABLE_LOCATION)
+        {
+            ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+            pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
+
+            float3 scale;
+            quaternion rotation;
+            float3 translation;
+
+            if (decompose(pose, &scale, &rotation, &translation)) {
+                value.position().x(translation.x);
+                value.position().y(translation.y);
+                value.position().z(translation.z);
+
+                value.orientation().x(rotation.x);
+                value.orientation().y(rotation.y);
+                value.orientation().z(rotation.z);
+                value.orientation().w(rotation.w);
+
+            }
+        }
+
+        buffer_cdr.reset();
+        value.serialize(buffer_cdr);
     }
 
-    bufSize = (int)(nIMUSamples * sizeof(IMUDataStruct));
-
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks;
-    wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    
-    wsaBuf[1].buf = (char*)&bufSize;
-    wsaBuf[1].len = sizeof(bufSize);
-    
-    wsaBuf[2].buf = (char*)pIMUBuffer;
-    wsaBuf[2].len = bufSize;
-
-    if constexpr(ENABLE_LOCATION)
-    {
-    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
-    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
-    
-    wsaBuf[3].buf = (char*)&pose;
-    wsaBuf[3].len = sizeof(pose);
+    if (z_publisher_put(z_loan(pub), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(options))) {
+        ShowMessage("PV: Error publishing message");
+        ok = false;
     }
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    else {
+        //ShowMessage("PV: published frame");
+    }
 
     pSensorIMUFrame->Release();
     pSensorFrame->Release();
@@ -88,78 +274,78 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 }
 
 // OK
-static void RM_IMU_Extrinsics(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    DirectX::XMFLOAT4X4 extrinsics;
-    WSABUF wsaBuf;
-
-    ResearchMode_GetExtrinsics(sensor, extrinsics);
-
-    wsaBuf.buf = (char*)&extrinsics.m[0][0];
-    wsaBuf.len = sizeof(extrinsics.m);
-
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-}
+//static void RM_IMU_Extrinsics(IResearchModeSensor* sensor, SOCKET clientsocket)
+//{
+//    DirectX::XMFLOAT4X4 extrinsics;
+//    WSABUF wsaBuf;
+//
+//    ResearchMode_GetExtrinsics(sensor, extrinsics);
+//
+//    wsaBuf.buf = (char*)&extrinsics.m[0][0];
+//    wsaBuf.len = sizeof(extrinsics.m);
+//
+//    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+//}
 
 // ACC ************************************************************************
 
 // OK
-void RM_ACC_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_ACC_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id)
 {
-    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, false>(sensor, clientsocket, nullptr);
+    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, false>(sensor, session, client_id, nullptr);
 }
 
 // OK
-void RM_ACC_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_ACC_Stream_Mode1(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, SpatialLocator const& locator)
 {
-    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, true>(sensor, clientsocket, locator);
+    RM_IMU_Stream<IResearchModeAccelFrame, AccelDataStruct, true>(sensor, session, client_id, locator);
 }
 
 // OK
-void RM_ACC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    RM_IMU_Extrinsics(sensor, clientsocket);
-}
+//void RM_ACC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
+//{
+//    RM_IMU_Extrinsics(sensor, clientsocket);
+//}
 
 // GYR ************************************************************************
 
 // OK
-void RM_GYR_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_GYR_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id)
 {
-    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, false>(sensor, clientsocket, nullptr);
+    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, false>(sensor, session, client_id, nullptr);
 }
 
 // OK
-void RM_GYR_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_GYR_Stream_Mode1(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, SpatialLocator const& locator)
 {
-    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, true>(sensor, clientsocket, locator);
+    RM_IMU_Stream<IResearchModeGyroFrame, GyroDataStruct, true>(sensor, session, client_id, locator);
 }
 
 // OK
-void RM_GYR_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    RM_IMU_Extrinsics(sensor, clientsocket);
-}
+//void RM_GYR_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
+//{
+//    RM_IMU_Extrinsics(sensor, clientsocket);
+//}
 
 // MAG ************************************************************************
 
 // OK
-void RM_MAG_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_MAG_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id)
 {
-    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, false>(sensor, clientsocket, nullptr);
+    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, false>(sensor, session, client_id, nullptr);
 }
 
 // OK
-void RM_MAG_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_MAG_Stream_Mode1(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, SpatialLocator const& locator)
 {
-    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, true>(sensor, clientsocket, locator);
+    RM_IMU_Stream<IResearchModeMagFrame, MagDataStruct, true>(sensor, session, client_id, locator);
 }
 
 // OK
-void RM_MAG_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    (void)sensor;
-    (void)clientsocket;
-
-    // no interface
-}
+//void RM_MAG_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
+//{
+//    (void)sensor;
+//    (void)clientsocket;
+//
+//    // no interface
+//}

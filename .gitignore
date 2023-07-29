@@ -34,3 +34,5 @@ tools/build_3rdparty/deactivate_conanrun.bat
 hl2ss/3rdparty/UWP/arm64/Debug/
 hl2ss/3rdparty/zenoh-c/bin/UWP/arm64/Debug/
 hl2ss/3rdparty/zenoh-c/lib/UWP/arm64/Debug/
+
+viewer/.idea/

@@ -78,7 +78,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     }
 
     std::string keyexpr = "hl2/sensor/eet/" + g_zenoh_context->client_id;
-    ShowMessage("EET: publish on: %s", keyexpr);
+    ShowMessage("EET: publish on: %s", keyexpr.c_str());
 
     z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), NULL);
 

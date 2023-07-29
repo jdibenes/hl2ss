@@ -116,7 +116,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(SolutionDir)\3rdparty\UWP\arm64\Release\include;$(SolutionDir)\3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">mfuuid.lib;$(SolutionDir)\3rdparty\zenoh-c\lib\UWP\arm64\Debug\zenohc.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\zstd.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\zdepth.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_std.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_geometry.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\libfastcdrd-1.0.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">mfuuid.lib;$(SolutionDir)\3rdparty\zenoh-c\lib\UWP\arm64\Debug\zenohc.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\zstd_static.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\zdepth.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_std.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_geometry.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\libfastcdrd-1.0.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
@@ -128,7 +128,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">mfuuid.lib;$(SolutionDir)/3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zstd.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">mfuuid.lib;$(SolutionDir)/3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zstd_static.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

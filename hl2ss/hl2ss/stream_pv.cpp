@@ -48,6 +48,7 @@ struct PV_Context {
     H26xFormat format;
     bool enable_location{ true };
     bool valid{ false };
+    bool first_frame_sent{ false };
 };
 
 //-----------------------------------------------------------------------------
@@ -106,10 +107,91 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pj.c = intrinsics.PrincipalPoint();
     pj.rd = intrinsics.RadialDistortion();
     pj.td = intrinsics.TangentialDistortion();
+    //intrinsics.UndistortedProjectionTransform();
 
     if constexpr(ENABLE_LOCATION)
     {
-    pj.pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
+        pj.pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
+    }
+
+    if (!g_zenoh_context->first_frame_sent) {
+        g_zenoh_context->first_frame_sent = true;
+
+        pcpd_msgs::msg::Hololens2StreamDescriptor desc{};
+
+        desc.stream_topic("hl2/sensor/vid/pv/" + g_zenoh_context->client_id);
+        desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::PERSONAL_VIDEO);
+        desc.frame_rate(g_zenoh_context->format.framerate);
+        desc.image_width(g_zenoh_context->format.width);
+        desc.image_height(g_zenoh_context->format.height);
+
+        // ignore for now - don't know how to set this for NV12...
+        desc.image_step(0);
+
+        switch (g_zenoh_context->format.profile) {
+        case H26xProfile_None:
+            desc.h26x_profile(pcpd_msgs::msg::H26xProfile_None);
+            desc.image_compression(pcpd_msgs::msg::CompressionType_Raw);
+            break;
+        case H264Profile_Base:
+            desc.h26x_profile(pcpd_msgs::msg::H264Profile_Base);
+            desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+            break;
+        case H264Profile_Main:
+            desc.h26x_profile(pcpd_msgs::msg::H264Profile_Main);
+            desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+            break;
+        case H264Profile_High:
+            desc.h26x_profile(pcpd_msgs::msg::H264Profile_High);
+            desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+            break;
+        case H265Profile_Main:
+            desc.h26x_profile(pcpd_msgs::msg::H265Profile_Main);
+            desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+            break;
+        }
+
+        desc.h26x_bitrate(g_zenoh_context->format.bitrate);
+
+        if constexpr (ENABLE_LOCATION)
+        {
+            // add flag to note it is enabled?
+            float3 scale;
+            quaternion rotation;
+            float3 translation;
+
+            if (decompose(pj.pose, &scale, &rotation, &translation)) {
+                desc.position().x(translation.x);
+                desc.position().y(translation.y);
+                desc.position().z(translation.z);
+
+                desc.orientation().x(rotation.x);
+                desc.orientation().y(rotation.y);
+                desc.orientation().z(rotation.z);
+                desc.orientation().w(rotation.w);
+            }
+        }
+
+        eprosima::fastcdr::FastBuffer buffer{};
+        eprosima::fastcdr::Cdr buffer_cdr(buffer);
+
+        buffer_cdr.reset();
+        desc.serialize(buffer_cdr);
+
+        // put message to zenoh
+        {
+            std::string keyexpr1 = "hl2/cfg/vid/pv/" + g_zenoh_context->client_id;
+            z_put_options_t options1 = z_put_options_default();
+            options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+            int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+            if (res > 0) {
+                ShowMessage("PV: Error putting info");
+            }
+            else {
+                ShowMessage("PV: put info");
+            }
+        }
+
     }
 
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj));
@@ -277,6 +359,7 @@ void PV_Stream(HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& f
     user.clientevent  = clientevent;
     user.data_profile = format.profile;
     user.options = options;
+    user.client_id = g_zenoh_context->client_id.c_str();
 
     switch (format.profile)
     {

@@ -13,13 +13,14 @@
 #include "fastcdr/Cdr.h"
 
 #include "pcpd_msgs/msg/Hololens2AACAudioStream.h"
-
+#include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 struct MC_Context {
 	std::string client_id;
 	z_session_t session;
 	AACFormat format;
 	bool valid{ false };
+	bool first_frame_sent{ false };
 };
 
 
@@ -141,11 +142,62 @@ static void MC_Shoutcast()
 	user.clientevent  = event_client;
 	user.data_profile = format.profile;
 	user.options = options;
+	user.client_id = g_zenoh_context->client_id.c_str();
 
 	switch (format.profile)
 	{
 	case AACProfile::AACProfile_None: CreateSinkWriterPCMToPCM(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
 	default:                          CreateSinkWriterPCMToAAC(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
+	}
+
+	if (!g_zenoh_context->first_frame_sent) {
+		g_zenoh_context->first_frame_sent = true;
+
+		pcpd_msgs::msg::Hololens2StreamDescriptor value{};
+
+		value.stream_topic("hl2/sensor/mic/" + g_zenoh_context->client_id);
+		value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::MICROPHONE);
+		value.frame_rate(format.samplerate);
+
+		switch (format.profile) {
+		case AACProfile_None:
+			value.aac_profile(pcpd_msgs::msg::AACProfile_None);
+			break;
+		case AACProfile_12000:
+			value.aac_profile(pcpd_msgs::msg::AACProfile_12000);
+			break;
+		case AACProfile_16000:
+			value.aac_profile(pcpd_msgs::msg::AACProfile_16000);
+			break;
+		case AACProfile_20000:
+			value.aac_profile(pcpd_msgs::msg::AACProfile_20000);
+			break;
+		case AACProfile_24000:
+			value.aac_profile(pcpd_msgs::msg::AACProfile_24000);
+			break;
+		}
+
+		value.audio_channels(static_cast<uint8_t>(format.channels));
+
+
+		eprosima::fastcdr::FastBuffer buffer{};
+		eprosima::fastcdr::Cdr buffer_cdr(buffer);
+
+		buffer_cdr.reset();
+		value.serialize(buffer_cdr);
+
+		// put message to zenoh
+		std::string keyexpr1 = "hl2/cfg/mic/" + g_zenoh_context->client_id;
+		z_put_options_t options1 = z_put_options_default();
+		options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+		int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+		if (res > 0) {
+			ShowMessage("MC: Error putting info");
+		}
+		else {
+			ShowMessage("MC: put info");
+		}
+
 	}
 
 	g_microphoneCapture->Start();
