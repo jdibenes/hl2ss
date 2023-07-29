@@ -1,6 +1,8 @@
 
 #pragma once
 
-void SM_Initialize();
+#include "zenoh.h"
+
+void SM_Initialize(const char* client_id, z_session_t session);
 void SM_Quit();
 void SM_Cleanup();

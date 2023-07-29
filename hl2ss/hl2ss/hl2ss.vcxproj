@@ -93,6 +93,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <IncludePath>$(SolutionDir)/3rdparty\zenoh-c\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -112,17 +113,22 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(SolutionDir)\3rdparty\UWP\arm64\Release\include;$(SolutionDir)\3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">mfuuid.lib;$(SolutionDir)\3rdparty\zenoh-c\lib\UWP\arm64\Debug\zenohc.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\zstd.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\zdepth.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_std.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_geometry.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)\3rdparty\UWP\arm64\Debug\lib\libfastcdrd-1.0.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(SolutionDir)\3rdparty\UWP\arm64\Release\include;$(SolutionDir)\3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">mfuuid.lib;$(SolutionDir)/3rdparty\zenoh-c\lib\UWP\arm64\zenohc.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">mfuuid.lib;$(SolutionDir)/3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zstd.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -250,30 +256,44 @@
     <FxCompile Include="Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Cannon\Shaders\Lit_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Cannon\Shaders\Lit_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Cannon\Shaders\Lit_VS_SPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Cannon\Shaders\UnlitTexture_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Cannon\Shaders\Unlit_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Cannon\Shaders\Unlit_VS_SPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">5.0</ShaderModel>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

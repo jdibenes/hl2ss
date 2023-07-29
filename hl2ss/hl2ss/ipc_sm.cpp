@@ -5,6 +5,11 @@
 #include "spatial_mapping.h"
 #include "log.h"
 
+#include "zenoh.h"
+
+#define FASTCDR_STATIC_LINK
+#include "fastcdr/Cdr.h"
+
 #include <winrt/Windows.Perception.Spatial.h>
 
 using namespace winrt::Windows::Perception::Spatial;
@@ -249,7 +254,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
 }
 
 // OK
-void SM_Initialize()
+void SM_Initialize(const char* /*client_id*/, z_session_t /*session*/)
 {
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);

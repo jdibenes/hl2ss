@@ -8,6 +8,12 @@
 #include "ports.h"
 #include "types.h"
 
+#include "zenoh.h"
+
+#define FASTCDR_STATIC_LINK
+#include "fastcdr/Cdr.h"
+
+
 #include <winrt/Windows.Perception.Spatial.h>
 #include <winrt/Windows.Perception.Spatial.Preview.h>
 
@@ -124,7 +130,7 @@ static DWORD WINAPI RM_EntryPoint(void* param)
 }
 
 // OK
-void RM_Initialize()
+void RM_Initialize(const char* client_id, z_session_t session)
 {
     ResearchModeSensorType const* sensortypes = ResearchMode_GetSensorTypes();
     int const sensorcount = ResearchMode_GetSensorTypeCount();

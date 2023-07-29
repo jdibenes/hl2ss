@@ -94,7 +94,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t framebytes;
     HRESULT hr;
     bool ok;
-
+    
     ok = ReceiveVideoH26x(clientsocket, format);
     if (!ok) { return; }
 

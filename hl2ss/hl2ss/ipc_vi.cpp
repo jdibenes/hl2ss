@@ -4,6 +4,11 @@
 #include "voice_input.h"
 #include "log.h"
 
+#include "zenoh.h"
+
+#define FASTCDR_STATIC_LINK
+#include "fastcdr/Cdr.h"
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -219,7 +224,7 @@ static DWORD WINAPI VI_EntryPoint(void *param)
 }
 
 // OK
-void VI_Initialize()
+void VI_Initialize(const char* /*client_id*/, z_session_t /*session*/)
 {
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);

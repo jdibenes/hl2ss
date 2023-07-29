@@ -136,6 +136,7 @@
     <ClCompile Include="stream_eet.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -229,6 +230,7 @@
     <None Include="PropertySheet.props">
       <Filter>Metadata</Filter>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(SceneUnderstanding-Platform)\native\Microsoft.MixedReality.SceneUnderstanding.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cannon\AnimatedVector.h">

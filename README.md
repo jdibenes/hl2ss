@@ -16,6 +16,16 @@ Installation notes:
   ```cargo +nightly build -Z build-std=panic_abort,std --target=aarch64-uwp-windows-msvc --release```
 
 
+**Third-Party Libraries**
+
+- Zenoh-c (build instructions above)
+- FastCDR v1.0.28 (newer ones use foonathan-memory and will probably not compile for windows uwp)
+
+Notes:
+
+- capnproto c/c++ cannot be compiled for windows uwp (missing '\_pipe' and others)
+
+
 
 # HoloLens 2 Sensor Streaming
 

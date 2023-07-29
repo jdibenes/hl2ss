@@ -7,6 +7,11 @@
 #include "timestamps.h"
 #include "nfo.h"
 
+#include "zenoh.h"
+
+#define FASTCDR_STATIC_LINK
+#include "fastcdr/Cdr.h"
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -371,7 +376,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 }
 
 // OK
-void RC_Initialize()
+void RC_Initialize(const char* /*client_id*/, z_session_t /*session*/)
 {
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);

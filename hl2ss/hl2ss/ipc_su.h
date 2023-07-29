@@ -1,6 +1,8 @@
 
 #pragma once
 
-void SU_Initialize();
+#include "zenoh.h"
+
+void SU_Initialize(const char* client_id, z_session_t session);
 void SU_Quit();
 void SU_Cleanup();

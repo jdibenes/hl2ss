@@ -6,7 +6,11 @@ hl2ss/hl2ss/ARM64/
 hl2ss/hl2ss/Generated Files/
 hl2ss/hl2ss/code_bin.txt
 hl2ss/enc_temp_folder/
-hl2ss/hl2ss/BundleArtifacts/
+hl2ss/plugin/BundleArtifacts/
+hl2ss/plugin/ARM64/
+hl2ss/plugin/Generated Files/
+hl2ss/plugin/code_bin.txt
+hl2ss/plugin/BundleArtifacts/
 release/
 *.pfx
 *.user
@@ -18,3 +22,15 @@ tools/__pycache__/
 bbn/__pycache__/
 bbn/tests/__pycache__/
 calibration
+
+tools/build_3rdparty/direct_deploy/
+tools/build_3rdparty/conanbuild.bat
+tools/build_3rdparty/conanbuildenv.bat
+tools/build_3rdparty/conanrun.bat
+tools/build_3rdparty/conanrunenv.bat
+tools/build_3rdparty/deactivate_conanbuild.bat
+tools/build_3rdparty/deactivate_conanrun.bat
+
+hl2ss/3rdparty/UWP/arm64/Debug/
+hl2ss/3rdparty/zenoh-c/bin/UWP/arm64/Debug/
+hl2ss/3rdparty/zenoh-c/lib/UWP/arm64/Debug/

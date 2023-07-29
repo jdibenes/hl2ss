@@ -6,6 +6,8 @@
 #include "custom_hook_callback.h"
 #include <mfreadwrite.h>
 
+#include "zenoh.h"
+
 struct H26xFormat
 {
     uint16_t    width;
@@ -24,9 +26,11 @@ struct AACFormat
 
 struct HookCallbackSocket
 {
-    SOCKET clientsocket;
+    z_publisher_t publisher;
     HANDLE clientevent;
     int    data_profile;
+    z_publisher_put_options_t options;
+
 };
 
 void CreateSinkWriterPCMToPCM(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);

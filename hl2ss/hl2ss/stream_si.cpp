@@ -7,6 +7,11 @@
 #include "timestamps.h"
 #include "log.h"
 
+#include "zenoh.h"
+
+#define FASTCDR_STATIC_LINK
+#include "fastcdr/Cdr.h"
+
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>
 #include <winrt/Windows.Perception.Spatial.h>
@@ -129,7 +134,7 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 }
 
 // OK
-void SI_Initialize()
+void SI_Initialize(const char* /*client_id*/, z_session_t /*session*/)
 {
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, SI_EntryPoint, NULL, 0, NULL);
