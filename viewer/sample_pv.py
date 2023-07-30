@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # Start PV stream ------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(False, hl2ss.StreamType.PERSONAL_VIDEO, conf, DEFAULT_KEY, 'bgr24')
+    producer.configure_pv(True, hl2ss.StreamType.PERSONAL_VIDEO, conf, DEFAULT_KEY, 'bgr24')
     producer.initialize(hl2ss.StreamType.PERSONAL_VIDEO)
     producer.start(hl2ss.StreamType.PERSONAL_VIDEO)
 

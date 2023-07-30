@@ -288,7 +288,7 @@ class rx_video_stream(_context_manager):
             else:
                 log.warning("Unhandled uncompressed sensor type: {0}".format(d.sensor_type))
             if stride > 0:
-                p.image = np.frombuffer(value.image, dtype=np.uint8).reshape((int(height*3/2), stride))[:, :width]
+                p.image = np.asarray(value.image, dtype=np.uint8).reshape((int(height*3/2), stride))[:, :width]
         return p
 
     def close(self):
@@ -612,7 +612,7 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
 
 
 def unpack_pv(payload):
-    return _PV_Frame(bytes(payload.data),
+    return _PV_Frame(bytes(payload.image),
                      np.asarray(payload.camera_focal_length, dtype=np.float32),
                      np.asarray(payload.camera_principal_point, dtype=np.float32))
 

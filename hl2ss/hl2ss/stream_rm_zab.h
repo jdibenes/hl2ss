@@ -6,7 +6,7 @@
 
 #include <winrt/Windows.Perception.Spatial.h>
 
-#include "zenoh.h"
+#include "hl2ss_network.h"
 #include "custom_sink_writers.h"
 
 void RM_ZLT_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id);

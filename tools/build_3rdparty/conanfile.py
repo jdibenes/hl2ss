@@ -13,6 +13,8 @@ class Build3rdpartyConan(ConanFile):
 	generators = "VirtualRunEnv",
 
 	def requirements(self):
+		# self.requires("zenoh-cpp/0.10.0-dev@camposs/stable")
 		self.requires("hl2comm_idl/0.0.1@artekmed/stable")
 		self.requires("fast-cdr/1.0.27")
 		self.requires("zdepth/0.2@camposs/stable")
+		self.requires("uriparser/0.9.3")

@@ -389,6 +389,9 @@
     <ClInclude Include="stream_eet.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
+    <ClInclude Include="hl2ss_network.h">
+      <Filter>Header Files\server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">

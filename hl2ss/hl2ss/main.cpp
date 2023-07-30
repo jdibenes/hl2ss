@@ -24,7 +24,7 @@
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.UI.Core.h>
 
-#include "zenoh.h"
+#include "hl2ss_network.h"
 
 
 using namespace winrt::Windows::ApplicationModel;
@@ -83,13 +83,11 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		VoiceInput_Initialize();
 
 		// testing zenoh in uwp app
-		z_owned_config_t config = z_config_default();
-
+		z_owned_config_t config = z_config_default(); 
 		z_owned_session_t zs = z_open(z_move(config));
 		if (!z_check(zs)) {
-			// error message
+			return;
 		}
-
 		// some global parameters that can be modified when used as plugin...
 		const char* client_id = "dev00";
 		uint8_t eye_fps = 60;
@@ -99,11 +97,11 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 		bool pv_enable_location = true;
 		H26xFormat pv_format{};
-		pv_format.width = 1280;
-		pv_format.height = 720;
-		pv_format.framerate = 30;
-		pv_format.profile = H26xProfile::H26xProfile_None;
-		pv_format.bitrate = static_cast<int>((pv_format.width * pv_format.height * pv_format.framerate * 45.) * (4. / 420.));
+		pv_format.width = 640;
+		pv_format.height = 360;
+		pv_format.framerate = 15;
+		pv_format.profile = H26xProfile::H264Profile_High;
+		pv_format.bitrate = 40000*8;
 
 		RMStreamConfig rm_config{};
 	
@@ -132,7 +130,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		// start selected services..
 
 		// Research Mode Streaming
-		RM_Initialize(client_id, z_loan(zs), rm_config);
+		//RM_Initialize(client_id, z_loan(zs), rm_config);
 
 		// Microphone streaming
 		//MC_Initialize(client_id, z_loan(zs), mic_format);
@@ -141,7 +139,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		PV_Initialize(client_id, z_loan(zs), pv_enable_location, pv_format);
 		
 		//SI_Initialize(client_id, z_loan(zs));
-		//RC_Initialize(client_id, z_loan(zs));
+		RC_Initialize(client_id, z_loan(zs));
 		//SM_Initialize(client_id, z_loan(zs));
 		//SU_Initialize(client_id, z_loan(zs));
 		//VI_Initialize(client_id, z_loan(zs));

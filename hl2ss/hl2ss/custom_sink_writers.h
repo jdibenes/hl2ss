@@ -6,7 +6,7 @@
 #include "custom_hook_callback.h"
 #include <mfreadwrite.h>
 
-#include "zenoh.h"
+#include "hl2ss_network.h"
 
 struct H26xFormat
 {

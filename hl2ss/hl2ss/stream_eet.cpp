@@ -13,7 +13,7 @@
 #include <winrt/Windows.Perception.Spatial.h>
 #include <winrt/Microsoft.MixedReality.EyeTracking.h>
 
-#include "zenoh.h"
+#include "hl2ss_network.h"
 
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"

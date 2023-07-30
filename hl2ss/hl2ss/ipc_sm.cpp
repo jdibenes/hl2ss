@@ -5,7 +5,7 @@
 #include "spatial_mapping.h"
 #include "log.h"
 
-#include "zenoh.h"
+#include "hl2ss_network.h"
 
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"

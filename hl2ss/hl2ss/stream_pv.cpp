@@ -10,7 +10,7 @@
 #include "ipc_sc.h"
 #include <chrono>
 
-#include "zenoh.h"
+#include "hl2ss_network.h"
 
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
