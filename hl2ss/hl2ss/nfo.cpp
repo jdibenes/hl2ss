@@ -49,11 +49,18 @@ void PrintSystemInfo()
 
     GetSystemInfo(&si);
 
-    ShowMessage("Active Processor Mask %llX", si.dwActiveProcessorMask);
-    ShowMessage("Number of Processors %d", si.dwNumberOfProcessors);
+    ShowMessage("Active Processor Mask: %llX", si.dwActiveProcessorMask);
+    ShowMessage("Allocation Granularity: %d", si.dwAllocationGranularity);
+    ShowMessage("Number of Processors: %d", si.dwNumberOfProcessors);
+    ShowMessage("Page Size: %d", si.dwPageSize);
+    ShowMessage("Maximum Application Address: %p", si.lpMaximumApplicationAddress);
+    ShowMessage("Minimum Application Address: %p", si.lpMinimumApplicationAddress);
+    ShowMessage("Processor Architecture: %d", (DWORD)si.wProcessorArchitecture);
+    ShowMessage("Processor Level: %d", (DWORD)si.wProcessorLevel);
+    ShowMessage("Processor Revision: %d", (DWORD)si.wProcessorRevision);
 
     GetProcessAffinityMask(GetCurrentProcess(), &pam, &sam);
 
-    ShowMessage("Process Affinity Mask %llX", pam);
-    ShowMessage("System Affinity Mask %llX", sam);
+    ShowMessage("Process Affinity Mask: %llX", pam);
+    ShowMessage("System Affinity Mask: %llX", sam);
 }
