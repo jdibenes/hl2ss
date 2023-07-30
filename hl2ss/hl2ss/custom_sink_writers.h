@@ -11,28 +11,27 @@ struct H26xFormat
     uint16_t    width;
     uint16_t    height;
     uint8_t     framerate;
+    uint8_t     divisor;
     H26xProfile profile;
+    uint8_t     gop_size;
     uint32_t    bitrate;
 };
 
 struct AACFormat
 {
-    uint32_t   channels;
-    uint32_t   samplerate;
+    uint16_t   samplerate;
+    uint8_t    channels;    
     AACProfile profile;
+    AACLevel   level;
+    uint8_t    _reserved[3];
 };
 
 struct HookCallbackSocket
 {
     SOCKET clientsocket;
     HANDLE clientevent;
-    int    data_profile;
+    void*  format;
 };
 
-void CreateSinkWriterPCMToPCM(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
-void CreateSinkWriterPCMToAAC(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AACFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
-
-void CreateSinkWriterL8ToL8(    CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
-void CreateSinkWriterNV12ToNV12(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
-void CreateSinkWriterARGBToARGB(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
-void CreateSinkWriterNV12ToH26x(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
+void CreateSinkWriterAudio(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AudioSubtype input_subtype, AACFormat  const& format, HOOK_SINK_PROC hookproc, void* hookparam);
+void CreateSinkWriterVideo(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, VideoSubtype input_subtype, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
