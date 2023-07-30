@@ -360,23 +360,23 @@ class producer:
     def configure(self, port, receiver):
         self._rx[port] = receiver
 
-    def configure_rm_vlc(self, decoded, host, port, chunk, mode, profile, bitrate):
-        self.configure(port, hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate) if (decoded) else hl2ss.rx_rm_vlc(host, port, chunk, mode, profile, bitrate))
+    def configure_rm_vlc(self, decoded, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
+        self.configure(port, hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate, divisor, gop_size) if (decoded) else hl2ss.rx_rm_vlc(host, port, chunk, mode, profile, bitrate, divisor, gop_size))
 
-    def configure_rm_depth_ahat(self, decoded, host, port, chunk, mode, profile, bitrate):
-        self.configure(port, hl2ss.rx_decoded_rm_depth_ahat(host, port, chunk, mode, profile, bitrate) if (decoded) else hl2ss.rx_rm_depth_ahat(host, port, chunk, mode, profile, bitrate))
+    def configure_rm_depth_ahat(self, decoded, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
+        self.configure(port, hl2ss.rx_decoded_rm_depth_ahat(host, port, chunk, mode, profile, bitrate, divisor, gop_size) if (decoded) else hl2ss.rx_rm_depth_ahat(host, port, chunk, mode, profile, bitrate, divisor, gop_size))
         
-    def configure_rm_depth_longthrow(self, decoded, host, port, chunk, mode, png_filter):
-        self.configure(port, hl2ss.rx_decoded_rm_depth_longthrow(host, port, chunk, mode, png_filter) if (decoded) else hl2ss.rx_rm_depth_longthrow(host, port, chunk, mode, png_filter))
+    def configure_rm_depth_longthrow(self, decoded, host, port, chunk, mode, png_filter, divisor=1):
+        self.configure(port, hl2ss.rx_decoded_rm_depth_longthrow(host, port, chunk, mode, png_filter, divisor) if (decoded) else hl2ss.rx_rm_depth_longthrow(host, port, chunk, mode, png_filter, divisor))
 
     def configure_rm_imu(self, host, port, chunk, mode):
         self.configure(port, hl2ss.rx_rm_imu(host, port, chunk, mode))
 
-    def configure_pv(self, decoded, host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format):
-        self.configure(port, hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format) if (decoded) else hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate))
+    def configure_pv(self, decoded, host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format, divisor=1, gop_size=None):
+        self.configure(port, hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format, divisor, gop_size) if (decoded) else hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, divisor, gop_size))
 
-    def configure_microphone(self, decoded, host, port, chunk, profile):
-        self.configure(port, hl2ss.rx_decoded_microphone(host, port, chunk, profile) if (decoded) else hl2ss.rx_microphone(host, port, chunk, profile))
+    def configure_microphone(self, decoded, host, port, chunk, profile, level=hl2ss.AACLevel.L2):
+        self.configure(port, hl2ss.rx_decoded_microphone(host, port, chunk, profile, level) if (decoded) else hl2ss.rx_microphone(host, port, chunk, profile, level))
 
     def configure_si(self, host, port, chunk):
         self.configure(port, hl2ss.rx_si(host, port, chunk))
@@ -427,38 +427,6 @@ class consumer:
 #------------------------------------------------------------------------------
 # Stream Sync Period
 #------------------------------------------------------------------------------
-
-def get_sync_period_rm_vlc(profile):
-    return hl2ss.get_gop_size(profile, hl2ss.Parameters_RM_VLC.FPS)
-
-
-def get_sync_period_rm_depth_ahat(profile):
-    return hl2ss.get_gop_size(profile, hl2ss.Parameters_RM_DEPTH_AHAT.FPS)
-
-
-def get_sync_period_rm_depth_longthrow():
-    return 1
-
-
-def get_sync_period_rm_imu():
-    return 1
-
-
-def get_sync_period_pv(profile, framerate):
-    return hl2ss.get_gop_size(profile, framerate)
-
-
-def get_sync_period_microphone():
-    return 1
-
-
-def get_sync_period_si():
-    return 1
-
-
-def get_sync_period_eet():
-    return 1
-
 
 def get_sync_frame_stamp(frame_stamp, sync_period):
     return frame_stamp + ((sync_period - (frame_stamp % sync_period)) % sync_period)
