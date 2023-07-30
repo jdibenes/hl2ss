@@ -72,7 +72,7 @@ class VideoProfile:
     RAW       = 0xFF
 
 
-# Audio Encoder Configuration
+# Audio Encoder Bitrate
 # 0: AAC 12000 bytes/s
 # 1: AAC 16000 bytes/s
 # 2: AAC 20000 bytes/s
@@ -83,6 +83,29 @@ class AudioProfile:
     AAC_20000 = 2
     AAC_24000 = 3
     RAW       = 0xFF
+
+# Audio Encoder Level
+# 0x29: AAC Profile L2 (default)
+# 0x2A: AAC Profile L4
+# 0x2B: AAC Profile L5
+# 0x2C: High Efficiency v1 AAC Profile L2
+# 0x2E: High Efficiency v1 AAC Profile L4
+# 0x2F: High Efficiency v1 AAC Profile L5
+# 0x30: High Efficiency v2 AAC Profile L2
+# 0x31: High Efficiency v2 AAC Profile L3
+# 0x32: High Efficiency v2 AAC Profile L4
+# 0x33: High Efficiency v2 AAC Profile L5
+class AACLevel:
+    L2     = 0x29
+    L4     = 0x2A
+    L5     = 0x2B
+    HEV1L2 = 0x2C
+    HEV1L4 = 0x2E
+    HEV1L5 = 0x2F
+    HEV2L2 = 0x30
+    HEV2L3 = 0x31
+    HEV2L4 = 0x32
+    HEV2L5 = 0x33
 
 
 # PNG Filters
@@ -145,14 +168,12 @@ class Parameters_RM_IMU_MAGNETOMETER:
 # Microphone Parameters
 class Parameters_MICROPHONE:
     SAMPLE_RATE = 48000
-    GROUP_SIZE  = 1024
     CHANNELS    = 2
-    PERIOD      = GROUP_SIZE / SAMPLE_RATE
 
 
 # Spatial Input Parameters
 class Parameters_SI:
-    SAMPLE_RATE = 60
+    SAMPLE_RATE = 30
     PERIOD      = 1 / SAMPLE_RATE
 
 
@@ -327,35 +348,42 @@ def _create_configuration_for_video_format(width, height, framerate):
     return struct.pack('<HHB', width, height, framerate)
 
 
-def _create_configuration_for_video_encoding(profile, bitrate):
-    return struct.pack('<BI', profile, bitrate)
+def _create_configuration_for_video_divisor(divisor):
+    return struct.pack('<B', divisor)
 
 
-def _create_configuration_for_audio_encoding(profile):
-    return struct.pack('<B', profile)
+def _create_configuration_for_video_encoding(profile, gop_size, bitrate):
+    return struct.pack('<BBI', profile, gop_size, bitrate)
+
+
+def _create_configuration_for_audio_encoding(profile, level):
+    return struct.pack('<BB', profile, level)
 
 
 def _create_configuration_for_png_encoding(png_filter):
     return struct.pack('<B', png_filter)
 
 
-def _create_configuration_for_rm_vlc(mode, profile, bitrate):
+def _create_configuration_for_rm_vlc(mode, divisor, profile, gop_size, bitrate):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mode(mode))
-    configuration.extend(_create_configuration_for_video_encoding(profile, bitrate))
+    configuration.extend(_create_configuration_for_video_divisor(divisor))
+    configuration.extend(_create_configuration_for_video_encoding(profile, gop_size, bitrate))
     return bytes(configuration)
 
 
-def _create_configuration_for_rm_depth_ahat(mode, profile, bitrate):
+def _create_configuration_for_rm_depth_ahat(mode, divisor, profile, gop_size, bitrate):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mode(mode))
-    configuration.extend(_create_configuration_for_video_encoding(profile, bitrate))
+    configuration.extend(_create_configuration_for_video_divisor(divisor))
+    configuration.extend(_create_configuration_for_video_encoding(profile, gop_size, bitrate))
     return bytes(configuration)
 
 
-def _create_configuration_for_rm_depth_longthrow(mode, png_filter):
+def _create_configuration_for_rm_depth_longthrow(mode, divisor, png_filter):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mode(mode))
+    configuration.extend(_create_configuration_for_video_divisor(divisor))
     configuration.extend(_create_configuration_for_png_encoding(png_filter))
     return bytes(configuration)
 
@@ -364,16 +392,17 @@ def _create_configuration_for_rm_imu(mode):
     return _create_configuration_for_mode(mode)
 
 
-def _create_configuration_for_pv(mode, width, height, framerate, profile, bitrate):
+def _create_configuration_for_pv(mode, width, height, framerate, divisor, profile, gop_size, bitrate):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mode(mode))
     configuration.extend(_create_configuration_for_video_format(width, height, framerate))
-    configuration.extend(_create_configuration_for_video_encoding(profile, bitrate))
+    configuration.extend(_create_configuration_for_video_divisor(divisor))
+    configuration.extend(_create_configuration_for_video_encoding(profile, gop_size, bitrate))
     return bytes(configuration)
 
 
-def _create_configuration_for_microphone(profile):
-    return _create_configuration_for_audio_encoding(profile)
+def _create_configuration_for_microphone(profile, level):
+    return _create_configuration_for_audio_encoding(profile, level)
 
 
 def _create_configuration_for_eet(fps):
@@ -395,36 +424,36 @@ def _create_configuration_for_pv_mode2(mode, width, height, framerate):
 # Mode 0 and Mode 1 Data Acquisition
 #------------------------------------------------------------------------------
 
-def _connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
+def _connect_client_rm_vlc(host, port, chunk_size, mode, divisor, profile, gop_size, bitrate):
     if (is_rs_host(host)):
         c = _rs_gatherer()
         c.open(host, port, None)
     else:
         c = _gatherer()
         c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_rm_vlc(mode, profile, bitrate))
+        c.sendall(_create_configuration_for_rm_vlc(mode, divisor, profile, gop_size, bitrate))
     return c
 
 
-def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, profile, bitrate):
+def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, divisor, profile, gop_size, bitrate):
     if (is_rs_host(host)):
         c = _rs_gatherer()
         c.open(host, port, None)
     else:
         c = _gatherer()
         c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_rm_depth_ahat(mode, profile, bitrate))
+        c.sendall(_create_configuration_for_rm_depth_ahat(mode, divisor, profile, gop_size, bitrate))
     return c
 
 
-def _connect_client_rm_depth_longthrow(host, port, chunk_size, mode, png_filter):
+def _connect_client_rm_depth_longthrow(host, port, chunk_size, mode, divisor, png_filter):
     if (is_rs_host(host)):
         c = _rs_gatherer()
         c.open(host, port, None)
     else:
         c = _gatherer()
         c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_rm_depth_longthrow(mode, png_filter))
+        c.sendall(_create_configuration_for_rm_depth_longthrow(mode, divisor, png_filter))
     return c
 
 
@@ -439,25 +468,25 @@ def _connect_client_rm_imu(host, port, chunk_size, mode):
     return c
 
 
-def _connect_client_pv(host, port, chunk_size, mode, width, height, framerate, profile, bitrate):
+def _connect_client_pv(host, port, chunk_size, mode, width, height, framerate, divisor, profile, gop_size, bitrate):
     if (is_rs_host(host)):
         c = _rs_gatherer()
         c.open(host, port, None)
     else:
         c = _gatherer()
         c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_pv(mode, width, height, framerate, profile, bitrate))
+        c.sendall(_create_configuration_for_pv(mode, width, height, framerate, divisor, profile, gop_size, bitrate))
     return c
 
 
-def _connect_client_microphone(host, port, chunk_size, profile):
+def _connect_client_microphone(host, port, chunk_size, profile, level):
     if (is_rs_host(host)):
         c = _rs_gatherer()
         c.open(host, port, None)
     else:
         c = _gatherer()
         c.open(host, port, chunk_size, StreamMode.MODE_0)
-        c.sendall(_create_configuration_for_microphone(profile))
+        c.sendall(_create_configuration_for_microphone(profile, level))
     return c
 
 
@@ -518,16 +547,18 @@ class _context_manager:
 #------------------------------------------------------------------------------
 
 class rx_rm_vlc(_context_manager):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
+    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.mode = mode
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size if (gop_size is not None) else max([1, Parameters_RM_VLC.FPS // divisor])
         self.bitrate = bitrate
 
     def open(self):
-        self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
+        self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile, self.gop_size, self.bitrate)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -537,16 +568,18 @@ class rx_rm_vlc(_context_manager):
 
 
 class rx_rm_depth_ahat(_context_manager):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
+    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.mode = mode
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size if (gop_size is not None) else max([1, Parameters_RM_DEPTH_AHAT.FPS // divisor])
         self.bitrate = bitrate
 
     def open(self):
-        self._client = _connect_client_rm_depth_ahat(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
+        self._client = _connect_client_rm_depth_ahat(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile, self.gop_size, self.bitrate)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -556,15 +589,16 @@ class rx_rm_depth_ahat(_context_manager):
 
 
 class rx_rm_depth_longthrow(_context_manager):
-    def __init__(self, host, port, chunk, mode, png_filter):
+    def __init__(self, host, port, chunk, mode, png_filter, divisor=1):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.mode = mode
+        self.divisor = divisor
         self.png_filter = png_filter
 
     def open(self):
-        self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.chunk, self.mode, self.png_filter)
+        self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.chunk, self.mode, self.divisor, self.png_filter)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -591,7 +625,7 @@ class rx_rm_imu(_context_manager):
 
 
 class rx_pv(_context_manager):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate):
+    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, divisor=1, gop_size=None):
         self.host = host
         self.port = port
         self.chunk = chunk
@@ -599,11 +633,13 @@ class rx_pv(_context_manager):
         self.width = width
         self.height = height
         self.framerate = framerate
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size if (gop_size is not None) else max([1, framerate // divisor])
         self.bitrate = bitrate
 
     def open(self):
-        self._client = _connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.profile, self.bitrate)
+        self._client = _connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.divisor, self.profile, self.gop_size, self.bitrate)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -613,14 +649,15 @@ class rx_pv(_context_manager):
 
 
 class rx_microphone(_context_manager):
-    def __init__(self, host, port, chunk, profile):
+    def __init__(self, host, port, chunk, profile, level=AACLevel.L2):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.profile = profile
+        self.level = level
 
     def open(self):
-        self._client = _connect_client_microphone(self.host, self.port, self.chunk, self.profile)
+        self._client = _connect_client_microphone(self.host, self.port, self.chunk, self.profile, self.level)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -703,11 +740,6 @@ def get_audio_codec_bitrate(profile):
         return 24000*8
     
     return None
-
-
-def get_gop_size(profile, framerate):
-    name = get_video_codec_name(profile)
-    return 1 if ((name != 'h264') and (name != 'hevc')) else framerate
 
 
 def get_video_codec_default_factor(profile):
@@ -878,7 +910,7 @@ def unpack_pv(payload):
     return _PV_Frame(payload[:-16], np.frombuffer(payload[-16:-8], dtype=np.float32), np.frombuffer(payload[-8:], dtype=np.float32))
 
 
-def get_nv12_stride(width):
+def get_video_stride(width):
     return width + ((64 - (width & 63)) & 63)
 
 
@@ -909,7 +941,7 @@ class _unpack_pv:
     def create(self, width, height):
         self.width = width
         self.height = height
-        self.stride = get_nv12_stride(width)
+        self.stride = get_video_stride(width)
 
     def decode(self, payload, format):
         image = np.frombuffer(payload, dtype=np.uint8).reshape((int(self.height*3/2), self.stride))[:, :self.width]
@@ -1129,8 +1161,8 @@ class unpack_eet:
 #------------------------------------------------------------------------------
 
 class rx_decoded_rm_vlc(rx_rm_vlc):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
-        super().__init__(host, port, chunk, mode, profile, bitrate)
+    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
+        super().__init__(host, port, chunk, mode, profile, bitrate, divisor, gop_size)
         self._codec = decode_rm_vlc(profile)
 
     def open(self):
@@ -1148,8 +1180,8 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
 
 
 class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
-        super().__init__(host, port, chunk, mode, profile, bitrate)
+    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
+        super().__init__(host, port, chunk, mode, profile, bitrate, divisor, gop_size)
         self._codec = decode_rm_depth_ahat(profile)
 
     def open(self):
@@ -1167,8 +1199,8 @@ class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
 
 
 class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
-    def __init__(self, host, port, chunk, mode, png_filter):
-        super().__init__(host, port, chunk, mode, png_filter)
+    def __init__(self, host, port, chunk, mode, png_filter, divisor=1):
+        super().__init__(host, port, chunk, mode, png_filter, divisor)
 
     def open(self):
         super().open()
@@ -1183,8 +1215,8 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
 
 
 class rx_decoded_pv(rx_pv):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
-        super().__init__(host, port, chunk, mode, width, height, framerate, profile, bitrate)
+    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format, divisor=1, gop_size=None):
+        super().__init__(host, port, chunk, mode, width, height, framerate, profile, bitrate, divisor, gop_size)
         self.format = format
         self._codec = decode_pv(profile)
 
@@ -1204,8 +1236,8 @@ class rx_decoded_pv(rx_pv):
 
 
 class rx_decoded_microphone(rx_microphone):
-    def __init__(self, host, port, chunk, profile):
-        super().__init__(host, port, chunk, profile)
+    def __init__(self, host, port, chunk, profile, level=AACLevel.L2):
+        super().__init__(host, port, chunk, profile, level)
         self._codec = decode_microphone(profile)
         
     def open(self):
