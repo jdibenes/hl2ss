@@ -75,6 +75,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint8_t  const zerochroma = 0x80;
 
     PerceptionTimestamp ts = nullptr;
+    uint32_t f = 0;
     float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -93,9 +94,13 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t chromasize;
     uint32_t framebytes;
     HRESULT hr;
+    VideoSubtype subtype;
     bool ok;
 
-    ok = ReceiveVideoH26x(clientsocket, format);
+    ok = ReceiveH26xFormat_Divisor(clientsocket, format);
+    if (!ok) { return; }
+
+    ok = ReceiveH26xFormat_Profile(clientsocket, format);
     if (!ok) { return; }
 
     format.width     = width;
@@ -106,13 +111,15 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
-    user.data_profile = format.profile;
+    user.format       = &format;
 
     switch (format.profile)
     {
-    case H26xProfile::H26xProfile_None: chromasize = 0;            CreateSinkWriterL8ToL8(    &pSink, &pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
-    default:                            chromasize = lumasize / 2; CreateSinkWriterNV12ToH26x(&pSink, &pSinkWriter, &dwVideoIndex, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    case H26xProfile::H26xProfile_None: chromasize = 0;            subtype = VideoSubtype::VideoSubtype_L8;   break;
+    default:                            chromasize = lumasize / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
     }
+
+    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user);
 
     framebytes = lumasize + chromasize;
 
@@ -123,6 +130,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     hr = sensor->GetNextBuffer(&pSensorFrame); // block
     if (FAILED(hr)) { break; }
 
+    if (f == 0)
+    {
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pVLCFrame));
 
@@ -142,7 +151,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pSample->SetSampleDuration(duration);
     pSample->SetSampleTime(timestamp.HostTicks);
 
-    if constexpr(ENABLE_LOCATION)
+    if constexpr (ENABLE_LOCATION)
     {
     ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
     pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
@@ -151,10 +160,14 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     pSinkWriter->WriteSample(dwVideoIndex, pSample);
 
-    pVLCFrame->Release();
-    pSensorFrame->Release();
     pSample->Release();
     pBuffer->Release();
+    pVLCFrame->Release();
+    }
+
+    f = (f + 1) % format.divisor;
+
+    pSensorFrame->Release();
     }
     while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
 
