@@ -67,7 +67,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	DWORD dwAudioIndex;
 	bool ok;
 
-	ok = ReceiveAudioFormatAAC(clientsocket, format.profile);
+	ok = ReceiveAACFormat_Profile(clientsocket, format);
 	if (!ok) { return; }
 
 	format.channels   = channels;
@@ -77,13 +77,9 @@ static void MC_Shoutcast(SOCKET clientsocket)
 
 	user.clientsocket = clientsocket;
 	user.clientevent  = event_client;
-	user.data_profile = format.profile;
+	user.format       = &format;
 
-	switch (format.profile)
-	{
-	case AACProfile::AACProfile_None: CreateSinkWriterPCMToPCM(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
-	default:                          CreateSinkWriterPCMToAAC(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
-	}
+	CreateSinkWriterAudio(&pSink, &pSinkWriter, &dwAudioIndex, AudioSubtype::AudioSubtype_S16, format, MC_SendSampleToSocket, &user);
 
 	g_microphoneCapture->Start();
 	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(event_client, 0) == WAIT_TIMEOUT);
