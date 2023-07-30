@@ -100,6 +100,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t const duration   = HNS_BASE / framerate;
 
     PerceptionTimestamp ts = nullptr;
+    uint32_t f = 0;
     float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -120,9 +121,13 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t framebytes;
     ZHT_KERNEL kernel;
     HRESULT hr;
+    VideoSubtype subtype;    
     bool ok;
 
-    ok = ReceiveVideoH26x(clientsocket, format);
+    ok = ReceiveH26xFormat_Divisor(clientsocket, format);
+    if (!ok) { return; }
+
+    ok = ReceiveH26xFormat_Profile(clientsocket, format);
     if (!ok) { return; }
 
     format.width     = width;
@@ -133,13 +138,15 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
-    user.data_profile = format.profile;
+    user.format       = &format;
 
     switch (format.profile)
     {
-    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_Stack;   framebytes =  width * height * 2  * 2; CreateSinkWriterARGBToARGB(&pSink, &pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
-    default:                            kernel = Neon_ZHTToNV12; framebytes = (width * height * 3) / 2; CreateSinkWriterNV12ToH26x(&pSink, &pSinkWriter, &dwVideoIndex, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
+    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_Stack;   framebytes = width * height * 2 * 2;   subtype = VideoSubtype::VideoSubtype_ARGB; break;
+    default:                            kernel = Neon_ZHTToNV12; framebytes = (width * height * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
     }
+
+    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user);
 
     sensor->OpenStream();
 
@@ -148,6 +155,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     hr = sensor->GetNextBuffer(&pSensorFrame);
     if (FAILED(hr)) { break; }
 
+    if (f == 0)
+    {
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pDepthFrame));
 
@@ -176,10 +185,14 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     pSinkWriter->WriteSample(dwVideoIndex, pSample);
 
-    pDepthFrame->Release();
-    pSensorFrame->Release();
     pSample->Release();
     pBuffer->Release();
+    pDepthFrame->Release();
+    }
+
+    f = (f + 1) % format.divisor;
+
+    pSensorFrame->Release();
     }
     while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
 
@@ -259,6 +272,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     int const height = RM_ZLT_HEIGHT;
 
     PerceptionTimestamp ts = nullptr;
+    uint32_t f = 0;
     float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -276,10 +290,21 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t streamSize;
     WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     HRESULT hr;
+    H26xFormat format;
     bool ok;
+
+    ok = ReceiveH26xFormat_Divisor(clientsocket, format);
+    if (!ok) { return; }
 
     ok = ReceivePNGFilter(clientsocket, filter);
     if (!ok) { return; }
+
+    format.width     = width;
+    format.height    = height;
+    format.framerate = RM_ZLT_FPS;
+    format.profile   = H26xProfile::H26xProfile_None;
+    format.gop_size  = 1;
+    format.bitrate   = 0;
 
     pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(filter), winrt::Windows::Foundation::PropertyType::UInt8));
     
@@ -290,6 +315,8 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     hr = sensor->GetNextBuffer(&pSensorFrame); // block
     if (FAILED(hr)) { break; }
 
+    if (f == 0)
+    {
     pSensorFrame->GetTimeStamp(&timestamp);
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pDepthFrame));
 
@@ -318,14 +345,14 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     wsaBuf[0].buf = (char*)&timestamp.HostTicks;
     wsaBuf[0].len = sizeof(timestamp.HostTicks);
-    
+
     wsaBuf[1].buf = (char*)&streamSize;
     wsaBuf[1].len = sizeof(streamSize);
 
     wsaBuf[2].buf = (char*)streamBuf.data();
     wsaBuf[2].len = streamSize;
 
-    if constexpr(ENABLE_LOCATION)
+    if constexpr (ENABLE_LOCATION)
     {
     ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
     pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
@@ -337,6 +364,10 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 
     pDepthFrame->Release();
+    }
+
+    f = (f + 1) % format.divisor;
+
     pSensorFrame->Release();
     }
     while (ok);
