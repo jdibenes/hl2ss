@@ -235,6 +235,9 @@
     <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(SceneUnderstanding-Platform)\native\Microsoft.MixedReality.SceneUnderstanding.dll">
       <Filter>Libraries\SceneUnderstanding</Filter>
     </None>
+    <None Include="hl2ss_TemporaryKey.pfx">
+      <Filter>Metadata</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cannon\AnimatedVector.h">
