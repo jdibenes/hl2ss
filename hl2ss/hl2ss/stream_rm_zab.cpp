@@ -15,7 +15,7 @@
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
 
-#include "pcpd_msgs/msg/Hololens2H26xVideoStream.h"
+#include "pcpd_msgs/msg/Hololens2VideoStream.h"
 #include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 #define ZDEPTH_BUILD_STATIC
@@ -85,7 +85,7 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
     eprosima::fastcdr::FastBuffer buffer{};
     eprosima::fastcdr::Cdr buffer_cdr(buffer);
 
-    pcpd_msgs::msg::Hololens2H26xVideoStream value{};
+    pcpd_msgs::msg::Hololens2VideoStream value{};
 
     {
         using namespace std::chrono;
@@ -119,12 +119,12 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
         }
     }
 
-    value.data_size(cbData);
+    value.image_bytes(cbData);
 
     // this allocates and copies the buffer .. is there another way?
     std::vector<uint8_t> bsbuf(cbData);
     bsbuf.assign(pBytes, pBytes + cbData);
-    value.data(std::move(bsbuf));
+    value.image(std::move(bsbuf));
 
 
     buffer_cdr.reset();
@@ -172,22 +172,27 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     case H26xProfile_None:
         desc.h26x_profile(pcpd_msgs::msg::H26xProfile_None);
         desc.image_compression(pcpd_msgs::msg::CompressionType_Raw);
+        desc.image_step(RM_ZHT_WIDTH * 2 * 2);
         break;
     case H264Profile_Base:
         desc.h26x_profile(pcpd_msgs::msg::H264Profile_Base);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_ZHT_WIDTH * 3 / 2);
         break;
     case H264Profile_Main:
         desc.h26x_profile(pcpd_msgs::msg::H264Profile_Main);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_ZHT_WIDTH * 3 / 2);
         break;
     case H264Profile_High:
         desc.h26x_profile(pcpd_msgs::msg::H264Profile_High);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_ZHT_WIDTH * 3 / 2);
         break;
     case H265Profile_Main:
         desc.h26x_profile(pcpd_msgs::msg::H265Profile_Main);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_ZHT_WIDTH * 3 / 2);
         break;
 
     }
@@ -406,10 +411,12 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     desc_depth.image_width(RM_ZLT_WIDTH);
     desc_depth.image_height(RM_ZLT_HEIGHT);
+    desc_depth.image_step(RM_ZLT_WIDTH * 2);
     desc_depth.frame_rate(5); // between 1-5 fps .. how is it determined/configured?
 
     desc_ir.image_width(RM_ZLT_WIDTH);
     desc_ir.image_height(RM_ZLT_HEIGHT);
+    desc_ir.image_step(RM_ZLT_WIDTH * 2);
     desc_ir.frame_rate(5); // between 1-5 fps .. how is it determined/configured?
 
     desc_depth.image_format(pcpd_msgs::msg::PixelFormat_L16);
@@ -497,15 +504,15 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     size_t nSigmaCount;
     size_t nDepthCount;
     size_t nAbCount;
-    BYTE* pixelBufferData;
-    UINT32 pixelBufferDataLength;
-    BitmapPropertySet pngProperties;
-    PngFilterMode filter = PngFilterMode::Paeth; // temporary, we want zdepth later 
-    uint32_t streamSize;
+    //BYTE* pixelBufferData;
+    //UINT32 pixelBufferDataLength;
+    //BitmapPropertySet pngProperties;
+    //PngFilterMode filter = PngFilterMode::Paeth; // temporary, we want zdepth later 
+    //uint32_t streamSize;
     HRESULT hr;
     bool ok{ true };
 
-    pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(filter), winrt::Windows::Foundation::PropertyType::UInt8));
+    //pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(filter), winrt::Windows::Foundation::PropertyType::UInt8));
 
 
     zdepth::DepthCompressor compressor{};
@@ -531,15 +538,15 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
     }
     // process depth with zdepth - first filter only reliable depth measurements
-    std::vector<uint16_t> temp_buffer(RM_ZHT_WIDTH* RM_ZHT_HEIGHT);
+    std::vector<uint16_t> temp_buffer(width*height);
     Neon_FilterDepth(pSigma, pDepth, &(temp_buffer[0]));
 
     std::vector<uint8_t> zdepth_buffer;
     // maybe later we can optimize this further to lower the bandwidth requirements..
     const bool is_keyframe{ true };
-    if (compressor.Compress(RM_ZLT_WIDTH, RM_ZLT_HEIGHT, &(temp_buffer[0]), zdepth_buffer, is_keyframe) == zdepth::DepthResult::Success) {
+    if (compressor.Compress(width, height, &(temp_buffer[0]), zdepth_buffer, is_keyframe) == zdepth::DepthResult::Success) {
         // send depth buffer
-        pcpd_msgs::msg::Hololens2H26xVideoStream value{};
+        pcpd_msgs::msg::Hololens2VideoStream value{};
 
         {
             using namespace std::chrono;
@@ -574,8 +581,8 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
         }
 
-        value.data_size(zdepth_buffer.size());
-        value.data(std::move(zdepth_buffer));
+        value.image_bytes(zdepth_buffer.size());
+        value.image(std::move(zdepth_buffer));
 
         buffer_cdr.reset();
         value.serialize(buffer_cdr);
@@ -621,7 +628,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     //{
     //    // serialization
 
-    //    pcpd_msgs::msg::Hololens2H26xVideoStream value{};
+    //    pcpd_msgs::msg::Hololens2VideoStream value{};
 
     //    {
     //        using namespace std::chrono;

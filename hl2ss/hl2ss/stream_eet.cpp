@@ -5,6 +5,7 @@
 #include "ports.h"
 #include "timestamps.h"
 #include "log.h"
+#include <chrono>
 
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
@@ -76,8 +77,8 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
         ShowMessage("EET: Error invalid context");
         return;
     }
-
-    std::string keyexpr = "hl2/sensor/eet/" + g_zenoh_context->client_id;
+    std::string& client_id = g_zenoh_context->client_id;
+    std::string keyexpr = "hl2/sensor/eet/" + client_id;
     ShowMessage("EET: publish on: %s", keyexpr.c_str());
 
     z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), NULL);
@@ -163,7 +164,17 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
             // serialize to CDR
             pcpd_msgs::msg::Hololens2EyeTracking value{};
 
-            value.timestamp(eet_packet.timestamp);
+            {
+                using namespace std::chrono;
+                auto ts_ = nanoseconds(eet_packet.timestamp * 100);
+                auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+                auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+                value.header().stamp().sec(ts_sec);
+                value.header().stamp().nanosec(ts_nsec);
+
+                value.header().frame_id(client_id);
+            }
 
             {
                 geometry_msgs::msg::Vector3 v_o{};

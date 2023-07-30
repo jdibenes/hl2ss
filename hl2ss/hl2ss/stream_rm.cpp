@@ -14,7 +14,7 @@
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
 
-#include "pcpd_msgs/msg/Hololens2H26xVideoStream.h"
+#include "pcpd_msgs/msg/Hololens2VideoStream.h"
 #include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 #include <winrt/Windows.Perception.Spatial.h>

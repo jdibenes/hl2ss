@@ -1,4 +1,5 @@
 
+from enum import IntEnum
 import numpy as np
 import socket
 import struct
@@ -6,57 +7,42 @@ import asyncio
 import websockets.client
 import cv2
 import av
+import logging
+
+import zenoh
+from zenoh import config, QueryTarget
+from zenoh import Reliability
+
+import hl2ss_schema
+import hl2ss_core
+
+log = logging.getLogger(__name__)
 
 
-# Stream TCP Ports
-class StreamPort:
-    #RM_VLC_LEFTFRONT     = 3800
-    #RM_VLC_LEFTLEFT      = 3801
-    #RM_VLC_RIGHTFRONT    = 3802
-    #RM_VLC_RIGHTRIGHT    = 3803
-    #RM_DEPTH_AHAT        = 3804
-    #RM_DEPTH_LONGTHROW   = 3805
-    #RM_IMU_ACCELEROMETER = 3806
-    #RM_IMU_GYROSCOPE     = 3807
-    #RM_IMU_MAGNETOMETER  = 3808
-    #PERSONAL_VIDEO       = 3810
-    #MICROPHONE           = 3811
-    SPATIAL_INPUT        = 3812
-    #EXTENDED_EYE_TRACKER = 3817
+# Stream Types
+class StreamType(IntEnum):
+    RM_VLC_LEFTFRONT     = 0
+    RM_VLC_LEFTLEFT      = 1
+    RM_VLC_RIGHTFRONT    = 2
+    RM_VLC_RIGHTRIGHT    = 3
+    RM_DEPTH_AHAT        = 4
+    RM_DEPTH_LONGTHROW   = 5
+    RM_IMU_ACCELEROMETER = 6
+    RM_IMU_GYROSCOPE     = 7
+    RM_IMU_MAGNETOMETER  = 8
+    PERSONAL_VIDEO       = 10
+    MICROPHONE           = 11
+    SPATIAL_INPUT        = 12
+    EXTENDED_EYE_TRACKER = 17
 
 
-# IPC TCP Ports
-class IPCPort:
-    REMOTE_CONFIGURATION = 3809
-    SPATIAL_MAPPING      = 3813
-    SCENE_UNDERSTANDING  = 3814
-    VOICE_INPUT          = 3815
-    UNITY_MESSAGE_QUEUE  = 3816
-
-
-# Default Chunk Sizes
-class ChunkSize:
-    RM_VLC               = 4096
-    RM_DEPTH_AHAT        = 4096
-    RM_DEPTH_LONGTHROW   = 4096
-    RM_IMU_ACCELEROMETER = 2048
-    RM_IMU_GYROSCOPE     = 4096
-    RM_IMU_MAGNETOMETER  = 256
-    PERSONAL_VIDEO       = 4096
-    MICROPHONE           = 512
-    SPATIAL_INPUT        = 1024
-    EXTENDED_EYE_TRACKER = 256
-    SINGLE_TRANSFER      = 4096
-
-
-# Stream Operating Mode
-# 0: device data (e.g. video)
-# 1: device data + location data (e.g. video + camera pose)
-# 2: device constants (e.g. camera intrinsics)
-class StreamMode:
-    MODE_0 = 0
-    MODE_1 = 1
-    MODE_2 = 2
+# RPC Type
+class RpcType(IntEnum):
+    REMOTE_CONFIGURATION = 0
+    SPATIAL_MAPPING      = 1
+    SCENE_UNDERSTANDING  = 2
+    VOICE_INPUT          = 3
+    UNITY_MESSAGE_QUEUE  = 4
 
 
 # Video Encoder Configuration
@@ -64,29 +50,44 @@ class StreamMode:
 # 1: H264 main
 # 2: H264 high
 # 3: H265 main (HEVC)
-class VideoProfile:
+class VideoProfile(IntEnum):
     H264_BASE = 0
     H264_MAIN = 1
     H264_HIGH = 2
     H265_MAIN = 3
-    RAW       = 0xFF
+    RAW       = 4
 
+
+map_videoprofile = {
+    hl2ss_schema.Hololens2H26xProfile.H264Profile_Base: VideoProfile.H264_BASE,
+    hl2ss_schema.Hololens2H26xProfile.H264Profile_Main: VideoProfile.H264_MAIN,
+    hl2ss_schema.Hololens2H26xProfile.H264Profile_High: VideoProfile.H264_HIGH,
+    hl2ss_schema.Hololens2H26xProfile.H265Profile_Main: VideoProfile.H265_MAIN,
+    hl2ss_schema.Hololens2H26xProfile.H26xProfile_None: VideoProfile.RAW,
+}
 
 # Audio Encoder Configuration
 # 0: AAC 12000 bytes/s
 # 1: AAC 16000 bytes/s
 # 2: AAC 20000 bytes/s
 # 3: AAC 24000 bytes/s
-class AudioProfile:
+class AudioProfile(IntEnum):
     AAC_12000 = 0
     AAC_16000 = 1
     AAC_20000 = 2
     AAC_24000 = 3
-    RAW       = 0xFF
+    RAW       = 4
 
+map_audioprofile = {
+    hl2ss_schema.Hololens2AACProfile.AACProfile_12000: AudioProfile.AAC_12000,
+    hl2ss_schema.Hololens2AACProfile.AACProfile_16000: AudioProfile.AAC_16000,
+    hl2ss_schema.Hololens2AACProfile.AACProfile_20000: AudioProfile.AAC_20000,
+    hl2ss_schema.Hololens2AACProfile.AACProfile_24000: AudioProfile.AAC_24000,
+    hl2ss_schema.Hololens2AACProfile.AACProfile_None: AudioProfile.RAW,
+}
 
 # PNG Filters
-class PngFilterMode:
+class PngFilterMode(IntEnum):
     Automatic = 0
     Disable   = 1
     Sub       = 2
@@ -186,34 +187,19 @@ class _RANGEOF:
     U64_MAX = 0xFFFFFFFFFFFFFFFF
 
 
-class _client:
-    def open(self, host, port):
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.connect((host, port))
+#------------------------------------------------------------------------------
+# Pose
+#------------------------------------------------------------------------------
 
-    def sendall(self, data):
-        self._socket.sendall(data)
+class Pose:
+    def __init__(self, translation, orientation):
+        self.translation = translation
+        self.orientation = orientation
 
-    def recv(self, chunk_size):
-        chunk = self._socket.recv(chunk_size)
-        if (len(chunk) <= 0):
-            raise Exception('connection closed')
-        return chunk
-
-    def download(self, total, chunk_size):
-        data = bytearray()
-
-        while (total > 0):
-            if (chunk_size > total):
-                chunk_size = total
-            chunk = self.recv(chunk_size)
-            data.extend(chunk)
-            total -= len(chunk)
-
-        return data
-
-    def close(self):
-        self._socket.close()
+    def to_matrix(self):
+        # tbd
+        raise NotImplemented()
+        return []
 
 
 #------------------------------------------------------------------------------
@@ -227,277 +213,10 @@ class _packet:
         self.pose      = pose
 
 
-def pack_packet(packet):
-    buffer = bytearray()
-    buffer.extend(struct.pack('<QI', packet.timestamp, len(packet.payload)))
-    buffer.extend(packet.payload)
-    if (packet.pose is not None):
-        buffer.extend(packet.pose.tobytes())
-    return buffer
-
-
-def unpack_packet(data):
-    timestamp, payload_size = struct.unpack('<QI', data[:12])
-    payload = data[12:(12 + payload_size)]
-    pose = data[(12 + payload_size):]
-    return _packet(timestamp, payload, np.frombuffer(pose, dtype=np.float32).reshape((4, 4)) if (len(pose) == 64) else None)
-
-
 def is_valid_pose(pose):
-    return pose[3, 3] != 0
+    return isinstance(pose, Pose)
 
-
-class _unpacker:
-    def reset(self, mode):
-        self._mode = mode
-        self._state = 0
-        self._buffer = bytearray()
-        self._timestamp = None
-        self._size = None
-        self._payload = None
-        self._pose = None
-
-    def extend(self, chunk):
-        self._buffer.extend(chunk)
-
-    def unpack(self):        
-        length = len(self._buffer)
-        
-        while (True):
-            if (self._state == 0):
-                if (length >= 12):
-                    header = struct.unpack('<QI', self._buffer[:12])
-                    self._timestamp = header[0]
-                    self._size = 12 + header[1]
-                    if (self._mode == StreamMode.MODE_1):
-                        self._size += 64
-                    self._state = 1
-                    continue
-            elif (self._state == 1):
-                if (length >= self._size):
-                    if (self._mode == StreamMode.MODE_1):
-                        payload_end = self._size - 64
-                        self._pose = np.frombuffer(self._buffer[payload_end:self._size], dtype=np.float32).reshape((4, 4))
-                    else:
-                        payload_end = self._size
-                    self._payload = self._buffer[12:payload_end]
-                    self._buffer = self._buffer[self._size:]
-                    self._state = 0
-                    return True
-            return False
-
-    def get(self):
-        return _packet(self._timestamp, self._payload, self._pose)
-
-
-#------------------------------------------------------------------------------
-# Packet Gatherer
-#------------------------------------------------------------------------------
-
-class _gatherer:
-    def open(self, host, port, chunk_size, mode):
-        self._client = _client()
-        self._unpacker = _unpacker()
-        self._chunk_size = chunk_size
-        self._unpacker.reset(mode)
-        self._client.open(host, port)
-        
-    def sendall(self, data):
-        self._client.sendall(data)
-
-    def get_next_packet(self):
-        while (True):
-            self._unpacker.extend(self._client.recv(self._chunk_size))
-            if (self._unpacker.unpack()):
-                return self._unpacker.get()
-
-    def close(self):
-        self._client.close()
-
-
-#------------------------------------------------------------------------------
-# Stream Configuration
-#------------------------------------------------------------------------------
-
-def _create_configuration_for_mode(mode):
-    return struct.pack('<B', mode)
-
-
-def _create_configuration_for_video_format(width, height, framerate):
-    return struct.pack('<HHB', width, height, framerate)
-
-
-def _create_configuration_for_video_encoding(profile, bitrate):
-    return struct.pack('<BI', profile, bitrate)
-
-
-def _create_configuration_for_audio_encoding(profile):
-    return struct.pack('<B', profile)
-
-
-def _create_configuration_for_png_encoding(png_filter):
-    return struct.pack('<B', png_filter)
-
-
-def _create_configuration_for_rm_vlc(mode, profile, bitrate):
-    configuration = bytearray()
-    configuration.extend(_create_configuration_for_mode(mode))
-    configuration.extend(_create_configuration_for_video_encoding(profile, bitrate))
-    return bytes(configuration)
-
-
-def _create_configuration_for_rm_depth_ahat(mode, profile, bitrate):
-    configuration = bytearray()
-    configuration.extend(_create_configuration_for_mode(mode))
-    configuration.extend(_create_configuration_for_video_encoding(profile, bitrate))
-    return bytes(configuration)
-
-
-def _create_configuration_for_rm_depth_longthrow(mode, png_filter):
-    configuration = bytearray()
-    configuration.extend(_create_configuration_for_mode(mode))
-    configuration.extend(_create_configuration_for_png_encoding(png_filter))
-    return bytes(configuration)
-
-
-def _create_configuration_for_rm_imu(mode):
-    return _create_configuration_for_mode(mode)
-
-
-def _create_configuration_for_pv(mode, width, height, framerate, profile, bitrate):
-    configuration = bytearray()
-    configuration.extend(_create_configuration_for_mode(mode))
-    configuration.extend(_create_configuration_for_video_format(width, height, framerate))
-    configuration.extend(_create_configuration_for_video_encoding(profile, bitrate))
-    return bytes(configuration)
-
-
-def _create_configuration_for_microphone(profile):
-    return _create_configuration_for_audio_encoding(profile)
-
-
-def _create_configuration_for_eet(fps):
-    return struct.pack('<B', fps)
-
-
-def _create_configuration_for_rm_mode2(mode):
-    return _create_configuration_for_mode(mode)
-
-
-def _create_configuration_for_pv_mode2(mode, width, height, framerate):
-    configuration = bytearray()
-    configuration.extend(_create_configuration_for_mode(mode))
-    configuration.extend(_create_configuration_for_video_format(width, height, framerate))
-    return bytes(configuration)
-
-
-#------------------------------------------------------------------------------
-# Mode 0 and Mode 1 Data Acquisition
-#------------------------------------------------------------------------------
-
-def _connect_client_rm_vlc(host, port, chunk_size, mode, profile, bitrate):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_rm_vlc(mode, profile, bitrate))
-    return c
-
-
-def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, profile, bitrate):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_rm_depth_ahat(mode, profile, bitrate))
-    return c
-
-
-def _connect_client_rm_depth_longthrow(host, port, chunk_size, mode, png_filter):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_rm_depth_longthrow(mode, png_filter))
-    return c
-
-
-def _connect_client_rm_imu(host, port, chunk_size, mode):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_rm_imu(mode))
-    return c
-
-
-def _connect_client_pv(host, port, chunk_size, mode, width, height, framerate, profile, bitrate):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, mode)
-        c.sendall(_create_configuration_for_pv(mode, width, height, framerate, profile, bitrate))
-    return c
-
-
-def _connect_client_microphone(host, port, chunk_size, profile):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, StreamMode.MODE_0)
-        c.sendall(_create_configuration_for_microphone(profile))
-    return c
-
-
-def _connect_client_si(host, port, chunk_size):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, StreamMode.MODE_0)
-    return c
-
-
-def _connect_client_eet(host, port, chunk_size, fps):
-    if (is_rs_host(host)):
-        c = _rs_gatherer()
-        c.open(host, port, None)
-    else:
-        c = _gatherer()
-        c.open(host, port, chunk_size, StreamMode.MODE_1)
-        c.sendall(_create_configuration_for_eet(fps))
-    return c
-
-
-def start_subsystem_pv(host, port):
-    if (is_rs_host(host)):
-        return
-    c = _client()
-    c.open(host, port)
-    c.sendall(_create_configuration_for_pv_mode2(0x7, 1920, 1080, 30))
-    c.close()
-
-
-def stop_subsystem_pv(host, port):
-    if (is_rs_host(host)):
-        return
-    c = _client()
-    c.open(host, port)
-    c.sendall(_create_configuration_for_pv_mode2(0xB, 1920, 1080, 30))
-    c.close()
+    # return pose[3, 3] != 0
 
 
 #------------------------------------------------------------------------------
@@ -508,32 +227,72 @@ class _context_manager:
     def __enter__(self):
         self.open()
         return self
-    
+
     def __exit__(self, *args):
         self.close()
+        pass
 
 
 #------------------------------------------------------------------------------
 # Receiver Wrappers
 #------------------------------------------------------------------------------
 
-class rx_rm_vlc(_context_manager):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
-        self.mode = mode
-        self.profile = profile
-        self.bitrate = bitrate
+class rx_video_stream(_context_manager):
+    def __init__(self, session_config, config_topic):
+        self.session_config = session_config
+        self.config_topic = config_topic
+        self.desc = None
+        self.sub = None
+        self.last_sample = None
+        self._session = None
+
+    @property
+    def session(self):
+        # lazy property to support multiprocessing - cannot pickle session
+        return hl2ss_core.Locator().get_session(self.session_config)
+
+    def get_desc(self):
+        return self.desc
+
+    def configure(self):
+        replies = self.session.get(self.config_topic, zenoh.Queue(), target=QueryTarget.BEST_MATCHING())
+        desc_reply = next(replies).ok
+        self.desc = hl2ss_schema.Hololens2StreamDescriptor.deserialize(desc_reply.payload, has_header=False)
+        log.info("PV received stream_config: {0}".format(self.desc))
 
     def open(self):
-        self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
+        if self.desc is None:
+            self.configure()
+        log.info("PV subscribes to stream_topic: {0}".format(self.desc.stream_topic))
+        self.sub = self.session.declare_pull_subscriber(self.desc.stream_topic, self.cb_data, reliability=Reliability.RELIABLE())
+
+    def cb_data(self, sample):
+        self.last_sample = sample
 
     def get_next_packet(self):
-        return self._client.get_next_packet()
+        self.last_sample = None
+        while self.last_sample is None:  # do we need a stop criterion?
+            self.sub.pull()
+        value = hl2ss_schema.Hololens2VideoStream.deserialize(self.last_sample.payload, has_header=False)
+        pose = Pose(value.position, value.orientation)
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, pose)
+        d = self.desc
+        if d.image_compression == hl2ss_schema.Hololens2ImageCompression.CompressionType_Raw:
+            width = self.desc.image_width
+            height = self.desc.image_height
+            stride = 0
+            if d.sensor_type == hl2ss_schema.Hololens2SensorType.PERSONAL_VIDEO and \
+                    d.image_format == hl2ss_schema.Hololens2PixelFormat.PixelFormat_NV12:
+                stride = get_nv12_stride(width)
+            else:
+                log.warning("Unhandled uncompressed sensor type: {0}".format(d.sensor_type))
+            if stride > 0:
+                p.image = np.frombuffer(value.image, dtype=np.uint8).reshape((int(height*3/2), stride))[:, :width]
+        return p
 
     def close(self):
-        self._client.close()
+        self.sub.undeclare()
 
 
 class rx_rm_depth_ahat(_context_manager):
@@ -582,28 +341,6 @@ class rx_rm_imu(_context_manager):
 
     def open(self):
         self._client = _connect_client_rm_imu(self.host, self.port, self.chunk, self.mode)
-
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-
-    def close(self):
-        self._client.close()
-
-
-class rx_pv(_context_manager):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
-        self.mode = mode
-        self.width = width
-        self.height = height
-        self.framerate = framerate
-        self.profile = profile
-        self.bitrate = bitrate
-
-    def open(self):
-        self._client = _connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.profile, self.bitrate)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -875,7 +612,9 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
 
 
 def unpack_pv(payload):
-    return _PV_Frame(payload[:-16], np.frombuffer(payload[-16:-8], dtype=np.float32), np.frombuffer(payload[-8:], dtype=np.float32))
+    return _PV_Frame(bytes(payload.data),
+                     np.asarray(payload.camera_focal_length, dtype=np.float32),
+                     np.asarray(payload.camera_principal_point, dtype=np.float32))
 
 
 def get_nv12_stride(width):
@@ -887,12 +626,17 @@ class _decode_pv:
         self.profile = profile
 
     def create(self, width, height):
-        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+        cn = get_video_codec_name(self.profile)
+        self._codec = av.CodecContext.create(cn, 'r')
 
     def decode(self, payload, format):
         for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return frame.to_ndarray(format=format)
+            try:
+                # this will only decode one packet ...
+                for frame in self._codec.decode(packet):
+                    return frame.to_ndarray(format=format)
+            except av.error.InvalidDataError as e:
+                log.error(e)
         return None
 
 
@@ -1128,7 +872,7 @@ class unpack_eet:
 # Decoded Receivers
 #------------------------------------------------------------------------------
 
-class rx_decoded_rm_vlc(rx_rm_vlc):
+class rx_decoded_rm_vlc(rx_video_stream):
     def __init__(self, host, port, chunk, mode, profile, bitrate):
         super().__init__(host, port, chunk, mode, profile, bitrate)
         self._codec = decode_rm_vlc(profile)
@@ -1182,14 +926,19 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
         super().close()
 
 
-class rx_decoded_pv(rx_pv):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format):
-        super().__init__(host, port, chunk, mode, width, height, framerate, profile, bitrate)
-        self.format = format
+class rx_decoded_pv(rx_video_stream):
+    def __init__(self, session_config, config_topic, fmt):
+        super().__init__(session_config, config_topic)
+        self.format = fmt
+        self._codec = None
+
+    def open(self):
+        self.configure()
+
+        profile = map_videoprofile[self.desc.h26x_profile]
         self._codec = decode_pv(profile)
 
-    def open(self):        
-        self._codec.create(self.width, self.height)
+        self._codec.create(self.desc.image_width, self.desc.image_height)
         super().open()
         self.get_next_packet()
 

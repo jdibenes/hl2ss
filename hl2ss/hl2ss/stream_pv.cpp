@@ -15,7 +15,7 @@
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
 
-#include "pcpd_msgs/msg/Hololens2H26xVideoStream.h"
+#include "pcpd_msgs/msg/Hololens2VideoStream.h"
 #include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
@@ -122,11 +122,12 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
         desc.stream_topic("hl2/sensor/vid/pv/" + g_zenoh_context->client_id);
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::PERSONAL_VIDEO);
         desc.frame_rate(g_zenoh_context->format.framerate);
-        desc.image_width(g_zenoh_context->format.width);
-        desc.image_height(g_zenoh_context->format.height);
+        desc.image_width(pj.width);
+        desc.image_height(pj.height);
 
         // ignore for now - don't know how to set this for NV12...
         desc.image_step(0);
+        desc.image_format(pcpd_msgs::msg::PixelFormat_NV12);
 
         switch (g_zenoh_context->format.profile) {
         case H26xProfile_None:
@@ -152,6 +153,8 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
         }
 
         desc.h26x_bitrate(g_zenoh_context->format.bitrate);
+        desc.audio_channels(0);
+        desc.aac_profile(pcpd_msgs::msg::AACProfile_None);
 
         if constexpr (ENABLE_LOCATION)
         {
@@ -266,7 +269,7 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
     eprosima::fastcdr::FastBuffer buffer{};
     eprosima::fastcdr::Cdr buffer_cdr(buffer);
 
-    pcpd_msgs::msg::Hololens2H26xVideoStream value{};
+    pcpd_msgs::msg::Hololens2VideoStream value{};
 
     {
         using namespace std::chrono;
@@ -305,12 +308,12 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
     value.camera_radial_distortion({ pj.rd.x, pj.rd.y, pj.rd.z});
     value.camera_tangential_distortion({ pj.td.x, pj.td.y});
 
-    value.data_size(cbData);
+    value.image_bytes(cbData);
 
     // this copies the buffer .. is there another way?
     std::vector<uint8_t> bsbuf(cbData);
     bsbuf.assign(pBytes, pBytes + cbData);
-    value.data(std::move(bsbuf));
+    value.image(std::move(bsbuf));
 
 
     buffer_cdr.reset();

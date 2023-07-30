@@ -357,7 +357,11 @@ class producer:
         self._rx = dict()
         self._producer = dict()
 
+    def get_port(self, port):
+        return self._rx[port]
+
     def configure(self, port, receiver):
+        receiver.configure()
         self._rx[port] = receiver
 
     def configure_rm_vlc(self, decoded, host, port, chunk, mode, profile, bitrate):
@@ -372,8 +376,8 @@ class producer:
     def configure_rm_imu(self, host, port, chunk, mode):
         self.configure(port, hl2ss.rx_rm_imu(host, port, chunk, mode))
 
-    def configure_pv(self, decoded, host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format):
-        self.configure(port, hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format) if (decoded) else hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate))
+    def configure_pv(self, decoded, port, session_config, config_topic, decoded_format):
+        self.configure(port, hl2ss.rx_decoded_pv(session_config, config_topic, decoded_format) if (decoded) else hl2ss.rx_video_stream(session_config, config_topic))
 
     def configure_microphone(self, decoded, host, port, chunk, profile):
         self.configure(port, hl2ss.rx_decoded_microphone(host, port, chunk, profile) if (decoded) else hl2ss.rx_microphone(host, port, chunk, profile))
@@ -384,7 +388,16 @@ class producer:
     def configure_eet(self, host, port, chunk, fps):
         self.configure(port, hl2ss.rx_eet(host, port, chunk, fps))
 
-    def initialize(self, port, buffer_size):
+    def initialize(self, port, buffer_size=0):
+        if buffer_size == 0:
+            desc = self.get_port(port).get_desc()
+            step = desc.image_step
+            if step == 0:
+                print("pv stream should set image_step")
+                step = desc.image_width * 4
+            # allocate a 1s buffer here .. need to check if its correct
+            buffer_size = step * desc.image_height * desc.frame_rate
+            print(f"pv buffersize: {buffer_size}")
         self._producer[port] = _module(self._rx[port], buffer_size)
 
     def start(self, port):        

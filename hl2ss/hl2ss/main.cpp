@@ -102,8 +102,8 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		pv_format.width = 1280;
 		pv_format.height = 720;
 		pv_format.framerate = 30;
-		pv_format.profile = H26xProfile::H264Profile_Base;
-		pv_format.bitrate = static_cast<int>((1280 * 720 * 30 * 12.) * (4. / 420.));
+		pv_format.profile = H26xProfile::H26xProfile_None;
+		pv_format.bitrate = static_cast<int>((pv_format.width * pv_format.height * pv_format.framerate * 45.) * (4. / 420.));
 
 		RMStreamConfig rm_config{};
 	
@@ -116,8 +116,8 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		rm_config.vlc_format.width = 640;
 		rm_config.vlc_format.height = 480;
 		rm_config.vlc_format.framerate = 30;
-		rm_config.vlc_format.profile = H26xProfile::H264Profile_Base;
-		rm_config.vlc_format.bitrate = static_cast<int>((640 * 480 * 30 * 12.) * (4. / 420.));
+		rm_config.vlc_format.profile = H26xProfile::H264Profile_Main;
+		rm_config.vlc_format.bitrate = static_cast<int>((rm_config.vlc_format.width * rm_config.vlc_format.height * rm_config.vlc_format.framerate * 12.) * (4. / 420.));
 
 		// zlt sensor on
 		rm_config.enable_depth_long_throw = true;

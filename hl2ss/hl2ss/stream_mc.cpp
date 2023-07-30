@@ -12,7 +12,7 @@
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
 
-#include "pcpd_msgs/msg/Hololens2AACAudioStream.h"
+#include "pcpd_msgs/msg/Hololens2AudioStream.h"
 #include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 struct MC_Context {
@@ -61,7 +61,7 @@ static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 	eprosima::fastcdr::FastBuffer buffer{};
 	eprosima::fastcdr::Cdr buffer_cdr(buffer);
 
-	pcpd_msgs::msg::Hololens2AACAudioStream value{};
+	pcpd_msgs::msg::Hololens2AudioStream value{};
 
 	{
 		using namespace std::chrono;

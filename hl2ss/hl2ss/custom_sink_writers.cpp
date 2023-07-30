@@ -39,6 +39,8 @@ static void CreateSingleStreamSinkWriter(CustomMediaSink** ppSink, IMFSinkWriter
 	pSinkAttr->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
 	pSinkAttr->SetUINT32(MF_LOW_LATENCY, TRUE);
 	pSinkAttr->SetUINT32(MF_SINK_WRITER_DISABLE_THROTTLING, TRUE);
+	// added by ueck for testing .. we want spspps to be included always for ad-hoc streaming
+	pSinkAttr->SetUINT32(MF_MPEG4SINK_SPSPPS_PASSTHROUGH, TRUE);
 
 	pInputType->GetGUID(MF_MT_MAJOR_TYPE, &mmt);
 	if (mmt == MFMediaType_Video)

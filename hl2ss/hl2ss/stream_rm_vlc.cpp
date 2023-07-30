@@ -14,7 +14,7 @@
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
 
-#include "pcpd_msgs/msg/Hololens2H26xVideoStream.h"
+#include "pcpd_msgs/msg/Hololens2VideoStream.h"
 #include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 
@@ -55,7 +55,7 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
     eprosima::fastcdr::FastBuffer buffer{};
     eprosima::fastcdr::Cdr buffer_cdr(buffer);
 
-    pcpd_msgs::msg::Hololens2H26xVideoStream value{};
+    pcpd_msgs::msg::Hololens2VideoStream value{};
 
     {
         using namespace std::chrono;
@@ -89,12 +89,12 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
         }
     }
 
-    value.data_size(cbData);
+    value.image_bytes(cbData);
 
     // this allocates and copies the buffer .. is there another way?
     std::vector<uint8_t> bsbuf(cbData);
     bsbuf.assign(pBytes, pBytes + cbData);
-    value.data(std::move(bsbuf));
+    value.image(std::move(bsbuf));
 
 
     buffer_cdr.reset();
@@ -151,22 +151,27 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     case H26xProfile_None:
         desc.h26x_profile(pcpd_msgs::msg::H26xProfile_None);
         desc.image_compression(pcpd_msgs::msg::CompressionType_Raw);
+        desc.image_step(RM_VLC_WIDTH * 2);
         break;
     case H264Profile_Base:
         desc.h26x_profile(pcpd_msgs::msg::H264Profile_Base);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_VLC_WIDTH * 2 / 3);
         break;
     case H264Profile_Main:
         desc.h26x_profile(pcpd_msgs::msg::H264Profile_Main);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_VLC_WIDTH * 2 / 3);
         break;
     case H264Profile_High:
         desc.h26x_profile(pcpd_msgs::msg::H264Profile_High);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_VLC_WIDTH * 2 / 3);
         break;
     case H265Profile_Main:
         desc.h26x_profile(pcpd_msgs::msg::H265Profile_Main);
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
+        desc.image_step(RM_VLC_WIDTH * 2 / 3);
         break;
 
     }
