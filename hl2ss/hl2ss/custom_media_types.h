@@ -26,7 +26,7 @@ enum AACProfile
 HRESULT CreateTypePCMF32(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate);
 HRESULT CreateTypePCMS16(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate);
 HRESULT CreateTypeAAC(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AACProfile profile);
-HRESULT CreateTypeL8(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps);
-HRESULT CreateTypeNV12(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps);
-HRESULT CreateTypeARGB(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps);
-HRESULT CreateTypeH26x(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps, H26xProfile profile, uint32_t bitrate);
+HRESULT CreateTypeL8(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den);
+HRESULT CreateTypeNV12(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den);
+HRESULT CreateTypeARGB(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den);
+HRESULT CreateTypeH26x(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps_num, uint32_t fps_den, H26xProfile profile, uint32_t bitrate);
