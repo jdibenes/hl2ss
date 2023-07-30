@@ -40,6 +40,8 @@ static bool g_reader_status = false;
 // Mode: 0, 1
 static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
+static uint32_t g_counter = 0;
+static uint32_t g_divisor = 1;
 
 // Mode: 2
 static HANDLE g_event_intrinsic = NULL; // alias
@@ -66,6 +68,8 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     frame = sender.TryAcquireLatestFrame();
     if (!frame) { return; }
 
+    if (g_counter == 0)
+    {
     SoftwareBitmapBuffer::CreateInstance(&pBuffer, frame);
 
     MFCreateSample(&pSample);
@@ -81,7 +85,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pj.f = intrinsics.FocalLength();
     pj.c = intrinsics.PrincipalPoint();
 
-    if constexpr(ENABLE_LOCATION)
+    if constexpr (ENABLE_LOCATION)
     {
     pj.pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
     }
@@ -92,6 +96,9 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
     pSample->Release();
     pBuffer->Release();
+    }
+
+    g_counter = (g_counter + 1) % g_divisor;
 }
 
 // OK
@@ -191,20 +198,22 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     HookCallbackSocket user;
     bool ok;
 
-    ok = ReceiveVideoH26x(clientsocket, format);
+    ok = ReceiveH26xFormat_Divisor(clientsocket, format);
+    if (!ok) { return; }
+
+    ok = ReceiveH26xFormat_Profile(clientsocket, format);
     if (!ok) { return; }
 
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
-    user.data_profile = format.profile;
+    user.format       = &format;
 
-    switch (format.profile)
-    {
-    case H26xProfile::H26xProfile_None: CreateSinkWriterNV12ToNV12(&pSink, &g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
-    default:                            CreateSinkWriterNV12ToH26x(&pSink, &g_pSinkWriter, &g_dwVideoIndex, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user); break;
-    }
+    CreateSinkWriterVideo(&pSink, &g_pSinkWriter, &g_dwVideoIndex, VideoSubtype::VideoSubtype_NV12, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user);
 
     reader.FrameArrived(PV_OnVideoFrameArrived<ENABLE_LOCATION>);
+
+    g_counter = 0;
+    g_divisor = format.divisor;
 
     g_reader_status = true;
     reader.StartAsync().get();
@@ -258,7 +267,7 @@ static void PV_Stream(SOCKET clientsocket)
     if (!PersonalVideo_Status() && (mode & 4)) { PersonalVideo_Open(); }
     if (!PersonalVideo_Status()) { return; }
     
-    ok = ReceiveVideoFormat(clientsocket, format);
+    ok = ReceiveH26xFormat_Video(clientsocket, format);
     if (!ok) { return; }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
