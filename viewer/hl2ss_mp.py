@@ -360,22 +360,22 @@ class producer:
     def configure(self, port, receiver):
         self._rx[port] = receiver
 
-    def configure_rm_vlc(self, decoded, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
-        self.configure(port, hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate, divisor, gop_size) if (decoded) else hl2ss.rx_rm_vlc(host, port, chunk, mode, profile, bitrate, divisor, gop_size))
+    def configure_rm_vlc(self, decoded, host, port, chunk, mode, divisor, profile, gop_size, bitrate):
+        self.configure(port, hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, divisor, profile, gop_size, bitrate) if (decoded) else hl2ss.rx_rm_vlc(host, port, chunk, mode, divisor, profile, gop_size, bitrate))
 
-    def configure_rm_depth_ahat(self, decoded, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
-        self.configure(port, hl2ss.rx_decoded_rm_depth_ahat(host, port, chunk, mode, profile, bitrate, divisor, gop_size) if (decoded) else hl2ss.rx_rm_depth_ahat(host, port, chunk, mode, profile, bitrate, divisor, gop_size))
+    def configure_rm_depth_ahat(self, decoded, host, port, chunk, mode, divisor, profile, gop_size, bitrate):
+        self.configure(port, hl2ss.rx_decoded_rm_depth_ahat(host, port, chunk, mode, divisor, profile, gop_size, bitrate) if (decoded) else hl2ss.rx_rm_depth_ahat(host, port, chunk, mode, divisor, profile, gop_size, bitrate))
         
-    def configure_rm_depth_longthrow(self, decoded, host, port, chunk, mode, png_filter, divisor=1):
-        self.configure(port, hl2ss.rx_decoded_rm_depth_longthrow(host, port, chunk, mode, png_filter, divisor) if (decoded) else hl2ss.rx_rm_depth_longthrow(host, port, chunk, mode, png_filter, divisor))
+    def configure_rm_depth_longthrow(self, decoded, host, port, chunk, mode, divisor, png_filter):
+        self.configure(port, hl2ss.rx_decoded_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter) if (decoded) else hl2ss.rx_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter))
 
     def configure_rm_imu(self, host, port, chunk, mode):
         self.configure(port, hl2ss.rx_rm_imu(host, port, chunk, mode))
 
-    def configure_pv(self, decoded, host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format, divisor=1, gop_size=None):
-        self.configure(port, hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, decoded_format, divisor, gop_size) if (decoded) else hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, profile, bitrate, divisor, gop_size))
+    def configure_pv(self, decoded, host, port, chunk, mode, width, height, framerate, divisor, profile, gop_size, bitrate, decoded_format):
+        self.configure(port, hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, gop_size, bitrate, decoded_format) if (decoded) else hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, gop_size, bitrate))
 
-    def configure_microphone(self, decoded, host, port, chunk, profile, level=hl2ss.AACLevel.L2):
+    def configure_microphone(self, decoded, host, port, chunk, profile, level):
         self.configure(port, hl2ss.rx_decoded_microphone(host, port, chunk, profile, level) if (decoded) else hl2ss.rx_microphone(host, port, chunk, profile, level))
 
     def configure_si(self, host, port, chunk):
