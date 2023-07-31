@@ -411,7 +411,7 @@ class _reader:
         return self.get('<BHHBBBBI')
 
     def get_configuration_for_microphone(self):
-        return self.get('<BB')[0]
+        return self.get('<BB')
 
     def get_configuration_for_eet(self):
         return self.get('<B')[0]
