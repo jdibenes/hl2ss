@@ -1,0 +1,23 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from tf2_msgs/msg/TF2Error.msg
+// generated code does not contain a copyright notice
+
+
+module tf2_msgs {
+  module msg {
+    module TF2Error_Constants {
+      const uint8 NO_ERROR = 0;
+      const uint8 LOOKUP_ERROR = 1;
+      const uint8 CONNECTIVITY_ERROR = 2;
+      const uint8 EXTRAPOLATION_ERROR = 3;
+      const uint8 INVALID_ARGUMENT_ERROR = 4;
+      const uint8 TIMEOUT_ERROR = 5;
+      const uint8 TRANSFORM_ERROR = 6;
+    };
+    struct TF2Error {
+      uint8 error;
+
+      string error_string;
+    };
+  };
+};

@@ -1,0 +1,40 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/PointField.msg
+// generated code does not contain a copyright notice
+
+
+module sensor_msgs {
+  module msg {
+    module PointField_Constants {
+      const uint8 INT8 = 1;
+      const uint8 UINT8 = 2;
+      const uint8 INT16 = 3;
+      const uint8 UINT16 = 4;
+      const uint8 INT32 = 5;
+      const uint8 UINT32 = 6;
+      const uint8 FLOAT32 = 7;
+      const uint8 FLOAT64 = 8;
+    };
+    @verbatim (language="comment", text=
+      "This message holds the description of one point entry in the" "\n"
+      "PointCloud2 message format.")
+    struct PointField {
+      @verbatim (language="comment", text=
+        "Common PointField names are x, y, z, intensity, rgb, rgba" "\n"
+        "Name of field")
+      string name;
+
+      @verbatim (language="comment", text=
+        "Offset from start of point struct")
+      uint32 offset;
+
+      @verbatim (language="comment", text=
+        "Datatype enumeration, see above")
+      uint8 datatype;
+
+      @verbatim (language="comment", text=
+        "How many elements in the field")
+      uint32 count;
+    };
+  };
+};

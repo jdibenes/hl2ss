@@ -1,0 +1,58 @@
+#ifndef PCPD_MSG_SENSOR
+#define PCPD_MSG_SENSOR
+
+module pcpd_msgs {
+  module msg {
+
+    enum CameraSensorTypesEnum {
+        GENERIC_RGB,
+        GENERIC_RGBD,
+        KINECT_AZURE
+    };
+
+    enum CameraDepthModesEnum {
+        CAMERA_K4A_DEPTH_MODE_OFF,
+        CAMERA_K4A_DEPTH_MODE_NFOV_2X2BINNED,
+        CAMERA_K4A_DEPTH_MODE_NFOV_UNBINNED,
+        CAMERA_K4A_DEPTH_MODE_WFOV_2X2BINNED,
+        CAMERA_K4A_DEPTH_MODE_WFOV_UNBINNED,
+        CAMERA_K4A_DEPTH_MODE_PASSIVE_IR
+    };
+
+    enum CameraColorResolutionsEnum {
+        CAMERA_K4A_COLOR_RESOLUTION_OFF,
+        CAMERA_K4A_COLOR_RESOLUTION_720P,
+        CAMERA_K4A_COLOR_RESOLUTION_1080P,
+        CAMERA_K4A_COLOR_RESOLUTION_1440P,
+        CAMERA_K4A_COLOR_RESOLUTION_1536P,
+        CAMERA_K4A_COLOR_RESOLUTION_2160P,
+        CAMERA_K4A_COLOR_RESOLUTION_3072P
+    };
+
+    @verbatim (language="comment", text=
+      "This represents a camera sensor connected to a pcpd instance.")
+    struct CameraSensor {
+      @verbatim (language="comment", text=
+        "An camera sensor is a physical device like an Azure Kinect camera that captures measurements.")
+
+      string name;
+
+      string serial_number;
+
+      CameraSensorTypesEnum camera_type;
+
+      CameraDepthModesEnum depth_mode;
+
+      CameraColorResolutionsEnum color_resolution;
+
+      sequence<octet> raw_calibration;
+
+      float depth_units_per_meter;
+
+      uint64 timestamp_offset_ns;
+
+    };
+  };
+};
+
+#endif

@@ -1,0 +1,44 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/MultiDOFJointState.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Transform.idl"
+#include "geometry_msgs/msg/Twist.idl"
+#include "geometry_msgs/msg/Wrench.idl"
+#include "std_msgs/msg/Header.idl"
+
+module sensor_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Representation of state for joints with multiple degrees of freedom," "\n"
+      "following the structure of JointState which can only represent a single degree of freedom." "\n"
+      "" "\n"
+      "It is assumed that a joint in a system corresponds to a transform that gets applied" "\n"
+      "along the kinematic chain. For example, a planar joint (as in URDF) is 3DOF (x, y, yaw)" "\n"
+      "and those 3DOF can be expressed as a transformation matrix, and that transformation" "\n"
+      "matrix can be converted back to (x, y, yaw)" "\n"
+      "" "\n"
+      "Each joint is uniquely identified by its name" "\n"
+      "The header specifies the time at which the joint states were recorded. All the joint states" "\n"
+      "in one message have to be recorded at the same time." "\n"
+      "" "\n"
+      "This message consists of a multiple arrays, one for each part of the joint state." "\n"
+      "The goal is to make each of the fields optional. When e.g. your joints have no" "\n"
+      "wrench associated with them, you can leave the wrench array empty." "\n"
+      "" "\n"
+      "All arrays in this message should have the same size, or be empty." "\n"
+      "This is the only way to uniquely associate the joint name with the correct" "\n"
+      "states.")
+    struct MultiDOFJointState {
+      std_msgs::msg::Header header;
+
+      sequence<string> joint_names;
+
+      sequence<geometry_msgs::msg::Transform> transforms;
+
+      sequence<geometry_msgs::msg::Twist> twist;
+
+      sequence<geometry_msgs::msg::Wrench> wrench;
+    };
+  };
+};

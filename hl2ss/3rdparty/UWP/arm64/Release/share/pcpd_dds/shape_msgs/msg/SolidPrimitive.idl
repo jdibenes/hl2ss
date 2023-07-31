@@ -1,0 +1,49 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from shape_msgs/msg/SolidPrimitive.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Polygon.idl"
+
+module shape_msgs {
+  module msg {
+    module SolidPrimitive_Constants {
+      const uint8 BOX = 1;
+      const uint8 SPHERE = 2;
+      const uint8 CYLINDER = 3;
+      const uint8 CONE = 4;
+      const uint8 PRISM = 5;
+      @verbatim (language="comment", text=
+        "The meaning of the shape dimensions: each constant defines the index in the 'dimensions' array." "\n"        "For type BOX, the X, Y, and Z dimensions are the length of the corresponding sides of the box.")
+      const uint8 BOX_X = 0;
+      const uint8 BOX_Y = 1;
+      const uint8 BOX_Z = 2;
+      @verbatim (language="comment", text=
+        "For the SPHERE type, only one component is used, and it gives the radius of the sphere.")
+      const uint8 SPHERE_RADIUS = 0;
+      @verbatim (language="comment", text=
+        "For the CYLINDER and CONE types, the center line is oriented along the Z axis." "\n"        "Therefore the CYLINDER_HEIGHT (CONE_HEIGHT) component of dimensions gives the" "\n"        "height of the cylinder (cone)." "\n"        "The CYLINDER_RADIUS (CONE_RADIUS) component of dimensions gives the radius of" "\n"        "the base of the cylinder (cone)." "\n"        "Cone and cylinder primitives are defined to be circular. The tip of the cone" "\n"        "is pointing up, along +Z axis.")
+      const uint8 CYLINDER_HEIGHT = 0;
+      const uint8 CYLINDER_RADIUS = 1;
+      const uint8 CONE_HEIGHT = 0;
+      const uint8 CONE_RADIUS = 1;
+      @verbatim (language="comment", text=
+        "For the type PRISM, the center line is oriented along Z axis." "\n"        "The PRISM_HEIGHT component of dimensions gives the" "\n"        "height of the prism." "\n"        "The polygon defines the Z axis centered base of the prism." "\n"        "The prism is constructed by extruding the base in +Z and -Z" "\n"        "directions by half of the PRISM_HEIGHT" "\n"        "Only x and y fields of the points are used in the polygon." "\n"        "Points of the polygon are ordered counter-clockwise.")
+      const uint8 PRISM_HEIGHT = 0;
+    };
+    @verbatim (language="comment", text=
+      "Defines box, sphere, cylinder, cone and prism." "\n"
+      "All shapes are defined to have their bounding boxes centered around 0,0,0.")
+    struct SolidPrimitive {
+      @verbatim (language="comment", text=
+        "The type of the shape")
+      uint8 type;
+
+      @verbatim (language="comment", text=
+        "The dimensions of the shape" "\n"
+        "At no point will dimensions have a length > 3.")
+      sequence<double, 3> dimensions;
+
+      geometry_msgs::msg::Polygon polygon;
+    };
+  };
+};

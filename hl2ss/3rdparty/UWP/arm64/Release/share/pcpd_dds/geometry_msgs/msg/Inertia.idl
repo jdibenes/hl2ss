@@ -1,0 +1,38 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from geometry_msgs/msg/Inertia.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Vector3.idl"
+
+module geometry_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Mass")
+    struct Inertia {
+      double m;
+
+      @verbatim (language="comment", text=
+        "Center of mass")
+      @unit (value="m")
+      geometry_msgs::msg::Vector3 com;
+
+      @verbatim (language="comment", text=
+        "Inertia Tensor" "\n"
+        "    | ixx ixy ixz |" "\n"
+        "I = | ixy iyy iyz |" "\n"
+        "    | ixz iyz izz |")
+      @unit (value="kg-m^2")
+      double ixx;
+
+      double ixy;
+
+      double ixz;
+
+      double iyy;
+
+      double iyz;
+
+      double izz;
+    };
+  };
+};

@@ -1,0 +1,56 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/PointCloud2.msg
+// generated code does not contain a copyright notice
+
+#include "sensor_msgs/msg/PointField.idl"
+#include "std_msgs/msg/Header.idl"
+
+module sensor_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "This message holds a collection of N-dimensional points, which may" "\n"
+      "contain additional information such as normals, intensity, etc. The" "\n"
+      "point data is stored as a binary blob, its layout described by the" "\n"
+      "contents of the \"fields\" array." "\n"
+      "" "\n"
+      "The point cloud data may be organized 2d (image-like) or 1d (unordered)." "\n"
+      "Point clouds organized as 2d images may be produced by camera depth sensors" "\n"
+      "such as stereo or time-of-flight.")
+    struct PointCloud2 {
+      @verbatim (language="comment", text=
+        "Time of sensor data acquisition, and the coordinate frame ID (for 3d points).")
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "2D structure of the point cloud. If the cloud is unordered, height is" "\n"
+        "1 and width is the length of the point cloud.")
+      uint32 height;
+
+      uint32 width;
+
+      @verbatim (language="comment", text=
+        "Describes the channels and their layout in the binary data blob.")
+      sequence<sensor_msgs::msg::PointField> fields;
+
+      @verbatim (language="comment", text=
+        "Is this data bigendian?")
+      boolean is_bigendian;
+
+      @verbatim (language="comment", text=
+        "Length of a point in bytes")
+      uint32 point_step;
+
+      @verbatim (language="comment", text=
+        "Length of a row in bytes")
+      uint32 row_step;
+
+      @verbatim (language="comment", text=
+        "Actual point data, size is (row_step*height)")
+      sequence<uint8> data;
+
+      @verbatim (language="comment", text=
+        "True if there are no invalid points")
+      boolean is_dense;
+    };
+  };
+};

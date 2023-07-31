@@ -1,0 +1,31 @@
+#ifndef PCPD_MSG_INSTANCE
+#define PCPD_MSG_INSTANCE
+
+module pcpd_msgs {
+  module msg {
+
+    enum RpcTypesEnum {
+        RPC_TYPE_CAPNP,
+        RPC_TYPE_DDS,
+        RPC_TYPE_SHM
+    };
+
+    @verbatim (language="comment", text=
+      "This represents a instance of pcpd running somewhere.")
+    struct Instance {
+      @verbatim (language="comment", text=
+        "An instance is a process of pcp_server running on a host or in a container.")
+
+      string host_name;
+
+      string process_name;
+
+      RpcTypesEnum rpc_type;
+
+      string rpc_connection;
+
+    };
+  };
+};
+
+#endif

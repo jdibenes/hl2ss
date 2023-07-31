@@ -11,7 +11,7 @@ hl2ss/plugin/ARM64/
 hl2ss/plugin/Generated Files/
 hl2ss/plugin/code_bin.txt
 hl2ss/plugin/BundleArtifacts/
-release/
+/release/
 *.pfx
 *.user
 viewer/__pycache__/

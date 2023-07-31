@@ -1,0 +1,26 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/Temperature.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module sensor_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Single temperature reading.")
+    struct Temperature {
+      @verbatim (language="comment", text=
+        "timestamp is the time the temperature was measured" "\n"
+        "frame_id is the location of the temperature reading")
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Measurement of the Temperature in Degrees Celsius.")
+      double temperature;
+
+      @verbatim (language="comment", text=
+        "0 is interpreted as variance unknown.")
+      double variance;
+    };
+  };
+};

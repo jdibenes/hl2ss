@@ -1,0 +1,22 @@
+#ifndef GEOMETRY_MSG_VECTOR3
+#define GEOMETRY_MSG_VECTOR3
+
+module geometry_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "This represents a vector in free space.")
+    struct Vector3 {
+      @verbatim (language="comment", text=
+        "This is semantically different than a point." "\n"
+        "A vector is always anchored at the origin." "\n"
+        "When a transform is applied to a vector, only the rotational component is applied.")
+      double x;
+
+      double y;
+
+      double z;
+    };
+  };
+};
+
+#endif

@@ -1,0 +1,18 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from geometry_msgs/msg/PoseArray.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Pose.idl"
+#include "std_msgs/msg/Header.idl"
+
+module geometry_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "An array of poses with a header for global reference.")
+    struct PoseArray {
+      std_msgs::msg::Header header;
+
+      sequence<geometry_msgs::msg::Pose> poses;
+    };
+  };
+};

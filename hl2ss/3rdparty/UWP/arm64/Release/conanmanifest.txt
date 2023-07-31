@@ -1,0 +1,10 @@
+1690749712
+conaninfo.txt: 5adfdecfb4dc14fa958ce452a57a02a6
+include/uriparser/Uri.h: 366a3f90027a77afea660183119067e6
+include/uriparser/UriBase.h: 784cb610e95ee9c8476a12ba0497e26c
+include/uriparser/UriDefsAnsi.h: 45e0d17fa6597e84dc2a6b86b8970751
+include/uriparser/UriDefsConfig.h: aaefff346669f3850199cc1e1f4beb8a
+include/uriparser/UriDefsUnicode.h: 0d115bd80d7a51a0f1ec9c9f0366fb0b
+include/uriparser/UriIp4.h: 6dc286ae30de5a690ff2d8a61772bc01
+lib/uriparser.lib: 5ec26c42895d6734806eb6d44a310289
+licenses/COPYING: fc3bbde670fc6e95392a0e23bf57bda0

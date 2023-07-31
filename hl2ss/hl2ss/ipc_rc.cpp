@@ -6,17 +6,13 @@
 #include "personal_video.h"
 #include "timestamps.h"
 #include "nfo.h"
-#include <functional>
+
 
 #define URI_STATIC_BUILD
 #include "uriparser/Uri.h"
 
 #include "hl2ss_network.h"
 
-#define FASTCDR_STATIC_LINK
-#include "fastcdr/Cdr.h"
-
-#include "pcpd_msgs/rpc/Types.h"
 #include "pcpd_msgs/rpc/Hololens2RemoteControl.h"
 
 
@@ -47,175 +43,181 @@ static RC_Context* g_zenoh_context = NULL;
 //}
 
 // OK
-static void RC_MSG_GetApplicationVersion(
-    const pcpd_msgs::rpc::NullRequest& /*request*/,
-    pcpd_msgs::rpc::HL2RCResponse_GetApplicationVersion& response)
-{
-    uint16_t data[4];
-    GetApplicationVersion(data);
-    response.data({ data [0], data[1], data[2], data[3] });
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+
+struct RC_GetApplicationVersion {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::HL2RCResponse_GetApplicationVersion;
+
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        uint16_t data[4];
+        GetApplicationVersion(data);
+        response.data({ data[0], data[1], data[2], data[3] });
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_GetUTCOffset(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::UInt64Reply& response)
-{
-    UINT64 offset;
-    offset = GetQPCToUTCOffset(request.value());
-    response.value(offset);
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_GetUTCOffset {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::UInt64Reply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        UINT64 offset;
+        offset = GetQPCToUTCOffset(request.value());
+        response.value(offset);
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetHSMarkerState(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    HolographicSpace_EnableMarker(request.value() != 0);
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetHSMarkerState {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        HolographicSpace_EnableMarker(request.value() != 0);
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_GetPVSubsystemStatus(
-    const pcpd_msgs::rpc::NullRequest& /*request*/,
-    pcpd_msgs::rpc::BoolReply& response)
-{
-    bool status = PersonalVideo_Status();
-    response.value(status);
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_GetPVSubsystemStatus {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::BoolReply;
+
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        bool status = PersonalVideo_Status();
+        response.value(status);
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVFocus(
-    const pcpd_msgs::rpc::HL2RCRequest_SetPVFocus& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetFocus(
-        request.focus_mode(), 
-        request.autofocus_range(), 
-        request.distance(), 
-        request.value(), 
-        request.disable_driver_fallback()
-    );
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVFocus {
+    using RequestT = pcpd_msgs::rpc::HL2RCRequest_SetPVFocus;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetFocus(
+            request.focus_mode(),
+            request.autofocus_range(),
+            request.distance(),
+            request.value(),
+            request.disable_driver_fallback()
+        );
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVVideoTemporalDenoising(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetVideoTemporalDenoising(request.value());
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVVideoTemporalDenoising {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetVideoTemporalDenoising(request.value());
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVWhiteBalancePreset(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetWhiteBalance_Preset(request.value());
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVWhiteBalancePreset {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetWhiteBalance_Preset(request.value());
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVWhiteBalanceValue(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetWhiteBalance_Value(request.value());
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVWhiteBalanceValue {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetWhiteBalance_Value(request.value());
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVExposure(
-    const pcpd_msgs::rpc::HL2RCRequest_SetPVExposure& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetExposure(request.mode(), request.value());
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVExposure {
+    using RequestT = pcpd_msgs::rpc::HL2RCRequest_SetPVExposure;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetExposure(request.mode(), request.value());
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVExposurePriorityVideo(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetExposurePriorityVideo(request.value());
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVExposurePriorityVideo {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetExposurePriorityVideo(request.value());
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVIsoSpeed(
-    const pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetIsoSpeed(request.setauto(), request.value());
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVIsoSpeed {
+    using RequestT = pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetIsoSpeed(request.setauto(), request.value());
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void RC_MSG_SetPVBacklightCompensation(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetBacklightCompensation(request.value() != 0);
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVBacklightCompensation {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetBacklightCompensation(request.value() != 0);
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
+
 
 // OK
-static void RC_MSG_SetPVSceneMode(
-    const pcpd_msgs::rpc::UInt32Request& request,
-    pcpd_msgs::rpc::NullReply& response)
-{
-    PersonalVideo_SetSceneMode(request.value());
-    response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
-}
+struct RC_SetPVSceneMode {
+    using RequestT = pcpd_msgs::rpc::UInt32Request;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        PersonalVideo_SetSceneMode(request.value());
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 
 /*
 * ArgumentHelper
 */
 
-template<typename RequestType>
-struct ArgumentHelper {
-    bool parse(const std::map<std::string, std::string>& args, RequestType& value) {
-        ShowMessage("RC: ArgumentHelper used for unregistered type..");
-        return false;
-    }
-};
-
 template<>
-struct ArgumentHelper<pcpd_msgs::rpc::NullRequest> {
-    bool parse(const std::map<std::string, std::string>& /*args*/, pcpd_msgs::rpc::NullRequest& /*request*/) {
-        return true;
-    }
-};
-
-template<>
-struct ArgumentHelper<pcpd_msgs::rpc::UInt32Request> {
-    bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::UInt32Request& request) {
-        if (args.find("value") == args.end()) {
-            ShowMessage("RC: missing argument: value");
-            return false;
-        }
-        try {
-            auto value = std::stoi(args.at("value"));
-            // bounds check ??
-            request.value(static_cast<uint32_t>(value));
-        }
-        catch (const std::invalid_argument& e) {
-            ShowMessage("RC: invalid argument: %s", e.what());
-            return false;
-        }
-        return true;
-    }
-};
-
-template<>
-struct ArgumentHelper<pcpd_msgs::rpc::HL2RCRequest_SetPVFocus> {
+struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVFocus> {
     bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::HL2RCRequest_SetPVFocus& request) {
 
         if (args.find("focus_mode") == args.end() || 
@@ -243,7 +245,7 @@ struct ArgumentHelper<pcpd_msgs::rpc::HL2RCRequest_SetPVFocus> {
 };
 
 template<>
-struct ArgumentHelper<pcpd_msgs::rpc::HL2RCRequest_SetPVExposure> {
+struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVExposure> {
     bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::HL2RCRequest_SetPVExposure& request) {
 
         if (args.find("mode") == args.end() ||
@@ -265,7 +267,7 @@ struct ArgumentHelper<pcpd_msgs::rpc::HL2RCRequest_SetPVExposure> {
 };
 
 template<>
-struct ArgumentHelper<pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed> {
+struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed> {
     bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed& request) {
 
         if (args.find("setauto") == args.end() ||
@@ -287,61 +289,6 @@ struct ArgumentHelper<pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed> {
 };
 
 
-
-
-/*
-* Call Helper
-*/
-
-template<typename RequestType, typename ResponseType>
-struct CallHelper {
-
-    bool call(std::function<void(const RequestType&, ResponseType&)> func, z_value_t& request_payload, const std::map<std::string, std::string>& args,
-        eprosima::fastcdr::FastBuffer& result_buffer, std::size_t& result_bytes) {
-
-        RequestType request{};
-        ResponseType response{};
-
-        // parse arguments for request type
-        bool args_valid{ false };
-        if (request_payload.payload.len > 0) {
-
-            // deserialize payload
-            eprosima::fastcdr::FastBuffer request_buffer(
-                const_cast<char*>(reinterpret_cast<const char*>(request_payload.payload.start)), 
-                request_payload.payload.len);
-
-            eprosima::fastcdr::Cdr request_buffer_cdr(request_buffer);
-            try {
-                request.deserialize(request_buffer_cdr);
-                args_valid = true;
-            }
-            catch (const eprosima::fastcdr::exception::Exception& e) {
-                ShowMessage("RC: error deserializing request payload: %s", e.what());
-                args_valid = false;
-            }
-        }
-        else {
-            ArgumentHelper<RequestType> ah{};
-            args_valid = ah.parse(args, request);
-        }
-
-        if (args_valid) {
-            func(request, response);
-        }
-        else {
-            response.status(pcpd_msgs::rpc::RPC_STATUS_ERROR);
-        }
-
-        eprosima::fastcdr::Cdr buffer_cdr(result_buffer);
-        bool success = response.status() == pcpd_msgs::rpc::RPC_STATUS_SUCCESS;
-        response.serialize(buffer_cdr);
-        result_bytes = buffer_cdr.getSerializedDataLength();
-
-        return success;
-    }
-
-};
 
 
 void RC_QueryHandler(const z_query_t* query, void* context) {
@@ -376,82 +323,43 @@ void RC_QueryHandler(const z_query_t* query, void* context) {
         auto cmd = arguments.extract("cmd");
 
         if (cmd.mapped() == "GetApplicationVersion") {
-            CallHelper<
-                pcpd_msgs::rpc::NullRequest, 
-                pcpd_msgs::rpc::HL2RCResponse_GetApplicationVersion> ch{};
-            call_success = ch.call(RC_MSG_GetApplicationVersion, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_GetApplicationVersion{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "GetUTCOffset") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::UInt64Reply> ch{};
-            call_success = ch.call(RC_MSG_GetUTCOffset, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_GetUTCOffset{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetHSMarkerState") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetHSMarkerState, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetHSMarkerState{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "GetPVSubsystemStatus") {
-            CallHelper<
-                pcpd_msgs::rpc::NullRequest,
-                pcpd_msgs::rpc::BoolReply> ch{};
-            call_success = ch.call(RC_MSG_GetPVSubsystemStatus, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_GetPVSubsystemStatus{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVFocus") {
-            CallHelper<
-                pcpd_msgs::rpc::HL2RCRequest_SetPVFocus,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVFocus, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVFocus{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVVideoTemporalDenoising") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVVideoTemporalDenoising, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVVideoTemporalDenoising{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVWhiteBalancePreset") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVWhiteBalancePreset, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVWhiteBalancePreset{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVWhiteBalanceValue") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVWhiteBalanceValue, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVWhiteBalanceValue{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVExposure") {
-            CallHelper<
-                pcpd_msgs::rpc::HL2RCRequest_SetPVExposure,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVExposure, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVExposure{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVExposurePriorityVideo") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVExposurePriorityVideo, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVExposurePriorityVideo{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVIsoSpeed") {
-            CallHelper<
-                pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVIsoSpeed, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVIsoSpeed{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVBacklightCompensation") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVBacklightCompensation, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVBacklightCompensation{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else if (cmd.mapped() == "SetPVSceneMode") {
-            CallHelper<
-                pcpd_msgs::rpc::UInt32Request,
-                pcpd_msgs::rpc::NullReply> ch{};
-            call_success = ch.call(RC_MSG_SetPVSceneMode, payload_value, arguments, result_buffer, result_bytes);
+            call_success = forward_rpc_call(RC_SetPVSceneMode{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
         }
         else {
             call_success = false;
@@ -490,7 +398,6 @@ static DWORD WINAPI RC_EntryPoint(void *param)
     std::string keyexpr_str = "hl2/rpc/rc/" + g_zenoh_context->client_id;
     ShowMessage("RC: endpoint: %s", keyexpr_str.c_str());
 
-    // does it need to be global?
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
     if (!z_check(keyexpr)) {
         ShowMessage("RC: %s is not a valid key expression", keyexpr_str.c_str());

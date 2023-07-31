@@ -1,0 +1,49 @@
+#ifndef PCPD_MSG_BUFFERINFO
+#define PCPD_MSG_BUFFERINFO
+
+module pcpd_msgs {
+  module msg {
+
+    struct BufferInfoPropertyUserData {
+        @verbatim (language="comment", text=
+                "BufferInfoPropertyUserData provides user-data for BufferInfoProperties")
+
+        string key;
+
+        sequence<octet> value;
+
+    };
+
+    struct BufferInfoProperty {
+        @verbatim (language="comment", text=
+                "BufferInfoProperty properties for BufferInfo")
+
+        string name;
+
+        int32 value;
+
+        sequence<BufferInfoPropertyUserData> user_data;
+    };
+
+
+    @verbatim (language="comment", text=
+      "BufferInfo struct for memory preallocation.")
+    struct BufferInfo {
+      @verbatim (language="comment", text=
+        "Provides information about buffer allocation.")
+
+      uint64 frame_size;
+
+      uint32 width;
+
+      uint32 height;
+      uint32 bits_per_element;
+      uint32 stride;
+
+      sequence<BufferInfoProperty> properties;
+
+    };
+  };
+};
+
+#endif

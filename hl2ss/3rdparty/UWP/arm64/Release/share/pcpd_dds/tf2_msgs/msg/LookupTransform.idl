@@ -1,0 +1,42 @@
+// generated from rosidl_adapter/resource/action.idl.em
+// with input from tf2_msgs/action/LookupTransform.action
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Duration_.idl"
+#include "builtin_interfaces/msg/Time_.idl"
+#include "geometry_msgs/msg/TransformStamped.idl"
+#include "tf2_msgs/msg/TF2Error.idl"
+
+module tf2_msgs {
+  module action {
+    @verbatim (language="comment", text=
+      "Simple API")
+    struct LookupTransform_Goal {
+      string target_frame;
+
+      string source_frame;
+
+      builtin_interfaces::msg::Time source_time;
+
+      builtin_interfaces::msg::Duration timeout;
+
+      @verbatim (language="comment", text=
+        "Advanced API")
+      builtin_interfaces::msg::Time target_time;
+
+      string fixed_frame;
+
+      @verbatim (language="comment", text=
+        "Whether or not to use the advanced API")
+      boolean advanced;
+    };
+    struct LookupTransform_Result {
+      geometry_msgs::msg::TransformStamped transform;
+
+      tf2_msgs::msg::TF2Error error;
+    };
+    struct LookupTransform_Feedback {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};
