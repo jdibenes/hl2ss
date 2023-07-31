@@ -86,7 +86,7 @@ xy1, lt_scale = hl2ss_3dcv.rm_depth_compute_rays(calibration_lt.uv2xy, calibrati
 u0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  // 2
 v0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT // 2
 
-client = hl2ss.rx_decoded_rm_depth_longthrow(host, port_lt, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+client = hl2ss.rx_decoded_rm_depth_longthrow(host, port_lt, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, 1, hl2ss.PngFilterMode.Paeth)
 client.open()
 
 while (enable):
