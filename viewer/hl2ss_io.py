@@ -5,7 +5,7 @@ import hl2ss
 import hl2ss_mp
 
 
-_MAGIC = 'X38HL2SS'
+_MAGIC = 'V02HL2SS'
 
 
 #------------------------------------------------------------------------------
@@ -38,27 +38,27 @@ def _create_header(port, user):
 # Mode 0 and Mode 1 Data Store
 #------------------------------------------------------------------------------
 
-def _create_wr_rm_vlc(filename, port, mode, profile, bitrate, user):
+def _create_wr_rm_vlc(filename, port, mode, divisor, profile, gop_size, bitrate, user):
     w = _writer()
     w.open(filename)
     w.put(_create_header(port, user))
-    w.put(hl2ss._create_configuration_for_rm_vlc(mode, profile, bitrate))
+    w.put(hl2ss._create_configuration_for_rm_vlc(mode, divisor, profile, gop_size, bitrate))
     return w
 
 
-def _create_wr_rm_depth_ahat(filename, port, mode, profile, bitrate, user):
+def _create_wr_rm_depth_ahat(filename, port, mode, divisor, profile, gop_size, bitrate, user):
     w = _writer()
     w.open(filename)
     w.put(_create_header(port, user))
-    w.put(hl2ss._create_configuration_for_rm_depth_ahat(mode, profile, bitrate))
+    w.put(hl2ss._create_configuration_for_rm_depth_ahat(mode, divisor, profile, gop_size, bitrate))
     return w
 
 
-def _create_wr_rm_depth_longthrow(filename, port, mode, png_filter, user):
+def _create_wr_rm_depth_longthrow(filename, port, mode, divisor, png_filter, user):
     w = _writer()
     w.open(filename)
     w.put(_create_header(port, user))
-    w.put(hl2ss._create_configuration_for_rm_depth_longthrow(mode, png_filter))
+    w.put(hl2ss._create_configuration_for_rm_depth_longthrow(mode, divisor, png_filter))
     return w
 
 
@@ -70,19 +70,19 @@ def _create_wr_rm_imu(filename, port, mode, user):
     return w
 
 
-def _create_wr_pv(filename, port, mode, width, height, framerate, profile, bitrate, user):
+def _create_wr_pv(filename, port, mode, width, height, framerate, divisor, profile, gop_size, bitrate, user):
     w = _writer()
     w.open(filename)
     w.put(_create_header(port, user))
-    w.put(hl2ss._create_configuration_for_pv(mode, width, height, framerate, profile, bitrate))
+    w.put(hl2ss._create_configuration_for_pv(mode, width, height, framerate, divisor, profile, gop_size, bitrate))
     return w
 
 
-def _create_wr_microphone(filename, port, profile, user):
+def _create_wr_microphone(filename, port, profile, level, user):
     w = _writer()
     w.open(filename)
     w.put(_create_header(port, user))
-    w.put(hl2ss._create_configuration_for_microphone(profile))
+    w.put(hl2ss._create_configuration_for_microphone(profile, level))
     return w
 
 
@@ -106,16 +106,18 @@ def _create_wr_eet(filename, port, fps, user):
 #------------------------------------------------------------------------------
 
 class wr_rm_vlc(hl2ss._context_manager):
-    def __init__(self, filename, port, mode, profile, bitrate, user):
+    def __init__(self, filename, port, mode, divisor, profile, gop_size, bitrate, user):
         self.filename = filename
         self.port = port
         self.mode = mode
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size
         self.bitrate = bitrate
         self.user = user
 
     def open(self):
-        self._wr = _create_wr_rm_vlc(self.filename, self.port, self.mode, self.profile, self.bitrate, self.user)
+        self._wr = _create_wr_rm_vlc(self.filename, self.port, self.mode, self.divisor, self.profile, self.gop_size, self.bitrate, self.user)
 
     def write(self, packet):
         self._wr.write(packet)
@@ -125,16 +127,18 @@ class wr_rm_vlc(hl2ss._context_manager):
 
 
 class wr_rm_depth_ahat(hl2ss._context_manager):
-    def __init__(self, filename, port, mode, profile, bitrate, user):
+    def __init__(self, filename, port, mode, divisor, profile, gop_size, bitrate, user):
         self.filename = filename
         self.port = port
         self.mode = mode
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size
         self.bitrate = bitrate
         self.user = user
 
     def open(self):
-        self._wr = _create_wr_rm_depth_ahat(self.filename, self.port, self.mode, self.profile, self.bitrate, self.user)
+        self._wr = _create_wr_rm_depth_ahat(self.filename, self.port, self.mode, self.divisor, self.profile, self.gop_size, self.bitrate, self.user)
 
     def write(self, packet):
         self._wr.write(packet)
@@ -144,15 +148,16 @@ class wr_rm_depth_ahat(hl2ss._context_manager):
 
 
 class wr_rm_depth_longthrow(hl2ss._context_manager):
-    def __init__(self, filename, port, mode, png_filter, user):
+    def __init__(self, filename, port, mode, divisor, png_filter, user):
         self.filename = filename
         self.port = port
         self.mode = mode
+        self.divisor = divisor
         self.png_filter = png_filter
         self.user = user
 
     def open(self):
-        self._wr = _create_wr_rm_depth_longthrow(self.filename, self.port, self.mode, self.png_filter, self.user)
+        self._wr = _create_wr_rm_depth_longthrow(self.filename, self.port, self.mode, self.divisor, self.png_filter, self.user)
 
     def write(self, packet):
         self._wr.write(packet)
@@ -179,19 +184,21 @@ class wr_rm_imu(hl2ss._context_manager):
 
 
 class wr_pv(hl2ss._context_manager):
-    def __init__(self, filename, port, mode, width, height, framerate, profile, bitrate, user):
+    def __init__(self, filename, port, mode, width, height, framerate, divisor, profile, gop_size, bitrate, user):
         self.filename = filename
         self.port = port
         self.mode = mode
         self.width = width
         self.height = height
         self.framerate = framerate
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size
         self.bitrate = bitrate
         self.user = user
 
     def open(self):
-        self._wr = _create_wr_pv(self.filename, self.port, self.mode, self.width, self.height, self.framerate, self.profile, self.bitrate, self.user)
+        self._wr = _create_wr_pv(self.filename, self.port, self.mode, self.width, self.height, self.framerate, self.divisor, self.profile, self.gop_size, self.bitrate, self.user)
 
     def write(self, packet):
         self._wr.write(packet)
@@ -201,14 +208,15 @@ class wr_pv(hl2ss._context_manager):
 
 
 class wr_microphone(hl2ss._context_manager):
-    def __init__(self, filename, port, profile, user):
+    def __init__(self, filename, port, profile, level, user):
         self.filename = filename
         self.port = port
         self.profile = profile
+        self.level = level
         self.user = user
     
     def open(self):
-        self._wr = _create_wr_microphone(self.filename, self.port, self.profile, self.user)
+        self._wr = _create_wr_microphone(self.filename, self.port, self.profile, self.level, self.user)
 
     def write(self, packet):
         self._wr.write(packet)
@@ -256,17 +264,17 @@ class wr_eet(hl2ss._context_manager):
 
 def create_wr_from_rx(filename, rx, user):
     if (rx.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return wr_rm_vlc(filename, rx.port, rx.mode, rx.profile, rx.bitrate, user)
+        return wr_rm_vlc(filename, rx.port, rx.mode, rx.divisor, rx.profile, rx.gop_size, rx.bitrate, user)
     if (rx.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return wr_rm_vlc(filename, rx.port, rx.mode, rx.profile, rx.bitrate, user)
+        return wr_rm_vlc(filename, rx.port, rx.mode, rx.divisor, rx.profile, rx.gop_size, rx.bitrate, user)
     if (rx.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return wr_rm_vlc(filename, rx.port, rx.mode, rx.profile, rx.bitrate, user)
+        return wr_rm_vlc(filename, rx.port, rx.mode, rx.divisor, rx.profile, rx.gop_size, rx.bitrate, user)
     if (rx.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return wr_rm_vlc(filename, rx.port, rx.mode, rx.profile, rx.bitrate, user)
+        return wr_rm_vlc(filename, rx.port, rx.mode, rx.divisor, rx.profile, rx.gop_size, rx.bitrate, user)
     if (rx.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return wr_rm_depth_ahat(filename, rx.port, rx.mode, rx.profile, rx.bitrate, user)
+        return wr_rm_depth_ahat(filename, rx.port, rx.mode, rx.divisor, rx.profile, rx.gop_size, rx.bitrate, user)
     if (rx.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
-        return wr_rm_depth_longthrow(filename, rx.port, rx.mode, rx.png_filter, user)
+        return wr_rm_depth_longthrow(filename, rx.port, rx.mode, rx.divisor, rx.png_filter, user)
     if (rx.port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
         return wr_rm_imu(filename, rx.port, rx.mode, user)
     if (rx.port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
@@ -274,9 +282,9 @@ def create_wr_from_rx(filename, rx, user):
     if (rx.port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
         return wr_rm_imu(filename, rx.port, rx.mode, user)
     if (rx.port == hl2ss.StreamPort.PERSONAL_VIDEO):
-        return wr_pv(filename, rx.port, rx.mode, rx.width, rx.height, rx.framerate, rx.profile, rx.bitrate, user)
+        return wr_pv(filename, rx.port, rx.mode, rx.width, rx.height, rx.framerate, rx.divisor, rx.profile, rx.gop_size, rx.bitrate, user)
     if (rx.port == hl2ss.StreamPort.MICROPHONE):
-        return wr_microphone(filename, rx.port, rx.profile, user)
+        return wr_microphone(filename, rx.port, rx.profile, rx.level, user)
     if (rx.port == hl2ss.StreamPort.SPATIAL_INPUT):
         return wr_si(filename, rx.port, user)
     if (rx.port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
@@ -299,25 +307,30 @@ class _header:
 
 
 class _header_rm_vlc(_header):
-    def __init__(self, magic, port, user, mode, profile, bitrate):
+    def __init__(self, magic, port, user, mode, divisor, profile, gop_size, bitrate):
         super().__init__(magic, port, user)
         self.mode = mode
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size
         self.bitrate = bitrate
 
 
 class _header_rm_depth_ahat(_header):
-    def __init__(self, magic, port, user, mode, profile, bitrate):
+    def __init__(self, magic, port, user, mode, divisor, profile, gop_size, bitrate):
         super().__init__(magic, port, user)
         self.mode = mode
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size
         self.bitrate = bitrate
 
 
 class _header_rm_depth_longthrow(_header):
-    def __init__(self, magic, port, user, mode, png_filter):
+    def __init__(self, magic, port, user, mode, divisor, png_filter):
         super().__init__(magic, port, user)
         self.mode = mode
+        self.divisor = divisor
         self.png_filter = png_filter
 
 
@@ -328,20 +341,23 @@ class _header_rm_imu(_header):
 
 
 class _header_pv(_header):
-    def __init__(self, magic, port, user, mode, width, height, framerate, profile, bitrate):
+    def __init__(self, magic, port, user, mode, width, height, framerate, divisor, profile, gop_size, bitrate):
         super().__init__(magic, port, user)
         self.mode = mode
         self.width = width
         self.height = height
         self.framerate = framerate
+        self.divisor = divisor
         self.profile = profile
+        self.gop_size = gop_size
         self.bitrate = bitrate
 
 
 class _header_microphone(_header):
-    def __init__(self, magic, port, user, profile):
+    def __init__(self, magic, port, user, profile, level):
         super().__init__(magic, port, user)
         self.profile = profile
+        self.level = level
 
 
 class _header_si(_header):
@@ -380,22 +396,22 @@ class _reader:
         return self.get_magic(), self.get_port(), self.get_user()
     
     def get_configuration_for_rm_vlc(self):
-        return self.get('<BBI')
+        return self.get('<BBBBI')
 
     def get_configuration_for_rm_depth_ahat(self):
-        return self.get('<BBI')
+        return self.get('<BBBBI')
 
     def get_configuration_for_rm_depth_longthrow(self):
-        return self.get('<BB')
+        return self.get('<BBB')
     
     def get_configuration_for_rm_imu(self):
         return self.get('<B')[0]
 
     def get_configuration_for_pv(self):
-        return self.get('<BHHBBI')
+        return self.get('<BHHBBBBI')
 
     def get_configuration_for_microphone(self):
-        return self.get('<B')[0]
+        return self.get('<BB')[0]
 
     def get_configuration_for_eet(self):
         return self.get('<B')[0]
@@ -436,27 +452,27 @@ def _create_rd_rm_vlc(filename, chunk):
     r = _reader()
     r.open(filename, chunk)
     magic, port, user = r.get_header()
-    mode, profile, bitrate = r.get_configuration_for_rm_vlc()
+    mode, divisor, profile, gop_size, bitrate = r.get_configuration_for_rm_vlc()
     r.begin(mode)
-    return r, _header_rm_vlc(magic, port, user, mode, profile, bitrate)
+    return r, _header_rm_vlc(magic, port, user, mode, divisor, profile, gop_size, bitrate)
 
 
 def _create_rd_rm_depth_ahat(filename, chunk):
     r = _reader()
     r.open(filename, chunk)
     magic, port, user = r.get_header()
-    mode, profile, bitrate = r.get_configuration_for_rm_depth_ahat()
+    mode, divisor, profile, gop_size, bitrate = r.get_configuration_for_rm_depth_ahat()
     r.begin(mode)
-    return r, _header_rm_depth_ahat(magic, port, user, mode, profile, bitrate)
+    return r, _header_rm_depth_ahat(magic, port, user, mode, divisor, profile, gop_size, bitrate)
 
 
 def _create_rd_rm_depth_longthrow(filename, chunk):
     r = _reader()
     r.open(filename, chunk)
     magic, port, user = r.get_header()
-    mode, png_filter = r.get_configuration_for_rm_depth_longthrow()
+    mode, divisor, png_filter = r.get_configuration_for_rm_depth_longthrow()
     r.begin(mode)
-    return r, _header_rm_depth_longthrow(magic, port, user, mode, png_filter)
+    return r, _header_rm_depth_longthrow(magic, port, user, mode, divisor, png_filter)
 
 
 def _create_rd_rm_imu(filename, chunk):
@@ -472,18 +488,18 @@ def _create_rd_pv(filename, chunk):
     r = _reader()
     r.open(filename, chunk)
     magic, port, user = r.get_header()
-    mode, width, height, framerate, profile, bitrate = r.get_configuration_for_pv()
+    mode, width, height, framerate, divisor, profile, gop_size, bitrate = r.get_configuration_for_pv()
     r.begin(mode)
-    return r, _header_pv(magic, port, user, mode, width, height, framerate, profile, bitrate)
+    return r, _header_pv(magic, port, user, mode, width, height, framerate, divisor, profile, gop_size, bitrate)
 
 
 def _create_rd_microphone(filename, chunk):
     r = _reader()
     r.open(filename, chunk)
     magic, port, user = r.get_header()
-    profile = r.get_configuration_for_microphone()
+    profile, level = r.get_configuration_for_microphone()
     r.begin(hl2ss.StreamMode.MODE_0)    
-    return r, _header_microphone(magic, port, user, profile)
+    return r, _header_microphone(magic, port, user, profile, level)
 
 
 def _create_rd_si(filename, chunk):
@@ -802,31 +818,31 @@ class sequencer:
 
 def get_sync_period(wr):
     if (wr.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
+        return wr.gop_size
     if (wr.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
+        return wr.gop_size
     if (wr.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
+        return wr.gop_size
     if (wr.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss_mp.get_sync_period_rm_vlc(wr.profile)
+        return wr.gop_size
     if (wr.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss_mp.get_sync_period_rm_depth_ahat(wr.profile)
+        return wr.gop_size
     if (wr.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
-        return hl2ss_mp.get_sync_period_rm_depth_longthrow()
+        return 1
     if (wr.port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
-        return hl2ss_mp.get_sync_period_rm_imu()
+        return 1
     if (wr.port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
-        return hl2ss_mp.get_sync_period_rm_imu()
+        return 1
     if (wr.port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
-        return hl2ss_mp.get_sync_period_rm_imu()
+        return 1
     if (wr.port == hl2ss.StreamPort.PERSONAL_VIDEO):
-        return hl2ss_mp.get_sync_period_pv(wr.profile, wr.framerate)
+        return wr.gop_size
     if (wr.port == hl2ss.StreamPort.MICROPHONE):
-        return hl2ss_mp.get_sync_period_microphone()
+        return 1
     if (wr.port == hl2ss.StreamPort.SPATIAL_INPUT):
-        return hl2ss_mp.get_sync_period_si()
+        return 1
     if (wr.port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
-        return hl2ss_mp.get_sync_period_eet()
+        return 1
 
 
 class wr_process_rx(mp.Process):
