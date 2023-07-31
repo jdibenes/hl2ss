@@ -25,6 +25,9 @@ port = hl2ss.StreamPort.MICROPHONE
 # Audio encoding profile
 profile = hl2ss.AudioProfile.AAC_24000
 
+# Audio encoding level
+level = hl2ss.AACLevel.L2
+
 #------------------------------------------------------------------------------
 
 # RAW format is s16 packed, AAC decoded format is f32 planar
@@ -53,7 +56,7 @@ listener = keyboard.Listener(on_press=on_press)
 thread.start()
 listener.start()
 
-client = hl2ss.rx_decoded_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile)
+client = hl2ss.rx_decoded_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile, level)
 client.open()
 
 while (enable): 

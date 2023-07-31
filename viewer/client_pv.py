@@ -33,12 +33,19 @@ width     = 1920
 height    = 1080
 framerate = 30
 
+# Framerate denominator (must be > 0)
+# Effective framerate is framerate / divisor
+divisor = 1 
+
 # Video encoding profile
 profile = hl2ss.VideoProfile.H265_MAIN
 
+# Group of pictures (GOP) size
+gop_size = hl2ss.get_video_codec_default_gop_size(framerate, divisor)
+
 # Encoded stream average bits per second
 # Must be > 0
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
+bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, divisor, hl2ss.get_video_codec_default_factor(profile))
 
 # Decoded format
 # Options include:
@@ -75,7 +82,7 @@ else:
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, profile, bitrate, decoded_format)
+    client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, divisor, profile, gop_size, bitrate, decoded_format)
     client.open()
 
     while (enable):

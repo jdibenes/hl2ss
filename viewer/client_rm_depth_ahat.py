@@ -28,8 +28,15 @@ port = hl2ss.StreamPort.RM_DEPTH_AHAT
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
 
+# Framerate denominator (must be > 0)
+# Effective framerate is framerate / divisor
+divisor = 1 
+
 # Video encoding profile
 profile = hl2ss.VideoProfile.H265_MAIN
+
+# Group of pictures (GOP) size
+gop_size = hl2ss.get_video_codec_default_gop_size(hl2ss.Parameters_RM_DEPTH_AHAT.FPS, divisor)
 
 # Encoded stream average bits per second
 # Must be > 0
@@ -62,7 +69,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, profile, bitrate)
+client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, divisor, profile, gop_size, bitrate)
 client.open()
 
 while (enable):
