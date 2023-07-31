@@ -72,7 +72,7 @@ class VideoProfile:
     RAW       = 0xFF
 
 
-# Audio Encoder Bitrate
+# Audio Encoder Profile
 # 0: AAC 12000 bytes/s
 # 1: AAC 16000 bytes/s
 # 2: AAC 20000 bytes/s
@@ -547,14 +547,14 @@ class _context_manager:
 #------------------------------------------------------------------------------
 
 class rx_rm_vlc(_context_manager):
-    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
+    def __init__(self, host, port, chunk, mode, divisor, profile, gop_size, bitrate):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.mode = mode
         self.divisor = divisor
         self.profile = profile
-        self.gop_size = gop_size if (gop_size is not None) else max([1, Parameters_RM_VLC.FPS // divisor])
+        self.gop_size = gop_size
         self.bitrate = bitrate
 
     def open(self):
@@ -568,14 +568,14 @@ class rx_rm_vlc(_context_manager):
 
 
 class rx_rm_depth_ahat(_context_manager):
-    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
+    def __init__(self, host, port, chunk, mode, divisor, profile, gop_size, bitrate):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.mode = mode
         self.divisor = divisor
         self.profile = profile
-        self.gop_size = gop_size if (gop_size is not None) else max([1, Parameters_RM_DEPTH_AHAT.FPS // divisor])
+        self.gop_size = gop_size
         self.bitrate = bitrate
 
     def open(self):
@@ -589,7 +589,7 @@ class rx_rm_depth_ahat(_context_manager):
 
 
 class rx_rm_depth_longthrow(_context_manager):
-    def __init__(self, host, port, chunk, mode, png_filter, divisor=1):
+    def __init__(self, host, port, chunk, mode, divisor, png_filter):
         self.host = host
         self.port = port
         self.chunk = chunk
@@ -625,7 +625,7 @@ class rx_rm_imu(_context_manager):
 
 
 class rx_pv(_context_manager):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, divisor=1, gop_size=None):
+    def __init__(self, host, port, chunk, mode, width, height, framerate, divisor, profile, gop_size, bitrate):
         self.host = host
         self.port = port
         self.chunk = chunk
@@ -635,7 +635,7 @@ class rx_pv(_context_manager):
         self.framerate = framerate
         self.divisor = divisor
         self.profile = profile
-        self.gop_size = gop_size if (gop_size is not None) else max([1, framerate // divisor])
+        self.gop_size = gop_size
         self.bitrate = bitrate
 
     def open(self):
@@ -649,7 +649,7 @@ class rx_pv(_context_manager):
 
 
 class rx_microphone(_context_manager):
-    def __init__(self, host, port, chunk, profile, level=AACLevel.L2):
+    def __init__(self, host, port, chunk, profile, level):
         self.host = host
         self.port = port
         self.chunk = chunk
@@ -742,13 +742,17 @@ def get_audio_codec_bitrate(profile):
     return None
 
 
+def get_video_codec_default_gop_size(framerate, divisor):
+    return max([1, framerate // divisor])
+
+
 def get_video_codec_default_factor(profile):
     name = get_video_codec_name(profile)
     return 4/420 if (name == 'h264') else 1/140 if (name == 'hevc') else 1.0
 
 
-def get_video_codec_bitrate(width, height, fps, factor):
-    return int(width*height*fps*12*factor)
+def get_video_codec_bitrate(width, height, framerate, divisor, factor):
+    return int(width*height*(framerate/divisor)*12*factor)
 
 
 #------------------------------------------------------------------------------
@@ -1161,8 +1165,8 @@ class unpack_eet:
 #------------------------------------------------------------------------------
 
 class rx_decoded_rm_vlc(rx_rm_vlc):
-    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
-        super().__init__(host, port, chunk, mode, profile, bitrate, divisor, gop_size)
+    def __init__(self, host, port, chunk, mode, divisor, profile, gop_size, bitrate):
+        super().__init__(host, port, chunk, mode, divisor, profile, gop_size, bitrate)
         self._codec = decode_rm_vlc(profile)
 
     def open(self):
@@ -1180,8 +1184,8 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
 
 
 class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
-    def __init__(self, host, port, chunk, mode, profile, bitrate, divisor=1, gop_size=None):
-        super().__init__(host, port, chunk, mode, profile, bitrate, divisor, gop_size)
+    def __init__(self, host, port, chunk, mode, divisor, profile, gop_size, bitrate):
+        super().__init__(host, port, chunk, mode, divisor, profile, gop_size, bitrate)
         self._codec = decode_rm_depth_ahat(profile)
 
     def open(self):
@@ -1199,8 +1203,8 @@ class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
 
 
 class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
-    def __init__(self, host, port, chunk, mode, png_filter, divisor=1):
-        super().__init__(host, port, chunk, mode, png_filter, divisor)
+    def __init__(self, host, port, chunk, mode, divisor, png_filter):
+        super().__init__(host, port, chunk, mode, divisor, png_filter)
 
     def open(self):
         super().open()
@@ -1215,8 +1219,8 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
 
 
 class rx_decoded_pv(rx_pv):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, profile, bitrate, format, divisor=1, gop_size=None):
-        super().__init__(host, port, chunk, mode, width, height, framerate, profile, bitrate, divisor, gop_size)
+    def __init__(self, host, port, chunk, mode, width, height, framerate, divisor, profile, gop_size, bitrate, format):
+        super().__init__(host, port, chunk, mode, width, height, framerate, divisor, profile, gop_size, bitrate)
         self.format = format
         self._codec = decode_pv(profile)
 
@@ -1236,7 +1240,7 @@ class rx_decoded_pv(rx_pv):
 
 
 class rx_decoded_microphone(rx_microphone):
-    def __init__(self, host, port, chunk, profile, level=AACLevel.L2):
+    def __init__(self, host, port, chunk, profile, level):
         super().__init__(host, port, chunk, profile, level)
         self._codec = decode_microphone(profile)
         
