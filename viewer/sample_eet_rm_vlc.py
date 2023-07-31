@@ -28,8 +28,15 @@ calibration_path = '../calibration'
 # Port
 port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
+# Framerate denominator (must be > 0)
+# Effective framerate is framerate / divisor
+divisor = 1
+
 # Video Encoding profiles
 profile = hl2ss.VideoProfile.H265_MAIN
+
+# Group of pictures (GOP) size
+gop_size = hl2ss.get_video_codec_default_gop_size(hl2ss.Parameters_RM_VLC.FPS, divisor)
 
 # Encoded stream average bits per second
 # Must be > 0
@@ -86,7 +93,7 @@ if __name__ == '__main__':
     
     # Start RM VLC and EET streams --------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
+    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, divisor, profile, gop_size, bitrate)
     producer.configure_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, eet_fps)
     producer.initialize(port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
     producer.initialize(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)

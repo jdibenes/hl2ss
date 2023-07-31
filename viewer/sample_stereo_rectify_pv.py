@@ -30,7 +30,7 @@ pv_width = 640
 pv_height = 360
 pv_framerate = 30
 pv_profile = hl2ss.VideoProfile.H265_MAIN
-pv_bitrate = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_framerate, hl2ss.get_video_codec_default_factor(pv_profile))
+pv_bitrate = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_framerate, 1, hl2ss.get_video_codec_default_factor(pv_profile))
 
 vlc_profile = hl2ss.VideoProfile.H265_MAIN
 vlc_bitrate = 1*1024*1024
@@ -88,8 +88,8 @@ if (__name__ == '__main__'):
 
     # Start streams -----------------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port_left, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, vlc_profile, vlc_bitrate)
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'bgr24')
+    producer.configure_rm_vlc(True, host, port_left, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, 1, vlc_profile, 30, vlc_bitrate)
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_0, pv_width, pv_height, pv_framerate, 1, pv_profile, pv_framerate, pv_bitrate, 'bgr24')
     producer.initialize(port_left, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, buffer_size * pv_framerate)
     producer.start(port_left)

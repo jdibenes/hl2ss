@@ -23,8 +23,11 @@ calibration_path = '../calibration'
 
 # Camera selection and parameters
 port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
+divisor = 1
 profile = hl2ss.VideoProfile.H265_MAIN
+gop_size = hl2ss.get_video_codec_default_gop_size(hl2ss.Parameters_RM_VLC.FPS, divisor)
 bitrate = 1*1024*1024
+lt_divisor = 1
 
 # Buffer length in seconds
 buffer_length = 10
@@ -66,8 +69,8 @@ if __name__ == '__main__':
 
     # Start RM VLC and RM Depth Long Throw streams ----------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, divisor, profile, gop_size, bitrate)
+    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, lt_divisor, hl2ss.PngFilterMode.Paeth)
     producer.initialize(port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
     producer.start(port)

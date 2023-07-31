@@ -70,8 +70,8 @@ if __name__ == '__main__':
 
     # Start RM VLC and RM Depth AHAT streams ----------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, vlc_profile, vlc_bitrate)
-    producer.configure_rm_depth_ahat(True, host, hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.ChunkSize.RM_DEPTH_AHAT, hl2ss.StreamMode.MODE_1, ht_profile, ht_bitrate)
+    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, 1, vlc_profile, 30, vlc_bitrate)
+    producer.configure_rm_depth_ahat(True, host, hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.ChunkSize.RM_DEPTH_AHAT, hl2ss.StreamMode.MODE_1, 1, ht_profile, 45, ht_bitrate)
     producer.initialize(port, buffer_length * hl2ss.Parameters_RM_VLC.FPS)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_AHAT, buffer_length * hl2ss.Parameters_RM_DEPTH_AHAT.FPS)
     producer.start(port)

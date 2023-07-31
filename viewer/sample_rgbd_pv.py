@@ -33,7 +33,7 @@ profile = hl2ss.VideoProfile.H265_MAIN
 
 # Encoded stream average bits per second
 # Must be > 0
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
+bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, 1, hl2ss.get_video_codec_default_factor(profile))
 
 # Buffer length in seconds
 buffer_length = 10
@@ -74,8 +74,8 @@ if __name__ == '__main__':
 
     # Start PV and RM Depth Long Throw streams --------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'rgb24')
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, 1, profile, framerate, bitrate, 'rgb24')
+    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, 1, hl2ss.PngFilterMode.Paeth)
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
     producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)

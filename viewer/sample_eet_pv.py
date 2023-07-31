@@ -28,12 +28,19 @@ width     = 760
 height    = 428
 framerate = 30
 
+# Framerate denominator (must be > 0)
+# Effective framerate is framerate / divisor
+divisor = 1
+
 # Video Encoding profiles
 profile = hl2ss.VideoProfile.H265_MAIN
 
+# Group of pictures (GOP) size
+gop_size = hl2ss.get_video_codec_default_gop_size(framerate, divisor)
+
 # Encoded stream average bits per second
 # Must be > 0
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
+bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, divisor, hl2ss.get_video_codec_default_factor(profile))
 
 # EET parameters
 eet_fps = 30 # 30, 60, 90
@@ -84,7 +91,7 @@ if __name__ == '__main__':
     
     # Start PV and EET streams ------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, divisor, profile, gop_size, bitrate, 'bgr24')
     producer.configure_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, eet_fps)
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
     producer.initialize(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)

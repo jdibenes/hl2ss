@@ -28,7 +28,7 @@ pv_width = 640
 pv_height = 360
 pv_fps = 30
 pv_profile = hl2ss.VideoProfile.H265_MAIN
-pv_bitrate = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_fps, 1/100)
+pv_bitrate = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_fps, 1, 1/100)
 pv_format = 'bgr24'
 pv_buffer_size = 10 # In seconds
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     # Start PV capture
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, pv_width, pv_height, pv_fps, pv_profile, pv_bitrate, pv_format)
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, pv_width, pv_height, pv_fps, 1, pv_profile, pv_fps, pv_bitrate, pv_format)
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, pv_buffer_size * pv_fps)
     producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
 

@@ -78,8 +78,8 @@ if (__name__ == '__main__'):
 
     # Start streams -----------------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port_left, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, profile, bitrate)
-    producer.configure_rm_vlc(True, host, port_right, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, profile, bitrate)
+    producer.configure_rm_vlc(True, host, port_left, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, 1, profile, 30, bitrate)
+    producer.configure_rm_vlc(True, host, port_right, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, 1, profile, 30, bitrate)
     producer.initialize(port_left, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
     producer.initialize(port_right, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
     producer.start(port_left)

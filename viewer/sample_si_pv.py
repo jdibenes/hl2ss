@@ -33,7 +33,7 @@ profile = hl2ss.VideoProfile.H265_MAIN
 
 # Encoded stream average bits per second
 # Must be > 0
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
+bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, 1, hl2ss.get_video_codec_default_factor(profile))
 
 # Marker properties
 radius = 5
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     
     # Start PV and Spatial Input streams --------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
+    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, 1, profile, framerate, bitrate, 'bgr24')
     producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
     producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
