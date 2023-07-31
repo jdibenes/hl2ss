@@ -67,6 +67,8 @@ namespace pcpd_msgs {
     namespace rpc {
 
         typedef std::array<uint16_t, 4> uint16__4;
+
+        typedef std::array<uint8_t, 8> uint8__8;
         /*!
          * @brief This class represents the enumeration RPCResponseStatus defined by the user in the IDL file.
          * @ingroup TYPES
@@ -75,6 +77,214 @@ namespace pcpd_msgs {
         {
             RPC_STATUS_SUCCESS,
             RPC_STATUS_ERROR
+        };
+        /*!
+         * @brief This class represents the structure HL2Guid defined by the user in the IDL file.
+         * @ingroup TYPES
+         */
+        class HL2Guid
+        {
+        public:
+
+            /*!
+             * @brief Default constructor.
+             */
+            eProsima_user_DllExport HL2Guid();
+
+            /*!
+             * @brief Default destructor.
+             */
+            eProsima_user_DllExport ~HL2Guid();
+
+            /*!
+             * @brief Copy constructor.
+             * @param x Reference to the object pcpd_msgs::rpc::HL2Guid that will be copied.
+             */
+            eProsima_user_DllExport HL2Guid(
+                    const HL2Guid& x);
+
+            /*!
+             * @brief Move constructor.
+             * @param x Reference to the object pcpd_msgs::rpc::HL2Guid that will be copied.
+             */
+            eProsima_user_DllExport HL2Guid(
+                    HL2Guid&& x) noexcept;
+
+            /*!
+             * @brief Copy assignment.
+             * @param x Reference to the object pcpd_msgs::rpc::HL2Guid that will be copied.
+             */
+            eProsima_user_DllExport HL2Guid& operator =(
+                    const HL2Guid& x);
+
+            /*!
+             * @brief Move assignment.
+             * @param x Reference to the object pcpd_msgs::rpc::HL2Guid that will be copied.
+             */
+            eProsima_user_DllExport HL2Guid& operator =(
+                    HL2Guid&& x) noexcept;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::rpc::HL2Guid object to compare.
+             */
+            eProsima_user_DllExport bool operator ==(
+                    const HL2Guid& x) const;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::rpc::HL2Guid object to compare.
+             */
+            eProsima_user_DllExport bool operator !=(
+                    const HL2Guid& x) const;
+
+            /*!
+             * @brief This function sets a value in member Data1
+             * @param _Data1 New value for member Data1
+             */
+            eProsima_user_DllExport void Data1(
+                    uint32_t _Data1);
+
+            /*!
+             * @brief This function returns the value of member Data1
+             * @return Value of member Data1
+             */
+            eProsima_user_DllExport uint32_t Data1() const;
+
+            /*!
+             * @brief This function returns a reference to member Data1
+             * @return Reference to member Data1
+             */
+            eProsima_user_DllExport uint32_t& Data1();
+
+            /*!
+             * @brief This function sets a value in member Data2
+             * @param _Data2 New value for member Data2
+             */
+            eProsima_user_DllExport void Data2(
+                    uint16_t _Data2);
+
+            /*!
+             * @brief This function returns the value of member Data2
+             * @return Value of member Data2
+             */
+            eProsima_user_DllExport uint16_t Data2() const;
+
+            /*!
+             * @brief This function returns a reference to member Data2
+             * @return Reference to member Data2
+             */
+            eProsima_user_DllExport uint16_t& Data2();
+
+            /*!
+             * @brief This function sets a value in member Data3
+             * @param _Data3 New value for member Data3
+             */
+            eProsima_user_DllExport void Data3(
+                    uint16_t _Data3);
+
+            /*!
+             * @brief This function returns the value of member Data3
+             * @return Value of member Data3
+             */
+            eProsima_user_DllExport uint16_t Data3() const;
+
+            /*!
+             * @brief This function returns a reference to member Data3
+             * @return Reference to member Data3
+             */
+            eProsima_user_DllExport uint16_t& Data3();
+
+            /*!
+             * @brief This function copies the value in member Data4
+             * @param _Data4 New value to be copied in member Data4
+             */
+            eProsima_user_DllExport void Data4(
+                    const pcpd_msgs::rpc::uint8__8& _Data4);
+
+            /*!
+             * @brief This function moves the value in member Data4
+             * @param _Data4 New value to be moved in member Data4
+             */
+            eProsima_user_DllExport void Data4(
+                    pcpd_msgs::rpc::uint8__8&& _Data4);
+
+            /*!
+             * @brief This function returns a constant reference to member Data4
+             * @return Constant reference to member Data4
+             */
+            eProsima_user_DllExport const pcpd_msgs::rpc::uint8__8& Data4() const;
+
+            /*!
+             * @brief This function returns a reference to member Data4
+             * @return Reference to member Data4
+             */
+            eProsima_user_DllExport pcpd_msgs::rpc::uint8__8& Data4();
+
+            /*!
+            * @brief This function returns the maximum serialized size of an object
+            * depending on the buffer alignment.
+            * @param current_alignment Buffer alignment.
+            * @return Maximum serialized size.
+            */
+            eProsima_user_DllExport static size_t getMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function returns the serialized size of a data depending on the buffer alignment.
+             * @param data Data which is calculated its serialized size.
+             * @param current_alignment Buffer alignment.
+             * @return Serialized size.
+             */
+            eProsima_user_DllExport static size_t getCdrSerializedSize(
+                    const pcpd_msgs::rpc::HL2Guid& data,
+                    size_t current_alignment = 0);
+
+
+            /*!
+             * @brief This function serializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serialize(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+            /*!
+             * @brief This function deserializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void deserialize(
+                    eprosima::fastcdr::Cdr& cdr);
+
+
+
+            /*!
+             * @brief This function returns the maximum serialized size of the Key of an object
+             * depending on the buffer alignment.
+             * @param current_alignment Buffer alignment.
+             * @return Maximum serialized size.
+             */
+            eProsima_user_DllExport static size_t getKeyMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function tells you if the Key has been defined for this type
+             */
+            eProsima_user_DllExport static bool isKeyDefined();
+
+            /*!
+             * @brief This function serializes the key members of an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serializeKey(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+        private:
+
+            uint32_t m_Data1;
+            uint16_t m_Data2;
+            uint16_t m_Data3;
+            pcpd_msgs::rpc::uint8__8 m_Data4;
+
         };
         /*!
          * @brief This class represents the structure NullRequest defined by the user in the IDL file.

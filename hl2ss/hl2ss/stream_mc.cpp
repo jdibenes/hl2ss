@@ -111,7 +111,10 @@ static void MC_Shoutcast()
 	std::string keyexpr = "hl2/sensor/mic/" + g_zenoh_context->client_id;
 	ShowMessage("MC: publish on: %s", keyexpr.c_str());
 
-	z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), NULL);
+	z_publisher_options_t publisher_options = z_publisher_options_default();
+	publisher_options.priority = Z_PRIORITY_REAL_TIME;
+
+	z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
 	if (!z_check(pub)) {
 		ShowMessage("MC: Error creating publisher");

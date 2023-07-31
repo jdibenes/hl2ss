@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include "log.h"
 
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"

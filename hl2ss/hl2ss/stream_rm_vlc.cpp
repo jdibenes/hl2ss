@@ -202,8 +202,10 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     ShowMessage("RM_VLC: publish on: %s", keyexpr.c_str());
 
+    z_publisher_options_t publisher_options = z_publisher_options_default();
+    publisher_options.priority = Z_PRIORITY_REAL_TIME;
 
-    z_owned_publisher_t pub = z_declare_publisher(session, z_keyexpr(keyexpr.c_str()), NULL);
+    z_owned_publisher_t pub = z_declare_publisher(session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
         ShowMessage("RM_VLC: Error creating publisher");

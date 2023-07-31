@@ -5,11 +5,22 @@ module pcpd_msgs {
   module rpc {
 
     typedef uint16 uint16__4[4];
+    typedef uint8 uint8__8[8];
+
 
     enum RPCResponseStatus {
       RPC_STATUS_SUCCESS,
       RPC_STATUS_ERROR
     };
+
+
+    struct HL2Guid {
+      uint32 Data1;
+      uint16 Data2;
+      uint16 Data3;
+      uint8__8 Data4;
+    };
+
 
     // null
     struct NullRequest {

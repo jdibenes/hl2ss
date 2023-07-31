@@ -6,11 +6,15 @@
 #include "ports.h"
 #include "timestamps.h"
 #include "log.h"
+#include <chrono>
 
 #include "hl2ss_network.h"
 
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
+
+#include "pcpd_msgs/msg/Hololens2HandTracking.h"
+#include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.h>
@@ -22,6 +26,12 @@ using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Windows::Perception::People;
 
+struct SI_Context {
+    std::string client_id;
+    z_session_t session;
+    bool valid{ false };
+};
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -29,15 +39,62 @@ using namespace winrt::Windows::Perception::People;
 static HANDLE g_thread = NULL; // CloseHandle
 static HANDLE g_event_quit = NULL; // CloseHandle
 
+static SI_Context* g_zenoh_context = NULL;
+
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void SI_Stream(SOCKET clientsocket)
+static void SI_Stream()
 {
-    int const hand_size = HAND_JOINTS * sizeof(JointPose);
-    int32_t const packet_size = sizeof(uint8_t) + sizeof(SpatialInput_Frame) + sizeof(SpatialInput_Ray) + (2 * hand_size);
+
+    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+        ShowMessage("SI: Error invalid context");
+        return;
+    }
+    std::string& client_id = g_zenoh_context->client_id;
+    std::string keyexpr = "hl2/sensor/si/" + client_id;
+    ShowMessage("SI: publish on: %s", keyexpr.c_str());
+
+    z_publisher_options_t publisher_options = z_publisher_options_default();
+    publisher_options.priority = Z_PRIORITY_REAL_TIME;
+
+    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
+
+    if (!z_check(pub)) {
+        ShowMessage("SI: Error creating publisher");
+        return;
+    }
+
+    z_publisher_put_options_t options = z_publisher_put_options_default();
+    options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+
+    eprosima::fastcdr::FastBuffer buffer{};
+    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+
+    {
+        pcpd_msgs::msg::Hololens2StreamDescriptor value{};
+
+        value.stream_topic("hl2/sensor/si/" + g_zenoh_context->client_id);
+        value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::HAND_TRACKING);
+        value.frame_rate(30);
+
+        buffer_cdr.reset();
+        value.serialize(buffer_cdr);
+
+        // put message to zenoh
+        std::string keyexpr1 = "hl2/cfg/si/" + g_zenoh_context->client_id;
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            ShowMessage("SI: Error putting info");
+        }
+        else {
+            ShowMessage("SI: put info");
+        }
+    }
 
     PerceptionTimestamp ts = nullptr;
     SpatialCoordinateSystem world = nullptr;
@@ -49,48 +106,112 @@ static void SI_Stream(SOCKET clientsocket)
     std::vector<JointPose> right_poses;
     SpatialInput_Frame head_pose;
     SpatialInput_Ray eye_ray;
-    WSABUF wsaBuf[7];
-    bool ok;
+    bool ok{ true };
     
     left_poses.resize(HAND_JOINTS);
     right_poses.resize(HAND_JOINTS);
 
-    wsaBuf[0].buf = (char*)&qpc;
-    wsaBuf[0].len = (ULONG)sizeof(qpc);
-
-    wsaBuf[1].buf = (char*)&packet_size;
-    wsaBuf[1].len = sizeof(packet_size);
-
-    wsaBuf[2].buf = (char*)&valid;
-    wsaBuf[2].len = (ULONG)sizeof(valid);
-
-    wsaBuf[3].buf = (char*)&head_pose;
-    wsaBuf[3].len = (ULONG)sizeof(head_pose);
-
-    wsaBuf[4].buf = (char*)&eye_ray;
-    wsaBuf[4].len = (ULONG)sizeof(eye_ray);
-
-    wsaBuf[5].buf = (char*)left_poses.data();
-    wsaBuf[5].len = hand_size;
-
-    wsaBuf[6].buf = (char*)right_poses.data();
-    wsaBuf[6].len = hand_size;
-
     do
     {
-    Sleep(1000 / 30);
+        Sleep(1000 / 30);
+        
+        pcpd_msgs::msg::Hololens2HandTracking value{};
 
-    qpc = GetCurrentQPCTimestamp();
-    ts = QPCTimestampToPerceptionTimestamp(qpc);
+        qpc = GetCurrentQPCTimestamp();
+        ts = QPCTimestampToPerceptionTimestamp(qpc);
 
-    world   = Locator_GetWorldCoordinateSystem(ts);
-    status1 = SpatialInput_GetHeadPoseAndEyeRay(world, ts, head_pose, eye_ray);
-    status2 = SpatialInput_GetHandPose(world, ts, left_poses, right_poses);
-    valid   = (status1 | (status2 << 2)) & 0x0F;
+        {
+            using namespace std::chrono;
+            auto ts_ = nanoseconds(qpc * 100);
+            auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+            auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
 
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+            value.header().stamp().sec(ts_sec);
+            value.header().stamp().nanosec(ts_nsec);
+
+            value.header().frame_id(client_id);
+        }
+
+
+        world   = Locator_GetWorldCoordinateSystem(ts);
+        status1 = SpatialInput_GetHeadPoseAndEyeRay(world, ts, head_pose, eye_ray);
+        status2 = SpatialInput_GetHandPose(world, ts, left_poses, right_poses);
+        valid   = (status1 | (status2 << 2)) & 0x0F;
+
+        {
+            geometry_msgs::msg::Vector3 h_p{};
+            h_p.x(head_pose.position.x);
+            h_p.y(head_pose.position.y);
+            h_p.z(head_pose.position.z);
+            value.head_position(h_p);
+
+            geometry_msgs::msg::Vector3 h_f{};
+            h_f.x(head_pose.forward.x);
+            h_f.y(head_pose.forward.y);
+            h_f.z(head_pose.forward.z);
+            value.head_forward(h_f);
+
+            geometry_msgs::msg::Vector3 h_u{};
+            h_u.x(head_pose.up.x);
+            h_u.y(head_pose.up.y);
+            h_u.z(head_pose.up.z);
+            value.head_up(h_u);
+        }
+        {
+            geometry_msgs::msg::Vector3 g_o{};
+            g_o.x(eye_ray.origin.x);
+            g_o.y(eye_ray.origin.y);
+            g_o.z(eye_ray.origin.z);
+            value.gaze_origin(g_o);
+
+            geometry_msgs::msg::Vector3 g_d{};
+            g_d.x(eye_ray.direction.x);
+            g_d.y(eye_ray.direction.y);
+            g_d.z(eye_ray.direction.z);
+            value.gaze_direction(g_d);
+        }
+
+        std::vector < pcpd_msgs::msg::Hololens2HandJointPose> lps(left_poses.size());
+        std::vector < pcpd_msgs::msg::Hololens2HandJointPose> rps(right_poses.size());
+
+        for (unsigned i = 0; i < left_poses.size(); ++i) {
+            auto& s = left_poses.at(i);
+            auto& t = lps.at(i);
+            switch (s.Accuracy) {
+            case winrt::Windows::Perception::People::JointPoseAccuracy::Approximate:
+                t.accuracy(pcpd_msgs::msg::Hololens2JointPoseAccuracy::Approximate);
+                break;
+            case winrt::Windows::Perception::People::JointPoseAccuracy::High:
+                t.accuracy(pcpd_msgs::msg::Hololens2JointPoseAccuracy::High);
+                break;
+            }
+            t.radius(s.Radius);
+
+            t.position().x(s.Position.x);
+            t.position().y(s.Position.y);
+            t.position().z(s.Position.z);
+
+            t.orientation().x(s.Orientation.x);
+            t.orientation().y(s.Orientation.y);
+            t.orientation().z(s.Orientation.z);
+            t.orientation().w(s.Orientation.w);
+
+        }
+        value.valid(valid);
+
+        buffer_cdr.reset();
+        value.serialize(buffer_cdr);
+
+        // send message to zenoh
+        if (z_publisher_put(z_loan(pub), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options)) {
+            ok = false;
+            ShowMessage("SI: Error publishing message");
+        }
+        else {
+            //ShowMessage("SI: published frame");
+        }
     }
-    while (ok);
+    while (ok && WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 }
 
 // OK
@@ -98,44 +219,30 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 {
     (void)param;
 
-    SOCKET listensocket; // closesocket
-    SOCKET clientsocket; // closesocket
+    if (g_zenoh_context == NULL) {
+        return 1;
+    }
 
     ShowMessage("SI: Waiting for consent");
 
     SpatialInput_WaitForEyeConsent();
 
-    listensocket = CreateSocket(PORT_NAME_SI);
+    SI_Stream();
 
-    ShowMessage("SI: Listening at port %s", PORT_NAME_SI);
-
-    do
-    {
-    ShowMessage("SI: Waiting for client");
-
-    clientsocket = accept(listensocket, NULL, NULL); // block
-    if (clientsocket == INVALID_SOCKET) { break; }
-
-    ShowMessage("SI: Client connected");
-
-    SI_Stream(clientsocket);
-
-    closesocket(clientsocket);
-
-    ShowMessage("SI: Client disconnected");
-    }
-    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
-
-    closesocket(listensocket);
-
-    ShowMessage("SI: Closed");
+    ShowMessage("SI: publisher done");
 
     return 0;
 }
 
 // OK
-void SI_Initialize(const char* /*client_id*/, z_session_t /*session*/)
+void SI_Initialize(const char* client_id, z_session_t session)
 {
+
+    g_zenoh_context = new SI_Context(); // release
+    g_zenoh_context->client_id = std::string(client_id);
+    g_zenoh_context->session = session;
+    g_zenoh_context->valid = true;
+
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, SI_EntryPoint, NULL, 0, NULL);
 }
@@ -152,4 +259,7 @@ void SI_Cleanup()
     WaitForSingleObject(g_thread, INFINITE);
     CloseHandle(g_thread);
     CloseHandle(g_event_quit);
+
+    free(g_zenoh_context);
+    g_zenoh_context = NULL;
 }

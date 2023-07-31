@@ -70,64 +70,73 @@ class Cdr;
 namespace pcpd_msgs {
     namespace msg {
         /*!
-         * @brief This class represents the structure HandJointPose defined by the user in the IDL file.
+         * @brief This class represents the enumeration Hololens2JointPoseAccuracy defined by the user in the IDL file.
          * @ingroup HOLOLENS2HANDTRACKING
          */
-        class HandJointPose
+        enum Hololens2JointPoseAccuracy : uint32_t
+        {
+            High,
+            Approximate
+        };
+        /*!
+         * @brief This class represents the structure Hololens2HandJointPose defined by the user in the IDL file.
+         * @ingroup HOLOLENS2HANDTRACKING
+         */
+        class Hololens2HandJointPose
         {
         public:
 
             /*!
              * @brief Default constructor.
              */
-            eProsima_user_DllExport HandJointPose();
+            eProsima_user_DllExport Hololens2HandJointPose();
 
             /*!
              * @brief Default destructor.
              */
-            eProsima_user_DllExport ~HandJointPose();
+            eProsima_user_DllExport ~Hololens2HandJointPose();
 
             /*!
              * @brief Copy constructor.
-             * @param x Reference to the object pcpd_msgs::msg::HandJointPose that will be copied.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2HandJointPose that will be copied.
              */
-            eProsima_user_DllExport HandJointPose(
-                    const HandJointPose& x);
+            eProsima_user_DllExport Hololens2HandJointPose(
+                    const Hololens2HandJointPose& x);
 
             /*!
              * @brief Move constructor.
-             * @param x Reference to the object pcpd_msgs::msg::HandJointPose that will be copied.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2HandJointPose that will be copied.
              */
-            eProsima_user_DllExport HandJointPose(
-                    HandJointPose&& x) noexcept;
+            eProsima_user_DllExport Hololens2HandJointPose(
+                    Hololens2HandJointPose&& x) noexcept;
 
             /*!
              * @brief Copy assignment.
-             * @param x Reference to the object pcpd_msgs::msg::HandJointPose that will be copied.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2HandJointPose that will be copied.
              */
-            eProsima_user_DllExport HandJointPose& operator =(
-                    const HandJointPose& x);
+            eProsima_user_DllExport Hololens2HandJointPose& operator =(
+                    const Hololens2HandJointPose& x);
 
             /*!
              * @brief Move assignment.
-             * @param x Reference to the object pcpd_msgs::msg::HandJointPose that will be copied.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2HandJointPose that will be copied.
              */
-            eProsima_user_DllExport HandJointPose& operator =(
-                    HandJointPose&& x) noexcept;
+            eProsima_user_DllExport Hololens2HandJointPose& operator =(
+                    Hololens2HandJointPose&& x) noexcept;
 
             /*!
              * @brief Comparison operator.
-             * @param x pcpd_msgs::msg::HandJointPose object to compare.
+             * @param x pcpd_msgs::msg::Hololens2HandJointPose object to compare.
              */
             eProsima_user_DllExport bool operator ==(
-                    const HandJointPose& x) const;
+                    const Hololens2HandJointPose& x) const;
 
             /*!
              * @brief Comparison operator.
-             * @param x pcpd_msgs::msg::HandJointPose object to compare.
+             * @param x pcpd_msgs::msg::Hololens2HandJointPose object to compare.
              */
             eProsima_user_DllExport bool operator !=(
-                    const HandJointPose& x) const;
+                    const Hololens2HandJointPose& x) const;
 
             /*!
              * @brief This function copies the value in member orientation
@@ -203,19 +212,19 @@ namespace pcpd_msgs {
              * @param _accuracy New value for member accuracy
              */
             eProsima_user_DllExport void accuracy(
-                    int32_t _accuracy);
+                    pcpd_msgs::msg::Hololens2JointPoseAccuracy _accuracy);
 
             /*!
              * @brief This function returns the value of member accuracy
              * @return Value of member accuracy
              */
-            eProsima_user_DllExport int32_t accuracy() const;
+            eProsima_user_DllExport pcpd_msgs::msg::Hololens2JointPoseAccuracy accuracy() const;
 
             /*!
              * @brief This function returns a reference to member accuracy
              * @return Reference to member accuracy
              */
-            eProsima_user_DllExport int32_t& accuracy();
+            eProsima_user_DllExport pcpd_msgs::msg::Hololens2JointPoseAccuracy& accuracy();
 
 
             /*!
@@ -234,7 +243,7 @@ namespace pcpd_msgs {
              * @return Serialized size.
              */
             eProsima_user_DllExport static size_t getCdrSerializedSize(
-                    const pcpd_msgs::msg::HandJointPose& data,
+                    const pcpd_msgs::msg::Hololens2HandJointPose& data,
                     size_t current_alignment = 0);
 
 
@@ -280,7 +289,7 @@ namespace pcpd_msgs {
             geometry_msgs::msg::Quaternion m_orientation;
             geometry_msgs::msg::Vector3 m_position;
             float m_radius;
-            int32_t m_accuracy;
+            pcpd_msgs::msg::Hololens2JointPoseAccuracy m_accuracy;
 
         };
         /*!
@@ -498,51 +507,51 @@ namespace pcpd_msgs {
              * @param _left_poses New value to be copied in member left_poses
              */
             eProsima_user_DllExport void left_poses(
-                    const std::vector<pcpd_msgs::msg::HandJointPose>& _left_poses);
+                    const std::vector<pcpd_msgs::msg::Hololens2HandJointPose>& _left_poses);
 
             /*!
              * @brief This function moves the value in member left_poses
              * @param _left_poses New value to be moved in member left_poses
              */
             eProsima_user_DllExport void left_poses(
-                    std::vector<pcpd_msgs::msg::HandJointPose>&& _left_poses);
+                    std::vector<pcpd_msgs::msg::Hololens2HandJointPose>&& _left_poses);
 
             /*!
              * @brief This function returns a constant reference to member left_poses
              * @return Constant reference to member left_poses
              */
-            eProsima_user_DllExport const std::vector<pcpd_msgs::msg::HandJointPose>& left_poses() const;
+            eProsima_user_DllExport const std::vector<pcpd_msgs::msg::Hololens2HandJointPose>& left_poses() const;
 
             /*!
              * @brief This function returns a reference to member left_poses
              * @return Reference to member left_poses
              */
-            eProsima_user_DllExport std::vector<pcpd_msgs::msg::HandJointPose>& left_poses();
+            eProsima_user_DllExport std::vector<pcpd_msgs::msg::Hololens2HandJointPose>& left_poses();
             /*!
              * @brief This function copies the value in member right_poses
              * @param _right_poses New value to be copied in member right_poses
              */
             eProsima_user_DllExport void right_poses(
-                    const std::vector<pcpd_msgs::msg::HandJointPose>& _right_poses);
+                    const std::vector<pcpd_msgs::msg::Hololens2HandJointPose>& _right_poses);
 
             /*!
              * @brief This function moves the value in member right_poses
              * @param _right_poses New value to be moved in member right_poses
              */
             eProsima_user_DllExport void right_poses(
-                    std::vector<pcpd_msgs::msg::HandJointPose>&& _right_poses);
+                    std::vector<pcpd_msgs::msg::Hololens2HandJointPose>&& _right_poses);
 
             /*!
              * @brief This function returns a constant reference to member right_poses
              * @return Constant reference to member right_poses
              */
-            eProsima_user_DllExport const std::vector<pcpd_msgs::msg::HandJointPose>& right_poses() const;
+            eProsima_user_DllExport const std::vector<pcpd_msgs::msg::Hololens2HandJointPose>& right_poses() const;
 
             /*!
              * @brief This function returns a reference to member right_poses
              * @return Reference to member right_poses
              */
-            eProsima_user_DllExport std::vector<pcpd_msgs::msg::HandJointPose>& right_poses();
+            eProsima_user_DllExport std::vector<pcpd_msgs::msg::Hololens2HandJointPose>& right_poses();
             /*!
              * @brief This function sets a value in member valid
              * @param _valid New value for member valid
@@ -628,8 +637,8 @@ namespace pcpd_msgs {
             geometry_msgs::msg::Vector3 m_head_up;
             geometry_msgs::msg::Vector3 m_gaze_origin;
             geometry_msgs::msg::Vector3 m_gaze_direction;
-            std::vector<pcpd_msgs::msg::HandJointPose> m_left_poses;
-            std::vector<pcpd_msgs::msg::HandJointPose> m_right_poses;
+            std::vector<pcpd_msgs::msg::Hololens2HandJointPose> m_left_poses;
+            std::vector<pcpd_msgs::msg::Hololens2HandJointPose> m_right_poses;
             uint8_t m_valid;
 
         };

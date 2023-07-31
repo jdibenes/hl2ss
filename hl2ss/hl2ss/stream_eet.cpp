@@ -15,10 +15,8 @@
 
 #include "hl2ss_network.h"
 
-#define FASTCDR_STATIC_LINK
-#include "fastcdr/Cdr.h"
-
 #include "pcpd_msgs/msg/Hololens2EyeTracking.h"
+#include "pcpd_msgs/msg/Hololens2Sensors.h"
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Foundation::Numerics;
@@ -63,6 +61,7 @@ struct EET_Packet
 
 static HANDLE g_event_quit = NULL;
 static HANDLE g_thread = NULL;
+
 static EET_Context* g_zenoh_context = NULL;
 
 //-----------------------------------------------------------------------------
@@ -81,7 +80,10 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     std::string keyexpr = "hl2/sensor/eet/" + client_id;
     ShowMessage("EET: publish on: %s", keyexpr.c_str());
 
-    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), NULL);
+    z_publisher_options_t publisher_options = z_publisher_options_default();
+    publisher_options.priority = Z_PRIORITY_REAL_TIME;
+
+    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
         ShowMessage("EET: Error creating publisher");
@@ -125,6 +127,29 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
 
     eprosima::fastcdr::FastBuffer buffer{};
     eprosima::fastcdr::Cdr buffer_cdr(buffer);
+
+    {
+        pcpd_msgs::msg::Hololens2StreamDescriptor value{};
+
+        value.stream_topic("hl2/sensor/eet/" + g_zenoh_context->client_id);
+        value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::EYE_TRACKING);
+        value.frame_rate(fps);
+
+        buffer_cdr.reset();
+        value.serialize(buffer_cdr);
+
+        // put message to zenoh
+        std::string keyexpr1 = "hl2/cfg/eet/" + g_zenoh_context->client_id;
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            ShowMessage("EET: Error putting info");
+        }
+        else {
+            ShowMessage("EET: put info");
+        }
+    }
 
     do
     {
@@ -268,7 +293,7 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 
     EET_Stream(locator, utc_offset);
 
-    ShowMessage("EET: published done");
+    ShowMessage("EET: publisher done");
 
     return 0;
 }
@@ -301,6 +326,7 @@ void EET_Cleanup()
 
     g_thread = NULL;
     g_event_quit = NULL;
+
     free(g_zenoh_context);
     g_zenoh_context = NULL;
 }

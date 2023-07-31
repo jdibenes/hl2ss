@@ -1,5 +1,5 @@
-#ifndef PCPD_RPC_HL2REMOTECONTROL
-#define PCPD_RPC_HL2REMOTECONTROL
+#ifndef PCPD_RPC_HL2SPATIALMAPPING
+#define PCPD_RPC_HL2SPATIALMAPPING
 
 #include "pcpd_msgs/rpc/Types.idl"
 #include "geometry_msgs/msg/Vector3.idl"
@@ -8,20 +8,11 @@
 module pcpd_msgs {
   module rpc {
 
-    typedef uint8 uint8__8[8];
-
     enum HL2SpatialMapping_VolumeType {
       SM_VT_BOX,
       SM_VT_FRUSTUM,
       SM_VT_ORIENTED_BOX,
       SM_VT_SPHERE
-    };
-
-    struct HL2SpatialMapping_Guid {
-      uint32 Data1;
-      uint16 Data2;
-      uint16 Data3;
-      uint8__8 Data4;
     };
 
     struct HL2SpatialMapping_Plane {
@@ -30,7 +21,7 @@ module pcpd_msgs {
     };
 
     struct HL2SpatialMapping_SurfaceInfo {
-      HL2SpatialMapping_Guid id;
+      HL2Guid id;
       int64 update_time;
     };
 
@@ -60,7 +51,7 @@ module pcpd_msgs {
     };
 
     struct HL2SpatialMapping_MeshDescription {
-      HL2SpatialMapping_Guid id;
+      HL2Guid id;
       double maxtpcm;
       uint32 vertex_format;
       uint32 triangle_format;
@@ -95,22 +86,22 @@ module pcpd_msgs {
         HL2SpatialMapping_Sphere sphere;
     };
 
-    struct HL2RCRequest_SetVolumes {
+    struct HL2SMRequest_SetVolumes {
       sequence<HL2SpatialMapping_Volume> volumes;
     };
 
-    struct HL2RCResponse_GetObservedSurfaces {
+    struct HL2SMResponse_GetObservedSurfaces {
       sequence<HL2SpatialMapping_SurfaceInfo> surfaces;
       RPCResponseStatus status;
     };
 
 
-    struct HL2RCRequest_GetMeshes {
+    struct HL2SMRequest_GetMeshes {
       uint32 max_tasks;
       sequence<HL2SpatialMapping_MeshDescription> description;
     };
 
-    struct HL2RCResponse_GetMeshes {
+    struct HL2SMResponse_GetMeshes {
       sequence<HL2SpatialMapping_MeshInfo> meshes;
       RPCResponseStatus status;
     };

@@ -131,6 +131,7 @@ namespace pcpd_msgs {
         {
             PERSONAL_VIDEO,
             EYE_TRACKING,
+            HAND_TRACKING,
             MICROPHONE,
             RM_LEFT_FRONT,
             RM_LEFT_LEFT,

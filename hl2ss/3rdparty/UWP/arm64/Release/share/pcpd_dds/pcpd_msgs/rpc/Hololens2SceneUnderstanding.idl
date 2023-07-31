@@ -1,0 +1,119 @@
+#ifndef PCPD_RPC_HL2SCENEUNDERSTANDING
+#define PCPD_RPC_HL2SCENEUNDERSTANDING
+
+#include "pcpd_msgs/rpc/Types.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "geometry_msgs/msg/Quaternion.idl"
+
+module pcpd_msgs {
+  module rpc {
+
+    typedef float float__16[16];
+    typedef float float__2[2];
+
+    enum HL2SUSceneUnderstanding_SceneMeshLevelOfDetail {
+      SMLOD_Coarse,
+      SMLOD_Medium,
+      SMLOD_Fine,
+      SMLOD_Unlimited
+    };
+
+    enum HL2SUSceneUnderstanding_Status {
+      SUS_OK,
+      SUS_Failed,
+      SUS_ObjectDisposed,
+      SUS_OutOfMemory,
+      SUS_InvalidArgument,
+      SUS_OutOfRange,
+      SUS_NotImplemented,
+      SUS_KeyNotFound
+    };
+
+    enum HL2SUSceneUnderstanding_SceneObjectKind {
+      SKO_Background,
+      SKO_Wall,
+      SKO_Floor,
+      SKO_Ceiling,
+      SKO_Platform,
+      SKO_Unknown,
+      SKO_World,
+      SKO_CompletelyInferred
+    };
+
+    enum HL2SUSceneUnderstanding_SceneQuadAlignment {
+      SQA_NonOrthogonal,
+      SQA_Horizontal,
+      SQA_Vertical
+    };
+
+    struct HL2SUSceneUnderstanding_Mesh {
+      uint32 vertex_fields;
+      uint32 count_vertices;
+      uint32 count_triangle_indices;
+
+      sequence<uint32> vertices;
+      sequence<uint32> triangle_indices;
+    };
+
+    struct HL2SUSceneUnderstanding_SceneQuerySettings {
+      boolean enable_scene_object_quads;
+      boolean enable_scene_object_meshes;
+      boolean enable_only_observed_scene_objects;
+      boolean enable_world_mesh;
+      HL2SUSceneUnderstanding_SceneMeshLevelOfDetail requested_mesh_level_of_detail;
+    };
+
+    struct HL2SUSceneUnderstanding_SceneUnderstandingResult {
+      HL2SUSceneUnderstanding_Status status;
+
+      float__16 extrinsics;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+
+    struct HL2SUSceneUnderstanding_SpatialQueryResult {
+      HL2Guid item_id;
+      HL2SUSceneUnderstanding_SceneObjectKind item_kind;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+
+      float__16 location_matrix;
+
+      HL2SUSceneUnderstanding_SceneQuadAlignment item_alignment;
+      float__2 item_extents;
+
+      sequence<HL2SUSceneUnderstanding_Mesh> meshes;
+      sequence<HL2SUSceneUnderstanding_Mesh> collider_meshes;
+
+    };
+
+    struct HL2SURequest_SpatialQuery {
+      HL2SUSceneUnderstanding_SceneQuerySettings sqs;
+
+      float query_radius;
+      boolean use_previous;
+      uint8 kind_flags;
+      boolean get_orientation;
+      boolean get_position;
+      boolean get_location_matrix;
+      boolean get_quad;
+      boolean get_meshes;
+      boolean get_collider_meshes;
+      sequence<HL2Guid> guids;
+    };
+
+    struct HL2SUResponse_SpatialQuery {
+      HL2SUSceneUnderstanding_SceneUnderstandingResult result;
+      sequence<HL2SUSceneUnderstanding_SpatialQueryResult> items;
+      RPCResponseStatus status;
+    };
+
+
+
+  };
+};
+
+#endif

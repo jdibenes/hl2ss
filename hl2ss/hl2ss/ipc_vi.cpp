@@ -4,10 +4,19 @@
 #include "voice_input.h"
 #include "log.h"
 
+#define URI_STATIC_BUILD
+#include "uriparser/Uri.h"
+
 #include "hl2ss_network.h"
 
-#define FASTCDR_STATIC_LINK
-#include "fastcdr/Cdr.h"
+#include "pcpd_msgs/rpc/Hololens2VoiceInput.h"
+
+struct VI_Context {
+    std::string client_id;
+    z_session_t session;
+    bool valid{ false };
+};
+
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -17,215 +26,256 @@ HANDLE g_thread = NULL;
 HANDLE g_event_quit = NULL;
 HANDLE g_event_client = NULL;
 
+static VI_Context* g_zenoh_context = NULL;
+
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
-// OK
-static void VI_TransferError()
-{
-    SetEvent(g_event_client);
-}
 
 // OK
-static void VI_MSG_CreateRecognizer(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_CreateRecognizer();
-}
+struct VI_CreateRecognizer {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        VoiceInput_CreateRecognizer();
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void VI_MSG_RegisterCommands(SOCKET clientsocket)
-{
-    uint8_t clear;
-    uint8_t count;
-    std::vector<winrt::hstring> commands;
-    std::vector<uint8_t> buffer;
-    uint16_t stlen;
-    uint8_t result;
-    WSABUF wsaBuf;
-    bool ok;
+struct VI_RegisterCommands {
+    using RequestT = pcpd_msgs::rpc::HL2VIRequest_RegisterCommands;
+    using ResponseT = pcpd_msgs::rpc::UInt8Reply;
 
-    ok = recv_u8(clientsocket, clear);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
-    ok = recv_u8(clientsocket, count);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
+    bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
 
-    for (int i = 0; i < count; ++i)
-    {
-    ok = recv_u16(clientsocket, stlen);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
-    if (stlen <= 0) { continue; }
+        uint8_t clear = request.clear();
+        std::vector<winrt::hstring> commands;
+        uint8_t result;
 
-    buffer.resize(stlen);
+        for (auto& v : request.commands())
+        {
+            // convert to wchar
+            size_t size = v.size() + 1;
+            wchar_t* cmd = new wchar_t[size]; // release
 
-    ok = recv(clientsocket, (char*)buffer.data(), (int)stlen);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
-    
-    commands.push_back(winrt::hstring((wchar_t*)buffer.data(), stlen / sizeof(wchar_t)));
-    }
+            size_t outSize;
+            mbstowcs_s(&outSize, cmd, size, v.c_str(), size - 1);
 
-    result = VoiceInput_RegisterCommands(commands, clear != 0);
+            commands.push_back(winrt::hstring(cmd, static_cast<winrt::hstring::size_type>(size)));
 
-    wsaBuf.buf = (char*)&result;
-    wsaBuf.len = sizeof(result);
-    
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
+            free(cmd);
+        }
+
+        result = VoiceInput_RegisterCommands(commands, clear != 0);
+        response.value(result);
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
     }
-}
+};
 
 // OK
-static void VI_MSG_Start(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_Start();
-}
+struct VI_Start {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        VoiceInput_Start();
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void VI_MSG_Pop(SOCKET clientsocket)
-{
-    uint32_t count;
-    VoiceInput_Result result;
-    WSABUF wsaBuf;
-    bool ok;
+struct VI_Pop {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::HL2VIResponse_VoiceInput_Pop;
 
-    count = (uint32_t)VoiceInput_GetCount();
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
 
-    wsaBuf.buf = (char*)&count;
-    wsaBuf.len = sizeof(count);
+        uint32_t count;
+        VoiceInput_Result result;
 
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
+        count = (uint32_t)VoiceInput_GetCount();
+
+        std::vector<pcpd_msgs::rpc::HL2VIVoiceInput_Result> virs(count);
+
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            auto& t = virs.at(i);
+            result = VoiceInput_Pop();
+            t.index(result.Index);
+            t.confidence(result.Confidence);
+            t.phrase_duration(result.PhraseDuration);
+            t.phrase_start_time(result.PhraseStartTime);
+            t.raw_confidence(result.RawConfidence);
+        }
+        response.results(std::move(virs));
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
     }
+};
 
-    wsaBuf.buf = (char*)&result;
-    wsaBuf.len = sizeof(result);
-
-    for (uint32_t i = 0; i < count; ++i)
-    {
-    result = VoiceInput_Pop();
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
-    }
-}
 
 // OK
-static void VI_MSG_Clear(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_Clear();
-}
+struct VI_Clear {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        VoiceInput_Clear();
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
 // OK
-static void VI_MSG_Stop(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_Stop();
-}
+struct VI_Stop {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
 
-// OK
-static void VI_Dispatch(SOCKET clientsocket)
-{
-    uint8_t state;
-    bool ok;
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        VoiceInput_Stop();
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
 
-    ok = recv_u8(clientsocket, state);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
+
+
+
+void VI_QueryHandler(const z_query_t* query, void* context) {
+    z_owned_str_t keystr = z_keyexpr_to_string(z_query_keyexpr(query));
+    z_bytes_t pred = z_query_parameters(query);
+    z_value_t payload_value = z_query_value(query);
+
+    std::map<std::string, std::string> arguments;
+
+    // parse query parameters
+    UriQueryListA* queryList = NULL;
+    int itemCount = 0;
+    const int res = uriDissectQueryMallocA(&queryList, &itemCount,
+        reinterpret_cast<const char*>(pred.start), reinterpret_cast<const char*>(pred.start + pred.len));
+    if (res == URI_SUCCESS) {
+        UriQueryListA* current = queryList;
+        while (current != nullptr) {
+            if (current->key != nullptr && current->value != nullptr) {
+                arguments.insert(std::pair(current->key, current->value));
+                ShowMessage("Received argument: %s -> %s", current->key, current->value);
+            }
+            current = current->next;
+        }
+    }
+    uriFreeQueryListA(queryList);
+
+    eprosima::fastcdr::FastBuffer result_buffer{};
+    std::size_t result_bytes{0};
+    bool call_success{ false };
+
+    if (arguments.find("cmd") != arguments.end()) {
+        auto cmd = arguments.extract("cmd");
+
+        if (cmd.mapped() == "CreateRecognizer") {
+            call_success = forward_rpc_call(VI_CreateRecognizer{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+        }
+        if (cmd.mapped() == "RegisterCommands") {
+            call_success = forward_rpc_call(VI_RegisterCommands{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+        }
+        else if (cmd.mapped() == "Start") {
+            call_success = forward_rpc_call(VI_Start{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+        }
+        else if (cmd.mapped() == "Pop") {
+            call_success = forward_rpc_call(VI_Pop{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+        }
+        else if (cmd.mapped() == "Clear") {
+            call_success = forward_rpc_call(VI_Clear{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+        }
+        else if (cmd.mapped() == "Stop") {
+            call_success = forward_rpc_call(VI_Stop{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+        }
+        else {
+            call_success = false;
+        }
     }
 
-    switch (state)
-    {
-    case 0x00: VI_MSG_CreateRecognizer(clientsocket); break;
-    case 0x01: VI_MSG_RegisterCommands(clientsocket); break;
-    case 0x02: VI_MSG_Start(clientsocket);            break;
-    case 0x03: VI_MSG_Pop(clientsocket);              break;
-    case 0x04: VI_MSG_Clear(clientsocket);            break;
-    case 0x05: VI_MSG_Stop(clientsocket);             break;
-    default:
-        VI_TransferError();
-        return;
+    if (!call_success) {
+        if (payload_value.payload.len > 0) {
+            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s' with value '%.*s'\n", z_loan(keystr), (int)pred.len,
+                pred.start, (int)payload_value.payload.len, payload_value.payload.start);
+        }
+        else {
+            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s'\n", z_loan(keystr), (int)pred.len, pred.start);
+        }
     }
+
+    z_query_reply_options_t options = z_query_reply_options_default();
+    options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+    z_query_reply(query, z_keyexpr((const char*)context), (const uint8_t*)result_buffer.getBuffer(), result_bytes, &options);
+    z_drop(z_move(keystr));
 }
 
-// OK
-static void VI_Translate(SOCKET clientsocket)
-{
-    ResetEvent(g_event_client);
-    do { VI_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
-    if (!VoiceInput_IsRunning()) { return; }
-    VoiceInput_Stop();
-    VoiceInput_Clear();
-}
+
 
 // OK
 static DWORD WINAPI VI_EntryPoint(void *param)
 {
+
+    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+        ShowMessage("VI: Invalid Zenoh Context");
+        return 1;
+    }
+
     (void)param;
 
-    SOCKET listensocket; // closesocket
-    SOCKET clientsocket; // closesocket
+    std::string keyexpr_str = "hl2/rpc/vi/" + g_zenoh_context->client_id;
+    ShowMessage("VI: endpoint: %s", keyexpr_str.c_str());
 
-    listensocket = CreateSocket(PORT_NAME_VI);
+    z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
+    if (!z_check(keyexpr)) {
+        ShowMessage("VI: %s is not a valid key expression", keyexpr_str.c_str());
+        return 1;
+    }
+    const char* expr = keyexpr_str.c_str();
 
-    ShowMessage("VI: Listening at port %s", PORT_NAME_VI);
+    // zclosure macro does not work with c++17
+    z_owned_closure_query_t callback{};
+    callback.call = VI_QueryHandler;
+    callback.context = const_cast<void*>(static_cast<const void*>(expr));
+    callback.drop = nullptr;
+
+    z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
+    if (!z_check(qable)) {
+        ShowMessage("VI: Unable to create queryable.");
+        return 1;
+    }
 
     do
     {
-    ShowMessage("VI: Waiting for client");
+        // heartbeat occassionally ??   
+    } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
 
-    clientsocket = accept(listensocket, NULL, NULL); // block
-    if (clientsocket == INVALID_SOCKET) { break; }
-
-    ShowMessage("VI: Client connected");
-
-    VI_Translate(clientsocket);
-
-    closesocket(clientsocket);
-
-    ShowMessage("VI: Client disconnected");
+    if (VoiceInput_IsRunning()) { 
+        VoiceInput_Stop();
+        VoiceInput_Clear();
     }
-    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
-    closesocket(listensocket);
-
+    z_undeclare_queryable(z_move(qable));
     ShowMessage("VI: Closed");
 
     return 0;
 }
 
 // OK
-void VI_Initialize(const char* /*client_id*/, z_session_t /*session*/)
+void VI_Initialize(const char* client_id, z_session_t session)
 {
+    g_zenoh_context = new VI_Context(); // release
+    g_zenoh_context->client_id = std::string(client_id);
+    g_zenoh_context->session = session;
+    g_zenoh_context->valid = true;
+
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, VI_EntryPoint, NULL, 0, NULL);
@@ -244,4 +294,7 @@ void VI_Cleanup()
     CloseHandle(g_thread);
     CloseHandle(g_event_client);
     CloseHandle(g_event_quit);
+
+    free(g_zenoh_context);
+    g_zenoh_context = NULL;
 }

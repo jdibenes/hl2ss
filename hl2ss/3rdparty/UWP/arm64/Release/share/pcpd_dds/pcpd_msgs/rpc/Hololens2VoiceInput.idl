@@ -1,0 +1,32 @@
+#ifndef PCPD_RPC_HL2VOICEINPUT
+#define PCPD_RPC_HL2VOICEINPUT
+
+#include "pcpd_msgs/rpc/Types.idl"
+
+module pcpd_msgs {
+  module rpc {
+
+    struct HL2VIVoiceInput_Result {
+      uint32 index;
+      uint32 confidence;
+      uint64 phrase_duration;
+      uint64 phrase_start_time;
+      double raw_confidence;
+    };
+
+    struct HL2VIRequest_RegisterCommands {
+      boolean clear;
+      sequence<string> commands;
+    };
+
+    struct HL2VIResponse_VoiceInput_Pop {
+      sequence<HL2VIVoiceInput_Result> results;
+      RPCResponseStatus status;
+    };
+
+
+
+  };
+};
+
+#endif

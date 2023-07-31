@@ -107,10 +107,10 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 	
 		// all vlc cams on ..
 		rm_config.enable_location = true;
-		rm_config.enable_left_front = false;
-		rm_config.enable_left_left = false;
-		rm_config.enable_right_front = false;
-		rm_config.enable_right_right = false;
+		rm_config.enable_left_front = true;
+		rm_config.enable_left_left = true;
+		rm_config.enable_right_front = true;
+		rm_config.enable_right_right = true;
 		rm_config.vlc_format.width = 640;
 		rm_config.vlc_format.height = 480;
 		rm_config.vlc_format.framerate = 30;
@@ -130,19 +130,19 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		// start selected services..
 
 		// Research Mode Streaming
-		//RM_Initialize(client_id, z_loan(zs), rm_config);
+		RM_Initialize(client_id, z_loan(zs), rm_config);
 
 		// Microphone streaming
-		//MC_Initialize(client_id, z_loan(zs), mic_format);
+		MC_Initialize(client_id, z_loan(zs), mic_format);
 
 		// Front Video streaming
 		PV_Initialize(client_id, z_loan(zs), pv_enable_location, pv_format);
 		
-		//SI_Initialize(client_id, z_loan(zs));
+		SI_Initialize(client_id, z_loan(zs));
 		RC_Initialize(client_id, z_loan(zs));
-		//SM_Initialize(client_id, z_loan(zs));
-		//SU_Initialize(client_id, z_loan(zs));
-		//VI_Initialize(client_id, z_loan(zs));
+		SM_Initialize(client_id, z_loan(zs));
+		SU_Initialize(client_id, z_loan(zs));
+		VI_Initialize(client_id, z_loan(zs));
 
 		EET_Initialize(client_id, z_loan(zs), eye_fps);
 

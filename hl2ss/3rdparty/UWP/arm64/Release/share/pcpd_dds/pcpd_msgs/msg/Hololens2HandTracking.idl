@@ -9,12 +9,16 @@
 module pcpd_msgs {
   module msg {
 
+    enum Hololens2JointPoseAccuracy {
+      High,
+      Approximate
+    };
 
-    struct HandJointPose {
+    struct Hololens2HandJointPose {
       geometry_msgs::msg::Quaternion orientation;
       geometry_msgs::msg::Vector3 position;
       float radius;
-      int32 accuracy;
+      Hololens2JointPoseAccuracy accuracy;
     };
 
     struct Hololens2HandTracking {
@@ -28,8 +32,8 @@ module pcpd_msgs {
       geometry_msgs::msg::Vector3 gaze_origin;
       geometry_msgs::msg::Vector3 gaze_direction;
       
-      sequence<HandJointPose> left_poses;
-      sequence<HandJointPose> right_poses;
+      sequence<Hololens2HandJointPose> left_poses;
+      sequence<Hololens2HandJointPose> right_poses;
 
       uint8 valid;
 

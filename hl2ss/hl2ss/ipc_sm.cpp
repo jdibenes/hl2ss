@@ -54,7 +54,7 @@ struct SM_CreateObserver {
 
 // OK
 struct SM_SetVolumes {
-    using RequestT = pcpd_msgs::rpc::HL2RCRequest_SetVolumes;
+    using RequestT = pcpd_msgs::rpc::HL2SMRequest_SetVolumes;
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
@@ -165,7 +165,7 @@ struct SM_SetVolumes {
 // OK
 struct SM_GetObservedSurfaces {
     using RequestT = pcpd_msgs::rpc::NullRequest;
-    using ResponseT = pcpd_msgs::rpc::HL2RCResponse_GetObservedSurfaces;
+    using ResponseT = pcpd_msgs::rpc::HL2SMResponse_GetObservedSurfaces;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
 
@@ -193,8 +193,8 @@ struct SM_GetObservedSurfaces {
 
 // OK
 struct SM_GetMeshes {
-    using RequestT = pcpd_msgs::rpc::HL2RCRequest_GetMeshes;
-    using ResponseT = pcpd_msgs::rpc::HL2RCResponse_GetMeshes;
+    using RequestT = pcpd_msgs::rpc::HL2SMRequest_GetMeshes;
+    using ResponseT = pcpd_msgs::rpc::HL2SMResponse_GetMeshes;
 
     bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
 
@@ -276,6 +276,7 @@ struct SM_GetMeshes {
             t.bounds().orientation().z(static_cast<double>(s.bounds.Orientation.z));
             t.bounds().orientation().w(static_cast<double>(s.bounds.Orientation.w ));
 
+            // copying buffers .. can it be avoided ??
             std::vector<uint8_t> vpd;
             vpd.assign(s.vpd, s.vpd + s.vpl);
             t.vpd(std::move(vpd));
@@ -293,6 +294,23 @@ struct SM_GetMeshes {
 
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
         return true;
+    }
+};
+
+
+template<>
+struct RpcRequestArgs<pcpd_msgs::rpc::HL2SMRequest_SetVolumes> {
+    bool parse(const std::map<std::string, std::string>& /*args*/, pcpd_msgs::rpc::HL2SMRequest_SetVolumes& /*request*/) {
+        ShowMessage("SM: SetVolumes without payload is not suported.");
+        return false;
+    }
+};
+
+template<>
+struct RpcRequestArgs<pcpd_msgs::rpc::HL2SMRequest_GetMeshes> {
+    bool parse(const std::map<std::string, std::string>& /*args*/, pcpd_msgs::rpc::HL2SMRequest_GetMeshes& /*request*/) {
+        ShowMessage("SM: GetMeshes without payload is not suported.");
+        return false;
     }
 };
 
@@ -396,7 +414,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
 
     z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
-        ShowMessage("RC: Unable to create queryable.");
+        ShowMessage("SM: Unable to create queryable.");
         return 1;
     }
 

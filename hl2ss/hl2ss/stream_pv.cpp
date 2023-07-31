@@ -119,7 +119,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
         pcpd_msgs::msg::Hololens2StreamDescriptor desc{};
 
-        desc.stream_topic("hl2/sensor/vid/pv/" + g_zenoh_context->client_id);
+        desc.stream_topic("hl2/sensor/pv/" + g_zenoh_context->client_id);
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::PERSONAL_VIDEO);
         desc.frame_rate(g_zenoh_context->format.framerate);
         desc.image_width(pj.width);
@@ -183,7 +183,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
         // put message to zenoh
         {
-            std::string keyexpr1 = "hl2/cfg/vid/pv/" + g_zenoh_context->client_id;
+            std::string keyexpr1 = "hl2/cfg/pv/" + g_zenoh_context->client_id;
             z_put_options_t options1 = z_put_options_default();
             options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
             int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -341,10 +341,13 @@ void PV_Stream(HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& f
         return;
     }
 
-    std::string keyexpr = "hl2/sensor/vid/pv/" + g_zenoh_context->client_id;
+    std::string keyexpr = "hl2/sensor/pv/" + g_zenoh_context->client_id;
     ShowMessage("PV: publish on: %s", keyexpr.c_str());
 
-    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), NULL);
+    z_publisher_options_t publisher_options = z_publisher_options_default();
+    publisher_options.priority = Z_PRIORITY_REAL_TIME;
+
+    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
         ShowMessage("PV: Error creating publisher");
