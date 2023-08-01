@@ -145,6 +145,41 @@ struct VI_Stop {
 };
 
 
+std::vector < std::string > split_string(std::string str, char separator) {
+    std::vector < std::string > strings;
+    int startIndex = 0, endIndex = 0;
+    for (int i = 0; i <= str.size(); i++) {
+
+        // If we reached the end of the word or the end of the input.
+        if (str[i] == separator || i == str.size()) {
+            endIndex = i;
+            std::string temp;
+            temp.append(str, startIndex, endIndex - startIndex);
+            strings.push_back(temp);
+            startIndex = endIndex + 1;
+        }
+    }
+    return strings;
+}
+
+template<>
+struct RpcRequestArgs<pcpd_msgs::rpc::HL2VIRequest_RegisterCommands> {
+    bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::HL2VIRequest_RegisterCommands& request) {
+        try {
+            request.clear(args_extract<bool, false>(args, "clear"));
+
+            if (args.find("commands") != args.end()) {
+                request.commands(split_string(args.at("commands"), '|'));
+            }
+        }
+        catch (const std::invalid_argument& e) {
+            ShowMessage("RC: invalid argument: %s", e.what());
+            return false;
+        }
+
+        return true;
+    }
+};
 
 
 void VI_QueryHandler(const z_query_t* query, void* context) {
@@ -202,12 +237,13 @@ void VI_QueryHandler(const z_query_t* query, void* context) {
     }
 
     if (!call_success) {
+        std::string pred_str((const char*)pred.start, pred.len);
         if (payload_value.payload.len > 0) {
-            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s' with value '%.*s'\n", z_loan(keystr), (int)pred.len,
-                pred.start, (int)payload_value.payload.len, payload_value.payload.start);
+            SPDLOG_WARN("[Queryable ] Received unhandled Query '{0}?{1}' with payload length '{2}'",
+                z_loan(keystr), pred_str, (int)payload_value.payload.len);
         }
         else {
-            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s'\n", z_loan(keystr), (int)pred.len, pred.start);
+            SPDLOG_WARN(">> [Queryable ] Received unhandled Query '{0}?{1}'", z_loan(keystr), pred_str);
         }
     }
 

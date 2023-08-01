@@ -376,7 +376,7 @@ void SU_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                ShowMessage("Received argument: %s -> %s", current->key, current->value);
+                ShowMessage("Received argument: {0} -> {1}", current->key, current->value);
             }
             current = current->next;
         }
@@ -390,12 +390,13 @@ void SU_QueryHandler(const z_query_t* query, void* context) {
     call_success = forward_rpc_call(SU_SpatialQuery{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
 
     if (!call_success) {
+        std::string pred_str((const char*)pred.start, pred.len);
         if (payload_value.payload.len > 0) {
-            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s' with value '%.*s'\n", z_loan(keystr), (int)pred.len,
-                pred.start, (int)payload_value.payload.len, payload_value.payload.start);
+            SPDLOG_WARN("[Queryable ] Received unhandled Query '{0}?{1}' with payload length '{2}'",
+                z_loan(keystr), pred_str, (int)payload_value.payload.len);
         }
         else {
-            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s'\n", z_loan(keystr), (int)pred.len, pred.start);
+            SPDLOG_WARN(">> [Queryable ] Received unhandled Query '{0}?{1}'", z_loan(keystr), pred_str);
         }
     }
 

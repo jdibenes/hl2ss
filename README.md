@@ -1,6 +1,6 @@
 # Hololens 2 Communication and Streaming Module
 
-Fork of HL2SS
+Fork of HL2SS with Zenoh Communication backend
 
 Installation notes:
 
@@ -25,6 +25,48 @@ Notes:
 
 - capnproto c/c++ cannot be compiled for windows uwp (missing '\_pipe' and others)
 
+
+
+VS Project Settings:
+
+- Include Dirs:
+  ```
+  $(SolutionDir)3rdparty\UWP\arm64\Release\include
+  $(SolutionDir)3rdparty\zenoh-c\include
+  ```
+- C/C++ Standard:
+  ```
+  ISO C++17
+  ISO C17 or Legacy ??
+  ```
+- Libraries:
+  ```
+  mfuuid.lib
+  $(SolutionDir)3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib
+  $(SolutionDir)3rdparty\UWP\arm64\Release\lib\zstd_static.lib
+  $(SolutionDir)3rdparty\UWP\arm64\Release\lib\zdepth.lib
+  $(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib
+  $(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib
+  $(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib
+  $(SolutionDir)3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib
+  $(SolutionDir)3rdparty\UWP\arm64\Release\lib\uriparser.lib
+  $(SolutionDir)/3rdparty\UWP\arm64\Release\lib\fmt.lib
+  $(SolutionDir)/3rdparty\UWP\arm64\Release\lib\spdlog.lib
+  ws2_32.lib
+  crypt32.lib
+  secur32.lib
+  bcrypt.lib
+  ncrypt.lib
+  userenv.lib
+  ntdll.lib
+  iphlpapi.lib
+  runtimeobject.lib
+  ```
+
+
+
+
+---------------------- Original Readme from HL2SS --------
 
 
 # HoloLens 2 Sensor Streaming

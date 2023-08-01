@@ -40,6 +40,20 @@ void GetLocalIPv4Address(std::vector<wchar_t> &address)
     }
 }
 
+void GetLocalHostname(std::vector<wchar_t>& name)
+{
+    for (auto hostname : NetworkInformation::GetHostNames())
+    {
+        if (hostname.Type() == HostNameType::DomainName)
+        {
+            wchar_t const* str = hostname.ToString().c_str();
+            name.resize(wcslen(str) + 1);
+            wcscpy_s(name.data(), name.size(), str);
+            return;
+        }
+    }
+}
+
 // OK
 void PrintSystemInfo()
 {

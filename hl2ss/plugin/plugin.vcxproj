@@ -216,13 +216,14 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>Default</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)hl2ss\Generated Files;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)hl2ss\Generated Files;$(SolutionDir)3rdparty\UWP\arm64\Release\include;$(SolutionDir)3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>SPDLOG_FMT_EXTERNAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <AdditionalDependencies>mfuuid.lib;Microsoft.MixedReality.SceneUnderstanding.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mfuuid.lib;Microsoft.MixedReality.SceneUnderstanding.lib;$(SolutionDir)3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\zstd_static.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\uriparser.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\fmt.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\spdlog.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\ARM64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -265,6 +266,7 @@
     <ClCompile Include="..\hl2ss\locator.cpp" />
     <ClCompile Include="..\hl2ss\lock.cpp" />
     <ClCompile Include="..\hl2ss\log.cpp" />
+    <ClCompile Include="..\hl2ss\manager.cpp" />
     <ClCompile Include="..\hl2ss\microphone_capture.cpp" />
     <ClCompile Include="..\hl2ss\neon.cpp" />
     <ClCompile Include="..\hl2ss\nfo.cpp" />
@@ -330,8 +332,15 @@
     <ClInclude Include="..\hl2ss\voice_input.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="hl2ss.h" />
+    <ClInclude Include="PlatformBase.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="ipc.h" />
+    <ClInclude Include="Unity\IUnityGraphics.h" />
+    <ClInclude Include="Unity\IUnityGraphicsD3D11.h" />
+    <ClInclude Include="Unity\IUnityGraphicsD3D12.h" />
+    <ClInclude Include="Unity\IUnityGraphicsMetal.h" />
+    <ClInclude Include="Unity\IUnityGraphicsVulkan.h" />
+    <ClInclude Include="Unity\IUnityInterface.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\runtimes\win10-arm64\native\Microsoft.MixedReality.SceneUnderstanding.dll" />

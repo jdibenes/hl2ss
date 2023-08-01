@@ -6,6 +6,9 @@
 #include <winrt/Windows.Graphics.Imaging.h>
 
 using namespace winrt::Windows::Graphics::Imaging;
+/*
+
+
 
 //-----------------------------------------------------------------------------
 // Functions 
@@ -97,3 +100,5 @@ bool ReceivePNGFilter(SOCKET clientsocket, PngFilterMode& filter)
 
 	return true;
 }
+
+*/

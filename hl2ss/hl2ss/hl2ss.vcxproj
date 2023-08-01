@@ -121,7 +121,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;SPDLOG_FMT_EXTERNAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Sync</ExceptionHandling>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(SolutionDir)\3rdparty\UWP\arm64\Release\include;$(SolutionDir)\3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">stdcpp17</LanguageStandard>
@@ -130,7 +130,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">mfuuid.lib;$(SolutionDir)/3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zstd_static.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\uriparser.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">mfuuid.lib;$(SolutionDir)/3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zstd_static.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\uriparser.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\fmt.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\spdlog.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -180,6 +180,7 @@
     <ClInclude Include="ipc_vi.h" />
     <ClInclude Include="locator.h" />
     <ClInclude Include="log.h" />
+    <ClInclude Include="manager.h" />
     <ClInclude Include="neon.h" />
     <ClInclude Include="hl2ss_network.h" />
     <ClInclude Include="nfo.h" />
@@ -229,6 +230,7 @@
     <ClCompile Include="ipc_su.cpp" />
     <ClCompile Include="ipc_vi.cpp" />
     <ClCompile Include="log.cpp" />
+    <ClCompile Include="manager.cpp" />
     <ClCompile Include="neon.cpp" />
     <ClCompile Include="nfo.cpp" />
     <ClCompile Include="research_mode.cpp" />

@@ -137,6 +137,9 @@
       <Filter>Source Files\streams</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)..\..\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp" />
+    <ClCompile Include="manager.cpp">
+      <Filter>Source Files\server</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -390,6 +393,9 @@
       <Filter>Header Files\streams</Filter>
     </ClInclude>
     <ClInclude Include="hl2ss_network.h">
+      <Filter>Header Files\server</Filter>
+    </ClInclude>
+    <ClInclude Include="manager.h">
       <Filter>Header Files\server</Filter>
     </ClInclude>
   </ItemGroup>

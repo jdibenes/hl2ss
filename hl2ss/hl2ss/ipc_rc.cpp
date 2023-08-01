@@ -219,27 +219,17 @@ struct RC_SetPVSceneMode {
 template<>
 struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVFocus> {
     bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::HL2RCRequest_SetPVFocus& request) {
-
-        if (args.find("focus_mode") == args.end() || 
-            args.find("autofocus_range") == args.end() ||
-            args.find("distance") == args.end() ||
-            args.find("value") == args.end() ||
-            args.find("disable_driver_fallback") == args.end()) {
-            ShowMessage("RC: missing argument: focus_mode|autofocus_range|distance|value,disable_driver_fallback");
-            return false;
-        }
         try {
-            request.focus_mode(static_cast<uint32_t>(std::stoi(args.at("focus_mode"))));
-            request.autofocus_range(static_cast<uint32_t>(std::stoi(args.at("autofocus_range"))));
-            request.distance(static_cast<uint32_t>(std::stoi(args.at("distance"))));
-            request.value(static_cast<uint32_t>(std::stoi(args.at("value"))));
-            request.disable_driver_fallback(static_cast<uint32_t>(std::stoi(args.at("disable_driver_fallback"))));
+            request.focus_mode(args_extract<uint32_t, 3>(args, "focus_mode"));
+            request.autofocus_range(args_extract<uint32_t, 2>(args, "autofocus_range"));
+            request.distance(args_extract<uint32_t, 0>(args, "distance"));
+            request.value(args_extract<uint32_t, 1000>(args, "value"));
+            request.disable_driver_fallback(args_extract<uint32_t, 1>(args, "disable_driver_fallback"));
         }
         catch (const std::invalid_argument& e) {
             ShowMessage("RC: invalid argument: %s", e.what());
             return false;
         }
-
         return true;
     }
 };
@@ -247,21 +237,14 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVFocus> {
 template<>
 struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVExposure> {
     bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::HL2RCRequest_SetPVExposure& request) {
-
-        if (args.find("mode") == args.end() ||
-            args.find("value") == args.end()) {
-            ShowMessage("RC: missing argument: mode|value");
-            return false;
-        }
         try {
-            request.mode(static_cast<uint32_t>(std::stoi(args.at("mode"))));
-            request.value(static_cast<uint32_t>(std::stoi(args.at("value"))));
+            request.mode(args_extract<uint32_t, 0>(args, "mode"));
+            request.value(args_extract<uint32_t, 10000>(args, "value"));
         }
         catch (const std::invalid_argument& e) {
             ShowMessage("RC: invalid argument: %s", e.what());
             return false;
         }
-
         return true;
     }
 };
@@ -269,15 +252,9 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVExposure> {
 template<>
 struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed> {
     bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed& request) {
-
-        if (args.find("setauto") == args.end() ||
-            args.find("value") == args.end()) {
-            ShowMessage("RC: missing argument: setauto|value");
-            return false;
-        }
         try {
-            request.setauto(static_cast<uint32_t>(std::stoi(args.at("setauto"))));
-            request.value(static_cast<uint32_t>(std::stoi(args.at("value"))));
+            request.setauto(args_extract<uint32_t, 1>(args, "setauto"));
+            request.value(args_extract<uint32_t, 100>(args, "value"));
         }
         catch (const std::invalid_argument& e) {
             ShowMessage("RC: invalid argument: %s", e.what());
@@ -367,12 +344,13 @@ void RC_QueryHandler(const z_query_t* query, void* context) {
     }
 
     if (!call_success) {
+        std::string pred_str((const char*)pred.start, pred.len);
         if (payload_value.payload.len > 0) {
-            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s' with value '%.*s'\n", z_loan(keystr), (int)pred.len,
-                pred.start, (int)payload_value.payload.len, payload_value.payload.start);
+            SPDLOG_WARN("[Queryable ] Received unhandled Query '{0}?{1}' with payload length '{2}'",
+                z_loan(keystr), pred_str, (int)payload_value.payload.len);
         }
         else {
-            ShowMessage(">> [Queryable ] Received unhandled Query '%s?%.*s'\n", z_loan(keystr), (int)pred.len, pred.start);
+            SPDLOG_WARN(">> [Queryable ] Received unhandled Query '{0}?{1}'", z_loan(keystr), pred_str);
         }
     }
 

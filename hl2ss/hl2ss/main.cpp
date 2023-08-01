@@ -19,12 +19,15 @@
 #include "voice_input.h"
 #include "ipc_vi.h"
 #include "stream_eet.h"
+#include <algorithm>
+#include <spdlog/spdlog.h>
 
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.UI.Core.h>
 
 #include "hl2ss_network.h"
+#include "manager.h"
 
 
 using namespace winrt::Windows::ApplicationModel;
@@ -35,6 +38,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 {
 	bool m_windowClosed = false;
 	bool m_init = false;
+	HC_Context* context = NULL;
 
 	IFrameworkView CreateView()
 	{
@@ -45,6 +49,14 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 	{
 		(void)sender;
 		(void)args;
+		spdlog::info("Application was asked to suspend - exiting.");
+		if (context != nullptr) {
+			spdlog::debug("Zenoh: stop services");
+			StopManager(context);
+			z_close(std::move(&(context->session)));
+			free(context);
+			context = NULL;
+		}
 
 		CoreApplication::Exit(); // Suspending is not supported
 	}
@@ -73,78 +85,52 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 		if (m_init) { return; }
 
+		// application defaults
+		uint32_t streams_enabled = 0xFF;
+
+		auto logger = std::make_shared<spdlog::logger>("application");
+		spdlog::set_default_logger(logger);
+		spdlog::set_level(spdlog::level::debug);
+
+		SetupDebugLogSink();
+		SPDLOG_INFO("Init logging");
+
 		HolographicSpace_Initialize();
 		Locator_Initialize();
-		ResearchMode_Initialize();
-		SpatialInput_Initialize();
-		PersonalVideo_Initialize();
-		SpatialMapping_Initialize();
-		SceneUnderstanding_Initialize();
-		VoiceInput_Initialize();
+
+		if (streams_enabled & HL2SS_ENABLE_RM) { ResearchMode_Initialize(); }
+		if (streams_enabled & HL2SS_ENABLE_PV) { PersonalVideo_Initialize(); }
+		if (streams_enabled & HL2SS_ENABLE_SI) { SpatialInput_Initialize(); }
+		if (streams_enabled & HL2SS_ENABLE_SM) { SpatialMapping_Initialize(); }
+		if (streams_enabled & HL2SS_ENABLE_SU) { SceneUnderstanding_Initialize(); }
+		if (streams_enabled & HL2SS_ENABLE_VI) { VoiceInput_Initialize(); }
 
 		// testing zenoh in uwp app
-		z_owned_config_t config = z_config_default(); 
-		z_owned_session_t zs = z_open(z_move(config));
-		if (!z_check(zs)) {
+		z_owned_config_t config = z_config_default();
+
+		context = new HC_Context(); // release
+		//std::string host_name = "dev00";
+
+		std::vector<wchar_t> buf;
+		GetLocalHostname(buf);
+		std::wstring host_name_w(buf.size(), '\0');
+		std::copy(buf.begin(), buf.end(), host_name_w.begin());
+
+		context->client_id = wide_string_to_string(host_name_w);
+		SPDLOG_INFO("Using Hostname: {0} as client_id", context->client_id);
+
+		context->session = z_open(z_move(config));
+		if (!z_check(context->session)) {
+			// error
+			OutputDebugStringA("Error opening Zenoh Session");
 			return;
 		}
-		// some global parameters that can be modified when used as plugin...
-		const char* client_id = "dev00";
-		uint8_t eye_fps = 60;
 
-		AACFormat mic_format{};
-		mic_format.profile = AACProfile_24000;
+		context->streams_enabled = streams_enabled;
+		context->streams_started = 0x00;
+		context->valid = true;
 
-		bool pv_enable_location = true;
-		H26xFormat pv_format{};
-		pv_format.width = 640;
-		pv_format.height = 360;
-		pv_format.framerate = 15;
-		pv_format.profile = H26xProfile::H264Profile_High;
-		pv_format.bitrate = 40000*8;
-
-		RMStreamConfig rm_config{};
-	
-		// all vlc cams on ..
-		rm_config.enable_location = true;
-		rm_config.enable_left_front = true;
-		rm_config.enable_left_left = true;
-		rm_config.enable_right_front = true;
-		rm_config.enable_right_right = true;
-		rm_config.vlc_format.width = 640;
-		rm_config.vlc_format.height = 480;
-		rm_config.vlc_format.framerate = 30;
-		rm_config.vlc_format.profile = H26xProfile::H264Profile_Main;
-		rm_config.vlc_format.bitrate = static_cast<int>((rm_config.vlc_format.width * rm_config.vlc_format.height * rm_config.vlc_format.framerate * 12.) * (4. / 420.));
-
-		// zlt sensor on
-		rm_config.enable_depth_long_throw = true;
-		rm_config.enable_depth_ahat = false;
-		// rm_config.depth_format ...
-		
-		// enable imu all
-		rm_config.enable_imu_accel = true;
-		rm_config.enable_imu_gyro = true;
-		rm_config.enable_imu_mag = true;
-
-		// start selected services..
-
-		// Research Mode Streaming
-		RM_Initialize(client_id, z_loan(zs), rm_config);
-
-		// Microphone streaming
-		MC_Initialize(client_id, z_loan(zs), mic_format);
-
-		// Front Video streaming
-		PV_Initialize(client_id, z_loan(zs), pv_enable_location, pv_format);
-		
-		SI_Initialize(client_id, z_loan(zs));
-		RC_Initialize(client_id, z_loan(zs));
-		SM_Initialize(client_id, z_loan(zs));
-		SU_Initialize(client_id, z_loan(zs));
-		VI_Initialize(client_id, z_loan(zs));
-
-		EET_Initialize(client_id, z_loan(zs), eye_fps);
+		StartManager(context);
 
 		m_init = true;
 	}

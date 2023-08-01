@@ -36,6 +36,7 @@ static std::queue<uint32_t> g_queue_so;
 // OK
 static DWORD WINAPI MQ_EntryPoint_Receive(void *param)
 {
+/*
 	SOCKET clientsocket = *((SOCKET*)param);
 	bool ok;
 	MQ_MSG msg;
@@ -69,21 +70,21 @@ static DWORD WINAPI MQ_EntryPoint_Receive(void *param)
 	while (WaitForSingleObject(g_event_error, 0) == WAIT_TIMEOUT);
 
 	SetEvent(g_event_error);
-
+	*/
 	return 0;
 }
 
 // OK
-UNITY_EXPORT
-uint32_t MQ_SI_Peek()
+extern "C" uint32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+ MQ_SI_Peek()
 {
 	CriticalSection cs(&g_lock_si);
 	return g_queue_si.empty() ? ~0UL : g_queue_si.front().size;
 }
 
 // OK
-UNITY_EXPORT
-void MQ_SI_Pop(uint32_t& command, uint8_t* data)
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+ MQ_SI_Pop(uint32_t& command, uint8_t* data)
 {
 	MQ_MSG msg;
 
@@ -113,6 +114,7 @@ static bool MQ_SO_Wait()
 // OK
 static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 {
+	/*
 	SOCKET clientsocket = *((SOCKET*)param);
 	int status;
 	uint32_t id;
@@ -133,13 +135,13 @@ static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 	while (WaitForSingleObject(g_event_error, 0) == WAIT_TIMEOUT);
 
 	SetEvent(g_event_error);
-
+	*/
 	return 0;
 }
 
 // OK
-UNITY_EXPORT
-void MQ_SO_Push(uint32_t id)
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+ MQ_SO_Push(uint32_t id)
 {
 	CriticalSection cs(&g_lock_so);
 	g_queue_so.push(id);
@@ -147,8 +149,8 @@ void MQ_SO_Push(uint32_t id)
 }
 
 // OK
-UNITY_EXPORT
-void MQ_Restart()
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+ MQ_Restart()
 {
 	SetEvent(g_event_restart);
 }
@@ -193,7 +195,7 @@ static void MQ_Procedure(SOCKET clientsocket)
 static DWORD WINAPI MQ_EntryPoint(void* param)
 {
 	(void)param;
-
+/*
 	SOCKET listensocket = CreateSocket(PORT_NAME_MQ);
 	SOCKET clientsocket;
 
@@ -219,7 +221,7 @@ static DWORD WINAPI MQ_EntryPoint(void* param)
 	closesocket(listensocket);
 
 	ShowMessage("MQ: Closed");
-
+	*/
 	return 0;
 }
 

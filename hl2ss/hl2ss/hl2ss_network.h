@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <sstream>
+
 #include "log.h"
 
 #define FASTCDR_STATIC_LINK
@@ -44,8 +46,13 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
         }
     }
     else {
-        RpcRequestArgs<T::RequestT> ah{};
-        args_valid = ah.parse(args, request);
+        try {
+            RpcRequestArgs<T::RequestT> ah{};
+            args_valid = ah.parse(args, request);
+        } catch(const std::exception& e) {
+            ShowMessage("RC: error parsing parameters: %s", e.what());
+            args_valid = false;
+        }
     }
 
     if (args_valid) {
@@ -67,6 +74,22 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
 /*
 * ArgumentHelper
 */
+
+template<typename T, T Default>
+T args_extract(const std::map<std::string, std::string>& args, const std::string key) {
+    if (args.find(key) == args.end()) {
+        return Default;
+    }
+    T v;
+    if constexpr (std::is_same_v<T, bool>) {
+        std::istringstream(args.at(key)) >> std::boolalpha >> v;
+    }
+    else {
+        std::istringstream(args.at(key)) >> v;
+    }
+    return v;
+}
+
 
 template<typename RequestType>
 struct RpcRequestArgs {

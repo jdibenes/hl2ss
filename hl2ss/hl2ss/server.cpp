@@ -15,6 +15,8 @@ bool InitializeSockets()
 	return iResult == 0;
 }
 
+/*
+
 // OK
 SOCKET CreateSocket(char const* port)
 {
@@ -113,3 +115,4 @@ bool send_multiple(SOCKET s, LPWSABUF buffers, DWORD dwBufferCount)
 	status = WSASend(s, buffers, dwBufferCount, &dwBytesSent, 0, NULL, NULL);
 	return status != SOCKET_ERROR;
 }
+*/

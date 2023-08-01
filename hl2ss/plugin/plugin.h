@@ -1,4 +1,5 @@
 
 #pragma once
 
-#define UNITY_EXPORT extern "C" __declspec(dllexport)
+#include "PlatformBase.h"
+#include "Unity/IUnityGraphics.h"

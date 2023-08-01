@@ -135,6 +135,9 @@
     <ClCompile Include="..\hl2ss\stream_eet.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\manager.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -262,6 +265,27 @@
     </ClInclude>
     <ClInclude Include="..\hl2ss\stream_eet.h">
       <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Unity\IUnityGraphics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Unity\IUnityGraphicsD3D11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Unity\IUnityGraphicsD3D12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Unity\IUnityGraphicsMetal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Unity\IUnityGraphicsVulkan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Unity\IUnityInterface.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -7,6 +7,8 @@ class Build3rdpartyConan(ConanFile):
 	 "hl2comm_idl/*:shared": False,
 	 "fast-cdr/*:shared": False,
 	 "zdepth/*:shared": False,
+	 "spdlog/*:shared": False,
+	 "rapidjson/*:shared": False,
 	}
 
 	settings = "os",
@@ -18,3 +20,6 @@ class Build3rdpartyConan(ConanFile):
 		self.requires("fast-cdr/1.0.27")
 		self.requires("zdepth/0.2@camposs/stable")
 		self.requires("uriparser/0.9.3")
+		self.requires("spdlog/1.11.0")
+		self.requires("rapidjson/cci.20220822")
+
