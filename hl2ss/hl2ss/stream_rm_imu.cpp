@@ -50,7 +50,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_IMU_MAG);
         break;
     default:
-        ShowMessage("RM_IMU: invalid config");
+        SPDLOG_INFO("RM_IMU: invalid config");
         return;
 
     }
@@ -60,11 +60,12 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     // publish streamdescriptor
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     // put message to zenoh
     {
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
         std::string keyexpr1 = "hl2/cfg/" + sub_path + std::string(client_id);
@@ -72,16 +73,16 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("PV: Error putting info");
+            SPDLOG_INFO("PV: Error putting info");
         }
         else {
-            ShowMessage("PV: put info");
+            SPDLOG_INFO("PV: put info");
         }
     }
 
     // should put another message for extrinsics (need idl for it)
 
-    ShowMessage("PV: publish on: %s", keyexpr.c_str());
+    SPDLOG_INFO("PV: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
@@ -89,7 +90,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     z_owned_publisher_t pub = z_declare_publisher(session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
-        ShowMessage("PV: Error creating publisher");
+        SPDLOG_INFO("PV: Error creating publisher");
         return;
     }
 
@@ -162,6 +163,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         }
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
     
     }
@@ -210,6 +212,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         }
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
 
     }
@@ -257,15 +260,16 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         }
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
     }
 
     if (z_publisher_put(z_loan(pub), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(options))) {
-        ShowMessage("PV: Error publishing message");
+        SPDLOG_INFO("PV: Error publishing message");
         ok = false;
     }
     else {
-        //ShowMessage("PV: published frame");
+        //SPDLOG_INFO("PV: published frame");
     }
 
     pSensorIMUFrame->Release();

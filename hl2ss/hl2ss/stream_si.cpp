@@ -50,12 +50,12 @@ static void SI_Stream()
 {
 
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("SI: Error invalid context");
+        SPDLOG_INFO("SI: Error invalid context");
         return;
     }
     std::string& client_id = g_zenoh_context->client_id;
     std::string keyexpr = "hl2/sensor/si/" + client_id;
-    ShowMessage("SI: publish on: %s", keyexpr.c_str());
+    SPDLOG_INFO("SI: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
@@ -63,7 +63,7 @@ static void SI_Stream()
     z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
-        ShowMessage("SI: Error creating publisher");
+        SPDLOG_INFO("SI: Error creating publisher");
         return;
     }
 
@@ -71,7 +71,7 @@ static void SI_Stream()
     options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
 
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     {
         pcpd_msgs::msg::Hololens2StreamDescriptor value{};
@@ -81,6 +81,7 @@ static void SI_Stream()
         value.frame_rate(30);
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
 
         // put message to zenoh
@@ -89,10 +90,10 @@ static void SI_Stream()
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("SI: Error putting info");
+            SPDLOG_INFO("SI: Error putting info");
         }
         else {
-            ShowMessage("SI: put info");
+            SPDLOG_INFO("SI: put info");
         }
     }
 
@@ -200,15 +201,16 @@ static void SI_Stream()
         value.valid(valid);
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
 
         // send message to zenoh
         if (z_publisher_put(z_loan(pub), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options)) {
             ok = false;
-            ShowMessage("SI: Error publishing message");
+            SPDLOG_INFO("SI: Error publishing message");
         }
         else {
-            //ShowMessage("SI: published frame");
+            //SPDLOG_INFO("SI: published frame");
         }
     }
     while (ok && WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
@@ -223,13 +225,13 @@ static DWORD WINAPI SI_EntryPoint(void *param)
         return 1;
     }
 
-    ShowMessage("SI: Waiting for consent");
+    SPDLOG_INFO("SI: Waiting for consent");
 
     SpatialInput_WaitForEyeConsent();
 
     SI_Stream();
 
-    ShowMessage("SI: publisher done");
+    SPDLOG_INFO("SI: publisher done");
 
     return 0;
 }

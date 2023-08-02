@@ -354,7 +354,7 @@ struct SU_SpatialQuery {
 template<>
 struct RpcRequestArgs<pcpd_msgs::rpc::HL2SURequest_SpatialQuery> {
     bool parse(const std::map<std::string, std::string>& /*args*/, pcpd_msgs::rpc::HL2SURequest_SpatialQuery& /*request*/) {
-        ShowMessage("SU: SpatialQuery without payload is not suported.");
+        SPDLOG_INFO("SU: SpatialQuery without payload is not suported.");
         return false;
     }
 };
@@ -376,7 +376,7 @@ void SU_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                ShowMessage("Received argument: {0} -> {1}", current->key, current->value);
+                SPDLOG_INFO("Received argument: {0} -> {1}", current->key, current->value);
             }
             current = current->next;
         }
@@ -411,22 +411,22 @@ void SU_QueryHandler(const z_query_t* query, void* context) {
 static DWORD WINAPI SU_EntryPoint(void *param)
 {
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("SU: Invalid Zenoh Context");
+        SPDLOG_INFO("SU: Invalid Zenoh Context");
         return 1;
     }
 
     (void)param;
 
-    ShowMessage("SU: Waiting for consent");
+    SPDLOG_INFO("SU: Waiting for consent");
 
     SceneUnderstanding_WaitForConsent();
 
     std::string keyexpr_str = "hl2/rpc/su/" + g_zenoh_context->client_id;
-    ShowMessage("SU: endpoint: %s", keyexpr_str.c_str());
+    SPDLOG_INFO("SU: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
     if (!z_check(keyexpr)) {
-        ShowMessage("SU: %s is not a valid key expression", keyexpr_str.c_str());
+        SPDLOG_INFO("SU: {0} is not a valid key expression", keyexpr_str.c_str());
         return 1;
     }
     const char* expr = keyexpr_str.c_str();
@@ -439,7 +439,7 @@ static DWORD WINAPI SU_EntryPoint(void *param)
 
     z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
-        ShowMessage("SU: Unable to create queryable.");
+        SPDLOG_INFO("SU: Unable to create queryable.");
         return 1;
     }
 
@@ -449,7 +449,7 @@ static DWORD WINAPI SU_EntryPoint(void *param)
     } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
 
     z_undeclare_queryable(z_move(qable));
-    ShowMessage("SU: Closed");
+    SPDLOG_INFO("SU: Closed");
 
     return 0;
 }

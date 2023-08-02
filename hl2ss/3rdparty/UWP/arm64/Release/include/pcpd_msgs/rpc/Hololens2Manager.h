@@ -69,6 +69,212 @@ class Cdr;
 namespace pcpd_msgs {
     namespace rpc {
         /*!
+         * @brief This class represents the enumeration Hololens2LogLevel defined by the user in the IDL file.
+         * @ingroup HOLOLENS2MANAGER
+         */
+        enum Hololens2LogLevel : uint32_t
+        {
+            HL2_LOG_ERROR,
+            HL2_LOG_WARNING,
+            HL2_LOG_INFO,
+            HL2_LOG_DEBUG,
+            HL2_LOG_TRACE
+        };
+        /*!
+         * @brief This class represents the structure Hololens2LogItem defined by the user in the IDL file.
+         * @ingroup HOLOLENS2MANAGER
+         */
+        class Hololens2LogItem
+        {
+        public:
+
+            /*!
+             * @brief Default constructor.
+             */
+            eProsima_user_DllExport Hololens2LogItem();
+
+            /*!
+             * @brief Default destructor.
+             */
+            eProsima_user_DllExport ~Hololens2LogItem();
+
+            /*!
+             * @brief Copy constructor.
+             * @param x Reference to the object pcpd_msgs::rpc::Hololens2LogItem that will be copied.
+             */
+            eProsima_user_DllExport Hololens2LogItem(
+                    const Hololens2LogItem& x);
+
+            /*!
+             * @brief Move constructor.
+             * @param x Reference to the object pcpd_msgs::rpc::Hololens2LogItem that will be copied.
+             */
+            eProsima_user_DllExport Hololens2LogItem(
+                    Hololens2LogItem&& x) noexcept;
+
+            /*!
+             * @brief Copy assignment.
+             * @param x Reference to the object pcpd_msgs::rpc::Hololens2LogItem that will be copied.
+             */
+            eProsima_user_DllExport Hololens2LogItem& operator =(
+                    const Hololens2LogItem& x);
+
+            /*!
+             * @brief Move assignment.
+             * @param x Reference to the object pcpd_msgs::rpc::Hololens2LogItem that will be copied.
+             */
+            eProsima_user_DllExport Hololens2LogItem& operator =(
+                    Hololens2LogItem&& x) noexcept;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::rpc::Hololens2LogItem object to compare.
+             */
+            eProsima_user_DllExport bool operator ==(
+                    const Hololens2LogItem& x) const;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::rpc::Hololens2LogItem object to compare.
+             */
+            eProsima_user_DllExport bool operator !=(
+                    const Hololens2LogItem& x) const;
+
+            /*!
+             * @brief This function copies the value in member timestamp
+             * @param _timestamp New value to be copied in member timestamp
+             */
+            eProsima_user_DllExport void timestamp(
+                    const builtin_interfaces::msg::Time& _timestamp);
+
+            /*!
+             * @brief This function moves the value in member timestamp
+             * @param _timestamp New value to be moved in member timestamp
+             */
+            eProsima_user_DllExport void timestamp(
+                    builtin_interfaces::msg::Time&& _timestamp);
+
+            /*!
+             * @brief This function returns a constant reference to member timestamp
+             * @return Constant reference to member timestamp
+             */
+            eProsima_user_DllExport const builtin_interfaces::msg::Time& timestamp() const;
+
+            /*!
+             * @brief This function returns a reference to member timestamp
+             * @return Reference to member timestamp
+             */
+            eProsima_user_DllExport builtin_interfaces::msg::Time& timestamp();
+            /*!
+             * @brief This function sets a value in member severity
+             * @param _severity New value for member severity
+             */
+            eProsima_user_DllExport void severity(
+                    pcpd_msgs::rpc::Hololens2LogLevel _severity);
+
+            /*!
+             * @brief This function returns the value of member severity
+             * @return Value of member severity
+             */
+            eProsima_user_DllExport pcpd_msgs::rpc::Hololens2LogLevel severity() const;
+
+            /*!
+             * @brief This function returns a reference to member severity
+             * @return Reference to member severity
+             */
+            eProsima_user_DllExport pcpd_msgs::rpc::Hololens2LogLevel& severity();
+
+            /*!
+             * @brief This function copies the value in member message
+             * @param _message New value to be copied in member message
+             */
+            eProsima_user_DllExport void message(
+                    const std::string& _message);
+
+            /*!
+             * @brief This function moves the value in member message
+             * @param _message New value to be moved in member message
+             */
+            eProsima_user_DllExport void message(
+                    std::string&& _message);
+
+            /*!
+             * @brief This function returns a constant reference to member message
+             * @return Constant reference to member message
+             */
+            eProsima_user_DllExport const std::string& message() const;
+
+            /*!
+             * @brief This function returns a reference to member message
+             * @return Reference to member message
+             */
+            eProsima_user_DllExport std::string& message();
+
+            /*!
+            * @brief This function returns the maximum serialized size of an object
+            * depending on the buffer alignment.
+            * @param current_alignment Buffer alignment.
+            * @return Maximum serialized size.
+            */
+            eProsima_user_DllExport static size_t getMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function returns the serialized size of a data depending on the buffer alignment.
+             * @param data Data which is calculated its serialized size.
+             * @param current_alignment Buffer alignment.
+             * @return Serialized size.
+             */
+            eProsima_user_DllExport static size_t getCdrSerializedSize(
+                    const pcpd_msgs::rpc::Hololens2LogItem& data,
+                    size_t current_alignment = 0);
+
+
+            /*!
+             * @brief This function serializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serialize(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+            /*!
+             * @brief This function deserializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void deserialize(
+                    eprosima::fastcdr::Cdr& cdr);
+
+
+
+            /*!
+             * @brief This function returns the maximum serialized size of the Key of an object
+             * depending on the buffer alignment.
+             * @param current_alignment Buffer alignment.
+             * @return Maximum serialized size.
+             */
+            eProsima_user_DllExport static size_t getKeyMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function tells you if the Key has been defined for this type
+             */
+            eProsima_user_DllExport static bool isKeyDefined();
+
+            /*!
+             * @brief This function serializes the key members of an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serializeKey(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+        private:
+
+            builtin_interfaces::msg::Time m_timestamp;
+            pcpd_msgs::rpc::Hololens2LogLevel m_severity;
+            std::string m_message;
+
+        };
+        /*!
          * @brief This class represents the structure Hololens2LogMessage defined by the user in the IDL file.
          * @ingroup HOLOLENS2MANAGER
          */
@@ -154,30 +360,30 @@ namespace pcpd_msgs {
              */
             eProsima_user_DllExport std_msgs::msg::Header& header();
             /*!
-             * @brief This function copies the value in member messages
-             * @param _messages New value to be copied in member messages
+             * @brief This function copies the value in member items
+             * @param _items New value to be copied in member items
              */
-            eProsima_user_DllExport void messages(
-                    const std::vector<std::string>& _messages);
+            eProsima_user_DllExport void items(
+                    const std::vector<pcpd_msgs::rpc::Hololens2LogItem>& _items);
 
             /*!
-             * @brief This function moves the value in member messages
-             * @param _messages New value to be moved in member messages
+             * @brief This function moves the value in member items
+             * @param _items New value to be moved in member items
              */
-            eProsima_user_DllExport void messages(
-                    std::vector<std::string>&& _messages);
+            eProsima_user_DllExport void items(
+                    std::vector<pcpd_msgs::rpc::Hololens2LogItem>&& _items);
 
             /*!
-             * @brief This function returns a constant reference to member messages
-             * @return Constant reference to member messages
+             * @brief This function returns a constant reference to member items
+             * @return Constant reference to member items
              */
-            eProsima_user_DllExport const std::vector<std::string>& messages() const;
+            eProsima_user_DllExport const std::vector<pcpd_msgs::rpc::Hololens2LogItem>& items() const;
 
             /*!
-             * @brief This function returns a reference to member messages
-             * @return Reference to member messages
+             * @brief This function returns a reference to member items
+             * @return Reference to member items
              */
-            eProsima_user_DllExport std::vector<std::string>& messages();
+            eProsima_user_DllExport std::vector<pcpd_msgs::rpc::Hololens2LogItem>& items();
 
             /*!
             * @brief This function returns the maximum serialized size of an object
@@ -239,7 +445,7 @@ namespace pcpd_msgs {
         private:
 
             std_msgs::msg::Header m_header;
-            std::vector<std::string> m_messages;
+            std::vector<pcpd_msgs::rpc::Hololens2LogItem> m_items;
 
         };
         /*!

@@ -48,15 +48,16 @@ namespace spdlog {
                 }
                 _client_id = g_zenoh_context->client_id.c_str();
                 std::string keyexpr = "hl2/logs/" + g_zenoh_context->client_id;
-                OutputDebugStringA(fmt::format("MGR: publish logs at: {0}\n", keyexpr).c_str());
+                OutputDebugStringA(fmt::format("MGR: publish logs at: {0}\\n", keyexpr).c_str());
 
                 z_publisher_options_t publisher_options = z_publisher_options_default();
-                publisher_options.priority = Z_PRIORITY_REAL_TIME;
+                publisher_options.priority = Z_PRIORITY_DATA;
 
                 _publisher = z_declare_publisher(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr.c_str()), &publisher_options);
 
                 if (!z_check(_publisher)) {
                     OutputDebugStringA("MGR: Error creating publisher\n");
+                    return;
                 }
                 _is_active = true;
             }
@@ -68,16 +69,23 @@ namespace spdlog {
         protected:
             void sink_it_(const details::log_msg& msg) override
             {
+
                 if (!_is_active) {
                     return;
                 }
                 memory_buf_t formatted;
                 base_sink<Mutex>::formatter_->format(msg, formatted);
                 std::string msg_str = fmt::to_string(formatted);
-                _messages.push_back(std::move(msg_str));
+                _items.emplace_back(
+                    std::chrono::time_point_cast<std::chrono::nanoseconds>(msg.time).time_since_epoch(),
+                    msg.level,
+                    msg_str
+                );
             }
             void flush_() override {
-                // nothing to do here
+                if (_items.empty()) {
+                    return;
+                }
                 z_publisher_put_options_t options = z_publisher_put_options_default();
                 options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
 
@@ -94,12 +102,45 @@ namespace spdlog {
 
                     value.header().frame_id(_client_id);
                 }
-                value.messages(_messages);
+                std::vector< pcpd_msgs::rpc::Hololens2LogItem> items(_items.size());
+                for (int i = 0; i < _items.size();++i) {
+                    auto& [ts_, ll, msg] = _items.at(i);
+                    auto& v = items.at(i);
+                    {
+                        using namespace std::chrono;
+                        auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+                        auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+                        v.timestamp().sec(ts_sec);
+                        v.timestamp().nanosec(ts_nsec);
+                    }
+                    switch (ll) {
+                    case spdlog::level::level_enum::critical:
+                    case spdlog::level::level_enum::err:
+                        v.severity(pcpd_msgs::rpc::HL2_LOG_ERROR);
+                        break;
+                    case spdlog::level::level_enum::warn:
+                        v.severity(pcpd_msgs::rpc::HL2_LOG_WARNING);
+                        break;
+                    case spdlog::level::level_enum::info:
+                        v.severity(pcpd_msgs::rpc::HL2_LOG_INFO);
+                        break;
+                    case spdlog::level::level_enum::debug:
+                        v.severity(pcpd_msgs::rpc::HL2_LOG_DEBUG);
+                        break;
+                    case spdlog::level::level_enum::trace:
+                        v.severity(pcpd_msgs::rpc::HL2_LOG_TRACE);
+                        break;
+                    }
+                    v.message(msg);
+                }
+                value.items(items);
 
                 eprosima::fastcdr::FastBuffer buffer{};
-                eprosima::fastcdr::Cdr buffer_cdr(buffer);
-
+                eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
                 buffer_cdr.reset();
+                buffer_cdr.serialize_encapsulation();
+
                 value.serialize(buffer_cdr);
 
                 // send message to zenoh
@@ -107,12 +148,12 @@ namespace spdlog {
                     OutputDebugStringA("MGR: Error publishing log messages.\n");
                 }
                 else {
-                    _messages.clear();
+                    _items.clear();
                 }
             }
 
         private:
-            std::vector<std::string> _messages;
+            std::vector<std::tuple<std::chrono::nanoseconds, spdlog::level::level_enum, std::string>> _items;
             z_owned_publisher_t _publisher;
             const char* _client_id;
             bool _is_active{ false };
@@ -151,7 +192,7 @@ pcpd_msgs::msg::Hololens2H26xProfile extract_h26x_profile(const std::map<std::st
     else if (fmt == "H265Main") {
         return pcpd_msgs::msg::H265Profile_Main;
     }
-    ShowMessage("Invalid argument for h26x_profile: %s", fmt.c_str());
+    SPDLOG_INFO("Invalid argument for h26x_profile: {0}", fmt.c_str());
     return default;
 }
 
@@ -176,7 +217,7 @@ pcpd_msgs::msg::Hololens2AACProfile extract_aac_profile(const std::map<std::stri
     else if (fmt == "AAC24") {
         return pcpd_msgs::msg::AACProfile_24000;
     }
-    ShowMessage("Invalid aac_profile: %s", fmt.c_str());
+    SPDLOG_INFO("Invalid aac_profile: {0}", fmt.c_str());
     return default;
 }
 
@@ -187,7 +228,7 @@ struct MGR_StartRM {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
-
+        SPDLOG_DEBUG("MGR: StopRM");
         H26xFormat vlc_fmt;
         vlc_fmt.width = request.vlc_format().width();
         vlc_fmt.height = request.vlc_format().height();
@@ -241,6 +282,8 @@ struct MGR_StartRM {
             depth_fmt, 
             request.enable_imu_accel(), request.enable_imu_gyro(), request.enable_imu_mag());
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartRM done.");
+
         return true;
     }
 };
@@ -251,8 +294,10 @@ struct MGR_StopRM {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopRM");
         StopRM(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopRM done.");
         return true;
     }
 };
@@ -263,6 +308,7 @@ struct MGR_StartMC {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartMC");
         AACFormat fmt;
         fmt.channels = request.aac_format().channels();
         fmt.samplerate = request.aac_format().sample_rate();
@@ -285,6 +331,7 @@ struct MGR_StartMC {
         }
         StartMC(g_zenoh_context, fmt);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartMC done.");
         return true;
     }
 };
@@ -295,8 +342,10 @@ struct MGR_StopMC {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopMC");
         StopMC(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopMC done.");
         return true;
     }
 };
@@ -307,9 +356,11 @@ struct MGR_StartPV {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartPV");
         H26xFormat pv_fmt;
         pv_fmt.width = request.pv_format().width();
         pv_fmt.height = request.pv_format().height();
+        pv_fmt.framerate = request.pv_format().frame_rate();
         switch (request.pv_format().profile()) {
         case pcpd_msgs::msg::Hololens2H26xProfile::H26xProfile_None:
             pv_fmt.profile = H26xProfile_None;
@@ -330,6 +381,7 @@ struct MGR_StartPV {
         pv_fmt.bitrate = request.pv_format().bitrate();
         StartPV(g_zenoh_context, request.enable_location(), pv_fmt);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartPV done.");
         return true;
     }
 };
@@ -340,8 +392,10 @@ struct MGR_StopPV {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopPV");
         StopPV(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopPV done.");
         return true;
     }
 };
@@ -353,8 +407,10 @@ struct MGR_StartSI {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartSI");
         StartSI(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartSI done.");
         return true;
     }
 };
@@ -365,8 +421,10 @@ struct MGR_StopSI {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopSI");
         StopSI(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopSI done.");
         return true;
     }
 };
@@ -377,8 +435,10 @@ struct MGR_StartRC {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartRC");
         StartRC(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartRC done.");
         return true;
     }
 };
@@ -389,8 +449,10 @@ struct MGR_StopRC {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopRC");
         StopRC(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopRC done.");
         return true;
     }
 };
@@ -401,8 +463,10 @@ struct MGR_StartSM {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartSM");
         StartSM(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartSM done.");
         return true;
     }
 };
@@ -413,8 +477,10 @@ struct MGR_StopSM {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopSM");
         StopSM(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopSM done.");
         return true;
     }
 };
@@ -425,8 +491,10 @@ struct MGR_StartSU {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartSU");
         StartSU(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartSU done.");
         return true;
     }
 };
@@ -437,8 +505,10 @@ struct MGR_StopSU {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopSU");
         StopSU(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopSU done.");
         return true;
     }
 };
@@ -449,8 +519,10 @@ struct MGR_StartVI {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartVI");
         StartVI(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartVI done.");
         return true;
     }
 };
@@ -461,8 +533,10 @@ struct MGR_StopVI {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopVI");
         StopVI(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopVI done.");
         return true;
     }
 };
@@ -473,8 +547,10 @@ struct MGR_StartEET {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StartEET");
         StartEET(g_zenoh_context, request.value());
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StartEET done.");
         return true;
     }
 };
@@ -485,8 +561,10 @@ struct MGR_StopEET {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: StopEET");
         StopEET(g_zenoh_context);
         response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        SPDLOG_DEBUG("MGR: StopEET done.");
         return true;
     }
 };
@@ -530,7 +608,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2MGRRequest_StartRM> {
 
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("MGR: invalid argument: %s", e.what());
+            SPDLOG_INFO("MGR: invalid argument: {0}", e.what());
             return false;
         }
 
@@ -550,7 +628,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2MGRRequest_StartPV> {
             request.pv_format().bitrate(args_extract<uint32_t, 40000 * 8>(args, "bitrate"));
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("MGR: invalid argument: %s", e.what());
+            SPDLOG_INFO("MGR: invalid argument: {0}", e.what());
             return false;
         }
 
@@ -568,7 +646,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2MGRRequest_StartMC> {
             request.aac_format().profile(extract_aac_profile(args, "profile"));
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("MGR: invalid argument: %s", e.what());
+            SPDLOG_INFO("MGR: invalid argument: {0}", e.what());
             return false;
         }
 
@@ -596,7 +674,7 @@ void MGR_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                ShowMessage("Received argument: %s -> %s", current->key, current->value);
+                SPDLOG_DEBUG("Received argument: {0} -> {1}", current->key, current->value);
             }
             current = current->next;
         }
@@ -691,26 +769,26 @@ void MGR_QueryHandler(const z_query_t* query, void* context) {
 // OK
 static DWORD WINAPI MGR_EntryPoint(void* param)
 {
-    ShowMessage("MGR: EntryPoint Main Thread");
+    SPDLOG_INFO("MGR: EntryPoint Main Thread");
 
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("MGR: Invalid Zenoh Context");
+        OutputDebugStringA("MGR: Invalid Zenoh Context");
         return 1;
     }
 
     (void)param;
 
-    // register logger
+    // register zenoh logger
     auto cbs = std::make_shared< spdlog::sinks::zenoh_logging_sink_mt>();
     std::vector<spdlog::sink_ptr>& sinks = spdlog::details::registry::instance().get_default_raw()->sinks();
     sinks.push_back(cbs);
 
     std::string keyexpr_str = "hl2/rpc/mgr/" + g_zenoh_context->client_id;
-    ShowMessage("MGR: endpoint: %s", keyexpr_str.c_str());
+    SPDLOG_INFO("MGR: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
     if (!z_check(keyexpr)) {
-        ShowMessage("MGR: %s is not a valid key expression", keyexpr_str.c_str());
+        SPDLOG_ERROR("MGR: {0} is not a valid key expression", keyexpr_str.c_str());
         return 1;
     }
     const char* expr = keyexpr_str.c_str();
@@ -723,14 +801,14 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
 
     z_owned_queryable_t qable = z_declare_queryable(z_loan(g_zenoh_context->session), keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
-        ShowMessage("MGR: Unable to create queryable.");
+        SPDLOG_ERROR("MGR: Unable to create queryable.");
         return 1;
     }
 
     uint64_t heart_beat_counter{ 0 };
 
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
     std::string keyexpr1 = "hl2/presence/" + g_zenoh_context->client_id;
 
     {
@@ -751,6 +829,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
         value.heart_beat_counter(heart_beat_counter);
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
 
         // put message to zenoh
@@ -758,58 +837,59 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("MGR: Error putting presence");
+            SPDLOG_ERROR("MGR: Error putting presence");
         }
         else {
-            ShowMessage("MGR: put presence");
+            SPDLOG_INFO("MGR: put presence");
         }
     }
 
 
     // heartbeat every 5 seconds
-    uint32_t wait_counter{ 0 };
     do
     {
-        Sleep(1000 / 100);
-        if (wait_counter % 50 == 0) {
-            pcpd_msgs::rpc::Hololens2Presence value{};
+        pcpd_msgs::rpc::Hololens2Presence value{};
 
-            {
-                auto timestamp = GetCurrentQPCTimestamp();
-                using namespace std::chrono;
-                auto ts_ = nanoseconds(timestamp * 100);
-                auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
-                auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+        {
+            auto timestamp = GetCurrentQPCTimestamp();
+            using namespace std::chrono;
+            auto ts_ = nanoseconds(timestamp * 100);
+            auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+            auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
 
-                value.header().stamp().sec(ts_sec);
-                value.header().stamp().nanosec(ts_nsec);
+            value.header().stamp().sec(ts_sec);
+            value.header().stamp().nanosec(ts_nsec);
 
-                value.header().frame_id(g_zenoh_context->client_id);
-            }
-            value.heart_beat_counter(heart_beat_counter);
-
-            buffer_cdr.reset();
-            value.serialize(buffer_cdr);
-
-            // put message to zenoh
-            z_put_options_t options1 = z_put_options_default();
-            options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
-            int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
-            if (res > 0) {
-                ShowMessage("MGR: Error putting presence");
-            }
-
+            value.header().frame_id(g_zenoh_context->client_id);
         }
-    } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
+        value.heart_beat_counter(heart_beat_counter);
+
+        buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
+        value.serialize(buffer_cdr);
+
+        // put message to zenoh
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            SPDLOG_ERROR("MGR: Error putting presence");
+        }
+        else {
+            SPDLOG_DEBUG("MGR: Heartbeat {0}", heart_beat_counter);
+        }
+
+        ++heart_beat_counter;
+    } while (WaitForSingleObject(g_event_quit, 5*1000) == WAIT_TIMEOUT);
 
     z_delete_options_t options = z_delete_options_default();
     int res = z_delete(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), &options);
     if (res < 0) {
-        ShowMessage("MGR: delete presence failed");
+        SPDLOG_ERROR("MGR: delete presence failed");
     }
 
     z_undeclare_queryable(z_move(qable));
-    ShowMessage("MGR: Closed");
+    SPDLOG_INFO("MGR: Closed");
 
     return 0;
 }
@@ -850,7 +930,7 @@ void MGR_Cleanup() {
 
 
 bool StartManager(HC_Context* context) {
-    ShowMessage("StartManager...");
+    SPDLOG_INFO("StartManager...");
     if (context == nullptr) {
         return false;
     }

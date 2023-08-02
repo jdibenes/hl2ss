@@ -63,12 +63,12 @@ void ExtendedEyeTracking_Initialize()
 // OK
 void ExtendedEyeTracking_QueryCapabilities()
 {
-    ShowMessage("AreLeftAndRightGazesSupported: %d", g_tracker.AreLeftAndRightGazesSupported());
-    ShowMessage("IsEyeOpennessSupported: %d", g_tracker.IsEyeOpennessSupported());
-    ShowMessage("IsRestrictedModeSupported: %d", g_tracker.IsRestrictedModeSupported());
-    ShowMessage("IsVergenceDistanceSupported: %d", g_tracker.IsVergenceDistanceSupported());
-    ShowMessage("SupportedTargetFrameRates");
-    for (auto stfr : g_tracker.SupportedTargetFrameRates()) { ShowMessage("%d FPS", stfr.FramesPerSecond()); }
+    SPDLOG_INFO("AreLeftAndRightGazesSupported: {0}", g_tracker.AreLeftAndRightGazesSupported());
+    SPDLOG_INFO("IsEyeOpennessSupported: {0}", g_tracker.IsEyeOpennessSupported());
+    SPDLOG_INFO("IsRestrictedModeSupported: {0}", g_tracker.IsRestrictedModeSupported());
+    SPDLOG_INFO("IsVergenceDistanceSupported: {0}", g_tracker.IsVergenceDistanceSupported());
+    SPDLOG_INFO("SupportedTargetFrameRates");
+    for (auto stfr : g_tracker.SupportedTargetFrameRates()) { SPDLOG_INFO("{0} FPS", stfr.FramesPerSecond()); }
 }
 
 // OK

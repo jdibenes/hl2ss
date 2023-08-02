@@ -173,7 +173,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2VIRequest_RegisterCommands> {
             }
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("RC: invalid argument: %s", e.what());
+            SPDLOG_INFO("RC: invalid argument: {0}", e.what());
             return false;
         }
 
@@ -199,7 +199,7 @@ void VI_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                ShowMessage("Received argument: %s -> %s", current->key, current->value);
+                SPDLOG_DEBUG("Received argument: {0} -> {1}", current->key, current->value);
             }
             current = current->next;
         }
@@ -260,18 +260,18 @@ static DWORD WINAPI VI_EntryPoint(void *param)
 {
 
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("VI: Invalid Zenoh Context");
+        SPDLOG_INFO("VI: Invalid Zenoh Context");
         return 1;
     }
 
     (void)param;
 
     std::string keyexpr_str = "hl2/rpc/vi/" + g_zenoh_context->client_id;
-    ShowMessage("VI: endpoint: %s", keyexpr_str.c_str());
+    SPDLOG_INFO("VI: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
     if (!z_check(keyexpr)) {
-        ShowMessage("VI: %s is not a valid key expression", keyexpr_str.c_str());
+        SPDLOG_INFO("VI: {0} is not a valid key expression", keyexpr_str.c_str());
         return 1;
     }
     const char* expr = keyexpr_str.c_str();
@@ -284,7 +284,7 @@ static DWORD WINAPI VI_EntryPoint(void *param)
 
     z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
-        ShowMessage("VI: Unable to create queryable.");
+        SPDLOG_INFO("VI: Unable to create queryable.");
         return 1;
     }
 
@@ -299,7 +299,7 @@ static DWORD WINAPI VI_EntryPoint(void *param)
     }
 
     z_undeclare_queryable(z_move(qable));
-    ShowMessage("VI: Closed");
+    SPDLOG_INFO("VI: Closed");
 
     return 0;
 }

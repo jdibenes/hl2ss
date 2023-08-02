@@ -35,13 +35,13 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
             const_cast<char*>(reinterpret_cast<const char*>(request_payload.payload.start)),
             request_payload.payload.len);
 
-        eprosima::fastcdr::Cdr request_buffer_cdr(request_buffer);
+        eprosima::fastcdr::Cdr request_buffer_cdr(request_buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
         try {
             request.deserialize(request_buffer_cdr);
             args_valid = true;
         }
         catch (const eprosima::fastcdr::exception::Exception& e) {
-            ShowMessage("RC: error deserializing request payload: %s", e.what());
+            SPDLOG_INFO("RC: error deserializing request payload: {0}", e.what());
             args_valid = false;
         }
     }
@@ -50,7 +50,7 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
             RpcRequestArgs<T::RequestT> ah{};
             args_valid = ah.parse(args, request);
         } catch(const std::exception& e) {
-            ShowMessage("RC: error parsing parameters: %s", e.what());
+            SPDLOG_INFO("RC: error parsing parameters: {0}", e.what());
             args_valid = false;
         }
     }
@@ -62,7 +62,7 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
         response.status(pcpd_msgs::rpc::RPC_STATUS_ERROR);
     }
 
-    eprosima::fastcdr::Cdr buffer_cdr(result_buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(result_buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
     call_success &= response.status() == pcpd_msgs::rpc::RPC_STATUS_SUCCESS;
     response.serialize(buffer_cdr);
     result_bytes = buffer_cdr.getSerializedDataLength();
@@ -94,7 +94,7 @@ T args_extract(const std::map<std::string, std::string>& args, const std::string
 template<typename RequestType>
 struct RpcRequestArgs {
     bool parse(const std::map<std::string, std::string>& /*args*/, RequestType& /*value*/) {
-        ShowMessage("RC: ArgumentHelper used for unregistered type..");
+        SPDLOG_WARN("RC: ArgumentHelper used for unregistered type..");
         return false;
     }
 };
@@ -112,7 +112,7 @@ template<>
 struct RpcRequestArgs<pcpd_msgs::rpc::UInt32Request> {
     bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::UInt32Request& request) {
         if (args.find("value") == args.end()) {
-            ShowMessage("RC: missing argument: value");
+            SPDLOG_INFO("RC: missing argument: value");
             return false;
         }
         try {
@@ -121,11 +121,37 @@ struct RpcRequestArgs<pcpd_msgs::rpc::UInt32Request> {
             request.value(static_cast<uint32_t>(value));
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("RC: invalid argument: %s", e.what());
+            SPDLOG_ERROR("RC: invalid argument: {0}", e.what());
             return false;
         }
         return true;
     }
 };
+
+template<>
+struct RpcRequestArgs<pcpd_msgs::rpc::UInt8Request> {
+    bool parse(const std::map<std::string, std::string>& args, pcpd_msgs::rpc::UInt8Request& request) {
+        if (args.find("value") == args.end()) {
+            SPDLOG_INFO("RC: missing argument: value");
+            return false;
+        }
+        try {
+            auto value = std::stoi(args.at("value"));
+            if (value > 255 || value < 0) {
+                SPDLOG_ERROR("RC: Invalid eye_fps: {0}", value);
+                return false;
+            }
+            else {
+                request.value(static_cast<uint8_t>(value));
+            }
+        }
+        catch (const std::invalid_argument& e) {
+            SPDLOG_ERROR("RC: invalid argument: {0}", e.what());
+            return false;
+        }
+        return true;
+    }
+};
+
 
 

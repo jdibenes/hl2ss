@@ -62,18 +62,18 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     sensor = (IResearchModeSensor*)param;
     type = sensor->GetSensorType();
     std::wstring sensor_name(sensor->GetFriendlyName());
-    ShowMessage("RM{0} ({1}): Waiting for consent", (int)type, wide_string_to_string(sensor_name));
+    SPDLOG_INFO("RM{0} ({1}): Waiting for consent", (int)type, wide_string_to_string(sensor_name));
 
     ok = ResearchMode_WaitForConsent(sensor);
     if (!ok) { 
-        ShowMessage("Consent was rejected");
+        SPDLOG_INFO("Consent was rejected");
         return false; 
     }
 
     nodeId = ResearchMode_GetRigNodeId();
     locator = SpatialGraphInteropPreview::CreateLocatorForNode(nodeId);
 
-    ShowMessage("RM%d: Start Stream", (int)type);
+    SPDLOG_INFO("RM{0}: Start Stream", (int)type);
     auto& ctx = *g_zenoh_context;
 
     bool enable_location = ctx.config.enable_location;
@@ -144,7 +144,7 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     }
     }
 
-    ShowMessage("RM%d: Stream Finished", (int)type);
+    SPDLOG_INFO("RM{0}: Stream Finished", (int)type);
     //while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
   
     return 0;

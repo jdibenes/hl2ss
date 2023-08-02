@@ -83,7 +83,7 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
 
     // can we cache them so that we do not allocate new memory every image ?
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     pcpd_msgs::msg::Hololens2VideoStream value{};
 
@@ -128,14 +128,15 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
 
 
     buffer_cdr.reset();
+    buffer_cdr.serialize_encapsulation();
     value.serialize(buffer_cdr);
 
     if (z_publisher_put(user->publisher, (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(user->options))) {
-        ShowMessage("RM_ZHT: Error publishing message");
+        SPDLOG_INFO("RM_ZHT: Error publishing message");
         SetEvent(user->clientevent);
     }
     else {
-        //ShowMessage("PV: published frame");
+        //SPDLOG_INFO("PV: published frame");
     }
 
     pBuffer->Unlock();
@@ -156,7 +157,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_DEPTH_AHAT);
         break;
     default:
-        ShowMessage("RM_ZHT: invalid config");
+        SPDLOG_INFO("RM_ZHT: invalid config");
         return;
     }
 
@@ -199,11 +200,12 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     // publish streamdescriptor
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     // put message to zenoh
     {
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
         std::string keyexpr1 = "hl2/cfg/" + sub_path + std::string(client_id);
@@ -211,15 +213,15 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("RM_ZHT: Error putting info");
+            SPDLOG_INFO("RM_ZHT: Error putting info");
         }
         else {
-            ShowMessage("RM_ZHT: put info");
+            SPDLOG_INFO("RM_ZHT: put info");
         }
     }
 
 
-    ShowMessage("PV: publish on: %s", keyexpr.c_str());
+    SPDLOG_INFO("PV: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
@@ -227,7 +229,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     z_owned_publisher_t pub = z_declare_publisher(session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
-        ShowMessage("RM_ZHT: Error creating publisher");
+        SPDLOG_INFO("RM_ZHT: Error creating publisher");
         return;
     }
 
@@ -407,7 +409,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         desc_ir.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_DEPTH_LONG_THROW);
         break;
     default:
-        ShowMessage("RM_ZLT: invalid config");
+        SPDLOG_INFO("RM_ZLT: invalid config");
         return;
     }
 
@@ -435,11 +437,12 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     // publish streamdescriptor
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     // put message to zenoh - depth
     {
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         desc_depth.serialize(buffer_cdr);
 
         std::string keyexpr1 = "hl2/cfg/" + sub_path + "depth/" + std::string(client_id);
@@ -447,16 +450,17 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("RM_ZLT_DEPTH: Error putting info");
+            SPDLOG_INFO("RM_ZLT_DEPTH: Error putting info");
         }
         else {
-            ShowMessage("RM_ZLT_DEPTH: put info");
+            SPDLOG_INFO("RM_ZLT_DEPTH: put info");
         }
     }
 
     // put message to zenoh - ir
     {
  /*       buffer_cdr.reset();
+       buffer_cdr.serialize_encapsulation();
         desc_ir.serialize(buffer_cdr);
 
         std::string keyexpr1 = "hl2/cfg/" + sub_path + "ir/" + std::string(client_id);
@@ -464,29 +468,29 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("RM_ZLT_IR: Error putting info");
+            SPDLOG_INFO("RM_ZLT_IR: Error putting info");
         }
         else {
-            ShowMessage("RM_ZLT_IR: put info");
+            SPDLOG_INFO("RM_ZLT_IR: put info");
         }*/
     }
 
     // should put another message for extrinsics (need idl for it)
 
-    ShowMessage("RM_ZLT_DEPTH: publish on: %s", keyexpr_depth.c_str());
-    //ShowMessage("RM_ZLT_IR: publish on: %s", keyexpr_ir.c_str());
+    SPDLOG_INFO("RM_ZLT_DEPTH: publish on: {0}", keyexpr_depth.c_str());
+    //SPDLOG_INFO("RM_ZLT_IR: publish on: {0}", keyexpr_ir.c_str());
 
     z_owned_publisher_t pub_depth = z_declare_publisher(session, z_keyexpr(keyexpr_depth.c_str()), NULL);
 
     if (!z_check(pub_depth)) {
-        ShowMessage("RM_ZLT_DEPTH: Error creating publisher");
+        SPDLOG_INFO("RM_ZLT_DEPTH: Error creating publisher");
         return;
     }
 
     //z_owned_publisher_t pub_ir = z_declare_publisher(session, z_keyexpr(keyexpr_ir.c_str()), NULL);
 
     //if (!z_check(pub_ir)) {
-    //    ShowMessage("RM_ZLT_IR: Error creating publisher");
+    //    SPDLOG_INFO("RM_ZLT_IR: Error creating publisher");
     //    return;
     //}
 
@@ -588,19 +592,20 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         value.image(std::move(zdepth_buffer));
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
 
         if (z_publisher_put(z_loan(pub_depth), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(options))) {
-            ShowMessage("RM_ZHT_DEPTH: Error publishing message");
+            SPDLOG_INFO("RM_ZHT_DEPTH: Error publishing message");
             ok = false;
         }
         else {
-            //ShowMessage("RM_ZHT_DEPTH: published frame");
+            //SPDLOG_INFO("RM_ZHT_DEPTH: published frame");
         }
 
     }
     else {
-        ShowMessage("RM_ZLT_DEPTH: Error compressing depth.");
+        SPDLOG_INFO("RM_ZLT_DEPTH: Error compressing depth.");
     }
 
 
@@ -675,14 +680,15 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
 
     //    buffer_cdr.reset();
+    //    buffer_cdr.serialize_encapsulation();
     //    value.serialize(buffer_cdr);
 
     //    if (z_publisher_put(z_loan(pub_ir), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(options))) {
-    //        ShowMessage("RM_ZHT_IR: Error publishing message");
+    //        SPDLOG_INFO("RM_ZHT_IR: Error publishing message");
     //        ok = false;
     //    }
     //    else {
-    //        //ShowMessage("RM_ZHT_IR: published frame");
+    //        //SPDLOG_INFO("RM_ZHT_IR: published frame");
     //    }
     //}
 

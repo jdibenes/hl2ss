@@ -8,21 +8,21 @@ from pynput import keyboard
 
 import hl2ss
 
+import zenoh
+import logging
+
+log = logging.getLogger(__name__)
+
+DEFAULT_KEY = "hl2/cfg/eet/HOLOLENS-VM59UD"
+
 # Settings --------------------------------------------------------------------
 
-# HoloLens address
-host = '192.168.1.7'
-
-# Port
-port = hl2ss.StreamPort.EXTENDED_EYE_TRACKER
-
-# Target Frame Rate
-# Options: 30, 60, 90
-fps = 30
 
 #------------------------------------------------------------------------------
 
 enable = True
+
+logging.basicConfig(level=logging.DEBUG)
 
 def on_press(key):
     global enable
@@ -32,7 +32,12 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_eet(host, port, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps)
+zenoh.init_logger()
+
+# most simple zenoh config for now
+conf = {"mode": "peer"}
+
+client = hl2ss.rx_eet("EET", conf, DEFAULT_KEY)
 client.open()
 
 while (enable):

@@ -12,9 +12,9 @@ zenoh.init_logger()
 conf = zenoh.Config()
 session = zenoh.open(conf)
 
-replies = session.get("hl2/cfg/vid/pv/dev00", zenoh.Queue(), target=QueryTarget.BEST_MATCHING())
+replies = session.get("hl2/logs/**", zenoh.Queue(), target=QueryTarget.BEST_MATCHING())
 desc_reply = next(replies).ok
-desc = hl2ss_schema.Hololens2StreamDescriptor.deserialize(desc_reply.payload, has_header=False)
+desc = hl2ss_schema.Hololens2StreamDescriptor.deserialize(desc_reply.payload)
 
 sample_store = {}
 
@@ -31,3 +31,18 @@ while True:
 
 sub.undeclare()
 session.close()
+
+
+
+import importlib
+import numpy as np
+import quaternion
+import hl2ss
+import hl2ss_schema
+
+#importlib.reload(hl2ss_schema)
+
+t = hl2ss_schema.Vector3(1,2,3)
+r = hl2ss_schema.Quaternion(0,0,0,1)
+p = hl2ss.Pose(t,r)
+quaternion.as_rotation_matrix(p.orientation)

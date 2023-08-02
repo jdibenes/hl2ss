@@ -180,7 +180,7 @@ static void MQ_Procedure(SOCKET clientsocket)
 	g_queue_si.push(msg);
 	}
 
-	ShowMessage("MQ: Waiting for restart signal");
+	SPDLOG_INFO("MQ: Waiting for restart signal");
 	WaitForSingleObject(g_event_restart, INFINITE);
 
 	g_queue_so = {};
@@ -188,7 +188,7 @@ static void MQ_Procedure(SOCKET clientsocket)
 
 	ResetEvent(g_event_error);
 
-	ShowMessage("MQ: Restart signal received");
+	SPDLOG_INFO("MQ: Restart signal received");
 }
 
 // OK

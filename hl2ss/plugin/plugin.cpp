@@ -473,7 +473,7 @@ StopEETOnUI()
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 DebugMessage(char const* str)
 {
-    ShowMessage("%s", str);
+    SPDLOG_INFO("{0}", str);
 }
 
 // OK

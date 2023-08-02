@@ -59,7 +59,7 @@ static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 
  // can we cache them so that we do not allocate new memory every image ?
 	eprosima::fastcdr::FastBuffer buffer{};
-	eprosima::fastcdr::Cdr buffer_cdr(buffer);
+	eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
 	pcpd_msgs::msg::Hololens2AudioStream value{};
 
@@ -88,11 +88,11 @@ static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 	value.serialize(buffer_cdr);
 
 	if (z_publisher_put(user->publisher, (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(user->options))) {
-		ShowMessage("PV: Error publishing message");
+		SPDLOG_INFO("PV: Error publishing message");
 		SetEvent(user->clientevent);
 	}
 	else {
-		//ShowMessage("PV: published frame");
+		//SPDLOG_INFO("PV: published frame");
 	}
 
 	pBuffer->Unlock();
@@ -104,12 +104,12 @@ static void MC_Shoutcast()
 {
 
 	if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-		ShowMessage("PV: Error invalid context");
+		SPDLOG_INFO("PV: Error invalid context");
 		return;
 	}
 
 	std::string keyexpr = "hl2/sensor/mic/" + g_zenoh_context->client_id;
-	ShowMessage("MC: publish on: %s", keyexpr.c_str());
+	SPDLOG_INFO("MC: publish on: {0}", keyexpr.c_str());
 
 	z_publisher_options_t publisher_options = z_publisher_options_default();
 	publisher_options.priority = Z_PRIORITY_REAL_TIME;
@@ -117,7 +117,7 @@ static void MC_Shoutcast()
 	z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
 	if (!z_check(pub)) {
-		ShowMessage("MC: Error creating publisher");
+		SPDLOG_INFO("MC: Error creating publisher");
 		return;
 	}
 
@@ -184,7 +184,7 @@ static void MC_Shoutcast()
 
 
 		eprosima::fastcdr::FastBuffer buffer{};
-		eprosima::fastcdr::Cdr buffer_cdr(buffer);
+		eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
 		buffer_cdr.reset();
 		value.serialize(buffer_cdr);
@@ -195,10 +195,10 @@ static void MC_Shoutcast()
 		options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
 		int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
 		if (res > 0) {
-			ShowMessage("MC: Error putting info");
+			SPDLOG_INFO("MC: Error putting info");
 		}
 		else {
-			ShowMessage("MC: put info");
+			SPDLOG_INFO("MC: put info");
 		}
 
 	}
@@ -224,13 +224,13 @@ static DWORD WINAPI MC_EntryPoint(void*)
 
 	g_microphoneCapture->WaitActivate(INFINITE);
 
-	ShowMessage("MC: Start MC Stream");
+	SPDLOG_INFO("MC: Start MC Stream");
 
 	MC_Shoutcast();
 
 	//while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
-	ShowMessage("MC: Finished MC Stream");
+	SPDLOG_INFO("MC: Finished MC Stream");
 
 	return 0;
 }

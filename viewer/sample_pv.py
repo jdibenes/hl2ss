@@ -16,7 +16,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-DEFAULT_KEY = "hl2/cfg/vid/pv/dev00"
+DEFAULT_KEY = "hl2/cfg/pv/HOLOLENS-VM59UD"
 
 #------------------------------------------------------------------------------
 

@@ -73,12 +73,12 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
 {
 
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("EET: Error invalid context");
+        SPDLOG_INFO("EET: Error invalid context");
         return;
     }
     std::string& client_id = g_zenoh_context->client_id;
     std::string keyexpr = "hl2/sensor/eet/" + client_id;
-    ShowMessage("EET: publish on: %s", keyexpr.c_str());
+    SPDLOG_INFO("EET: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
@@ -86,7 +86,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
-        ShowMessage("EET: Error creating publisher");
+        SPDLOG_INFO("EET: Error creating publisher");
         return;
     }
 
@@ -116,7 +116,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     case 60: fps_index = 1; break;
     case 90: fps_index = 2; break;
     default: 
-        ShowMessage("EET: invalid fps");
+        SPDLOG_INFO("EET: invalid fps");
         return;
     }
 
@@ -126,7 +126,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     ExtendedEyeTracking_SetTargetFrameRate(fps_index);
 
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     {
         pcpd_msgs::msg::Hololens2StreamDescriptor value{};
@@ -135,7 +135,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
         value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::EYE_TRACKING);
         value.frame_rate(fps);
 
-        buffer_cdr.reset();
+        buffer_cdr.reset();        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
 
         // put message to zenoh
@@ -144,10 +144,10 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("EET: Error putting info");
+            SPDLOG_INFO("EET: Error putting info");
         }
         else {
-            ShowMessage("EET: put info");
+            SPDLOG_INFO("EET: put info");
         }
     }
 
@@ -248,19 +248,20 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
             value.valid(eet_packet.frame.valid);
 
             buffer_cdr.reset();
+            buffer_cdr.serialize_encapsulation();
             value.serialize(buffer_cdr);
 
             // send message to zenoh
             if (z_publisher_put(z_loan(pub), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options)) {
                 ok = false;
-                ShowMessage("EET: Error publishing message");
+                SPDLOG_INFO("EET: Error publishing message");
             }
             else {
-                //ShowMessage("EET: published frame");
+                //SPDLOG_INFO("EET: published frame");
             }
         }
         else {
-            //ShowMessage("EET: no data");
+            //SPDLOG_INFO("EET: no data");
         }
     }
     while (ok && WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
@@ -282,7 +283,7 @@ static DWORD WINAPI EET_EntryPoint(void* param)
     SpatialLocator locator = nullptr;
     uint64_t utc_offset;
     
-    ShowMessage("EET: Waiting for consent");
+    SPDLOG_INFO("EET: Waiting for consent");
 
     ExtendedEyeTracking_Initialize();
     
@@ -293,7 +294,7 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 
     EET_Stream(locator, utc_offset);
 
-    ShowMessage("EET: publisher done");
+    SPDLOG_INFO("EET: publisher done");
 
     return 0;
 }

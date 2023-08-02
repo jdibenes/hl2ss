@@ -176,9 +176,10 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
         }
 
         eprosima::fastcdr::FastBuffer buffer{};
-        eprosima::fastcdr::Cdr buffer_cdr(buffer);
+        eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
         // put message to zenoh
@@ -188,10 +189,10 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
             options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
             int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
             if (res > 0) {
-                ShowMessage("PV: Error putting info");
+                SPDLOG_INFO("PV: Error putting info");
             }
             else {
-                ShowMessage("PV: put info");
+                SPDLOG_INFO("PV: put info");
             }
         }
 
@@ -267,7 +268,7 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
     
     // can we cache them so that we do not allocate new memory every image ?
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     pcpd_msgs::msg::Hololens2VideoStream value{};
 
@@ -317,14 +318,15 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
 
 
     buffer_cdr.reset();
+    buffer_cdr.serialize_encapsulation();
     value.serialize(buffer_cdr);
 
     if (z_publisher_put(user->publisher, (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(user->options))) {
-        ShowMessage("PV: Error publishing message");
+        SPDLOG_INFO("PV: Error publishing message");
         SetEvent(user->clientevent);
     }
     else {
-        //ShowMessage("PV: published frame");
+        //SPDLOG_INFO("PV: published frame");
     }
 
     pBuffer->Unlock();
@@ -337,12 +339,12 @@ void PV_Stream(HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& f
 {
 
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("PV: Error invalid context");
+        SPDLOG_INFO("PV: Error invalid context");
         return;
     }
 
     std::string keyexpr = "hl2/sensor/pv/" + g_zenoh_context->client_id;
-    ShowMessage("PV: publish on: %s", keyexpr.c_str());
+    SPDLOG_INFO("PV: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
@@ -350,7 +352,7 @@ void PV_Stream(HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& f
     z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
-        ShowMessage("PV: Error creating publisher");
+        SPDLOG_INFO("PV: Error creating publisher");
         return;
     }
 
@@ -422,7 +424,7 @@ static void PV_Stream()
 {
 
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("PV: Invalid Zenoh Context");
+        SPDLOG_INFO("PV: Invalid Zenoh Context");
         return;
     }
 
@@ -430,16 +432,24 @@ static void PV_Stream()
     HANDLE clientevent; // CloseHandle
     H26xFormat format = g_zenoh_context->format;
     bool ok;
+    SPDLOG_DEBUG("PV: Start stream");
 
-    if (!PersonalVideo_Status()) { PersonalVideo_Open(); }
-    if (!PersonalVideo_Status()) { 
-        ShowMessage("PV: Error opening.");
+    unsigned retry_counter{ 0 };
+
+    while (!PersonalVideo_Status() && retry_counter <= 5) {
+        SPDLOG_DEBUG("PV: open device (n={0})", retry_counter);
+        PersonalVideo_Open();
+        ++retry_counter;
+        Sleep(50);
+    }
+    if (!PersonalVideo_Status()) {
+        SPDLOG_ERROR("PV: Error opening.");
         return; 
     }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
     if (!ok) { 
-        ShowMessage("PV: Error setting format.");
+        SPDLOG_ERROR("PV: Error setting format: {0}x{1}@{2}", format.width, format.height, format.framerate);
         return; 
     }
     
@@ -461,6 +471,7 @@ static void PV_Stream()
 
     // maybe this should be configurable too?
     if (true) { PersonalVideo_Close(); }
+    SPDLOG_DEBUG("PV: Stream finished.");
 }
 
 // OK
@@ -468,13 +479,13 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 {
     (void)param;
 
-    ShowMessage("PV: Start PV Stream");
+    SPDLOG_INFO("PV: Start PV Stream");
 
     PV_Stream();
 
     //while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
-    ShowMessage("PV: Finished PV Stream");
+    SPDLOG_INFO("PV: Finished PV Stream");
 
     return 0;
 }
@@ -482,7 +493,7 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 // OK
 void PV_Initialize(const char* client_id, z_session_t session, bool enable_location, H26xFormat format)
 {
-
+    SPDLOG_DEBUG("PV_Initialize");
     g_zenoh_context = new PV_Context(); // release
     g_zenoh_context->client_id = std::string(client_id);
     g_zenoh_context->session = session;
@@ -497,6 +508,7 @@ void PV_Initialize(const char* client_id, z_session_t session, bool enable_locat
 // OK
 void PV_Quit()
 {
+    SPDLOG_DEBUG("PV_Quit");
     SetEvent(g_event_quit);
 }
 

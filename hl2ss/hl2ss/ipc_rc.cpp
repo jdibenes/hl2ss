@@ -227,7 +227,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVFocus> {
             request.disable_driver_fallback(args_extract<uint32_t, 1>(args, "disable_driver_fallback"));
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("RC: invalid argument: %s", e.what());
+            SPDLOG_INFO("RC: invalid argument: {0}", e.what());
             return false;
         }
         return true;
@@ -242,7 +242,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVExposure> {
             request.value(args_extract<uint32_t, 10000>(args, "value"));
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("RC: invalid argument: %s", e.what());
+            SPDLOG_INFO("RC: invalid argument: {0}", e.what());
             return false;
         }
         return true;
@@ -257,7 +257,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2RCRequest_SetPVIsoSpeed> {
             request.value(args_extract<uint32_t, 100>(args, "value"));
         }
         catch (const std::invalid_argument& e) {
-            ShowMessage("RC: invalid argument: %s", e.what());
+            SPDLOG_INFO("RC: invalid argument: {0}", e.what());
             return false;
         }
 
@@ -285,7 +285,7 @@ void RC_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                ShowMessage("Received argument: %s -> %s", current->key, current->value);
+                SPDLOG_INFO("Received argument: %s -> {0}", current->key, current->value);
             }
             current = current->next;
         }
@@ -367,18 +367,18 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 {
 
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("RC: Invalid Zenoh Context");
+        SPDLOG_INFO("RC: Invalid Zenoh Context");
         return 1;
     }
 
     (void)param;
 
     std::string keyexpr_str = "hl2/rpc/rc/" + g_zenoh_context->client_id;
-    ShowMessage("RC: endpoint: %s", keyexpr_str.c_str());
+    SPDLOG_INFO("RC: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
     if (!z_check(keyexpr)) {
-        ShowMessage("RC: %s is not a valid key expression", keyexpr_str.c_str());
+        SPDLOG_INFO("RC: {0} is not a valid key expression", keyexpr_str.c_str());
         return 1;
     }
     const char* expr = keyexpr_str.c_str();
@@ -391,7 +391,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 
     z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
-        ShowMessage("RC: Unable to create queryable.");
+        SPDLOG_INFO("RC: Unable to create queryable.");
         return 1;
     }
 
@@ -402,7 +402,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
     while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
 
     z_undeclare_queryable(z_move(qable));
-    ShowMessage("RC: Closed");
+    SPDLOG_INFO("RC: Closed");
 
     return 0;
 }

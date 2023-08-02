@@ -49,6 +49,14 @@ class Hololens2SensorType(IdlEnum, typename="Hololens2SensorType"):
     RM_IMU_MAG = auto()
 
 
+class Hololens2LogLevel(IdlEnum, typename="Hololens2LogLevel"):
+    HL2_LOG_ERROR = auto()
+    HL2_LOG_WARNING = auto()
+    HL2_LOG_INFO = auto()
+    HL2_LOG_DEBUG = auto()
+    HL2_LOG_TRACE = auto()
+
+
 @dataclass
 class Vector3(IdlStruct, typename="Vector3"):
     x: float64
@@ -80,6 +88,35 @@ class Duration(IdlStruct, typename="Duration"):
 class Header(IdlStruct, typename="Header"):
     stamp: Time
     frame_id: str
+
+
+@dataclass
+class Hololens2LogItem(IdlStruct, typename="Hololens2LogItem"):
+    timestamp: Time
+    severity: Hololens2LogLevel
+    message: str
+
+
+@dataclass
+class Hololens2LogMessage(IdlStruct, typename="Hololens2LogMessage"):
+    header: Header
+    items: sequence[Hololens2LogItem]
+
+
+@dataclass
+class Hololens2Presence(IdlStruct, typename="Hololens2Presence"):
+    header: Header
+    heart_beat_counter: uint64
+
+
+@dataclass
+class Hololens2AudioStream(IdlStruct, typename="Hololens2AudioStream"):
+    header: Header
+
+    profile: Hololens2AACProfile
+
+    data_size: uint64
+    data: sequence[uint8]
 
 
 @dataclass

@@ -365,10 +365,10 @@ class producer:
         self._rx[port] = receiver
 
     def configure_rm_vlc(self, decoded, host, port, chunk, mode, profile, bitrate):
-        self.configure(port, hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate) if (decoded) else hl2ss.rx_rm_vlc(host, port, chunk, mode, profile, bitrate))
+        self.configure(port, hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, profile, bitrate) if (decoded) else hl2ss.rx_video_stream(host, port, chunk, mode, profile, bitrate))
 
     def configure_rm_depth_ahat(self, decoded, host, port, chunk, mode, profile, bitrate):
-        self.configure(port, hl2ss.rx_decoded_rm_depth_ahat(host, port, chunk, mode, profile, bitrate) if (decoded) else hl2ss.rx_rm_depth_ahat(host, port, chunk, mode, profile, bitrate))
+        self.configure(port, hl2ss.rx_decoded_rm_depth_ahat(host, port, chunk, mode, profile, bitrate) if (decoded) else hl2ss.rx_video_stream(host, port, chunk, mode, profile, bitrate))
         
     def configure_rm_depth_longthrow(self, decoded, host, port, chunk, mode, png_filter):
         self.configure(port, hl2ss.rx_decoded_rm_depth_longthrow(host, port, chunk, mode, png_filter) if (decoded) else hl2ss.rx_rm_depth_longthrow(host, port, chunk, mode, png_filter))

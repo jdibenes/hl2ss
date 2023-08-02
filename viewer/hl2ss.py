@@ -1,6 +1,8 @@
 
 from enum import IntEnum
 import numpy as np
+import quaternion
+
 import socket
 import struct
 import asyncio
@@ -191,15 +193,30 @@ class _RANGEOF:
 # Pose
 #------------------------------------------------------------------------------
 
+def to_vec3(v):
+    if isinstance(v, hl2ss_schema.Vector3):
+        v = np.asarray([v.x, v.y, v.z])
+    # more ..
+    return v
+
+
+def to_quat(v):
+    if isinstance(v, hl2ss_schema.Quaternion):
+        orientation = np.quaternion(v.w, v.x, v.y, v.z)
+    # more ..
+    return v
+
+
 class Pose:
     def __init__(self, translation, orientation):
-        self.translation = translation
-        self.orientation = orientation
+        self.translation = to_vec3(translation)
+        self.orientation = to_quat(orientation)
 
     def to_matrix(self):
-        # tbd
-        raise NotImplemented()
-        return []
+        mat = np.identity(4)
+        mat[:3, :3] = quaternion.as_rotation_matrix(self.orientation)
+        mat[:3, 3] = self.translation
+        return mat
 
 
 #------------------------------------------------------------------------------
@@ -214,9 +231,9 @@ class _packet:
 
 
 def is_valid_pose(pose):
-    return isinstance(pose, Pose)
-
-    # return pose[3, 3] != 0
+    if isinstance(pose, Pose):
+        return True
+    return pose[3, 3] != 0
 
 
 #------------------------------------------------------------------------------
@@ -234,11 +251,61 @@ class _context_manager:
 
 
 #------------------------------------------------------------------------------
+# RPC Interface
+#------------------------------------------------------------------------------
+
+class rpc_interface(_context_manager):
+
+    def __init__(self, svc_name, session_config, rpc_topic):
+        self.svc_name = svc_name
+        self.session_config = session_config
+        self.rpc_topic = rpc_topic
+
+    @property
+    def session(self):
+        # lazy property to support multiprocessing - cannot pickle session
+        return hl2ss_core.Locator().get_session(self.session_config)
+
+    def make_request_payload(self, **kw):
+        return kw, None
+
+    def __call__(self, **kw):
+        args, payload = self.make_request_payload(**kw)
+        query = "{}?{}".format(self.rpc_topic, "&".join("{0}={1}".format(k,v) for k,v in args.items()))
+        replies = self.session.get(query, zenoh.Queue(), target=QueryTarget.ALL(), value=payload)
+        result = []
+        for reply in replies.receiver:
+            try:
+                result.append(reply.ok)
+            except:
+                log.error("RPC ERROR: '{}'", reply.err.payload.decode("utf-8"))
+        return result
+
+
+class mgr_rpc_interface(rpc_interface):
+
+    def __init__(self, svc_name, session_config, client_id):
+        super().__init__(svc_name, session_config, "hl2/rpc/mgr/" + client_id)
+
+    def make_request_payload(self, **kw):
+        if "cmd" not in kw:
+            log.warning("RPC: called without command")
+            return kw, None
+        cmd = kw["cmd"]
+        payload = None
+
+        # adapt payload generation to cmd here ..
+
+        return kw, payload
+
+#------------------------------------------------------------------------------
 # Receiver Wrappers
 #------------------------------------------------------------------------------
 
-class rx_video_stream(_context_manager):
-    def __init__(self, session_config, config_topic):
+class stream_base(_context_manager):
+
+    def __init__(self, svc_name, session_config, config_topic):
+        self.svc_name = svc_name
         self.session_config = session_config
         self.config_topic = config_topic
         self.desc = None
@@ -257,24 +324,40 @@ class rx_video_stream(_context_manager):
     def configure(self):
         replies = self.session.get(self.config_topic, zenoh.Queue(), target=QueryTarget.BEST_MATCHING())
         desc_reply = next(replies).ok
-        self.desc = hl2ss_schema.Hololens2StreamDescriptor.deserialize(desc_reply.payload, has_header=False)
-        log.info("PV received stream_config: {0}".format(self.desc))
+        self.desc = hl2ss_schema.Hololens2StreamDescriptor.deserialize(desc_reply.payload)
+        log.info("{0} received stream_config: {1}".format(self.svc_name, self.desc))
 
     def open(self):
         if self.desc is None:
             self.configure()
-        log.info("PV subscribes to stream_topic: {0}".format(self.desc.stream_topic))
+        log.info("{0} subscribes to stream_topic: {1}".format(self.svc_name, self.desc.stream_topic))
         self.sub = self.session.declare_pull_subscriber(self.desc.stream_topic, self.cb_data, reliability=Reliability.RELIABLE())
 
     def cb_data(self, sample):
         self.last_sample = sample
 
+    def close(self):
+        self.sub.undeclare()
+
     def get_next_packet(self):
         self.last_sample = None
         while self.last_sample is None:  # do we need a stop criterion?
             self.sub.pull()
-        value = hl2ss_schema.Hololens2VideoStream.deserialize(self.last_sample.payload, has_header=False)
-        pose = Pose(value.position, value.orientation)
+        return self.process_sample()
+
+    def process_sample(self):
+        raise NotImplemented
+
+
+
+class rx_video_stream(stream_base):
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
+
+        value = hl2ss_schema.Hololens2VideoStream.deserialize(self.last_sample.payload)
+        pose = Pose(value.position, value.orientation).to_matrix()
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, pose)
         d = self.desc
@@ -286,117 +369,114 @@ class rx_video_stream(_context_manager):
                     d.image_format == hl2ss_schema.Hololens2PixelFormat.PixelFormat_NV12:
                 stride = get_nv12_stride(width)
             else:
-                log.warning("Unhandled uncompressed sensor type: {0}".format(d.sensor_type))
+                log.warning("{0} Unhandled uncompressed sensor type: {1}".format(self.svc_name, d.sensor_type))
             if stride > 0:
                 p.image = np.asarray(value.image, dtype=np.uint8).reshape((int(height*3/2), stride))[:, :width]
         return p
 
-    def close(self):
-        self.sub.undeclare()
+
+class rx_rm_depth_longthrow(stream_base):
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
+
+        value = hl2ss_schema.Hololens2VideoStream.deserialize(self.last_sample.payload)
+        pose = Pose(value.position, value.orientation).to_matrix()
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, pose)
+        d = self.desc
+        if d.image_compression == hl2ss_schema.Hololens2ImageCompression.CompressionType_Raw:
+            width = self.desc.image_width
+            height = self.desc.image_height
+            stride = 0
+            if d.sensor_type == hl2ss_schema.Hololens2SensorType.RM_DEPTH_LONG_THROW and \
+                    d.image_format == hl2ss_schema.Hololens2PixelFormat.PixelFormat_L16:
+                stride = width*2
+            else:
+                log.warning("{0} Unhandled uncompressed sensor type: {1}".format(self.svc_name, d.sensor_type))
+            if stride > 0:
+                p.image = np.asarray(value.image, dtype=np.uint8).reshape((int(height*3/2), stride))[:, :width]
+        return p
 
 
-class rx_rm_depth_ahat(_context_manager):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
-        self.mode = mode
-        self.profile = profile
-        self.bitrate = bitrate
+class rx_rm_imu_accel(stream_base):
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
 
-    def open(self):
-        self._client = _connect_client_rm_depth_ahat(self.host, self.port, self.chunk, self.mode, self.profile, self.bitrate)
-
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-
-    def close(self):
-        self._client.close()
+        value = hl2ss_schema.Hololens2ImuAccel.deserialize(self.last_sample.payload)
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, np.zeros((4, 4)))
+        return p
 
 
-class rx_rm_depth_longthrow(_context_manager):
-    def __init__(self, host, port, chunk, mode, png_filter):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
-        self.mode = mode
-        self.png_filter = png_filter
+class rx_rm_imu_gyro(stream_base):
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
 
-    def open(self):
-        self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.chunk, self.mode, self.png_filter)
-
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-
-    def close(self):
-        self._client.close()
+        value = hl2ss_schema.Hololens2ImuGyro.deserialize(self.last_sample.payload)
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, np.zeros((4, 4)))
+        return p
 
 
-class rx_rm_imu(_context_manager):
-    def __init__(self, host, port, chunk, mode):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
-        self.mode = mode
+class rx_rm_imu_mag(stream_base):
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
 
-    def open(self):
-        self._client = _connect_client_rm_imu(self.host, self.port, self.chunk, self.mode)
-
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-
-    def close(self):
-        self._client.close()
+        value = hl2ss_schema.Hololens2ImuMAg.deserialize(self.last_sample.payload)
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, np.zeros((4, 4)))
+        return p
 
 
-class rx_microphone(_context_manager):
-    def __init__(self, host, port, chunk, profile):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
-        self.profile = profile
+class rx_microphone(stream_base):
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
 
-    def open(self):
-        self._client = _connect_client_microphone(self.host, self.port, self.chunk, self.profile)
-
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-
-    def close(self):
-        self._client.close()
+        value = hl2ss_schema.Hololens2AudioStream.deserialize(self.last_sample.payload)
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, np.zeros((4, 4)))
+        return p
 
 
-class rx_si(_context_manager):
-    def __init__(self, host, port, chunk):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
+class rx_si(stream_base):
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
 
-    def open(self):
-        self._client = _connect_client_si(self.host, self.port, self.chunk)
-
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-
-    def close(self):
-        self._client.close()
+        value = hl2ss_schema.Hololens2HandTracking.deserialize(self.last_sample.payload)
+        pose = Pose(value.position, value.orientation).to_matrix()
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, pose)
+        return p
 
 
-class rx_eet(_context_manager):
-    def __init__(self, host, port, chunk, fps):
-        self.host = host
-        self.port = port
-        self.chunk = chunk
-        self.fps = fps
+class rx_eet(stream_base):
 
-    def open(self):
-        self._client = _connect_client_eet(self.host, self.port, self.chunk, self.fps)
+    def configure(self):
+        pass
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
-    
-    def close(self):
-        self._client.close()
+    def process_sample(self):
+        if self.last_sample is None:
+            log.warning("{0} processed empty sample", self.svc_name)
+            return
+
+        value = hl2ss_schema.Hololens2EyeTracking.deserialize(self.last_sample.payload)
+        pose = Pose(value.position, value.orientation).to_matrix()
+        ts = hl2ss_core.Time.from_msg(value.header.stamp)
+        p = _packet(ts, value, pose)
+        return p
+
 
 
 #------------------------------------------------------------------------------
@@ -468,9 +548,13 @@ class _decode_rm_vlc:
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return frame.to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
+        try:
+            # this will only decode one packet ...
+            for packet in self._codec.parse(payload):
+                for frame in self._codec.decode(packet):
+                    return frame.to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
+        except av.error.InvalidDataError as e:
+            log.error(e)
         return None
 
 
@@ -677,9 +761,13 @@ class _decode_microphone:
         self._codec = av.CodecContext.create(get_audio_codec_name(self.profile), 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return frame.to_ndarray()
+        try:
+            # this will only decode one packet ...
+            for packet in self._codec.parse(payload):
+                for frame in self._codec.decode(packet):
+                    return frame.to_ndarray()
+        except Exception as e:  # too broad
+            log.error(e)
         return None
 
 
@@ -848,17 +936,15 @@ class unpack_si:
 
 class unpack_eet:
     def __init__(self, payload):
-        self._reserved = payload[:4]
-        f = np.frombuffer(payload[4:-4], dtype=np.float32)
-        valid = struct.unpack('<I', payload[-4:])[0]
 
-        self.combined_ray = _SI_EyeRay(f[0:3], f[3:6])
-        self.left_ray = _SI_EyeRay(f[6:9], f[9:12])
-        self.right_ray = _SI_EyeRay(f[12:15], f[15:18])
-        self.left_openness = f[18]
-        self.right_openness = f[19]
-        self.vergence_distance = f[20]
+        self.combined_ray = _SI_EyeRay(to_vec3(payload.c_origin), to_vec3(payload.c_direction))
+        self.left_ray = _SI_EyeRay(to_vec3(payload.l_origin), to_vec3(payload.l_direction))
+        self.right_ray = _SI_EyeRay(to_vec3(payload.r_origin), to_vec3(payload.r_direction))
+        self.left_openness = payload.l_openness
+        self.right_openness = payload.r_openness
+        self.vergence_distance = payload.vergence_distance
 
+        valid = payload.valid
         self.calibration_valid = valid & 0x01 != 0
         self.combined_ray_valid = valid & 0x02 != 0
         self.left_ray_valid = valid & 0x04 != 0
@@ -873,41 +959,48 @@ class unpack_eet:
 #------------------------------------------------------------------------------
 
 class rx_decoded_rm_vlc(rx_video_stream):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
-        super().__init__(host, port, chunk, mode, profile, bitrate)
+    def __init__(self, session_config, config_topic, fmt):
+        super().__init__("RM_HT", session_config, config_topic)
+        self.format = fmt
+        self._codec = None
+
+    def open(self):
+        self.configure()
+
+        profile = map_videoprofile[self.desc.h26x_profile]
         self._codec = decode_rm_vlc(profile)
 
-    def open(self):
         self._codec.create()
         super().open()
         self.get_next_packet()
 
     def get_next_packet(self):
         data = super().get_next_packet()
-        data.payload = self._codec.decode(data.payload)
+        data.payload = _unpack_rm_vlc(data.payload)
+        data.payload.image = self._codec.decode(data.payload.image)
         return data
 
-    def close(self):
-        super().close()
 
+class rx_decoded_rm_depth_ahat(rx_video_stream):
+    def __init__(self, session_config, config_topic, fmt):
+        super().__init__("RM_HT", session_config, config_topic)
+        self.format = fmt
+        self._codec = None
 
-class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
-    def __init__(self, host, port, chunk, mode, profile, bitrate):
-        super().__init__(host, port, chunk, mode, profile, bitrate)
+    def open(self):
+        self.configure()
+
+        profile = map_videoprofile[self.desc.h26x_profile]
         self._codec = decode_rm_depth_ahat(profile)
 
-    def open(self):
         self._codec.create()
         super().open()
         self.get_next_packet()
 
     def get_next_packet(self):
         data = super().get_next_packet()
-        data.payload = self._codec.decode(data.payload)
-        return data
-
-    def close(self):
-        super().close()
+        data.payload = _unpack_rm_depth_ahat(data.payload)
+        data.payload.image = self._codec.decode(data.payload.image, self.format)
 
 
 class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
@@ -922,13 +1015,10 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
         data.payload = decode_rm_depth_longthrow(data.payload)
         return data
 
-    def close(self):
-        super().close()
-
 
 class rx_decoded_pv(rx_video_stream):
     def __init__(self, session_config, config_topic, fmt):
-        super().__init__(session_config, config_topic)
+        super().__init__("PV", session_config, config_topic)
         self.format = fmt
         self._codec = None
 
@@ -948,9 +1038,6 @@ class rx_decoded_pv(rx_video_stream):
         data.payload.image = self._codec.decode(data.payload.image, self.format)
         return data
 
-    def close(self):
-        super().close()
-
 
 class rx_decoded_microphone(rx_microphone):
     def __init__(self, host, port, chunk, profile):
@@ -965,9 +1052,6 @@ class rx_decoded_microphone(rx_microphone):
         data = super().get_next_packet()
         data.payload = self._codec.decode(data.payload)
         return data
-
-    def close(self):
-        super().close()
 
 
 #------------------------------------------------------------------------------

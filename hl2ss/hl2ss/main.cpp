@@ -92,6 +92,9 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		spdlog::set_default_logger(logger);
 		spdlog::set_level(spdlog::level::debug);
 
+		spdlog::flush_every(std::chrono::milliseconds(500));
+		spdlog::flush_on(spdlog::level::debug);
+
 		SetupDebugLogSink();
 		SPDLOG_INFO("Init logging");
 

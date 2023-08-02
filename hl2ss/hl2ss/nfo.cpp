@@ -63,11 +63,11 @@ void PrintSystemInfo()
 
     GetSystemInfo(&si);
 
-    ShowMessage("Active Processor Mask %llX", si.dwActiveProcessorMask);
-    ShowMessage("Number of Processors %d", si.dwNumberOfProcessors);
+    SPDLOG_INFO("Active Processor Mask {0:b}", si.dwActiveProcessorMask);
+    SPDLOG_INFO("Number of Processors {0}", si.dwNumberOfProcessors);
 
     GetProcessAffinityMask(GetCurrentProcess(), &pam, &sam);
 
-    ShowMessage("Process Affinity Mask %llX", pam);
-    ShowMessage("System Affinity Mask %llX", sam);
+    SPDLOG_INFO("Process Affinity Mask {0:b}", pam);
+    SPDLOG_INFO("System Affinity Mask {0:b}", sam);
 }

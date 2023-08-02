@@ -8,9 +8,23 @@
 module pcpd_msgs {
   module rpc {
 
+    enum Hololens2LogLevel {
+      HL2_LOG_ERROR,
+      HL2_LOG_WARNING,
+      HL2_LOG_INFO,
+      HL2_LOG_DEBUG,
+      HL2_LOG_TRACE
+    };
+
+    struct Hololens2LogItem {
+        builtin_interfaces::msg::Time timestamp;
+        Hololens2LogLevel severity;
+        string message;
+    };
+
     struct Hololens2LogMessage {
         std_msgs::msg::Header header;
-        sequence<string> messages;
+        sequence<Hololens2LogItem> items;
     };
 
     struct Hololens2Presence {

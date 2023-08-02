@@ -53,7 +53,7 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
     // can we cache them so that we do not allocate new memory every image ?
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     pcpd_msgs::msg::Hololens2VideoStream value{};
 
@@ -98,14 +98,15 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
 
     buffer_cdr.reset();
+    buffer_cdr.serialize_encapsulation();
     value.serialize(buffer_cdr);
 
     if (z_publisher_put(user->publisher, (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &(user->options))) {
-        ShowMessage("RM_VLC: Error publishing message");
+        SPDLOG_INFO("RM_VLC: Error publishing message");
         SetEvent(user->clientevent);
     }
     else {
-        //ShowMessage("PV: published frame");
+        //SPDLOG_INFO("PV: published frame");
     }
 
     pBuffer->Unlock();
@@ -138,7 +139,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_RIGHT_RIGHT);
         break;
     default:
-        ShowMessage("RM_VLC: invalid config");
+        SPDLOG_INFO("RM_VLC: invalid config");
         return;
     }
 
@@ -181,11 +182,12 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     // publish streamdescriptor
     eprosima::fastcdr::FastBuffer buffer{};
-    eprosima::fastcdr::Cdr buffer_cdr(buffer);
+    eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
 
     // put message to zenoh
     {
         buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
         std::string keyexpr1 = "hl2/cfg/" + sub_path + std::string(client_id);
@@ -193,14 +195,14 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            ShowMessage("RM_VLC: Error putting info");
+            SPDLOG_INFO("RM_VLC: Error putting info");
         }
         else {
-            ShowMessage("RM_VLC: put info");
+            SPDLOG_INFO("RM_VLC: put info");
         }
     }
 
-    ShowMessage("RM_VLC: publish on: %s", keyexpr.c_str());
+    SPDLOG_INFO("RM_VLC: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
@@ -208,7 +210,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     z_owned_publisher_t pub = z_declare_publisher(session, z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
-        ShowMessage("RM_VLC: Error creating publisher");
+        SPDLOG_INFO("RM_VLC: Error creating publisher");
         return;
     }
 
@@ -266,41 +268,53 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     do
     {
-    hr = sensor->GetNextBuffer(&pSensorFrame); // block
-    if (FAILED(hr)) { break; }
+        try {
+            hr = sensor->GetNextBuffer(&pSensorFrame); // block
+            if (FAILED(hr)) { break; }
 
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pVLCFrame));
+            pSensorFrame->GetTimeStamp(&timestamp);
+            pSensorFrame->QueryInterface(IID_PPV_ARGS(&pVLCFrame));
 
-    pVLCFrame->GetBuffer(&pImage, &length);
+            pVLCFrame->GetBuffer(&pImage, &length);
 
-    MFCreateMemoryBuffer(framebytes, &pBuffer);
+            MFCreateMemoryBuffer(framebytes, &pBuffer);
+            if (pBuffer) {
+                pBuffer->Lock(&pDst, NULL, NULL);
+                memcpy(pDst, pImage, lumasize);
+                memset(pDst + lumasize, zerochroma, chromasize);
+                pBuffer->Unlock();
+                pBuffer->SetCurrentLength(framebytes);
 
-    pBuffer->Lock(&pDst, NULL, NULL);
-    memcpy(pDst, pImage, lumasize);
-    memset(pDst + lumasize, zerochroma, chromasize);
-    pBuffer->Unlock();
-    pBuffer->SetCurrentLength(framebytes);
+                MFCreateSample(&pSample);
 
-    MFCreateSample(&pSample);
+                pSample->AddBuffer(pBuffer);
+                pSample->SetSampleDuration(duration);
+                pSample->SetSampleTime(timestamp.HostTicks);
 
-    pSample->AddBuffer(pBuffer);
-    pSample->SetSampleDuration(duration);
-    pSample->SetSampleTime(timestamp.HostTicks);
+                if constexpr (ENABLE_LOCATION)
+                {
+                    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
+                    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
+                    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
+                }
 
-    if constexpr(ENABLE_LOCATION)
-    {
-    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
-    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
-    }
+                pSinkWriter->WriteSample(dwVideoIndex, pSample);
 
-    pSinkWriter->WriteSample(dwVideoIndex, pSample);
+                pSample->Release();
+                pBuffer->Release();
 
-    pVLCFrame->Release();
-    pSensorFrame->Release();
-    pSample->Release();
-    pBuffer->Release();
+            }
+            else {
+                SPDLOG_ERROR("RM_VLC: Invalid Buffer received ..");
+            }
+
+
+            pVLCFrame->Release();
+            pSensorFrame->Release();
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("RM_VLC: Error during frame processing: {0}", e.what());
+        }
     }
     while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
 

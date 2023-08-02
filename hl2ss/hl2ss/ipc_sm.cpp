@@ -301,7 +301,7 @@ struct SM_GetMeshes {
 template<>
 struct RpcRequestArgs<pcpd_msgs::rpc::HL2SMRequest_SetVolumes> {
     bool parse(const std::map<std::string, std::string>& /*args*/, pcpd_msgs::rpc::HL2SMRequest_SetVolumes& /*request*/) {
-        ShowMessage("SM: SetVolumes without payload is not suported.");
+        SPDLOG_INFO("SM: SetVolumes without payload is not suported.");
         return false;
     }
 };
@@ -309,7 +309,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2SMRequest_SetVolumes> {
 template<>
 struct RpcRequestArgs<pcpd_msgs::rpc::HL2SMRequest_GetMeshes> {
     bool parse(const std::map<std::string, std::string>& /*args*/, pcpd_msgs::rpc::HL2SMRequest_GetMeshes& /*request*/) {
-        ShowMessage("SM: GetMeshes without payload is not suported.");
+        SPDLOG_INFO("SM: GetMeshes without payload is not suported.");
         return false;
     }
 };
@@ -333,7 +333,7 @@ void SM_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                ShowMessage("Received argument: %s -> %s", current->key, current->value);
+                SPDLOG_DEBUG("Received argument: {0} -> {1}", current->key, current->value);
             }
             current = current->next;
         }
@@ -387,22 +387,22 @@ void SM_QueryHandler(const z_query_t* query, void* context) {
 static DWORD WINAPI SM_EntryPoint(void* param)
 {
     if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
-        ShowMessage("SM: Invalid Zenoh Context");
+        SPDLOG_INFO("SM: Invalid Zenoh Context");
         return 1;
     }
 
     (void)param;
 
-    ShowMessage("SM: Waiting for consent");
+    SPDLOG_INFO("SM: Waiting for consent");
 
     SpatialMapping_WaitForConsent();
 
     std::string keyexpr_str = "hl2/rpc/sm/" + g_zenoh_context->client_id;
-    ShowMessage("SM: endpoint: %s", keyexpr_str.c_str());
+    SPDLOG_INFO("SM: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
     if (!z_check(keyexpr)) {
-        ShowMessage("SM: %s is not a valid key expression", keyexpr_str.c_str());
+        SPDLOG_INFO("SM: {0} is not a valid key expression", keyexpr_str.c_str());
         return 1;
     }
     const char* expr = keyexpr_str.c_str();
@@ -415,7 +415,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
 
     z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
-        ShowMessage("SM: Unable to create queryable.");
+        SPDLOG_INFO("SM: Unable to create queryable.");
         return 1;
     }
 
@@ -425,7 +425,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
     } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
 
     z_undeclare_queryable(z_move(qable));
-    ShowMessage("SM: Closed");
+    SPDLOG_INFO("SM: Closed");
 
     return 0;
 }
