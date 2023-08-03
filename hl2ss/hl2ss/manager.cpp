@@ -26,7 +26,7 @@ static HANDLE g_thread = NULL; // CloseHandle
 static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_event_client = NULL; // CloseHandle
 
-static HC_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context{};
 
 
 //-----------------------------------------------------------------------------
@@ -42,12 +42,12 @@ namespace spdlog {
 
         public:
             zenoh_logging_sink() {
-                if (g_zenoh_context == nullptr) {
+                if (!g_zenoh_context) {
                     // invalid context
                     return;
                 }
-                _client_id = g_zenoh_context->client_id.c_str();
-                std::string keyexpr = "hl2/logs/" + g_zenoh_context->client_id;
+                _topic_prefix = g_zenoh_context->topic_prefix.c_str();
+                std::string keyexpr = g_zenoh_context->topic_prefix + "/logs";
                 OutputDebugStringA(fmt::format("MGR: publish logs at: {0}\\n", keyexpr).c_str());
 
                 z_publisher_options_t publisher_options = z_publisher_options_default();
@@ -74,6 +74,7 @@ namespace spdlog {
                     return;
                 }
                 memory_buf_t formatted;
+
                 base_sink<Mutex>::formatter_->format(msg, formatted);
                 std::string msg_str = fmt::to_string(formatted);
                 _items.emplace_back(
@@ -100,7 +101,7 @@ namespace spdlog {
                     value.header().stamp().sec(ts_sec);
                     value.header().stamp().nanosec(ts_nsec);
 
-                    value.header().frame_id(_client_id);
+                    value.header().frame_id(_topic_prefix);
                 }
                 std::vector< pcpd_msgs::rpc::Hololens2LogItem> items(_items.size());
                 for (int i = 0; i < _items.size();++i) {
@@ -155,7 +156,7 @@ namespace spdlog {
         private:
             std::vector<std::tuple<std::chrono::nanoseconds, spdlog::level::level_enum, std::string>> _items;
             z_owned_publisher_t _publisher;
-            const char* _client_id;
+            const char* _topic_prefix;
             bool _is_active{ false };
         };
 
@@ -771,7 +772,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
 {
     SPDLOG_INFO("MGR: EntryPoint Main Thread");
 
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         OutputDebugStringA("MGR: Invalid Zenoh Context");
         return 1;
     }
@@ -783,7 +784,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
     std::vector<spdlog::sink_ptr>& sinks = spdlog::details::registry::instance().get_default_raw()->sinks();
     sinks.push_back(cbs);
 
-    std::string keyexpr_str = "hl2/rpc/mgr/" + g_zenoh_context->client_id;
+    std::string keyexpr_str = g_zenoh_context->topic_prefix + "/rpc/mgr";
     SPDLOG_INFO("MGR: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
@@ -809,7 +810,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
 
     eprosima::fastcdr::FastBuffer buffer{};
     eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
-    std::string keyexpr1 = "hl2/presence/" + g_zenoh_context->client_id;
+    std::string keyexpr1 = g_zenoh_context->topic_prefix + "/presence";
 
     {
         pcpd_msgs::rpc::Hololens2Presence value{};
@@ -824,7 +825,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
             value.header().stamp().sec(ts_sec);
             value.header().stamp().nanosec(ts_nsec);
 
-            value.header().frame_id(g_zenoh_context->client_id);
+            value.header().frame_id(g_zenoh_context->topic_prefix);
         }
         value.heart_beat_counter(heart_beat_counter);
 
@@ -860,7 +861,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
             value.header().stamp().sec(ts_sec);
             value.header().stamp().nanosec(ts_nsec);
 
-            value.header().frame_id(g_zenoh_context->client_id);
+            value.header().frame_id(g_zenoh_context->topic_prefix);
         }
         value.heart_beat_counter(heart_beat_counter);
 
@@ -929,13 +930,10 @@ void MGR_Cleanup() {
 
 
 
-bool StartManager(HC_Context* context) {
+bool StartManager(HC_Context_Ptr& context) {
     SPDLOG_INFO("StartManager...");
-    if (context == nullptr) {
-        return false;
-    }
-    if (g_zenoh_context != nullptr) {
-        // tried to start with another context .. ignore
+    if (!context) {
+        SPDLOG_ERROR("StartManager: Invalid context");
         return false;
     }
     g_zenoh_context = context;
@@ -945,8 +943,9 @@ bool StartManager(HC_Context* context) {
     return true;
 }
 
-bool StopManager(HC_Context* context) {
-    if (context == nullptr) {
+bool StopManager(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StartManager: Invalid context");
         return false;
     }
 
@@ -959,7 +958,7 @@ bool StopManager(HC_Context* context) {
 
 
 
-bool StartRM(HC_Context* context,
+bool StartRM(HC_Context_Ptr& context,
     bool enable_location,
     bool enable_left_front, bool enable_left_left,
     bool enable_right_front, bool enable_right_right,
@@ -967,11 +966,17 @@ bool StartRM(HC_Context* context,
     bool enable_depth_ahat, bool enable_depth_long_throw,
     H26xFormat depth_format,
     bool enable_imu_accel, bool enable_imu_gyro, bool enable_imu_mag) {
-    if (context == nullptr) {
+    if (!context) {
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_RM)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_RM) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_RM)) { 
+        SPDLOG_WARN("StartRM: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_RM) { 
+        SPDLOG_WARN("StartRM: are already started");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_RM;
 
     RMStreamConfig rm_config{};
@@ -988,203 +993,322 @@ bool StartRM(HC_Context* context,
     rm_config.enable_imu_gyro = enable_imu_gyro;
     rm_config.enable_imu_mag = enable_imu_mag;
 
-    RM_Initialize(context->client_id.c_str(), z_loan(context->session), rm_config);
+    RM_Initialize(context, rm_config);
 
     return true;
 }
 
-bool StopRM(HC_Context* context) {
-    if (context == nullptr) {
+bool StopRM(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopRM: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_RM)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_RM)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_RM)) { 
+        SPDLOG_WARN("StopRM: not enabled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_RM)) { 
+        SPDLOG_WARN("StopRM: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_RM;
     RM_Quit();
     RM_Cleanup();
     return true;
 }
 
-bool StartPV(HC_Context* context,
+bool StartPV(HC_Context_Ptr& context,
     bool enable_location,
     H26xFormat pv_format) {
-    if (context == nullptr) {
+    if (!context) {
+        SPDLOG_ERROR("StartPV: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_PV)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_PV) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_PV)) { 
+        SPDLOG_WARN("StartPV: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_PV) { 
+        SPDLOG_WARN("StartPV: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_PV;
-    PV_Initialize(context->client_id.c_str(), z_loan(context->session), enable_location, pv_format);
+    PV_Initialize(context, enable_location, pv_format);
     return true;
 }
 
-bool StopPV(HC_Context* context) {
-    if (context == nullptr) {
+bool StopPV(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopPV: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_PV)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_PV)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_PV)) { 
+        SPDLOG_WARN("StopPV: is not enabled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_PV)) { 
+        SPDLOG_WARN("StopPV: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_PV;
     PV_Quit();
     PV_Cleanup();
     return true;
 }
 
-bool StartMC(HC_Context* context, AACFormat aac_format) {
-    if (context == nullptr) {
+bool StartMC(HC_Context_Ptr& context, AACFormat aac_format) {
+    if (!context) {
+        SPDLOG_ERROR("StartMC: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_MC)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_MC) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_MC)) { 
+        SPDLOG_WARN("StartMC: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_MC) { 
+        SPDLOG_WARN("StartMC: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_MC;
-    MC_Initialize(context->client_id.c_str(), z_loan(context->session), aac_format);
+    MC_Initialize(context, aac_format);
     return true;
 }
 
-bool StopMC(HC_Context* context) {
-    if (context == nullptr) {
+bool StopMC(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopMC: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_MC)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_MC)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_MC)) { 
+        SPDLOG_WARN("StopMC: is not enabled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_MC)) { 
+        SPDLOG_WARN("StopMC: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_MC;
     MC_Quit();
     MC_Cleanup();
     return true;
 }
 
-bool StartSI(HC_Context* context) {
-    if (context == nullptr) {
+bool StartSI(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StartSI: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_SI)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_SI) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_SI)) { 
+        SPDLOG_WARN("StartSI: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_SI) { 
+        SPDLOG_WARN("StartSI: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_SI;
-    SI_Initialize(context->client_id.c_str(), z_loan(context->session));
+    SI_Initialize(context);
     return true;
 }
 
-bool StopSI(HC_Context* context) {
-    if (context == nullptr) {
+bool StopSI(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopSI: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_SI)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_SI)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_SI)) { 
+        SPDLOG_WARN("StopSI: is not enabled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_SI)) { 
+        SPDLOG_WARN("StopSI: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_SI;
     SI_Quit();
     SI_Cleanup();
     return true;
 }
 
-bool StartRC(HC_Context* context) {
-    if (context == nullptr) {
+bool StartRC(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StartRC: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_RC)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_RC) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_RC)) { 
+        SPDLOG_WARN("StartRC: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_RC) { 
+        SPDLOG_WARN("StartRC: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_RC;
-    RC_Initialize(context->client_id.c_str(), z_loan(context->session));
+    RC_Initialize(context);
     return true;
 }
 
-bool StopRC(HC_Context* context) {
-    if (context == nullptr) {
+bool StopRC(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopRC: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_RC)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_RC)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_RC)) { 
+        SPDLOG_WARN("StopRC: is not enabled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_RC)) { 
+        SPDLOG_WARN("StopRC: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_RC;
     RC_Quit();
     RC_Cleanup();
     return true;
 }
 
-bool StartSM(HC_Context* context) {
-    if (context == nullptr) {
+bool StartSM(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StartSM: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_SM)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_SM) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_SM)) { 
+        SPDLOG_WARN("StartSM: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_SM) { 
+        SPDLOG_WARN("StartSM: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_SM;
-    SM_Initialize(context->client_id.c_str(), z_loan(context->session));
+    SM_Initialize(context);
     return true;
 }
 
-bool StopSM(HC_Context* context) {
-    if (context == nullptr) {
+bool StopSM(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopSM: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_SM)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_SM)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_SM)) { 
+        SPDLOG_WARN("StopSM: is not enabled");    
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_SM)) { 
+        SPDLOG_WARN("StopSM: is not running");        
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_SM;
     SM_Quit();
     SM_Cleanup();
     return true;
 }
 
-bool StartSU(HC_Context* context) {
-    if (context == nullptr) {
+bool StartSU(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StartSU: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_SU)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_SU) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_SU)) { 
+        SPDLOG_WARN("StartSU: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_SU) { 
+        SPDLOG_WARN("StartSU: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_SU;
-    SU_Initialize(context->client_id.c_str(), z_loan(context->session));
+    SU_Initialize(context);
     return true;
 }
 
-bool StopSU(HC_Context* context) {
-    if (context == nullptr) {
+bool StopSU(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopSU: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_SU)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_SU)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_SU)) { 
+        SPDLOG_WARN("StopSU: is not enabled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_SU)) { 
+        SPDLOG_WARN("StopSU: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_SU;
     SU_Quit();
     SU_Cleanup();
     return true;
 }
 
-bool StartVI(HC_Context* context) {
-    if (context == nullptr) {
+bool StartVI(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StartVI: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_VI)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_VI) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_VI)) { 
+        SPDLOG_WARN("StartVI: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_VI) { 
+        SPDLOG_WARN("StartVI: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_VI;
-    VI_Initialize(context->client_id.c_str(), z_loan(context->session));
+    VI_Initialize(context);
     return true;
 }
 
-bool StopVI(HC_Context* context) {
-    if (context == nullptr) {
+bool StopVI(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopVI: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_VI)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_VI)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_VI)) { 
+        SPDLOG_WARN("StopVI: is not enbled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_VI)) { 
+        SPDLOG_WARN("StopVI: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_VI;
     VI_Quit();
     VI_Cleanup();
     return true;
 }
 
-bool StartEET(HC_Context* context, uint8_t eye_fps) {
-    if (context == nullptr) {
+bool StartEET(HC_Context_Ptr& context, uint8_t eye_fps) {
+    if (!context) {
+        SPDLOG_ERROR("StartEET: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_EET)) { return false; }
-    if (context->streams_started & HL2SS_ENABLE_EET) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_EET)) { 
+        SPDLOG_WARN("StartEET: is not enabled");
+        return false;
+    }
+    if (context->streams_started & HL2SS_ENABLE_EET) { 
+        SPDLOG_WARN("StartEET: is already running");
+        return false;
+    }
     context->streams_started |= HL2SS_ENABLE_EET;
-    EET_Initialize(context->client_id.c_str(), z_loan(context->session), eye_fps);
+    EET_Initialize(context, eye_fps);
     return true;
 }
 
-bool StopEET(HC_Context* context) {
-    if (context == nullptr) {
+bool StopEET(HC_Context_Ptr& context) {
+    if (!context) {
+        SPDLOG_ERROR("StopEET: Invalid context");
         return false;
     }
-    if (!(context->streams_enabled & HL2SS_ENABLE_EET)) { return false; }
-    if (!(context->streams_started & HL2SS_ENABLE_EET)) { return false; }
+    if (!(context->streams_enabled & HL2SS_ENABLE_EET)) { 
+        SPDLOG_WARN("StopEET: is not enabled");
+        return false;
+    }
+    if (!(context->streams_started & HL2SS_ENABLE_EET)) { 
+        SPDLOG_WARN("StopEET: is not running");
+        return false;
+    }
     context->streams_started &= ~HL2SS_ENABLE_EET;
     EET_Quit();
     EET_Cleanup();

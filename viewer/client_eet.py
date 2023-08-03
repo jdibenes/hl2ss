@@ -13,7 +13,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-DEFAULT_KEY = "hl2/cfg/eet/HOLOLENS-VM59UD"
+DEFAULT_KEY = "tcn/loc/hl2/*/cfg/eet"
 
 # Settings --------------------------------------------------------------------
 

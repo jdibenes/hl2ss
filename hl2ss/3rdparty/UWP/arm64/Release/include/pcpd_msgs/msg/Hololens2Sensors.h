@@ -155,6 +155,31 @@ namespace pcpd_msgs {
              */
             eProsima_user_DllExport std::string& stream_topic();
             /*!
+             * @brief This function copies the value in member calib_topic
+             * @param _calib_topic New value to be copied in member calib_topic
+             */
+            eProsima_user_DllExport void calib_topic(
+                    const std::string& _calib_topic);
+
+            /*!
+             * @brief This function moves the value in member calib_topic
+             * @param _calib_topic New value to be moved in member calib_topic
+             */
+            eProsima_user_DllExport void calib_topic(
+                    std::string&& _calib_topic);
+
+            /*!
+             * @brief This function returns a constant reference to member calib_topic
+             * @return Constant reference to member calib_topic
+             */
+            eProsima_user_DllExport const std::string& calib_topic() const;
+
+            /*!
+             * @brief This function returns a reference to member calib_topic
+             * @return Reference to member calib_topic
+             */
+            eProsima_user_DllExport std::string& calib_topic();
+            /*!
              * @brief This function sets a value in member sensor_type
              * @param _sensor_type New value for member sensor_type
              */
@@ -474,6 +499,7 @@ namespace pcpd_msgs {
         private:
 
             std::string m_stream_topic;
+            std::string m_calib_topic;
             pcpd_msgs::msg::Hololens2SensorType m_sensor_type;
             uint32_t m_frame_rate;
             geometry_msgs::msg::Vector3 m_position;
@@ -487,6 +513,206 @@ namespace pcpd_msgs {
             uint32_t m_h26x_bitrate;
             uint8_t m_audio_channels;
             pcpd_msgs::msg::Hololens2AACProfile m_aac_profile;
+
+        };
+        /*!
+         * @brief This class represents the structure Hololens2RigidTransform defined by the user in the IDL file.
+         * @ingroup HOLOLENS2SENSORS
+         */
+        class Hololens2RigidTransform
+        {
+        public:
+
+            /*!
+             * @brief Default constructor.
+             */
+            eProsima_user_DllExport Hololens2RigidTransform();
+
+            /*!
+             * @brief Default destructor.
+             */
+            eProsima_user_DllExport ~Hololens2RigidTransform();
+
+            /*!
+             * @brief Copy constructor.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2RigidTransform that will be copied.
+             */
+            eProsima_user_DllExport Hololens2RigidTransform(
+                    const Hololens2RigidTransform& x);
+
+            /*!
+             * @brief Move constructor.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2RigidTransform that will be copied.
+             */
+            eProsima_user_DllExport Hololens2RigidTransform(
+                    Hololens2RigidTransform&& x) noexcept;
+
+            /*!
+             * @brief Copy assignment.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2RigidTransform that will be copied.
+             */
+            eProsima_user_DllExport Hololens2RigidTransform& operator =(
+                    const Hololens2RigidTransform& x);
+
+            /*!
+             * @brief Move assignment.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2RigidTransform that will be copied.
+             */
+            eProsima_user_DllExport Hololens2RigidTransform& operator =(
+                    Hololens2RigidTransform&& x) noexcept;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::msg::Hololens2RigidTransform object to compare.
+             */
+            eProsima_user_DllExport bool operator ==(
+                    const Hololens2RigidTransform& x) const;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::msg::Hololens2RigidTransform object to compare.
+             */
+            eProsima_user_DllExport bool operator !=(
+                    const Hololens2RigidTransform& x) const;
+
+            /*!
+             * @brief This function copies the value in member header
+             * @param _header New value to be copied in member header
+             */
+            eProsima_user_DllExport void header(
+                    const std_msgs::msg::Header& _header);
+
+            /*!
+             * @brief This function moves the value in member header
+             * @param _header New value to be moved in member header
+             */
+            eProsima_user_DllExport void header(
+                    std_msgs::msg::Header&& _header);
+
+            /*!
+             * @brief This function returns a constant reference to member header
+             * @return Constant reference to member header
+             */
+            eProsima_user_DllExport const std_msgs::msg::Header& header() const;
+
+            /*!
+             * @brief This function returns a reference to member header
+             * @return Reference to member header
+             */
+            eProsima_user_DllExport std_msgs::msg::Header& header();
+            /*!
+             * @brief This function copies the value in member position
+             * @param _position New value to be copied in member position
+             */
+            eProsima_user_DllExport void position(
+                    const geometry_msgs::msg::Vector3& _position);
+
+            /*!
+             * @brief This function moves the value in member position
+             * @param _position New value to be moved in member position
+             */
+            eProsima_user_DllExport void position(
+                    geometry_msgs::msg::Vector3&& _position);
+
+            /*!
+             * @brief This function returns a constant reference to member position
+             * @return Constant reference to member position
+             */
+            eProsima_user_DllExport const geometry_msgs::msg::Vector3& position() const;
+
+            /*!
+             * @brief This function returns a reference to member position
+             * @return Reference to member position
+             */
+            eProsima_user_DllExport geometry_msgs::msg::Vector3& position();
+            /*!
+             * @brief This function copies the value in member orientation
+             * @param _orientation New value to be copied in member orientation
+             */
+            eProsima_user_DllExport void orientation(
+                    const geometry_msgs::msg::Quaternion& _orientation);
+
+            /*!
+             * @brief This function moves the value in member orientation
+             * @param _orientation New value to be moved in member orientation
+             */
+            eProsima_user_DllExport void orientation(
+                    geometry_msgs::msg::Quaternion&& _orientation);
+
+            /*!
+             * @brief This function returns a constant reference to member orientation
+             * @return Constant reference to member orientation
+             */
+            eProsima_user_DllExport const geometry_msgs::msg::Quaternion& orientation() const;
+
+            /*!
+             * @brief This function returns a reference to member orientation
+             * @return Reference to member orientation
+             */
+            eProsima_user_DllExport geometry_msgs::msg::Quaternion& orientation();
+
+            /*!
+            * @brief This function returns the maximum serialized size of an object
+            * depending on the buffer alignment.
+            * @param current_alignment Buffer alignment.
+            * @return Maximum serialized size.
+            */
+            eProsima_user_DllExport static size_t getMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function returns the serialized size of a data depending on the buffer alignment.
+             * @param data Data which is calculated its serialized size.
+             * @param current_alignment Buffer alignment.
+             * @return Serialized size.
+             */
+            eProsima_user_DllExport static size_t getCdrSerializedSize(
+                    const pcpd_msgs::msg::Hololens2RigidTransform& data,
+                    size_t current_alignment = 0);
+
+
+            /*!
+             * @brief This function serializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serialize(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+            /*!
+             * @brief This function deserializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void deserialize(
+                    eprosima::fastcdr::Cdr& cdr);
+
+
+
+            /*!
+             * @brief This function returns the maximum serialized size of the Key of an object
+             * depending on the buffer alignment.
+             * @param current_alignment Buffer alignment.
+             * @return Maximum serialized size.
+             */
+            eProsima_user_DllExport static size_t getKeyMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function tells you if the Key has been defined for this type
+             */
+            eProsima_user_DllExport static bool isKeyDefined();
+
+            /*!
+             * @brief This function serializes the key members of an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serializeKey(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+        private:
+
+            std_msgs::msg::Header m_header;
+            geometry_msgs::msg::Vector3 m_position;
+            geometry_msgs::msg::Quaternion m_orientation;
 
         };
         /*!
@@ -1135,6 +1361,726 @@ namespace pcpd_msgs {
             pcpd_msgs::msg::float__3 m_radial_distortion;
             pcpd_msgs::msg::float__2 m_tangential_distortion;
             pcpd_msgs::msg::float__16 m_undistorted_projection_transform;
+
+        };
+        /*!
+         * @brief This class represents the structure Hololens2SensorInfoZHT defined by the user in the IDL file.
+         * @ingroup HOLOLENS2SENSORS
+         */
+        class Hololens2SensorInfoZHT
+        {
+        public:
+
+            /*!
+             * @brief Default constructor.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZHT();
+
+            /*!
+             * @brief Default destructor.
+             */
+            eProsima_user_DllExport ~Hololens2SensorInfoZHT();
+
+            /*!
+             * @brief Copy constructor.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZHT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZHT(
+                    const Hololens2SensorInfoZHT& x);
+
+            /*!
+             * @brief Move constructor.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZHT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZHT(
+                    Hololens2SensorInfoZHT&& x) noexcept;
+
+            /*!
+             * @brief Copy assignment.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZHT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZHT& operator =(
+                    const Hololens2SensorInfoZHT& x);
+
+            /*!
+             * @brief Move assignment.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZHT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZHT& operator =(
+                    Hololens2SensorInfoZHT&& x) noexcept;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::msg::Hololens2SensorInfoZHT object to compare.
+             */
+            eProsima_user_DllExport bool operator ==(
+                    const Hololens2SensorInfoZHT& x) const;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::msg::Hololens2SensorInfoZHT object to compare.
+             */
+            eProsima_user_DllExport bool operator !=(
+                    const Hololens2SensorInfoZHT& x) const;
+
+            /*!
+             * @brief This function copies the value in member header
+             * @param _header New value to be copied in member header
+             */
+            eProsima_user_DllExport void header(
+                    const std_msgs::msg::Header& _header);
+
+            /*!
+             * @brief This function moves the value in member header
+             * @param _header New value to be moved in member header
+             */
+            eProsima_user_DllExport void header(
+                    std_msgs::msg::Header&& _header);
+
+            /*!
+             * @brief This function returns a constant reference to member header
+             * @return Constant reference to member header
+             */
+            eProsima_user_DllExport const std_msgs::msg::Header& header() const;
+
+            /*!
+             * @brief This function returns a reference to member header
+             * @return Reference to member header
+             */
+            eProsima_user_DllExport std_msgs::msg::Header& header();
+            /*!
+             * @brief This function sets a value in member scale
+             * @param _scale New value for member scale
+             */
+            eProsima_user_DllExport void scale(
+                    float _scale);
+
+            /*!
+             * @brief This function returns the value of member scale
+             * @return Value of member scale
+             */
+            eProsima_user_DllExport float scale() const;
+
+            /*!
+             * @brief This function returns a reference to member scale
+             * @return Reference to member scale
+             */
+            eProsima_user_DllExport float& scale();
+
+            /*!
+             * @brief This function sets a value in member alias
+             * @param _alias New value for member alias
+             */
+            eProsima_user_DllExport void alias(
+                    float _alias);
+
+            /*!
+             * @brief This function returns the value of member alias
+             * @return Value of member alias
+             */
+            eProsima_user_DllExport float alias() const;
+
+            /*!
+             * @brief This function returns a reference to member alias
+             * @return Reference to member alias
+             */
+            eProsima_user_DllExport float& alias();
+
+            /*!
+             * @brief This function copies the value in member uv2x
+             * @param _uv2x New value to be copied in member uv2x
+             */
+            eProsima_user_DllExport void uv2x(
+                    const std::vector<float>& _uv2x);
+
+            /*!
+             * @brief This function moves the value in member uv2x
+             * @param _uv2x New value to be moved in member uv2x
+             */
+            eProsima_user_DllExport void uv2x(
+                    std::vector<float>&& _uv2x);
+
+            /*!
+             * @brief This function returns a constant reference to member uv2x
+             * @return Constant reference to member uv2x
+             */
+            eProsima_user_DllExport const std::vector<float>& uv2x() const;
+
+            /*!
+             * @brief This function returns a reference to member uv2x
+             * @return Reference to member uv2x
+             */
+            eProsima_user_DllExport std::vector<float>& uv2x();
+            /*!
+             * @brief This function copies the value in member uv2y
+             * @param _uv2y New value to be copied in member uv2y
+             */
+            eProsima_user_DllExport void uv2y(
+                    const std::vector<float>& _uv2y);
+
+            /*!
+             * @brief This function moves the value in member uv2y
+             * @param _uv2y New value to be moved in member uv2y
+             */
+            eProsima_user_DllExport void uv2y(
+                    std::vector<float>&& _uv2y);
+
+            /*!
+             * @brief This function returns a constant reference to member uv2y
+             * @return Constant reference to member uv2y
+             */
+            eProsima_user_DllExport const std::vector<float>& uv2y() const;
+
+            /*!
+             * @brief This function returns a reference to member uv2y
+             * @return Reference to member uv2y
+             */
+            eProsima_user_DllExport std::vector<float>& uv2y();
+            /*!
+             * @brief This function copies the value in member mapx
+             * @param _mapx New value to be copied in member mapx
+             */
+            eProsima_user_DllExport void mapx(
+                    const std::vector<float>& _mapx);
+
+            /*!
+             * @brief This function moves the value in member mapx
+             * @param _mapx New value to be moved in member mapx
+             */
+            eProsima_user_DllExport void mapx(
+                    std::vector<float>&& _mapx);
+
+            /*!
+             * @brief This function returns a constant reference to member mapx
+             * @return Constant reference to member mapx
+             */
+            eProsima_user_DllExport const std::vector<float>& mapx() const;
+
+            /*!
+             * @brief This function returns a reference to member mapx
+             * @return Reference to member mapx
+             */
+            eProsima_user_DllExport std::vector<float>& mapx();
+            /*!
+             * @brief This function copies the value in member mapy
+             * @param _mapy New value to be copied in member mapy
+             */
+            eProsima_user_DllExport void mapy(
+                    const std::vector<float>& _mapy);
+
+            /*!
+             * @brief This function moves the value in member mapy
+             * @param _mapy New value to be moved in member mapy
+             */
+            eProsima_user_DllExport void mapy(
+                    std::vector<float>&& _mapy);
+
+            /*!
+             * @brief This function returns a constant reference to member mapy
+             * @return Constant reference to member mapy
+             */
+            eProsima_user_DllExport const std::vector<float>& mapy() const;
+
+            /*!
+             * @brief This function returns a reference to member mapy
+             * @return Reference to member mapy
+             */
+            eProsima_user_DllExport std::vector<float>& mapy();
+            /*!
+             * @brief This function copies the value in member K
+             * @param _K New value to be copied in member K
+             */
+            eProsima_user_DllExport void K(
+                    const pcpd_msgs::msg::float__4& _K);
+
+            /*!
+             * @brief This function moves the value in member K
+             * @param _K New value to be moved in member K
+             */
+            eProsima_user_DllExport void K(
+                    pcpd_msgs::msg::float__4&& _K);
+
+            /*!
+             * @brief This function returns a constant reference to member K
+             * @return Constant reference to member K
+             */
+            eProsima_user_DllExport const pcpd_msgs::msg::float__4& K() const;
+
+            /*!
+             * @brief This function returns a reference to member K
+             * @return Reference to member K
+             */
+            eProsima_user_DllExport pcpd_msgs::msg::float__4& K();
+            /*!
+             * @brief This function copies the value in member position
+             * @param _position New value to be copied in member position
+             */
+            eProsima_user_DllExport void position(
+                    const geometry_msgs::msg::Vector3& _position);
+
+            /*!
+             * @brief This function moves the value in member position
+             * @param _position New value to be moved in member position
+             */
+            eProsima_user_DllExport void position(
+                    geometry_msgs::msg::Vector3&& _position);
+
+            /*!
+             * @brief This function returns a constant reference to member position
+             * @return Constant reference to member position
+             */
+            eProsima_user_DllExport const geometry_msgs::msg::Vector3& position() const;
+
+            /*!
+             * @brief This function returns a reference to member position
+             * @return Reference to member position
+             */
+            eProsima_user_DllExport geometry_msgs::msg::Vector3& position();
+            /*!
+             * @brief This function copies the value in member orientation
+             * @param _orientation New value to be copied in member orientation
+             */
+            eProsima_user_DllExport void orientation(
+                    const geometry_msgs::msg::Quaternion& _orientation);
+
+            /*!
+             * @brief This function moves the value in member orientation
+             * @param _orientation New value to be moved in member orientation
+             */
+            eProsima_user_DllExport void orientation(
+                    geometry_msgs::msg::Quaternion&& _orientation);
+
+            /*!
+             * @brief This function returns a constant reference to member orientation
+             * @return Constant reference to member orientation
+             */
+            eProsima_user_DllExport const geometry_msgs::msg::Quaternion& orientation() const;
+
+            /*!
+             * @brief This function returns a reference to member orientation
+             * @return Reference to member orientation
+             */
+            eProsima_user_DllExport geometry_msgs::msg::Quaternion& orientation();
+
+            /*!
+            * @brief This function returns the maximum serialized size of an object
+            * depending on the buffer alignment.
+            * @param current_alignment Buffer alignment.
+            * @return Maximum serialized size.
+            */
+            eProsima_user_DllExport static size_t getMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function returns the serialized size of a data depending on the buffer alignment.
+             * @param data Data which is calculated its serialized size.
+             * @param current_alignment Buffer alignment.
+             * @return Serialized size.
+             */
+            eProsima_user_DllExport static size_t getCdrSerializedSize(
+                    const pcpd_msgs::msg::Hololens2SensorInfoZHT& data,
+                    size_t current_alignment = 0);
+
+
+            /*!
+             * @brief This function serializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serialize(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+            /*!
+             * @brief This function deserializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void deserialize(
+                    eprosima::fastcdr::Cdr& cdr);
+
+
+
+            /*!
+             * @brief This function returns the maximum serialized size of the Key of an object
+             * depending on the buffer alignment.
+             * @param current_alignment Buffer alignment.
+             * @return Maximum serialized size.
+             */
+            eProsima_user_DllExport static size_t getKeyMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function tells you if the Key has been defined for this type
+             */
+            eProsima_user_DllExport static bool isKeyDefined();
+
+            /*!
+             * @brief This function serializes the key members of an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serializeKey(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+        private:
+
+            std_msgs::msg::Header m_header;
+            float m_scale;
+            float m_alias;
+            std::vector<float> m_uv2x;
+            std::vector<float> m_uv2y;
+            std::vector<float> m_mapx;
+            std::vector<float> m_mapy;
+            pcpd_msgs::msg::float__4 m_K;
+            geometry_msgs::msg::Vector3 m_position;
+            geometry_msgs::msg::Quaternion m_orientation;
+
+        };
+        /*!
+         * @brief This class represents the structure Hololens2SensorInfoZLT defined by the user in the IDL file.
+         * @ingroup HOLOLENS2SENSORS
+         */
+        class Hololens2SensorInfoZLT
+        {
+        public:
+
+            /*!
+             * @brief Default constructor.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZLT();
+
+            /*!
+             * @brief Default destructor.
+             */
+            eProsima_user_DllExport ~Hololens2SensorInfoZLT();
+
+            /*!
+             * @brief Copy constructor.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZLT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZLT(
+                    const Hololens2SensorInfoZLT& x);
+
+            /*!
+             * @brief Move constructor.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZLT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZLT(
+                    Hololens2SensorInfoZLT&& x) noexcept;
+
+            /*!
+             * @brief Copy assignment.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZLT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZLT& operator =(
+                    const Hololens2SensorInfoZLT& x);
+
+            /*!
+             * @brief Move assignment.
+             * @param x Reference to the object pcpd_msgs::msg::Hololens2SensorInfoZLT that will be copied.
+             */
+            eProsima_user_DllExport Hololens2SensorInfoZLT& operator =(
+                    Hololens2SensorInfoZLT&& x) noexcept;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::msg::Hololens2SensorInfoZLT object to compare.
+             */
+            eProsima_user_DllExport bool operator ==(
+                    const Hololens2SensorInfoZLT& x) const;
+
+            /*!
+             * @brief Comparison operator.
+             * @param x pcpd_msgs::msg::Hololens2SensorInfoZLT object to compare.
+             */
+            eProsima_user_DllExport bool operator !=(
+                    const Hololens2SensorInfoZLT& x) const;
+
+            /*!
+             * @brief This function copies the value in member header
+             * @param _header New value to be copied in member header
+             */
+            eProsima_user_DllExport void header(
+                    const std_msgs::msg::Header& _header);
+
+            /*!
+             * @brief This function moves the value in member header
+             * @param _header New value to be moved in member header
+             */
+            eProsima_user_DllExport void header(
+                    std_msgs::msg::Header&& _header);
+
+            /*!
+             * @brief This function returns a constant reference to member header
+             * @return Constant reference to member header
+             */
+            eProsima_user_DllExport const std_msgs::msg::Header& header() const;
+
+            /*!
+             * @brief This function returns a reference to member header
+             * @return Reference to member header
+             */
+            eProsima_user_DllExport std_msgs::msg::Header& header();
+            /*!
+             * @brief This function sets a value in member scale
+             * @param _scale New value for member scale
+             */
+            eProsima_user_DllExport void scale(
+                    float _scale);
+
+            /*!
+             * @brief This function returns the value of member scale
+             * @return Value of member scale
+             */
+            eProsima_user_DllExport float scale() const;
+
+            /*!
+             * @brief This function returns a reference to member scale
+             * @return Reference to member scale
+             */
+            eProsima_user_DllExport float& scale();
+
+            /*!
+             * @brief This function copies the value in member uv2x
+             * @param _uv2x New value to be copied in member uv2x
+             */
+            eProsima_user_DllExport void uv2x(
+                    const std::vector<float>& _uv2x);
+
+            /*!
+             * @brief This function moves the value in member uv2x
+             * @param _uv2x New value to be moved in member uv2x
+             */
+            eProsima_user_DllExport void uv2x(
+                    std::vector<float>&& _uv2x);
+
+            /*!
+             * @brief This function returns a constant reference to member uv2x
+             * @return Constant reference to member uv2x
+             */
+            eProsima_user_DllExport const std::vector<float>& uv2x() const;
+
+            /*!
+             * @brief This function returns a reference to member uv2x
+             * @return Reference to member uv2x
+             */
+            eProsima_user_DllExport std::vector<float>& uv2x();
+            /*!
+             * @brief This function copies the value in member uv2y
+             * @param _uv2y New value to be copied in member uv2y
+             */
+            eProsima_user_DllExport void uv2y(
+                    const std::vector<float>& _uv2y);
+
+            /*!
+             * @brief This function moves the value in member uv2y
+             * @param _uv2y New value to be moved in member uv2y
+             */
+            eProsima_user_DllExport void uv2y(
+                    std::vector<float>&& _uv2y);
+
+            /*!
+             * @brief This function returns a constant reference to member uv2y
+             * @return Constant reference to member uv2y
+             */
+            eProsima_user_DllExport const std::vector<float>& uv2y() const;
+
+            /*!
+             * @brief This function returns a reference to member uv2y
+             * @return Reference to member uv2y
+             */
+            eProsima_user_DllExport std::vector<float>& uv2y();
+            /*!
+             * @brief This function copies the value in member mapx
+             * @param _mapx New value to be copied in member mapx
+             */
+            eProsima_user_DllExport void mapx(
+                    const std::vector<float>& _mapx);
+
+            /*!
+             * @brief This function moves the value in member mapx
+             * @param _mapx New value to be moved in member mapx
+             */
+            eProsima_user_DllExport void mapx(
+                    std::vector<float>&& _mapx);
+
+            /*!
+             * @brief This function returns a constant reference to member mapx
+             * @return Constant reference to member mapx
+             */
+            eProsima_user_DllExport const std::vector<float>& mapx() const;
+
+            /*!
+             * @brief This function returns a reference to member mapx
+             * @return Reference to member mapx
+             */
+            eProsima_user_DllExport std::vector<float>& mapx();
+            /*!
+             * @brief This function copies the value in member mapy
+             * @param _mapy New value to be copied in member mapy
+             */
+            eProsima_user_DllExport void mapy(
+                    const std::vector<float>& _mapy);
+
+            /*!
+             * @brief This function moves the value in member mapy
+             * @param _mapy New value to be moved in member mapy
+             */
+            eProsima_user_DllExport void mapy(
+                    std::vector<float>&& _mapy);
+
+            /*!
+             * @brief This function returns a constant reference to member mapy
+             * @return Constant reference to member mapy
+             */
+            eProsima_user_DllExport const std::vector<float>& mapy() const;
+
+            /*!
+             * @brief This function returns a reference to member mapy
+             * @return Reference to member mapy
+             */
+            eProsima_user_DllExport std::vector<float>& mapy();
+            /*!
+             * @brief This function copies the value in member K
+             * @param _K New value to be copied in member K
+             */
+            eProsima_user_DllExport void K(
+                    const pcpd_msgs::msg::float__4& _K);
+
+            /*!
+             * @brief This function moves the value in member K
+             * @param _K New value to be moved in member K
+             */
+            eProsima_user_DllExport void K(
+                    pcpd_msgs::msg::float__4&& _K);
+
+            /*!
+             * @brief This function returns a constant reference to member K
+             * @return Constant reference to member K
+             */
+            eProsima_user_DllExport const pcpd_msgs::msg::float__4& K() const;
+
+            /*!
+             * @brief This function returns a reference to member K
+             * @return Reference to member K
+             */
+            eProsima_user_DllExport pcpd_msgs::msg::float__4& K();
+            /*!
+             * @brief This function copies the value in member position
+             * @param _position New value to be copied in member position
+             */
+            eProsima_user_DllExport void position(
+                    const geometry_msgs::msg::Vector3& _position);
+
+            /*!
+             * @brief This function moves the value in member position
+             * @param _position New value to be moved in member position
+             */
+            eProsima_user_DllExport void position(
+                    geometry_msgs::msg::Vector3&& _position);
+
+            /*!
+             * @brief This function returns a constant reference to member position
+             * @return Constant reference to member position
+             */
+            eProsima_user_DllExport const geometry_msgs::msg::Vector3& position() const;
+
+            /*!
+             * @brief This function returns a reference to member position
+             * @return Reference to member position
+             */
+            eProsima_user_DllExport geometry_msgs::msg::Vector3& position();
+            /*!
+             * @brief This function copies the value in member orientation
+             * @param _orientation New value to be copied in member orientation
+             */
+            eProsima_user_DllExport void orientation(
+                    const geometry_msgs::msg::Quaternion& _orientation);
+
+            /*!
+             * @brief This function moves the value in member orientation
+             * @param _orientation New value to be moved in member orientation
+             */
+            eProsima_user_DllExport void orientation(
+                    geometry_msgs::msg::Quaternion&& _orientation);
+
+            /*!
+             * @brief This function returns a constant reference to member orientation
+             * @return Constant reference to member orientation
+             */
+            eProsima_user_DllExport const geometry_msgs::msg::Quaternion& orientation() const;
+
+            /*!
+             * @brief This function returns a reference to member orientation
+             * @return Reference to member orientation
+             */
+            eProsima_user_DllExport geometry_msgs::msg::Quaternion& orientation();
+
+            /*!
+            * @brief This function returns the maximum serialized size of an object
+            * depending on the buffer alignment.
+            * @param current_alignment Buffer alignment.
+            * @return Maximum serialized size.
+            */
+            eProsima_user_DllExport static size_t getMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function returns the serialized size of a data depending on the buffer alignment.
+             * @param data Data which is calculated its serialized size.
+             * @param current_alignment Buffer alignment.
+             * @return Serialized size.
+             */
+            eProsima_user_DllExport static size_t getCdrSerializedSize(
+                    const pcpd_msgs::msg::Hololens2SensorInfoZLT& data,
+                    size_t current_alignment = 0);
+
+
+            /*!
+             * @brief This function serializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serialize(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+            /*!
+             * @brief This function deserializes an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void deserialize(
+                    eprosima::fastcdr::Cdr& cdr);
+
+
+
+            /*!
+             * @brief This function returns the maximum serialized size of the Key of an object
+             * depending on the buffer alignment.
+             * @param current_alignment Buffer alignment.
+             * @return Maximum serialized size.
+             */
+            eProsima_user_DllExport static size_t getKeyMaxCdrSerializedSize(
+                    size_t current_alignment = 0);
+
+            /*!
+             * @brief This function tells you if the Key has been defined for this type
+             */
+            eProsima_user_DllExport static bool isKeyDefined();
+
+            /*!
+             * @brief This function serializes the key members of an object using CDR serialization.
+             * @param cdr CDR serialization object.
+             */
+            eProsima_user_DllExport void serializeKey(
+                    eprosima::fastcdr::Cdr& cdr) const;
+
+        private:
+
+            std_msgs::msg::Header m_header;
+            float m_scale;
+            std::vector<float> m_uv2x;
+            std::vector<float> m_uv2y;
+            std::vector<float> m_mapx;
+            std::vector<float> m_mapy;
+            pcpd_msgs::msg::float__4 m_K;
+            geometry_msgs::msg::Vector3 m_position;
+            geometry_msgs::msg::Quaternion m_orientation;
 
         };
         /*!

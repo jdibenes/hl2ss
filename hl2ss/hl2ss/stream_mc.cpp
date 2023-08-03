@@ -15,14 +15,6 @@
 #include "pcpd_msgs/msg/Hololens2AudioStream.h"
 #include "pcpd_msgs/msg/Hololens2Sensors.h"
 
-struct MC_Context {
-	std::string client_id;
-	z_session_t session;
-	AACFormat format;
-	bool valid{ false };
-	bool first_frame_sent{ false };
-};
-
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -33,7 +25,9 @@ static HANDLE g_event_quit = NULL; // CloseHandle
 
 static winrt::com_ptr<MicrophoneCapture> g_microphoneCapture = nullptr;
 
-static MC_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context;
+static AACFormat g_aac_format = AACFormat{};
+static bool g_first_frame_sent = false;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -72,7 +66,7 @@ static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 		value.header().stamp().sec(ts_sec);
 		value.header().stamp().nanosec(ts_nsec);
 
-		value.header().frame_id(g_zenoh_context->client_id);
+		value.header().frame_id(g_zenoh_context->topic_prefix);
 	}
 
 	// format
@@ -103,18 +97,18 @@ static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 static void MC_Shoutcast()
 {
 
-	if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+	if (!g_zenoh_context || !g_zenoh_context->valid) {
 		SPDLOG_INFO("PV: Error invalid context");
 		return;
 	}
 
-	std::string keyexpr = "hl2/sensor/mic/" + g_zenoh_context->client_id;
+	std::string keyexpr = g_zenoh_context->topic_prefix + "/str/mic";
 	SPDLOG_INFO("MC: publish on: {0}", keyexpr.c_str());
 
 	z_publisher_options_t publisher_options = z_publisher_options_default();
 	publisher_options.priority = Z_PRIORITY_REAL_TIME;
 
-	z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
+	z_owned_publisher_t pub = z_declare_publisher(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr.c_str()), &publisher_options);
 
 	if (!z_check(pub)) {
 		SPDLOG_INFO("MC: Error creating publisher");
@@ -134,7 +128,7 @@ static void MC_Shoutcast()
 	HookCallbackSocket user;
 	DWORD dwAudioIndex;
 
-	AACFormat format = g_zenoh_context->format;
+	AACFormat format = g_aac_format;
 
 	format.channels   = channels;
 	format.samplerate = samplerate;
@@ -145,7 +139,7 @@ static void MC_Shoutcast()
 	user.clientevent  = event_client;
 	user.data_profile = format.profile;
 	user.options = options;
-	user.client_id = g_zenoh_context->client_id.c_str();
+	user.topic_prefix = g_zenoh_context->topic_prefix.c_str();
 
 	switch (format.profile)
 	{
@@ -153,12 +147,12 @@ static void MC_Shoutcast()
 	default:                          CreateSinkWriterPCMToAAC(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
 	}
 
-	if (!g_zenoh_context->first_frame_sent) {
-		g_zenoh_context->first_frame_sent = true;
+	if (!g_first_frame_sent) {
+		g_first_frame_sent = true;
 
 		pcpd_msgs::msg::Hololens2StreamDescriptor value{};
 
-		value.stream_topic("hl2/sensor/mic/" + g_zenoh_context->client_id);
+		value.stream_topic(g_zenoh_context->topic_prefix + "/str/mic");
 		value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::MICROPHONE);
 		value.frame_rate(format.samplerate);
 
@@ -190,15 +184,15 @@ static void MC_Shoutcast()
 		value.serialize(buffer_cdr);
 
 		// put message to zenoh
-		std::string keyexpr1 = "hl2/cfg/mic/" + g_zenoh_context->client_id;
+		std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/mic";
 		z_put_options_t options1 = z_put_options_default();
 		options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
-		int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+		int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
 		if (res > 0) {
 			SPDLOG_INFO("MC: Error putting info");
 		}
 		else {
-			SPDLOG_INFO("MC: put info");
+			SPDLOG_INFO("MC: put info: {}", keyexpr1);
 		}
 
 	}
@@ -236,14 +230,11 @@ static DWORD WINAPI MC_EntryPoint(void*)
 }
 
 // OK
-void MC_Initialize(const char* client_id, z_session_t session, AACFormat format)
+void MC_Initialize(HC_Context_Ptr& context, AACFormat format)
 {
 
-	g_zenoh_context = new MC_Context(); // release
-	g_zenoh_context->client_id = std::string(client_id);
-	g_zenoh_context->session = session;
-	g_zenoh_context->format = std::move(format);
-	g_zenoh_context->valid = true;
+	g_zenoh_context = context;
+	g_aac_format = std::move(format);
 
 	g_microphoneCapture = winrt::make_self<MicrophoneCapture>();
 	g_microphoneCapture->Initialize();
@@ -270,7 +261,7 @@ void MC_Cleanup()
 	g_event_quit = NULL;
 	g_microphoneCapture = nullptr;
 
-	free(g_zenoh_context);
-	g_zenoh_context = NULL;
+	g_zenoh_context.reset();
+    g_first_frame_sent = false;
 
 }

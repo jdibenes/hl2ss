@@ -27,14 +27,6 @@ typedef void(*RM_MODE0)(IResearchModeSensor*, SOCKET);
 typedef void(*RM_MODE1)(IResearchModeSensor*, SOCKET, SpatialLocator const&);
 typedef void(*RM_MODE2)(IResearchModeSensor*, SOCKET);
 
-struct RM_Context {
-    std::string client_id;
-    z_session_t session;
-    RMStreamConfig config;
-    bool valid{ false };
-    bool first_frame_sent{ false };
-};
-
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -43,7 +35,9 @@ struct RM_Context {
 static HANDLE g_event_quit = NULL; // CloseHandle
 static std::vector<HANDLE> g_threads; // CloseHandle
 
-static RM_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context;
+static RMStreamConfig g_rm_stream_config = RMStreamConfig{};
+static bool g_first_frame_sent = false;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -76,7 +70,7 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     SPDLOG_INFO("RM{0}: Start Stream", (int)type);
     auto& ctx = *g_zenoh_context;
 
-    bool enable_location = ctx.config.enable_location;
+    bool enable_location = g_rm_stream_config.enable_location;
     switch (type)
     {
     case LEFT_FRONT:
@@ -85,60 +79,60 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     case RIGHT_RIGHT:      
     {
         if (enable_location) {
-            RM_VLC_Stream_Mode1(sensor, ctx.session, ctx.client_id.c_str(), ctx.config.vlc_format, locator);
+            RM_VLC_Stream_Mode1(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_rm_stream_config.vlc_format, locator, g_zenoh_context->should_exit);
         }
         else {
-            RM_VLC_Stream_Mode0(sensor, ctx.session, ctx.client_id.c_str(), ctx.config.vlc_format);
+            RM_VLC_Stream_Mode0(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_rm_stream_config.vlc_format, g_zenoh_context->should_exit);
         }
         break;
     }
     case DEPTH_AHAT:       
     {
         if (enable_location) {
-            RM_ZHT_Stream_Mode1(sensor, ctx.session, ctx.client_id.c_str(), ctx.config.depth_format, locator);
+            RM_ZHT_Stream_Mode1(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_rm_stream_config.depth_format, locator, g_zenoh_context->should_exit);
         }
         else {
-            RM_ZHT_Stream_Mode0(sensor, ctx.session, ctx.client_id.c_str(), ctx.config.depth_format);
+            RM_ZHT_Stream_Mode0(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_rm_stream_config.depth_format, g_zenoh_context->should_exit);
         }
         break;
     }
     case DEPTH_LONG_THROW:
     {
         if (enable_location) {
-            RM_ZLT_Stream_Mode1(sensor, ctx.session, ctx.client_id.c_str(), locator);
+            RM_ZLT_Stream_Mode1(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), locator, g_zenoh_context->should_exit);
         }
         else {
-            RM_ZLT_Stream_Mode0(sensor, ctx.session, ctx.client_id.c_str());
+            RM_ZLT_Stream_Mode0(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_zenoh_context->should_exit);
         }
         break;
     }
     case IMU_ACCEL:
     {
         if (enable_location) {
-            RM_ACC_Stream_Mode1(sensor, ctx.session, ctx.client_id.c_str(), locator);
+            RM_ACC_Stream_Mode1(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), locator, g_zenoh_context->should_exit);
         }
         else {
-            RM_ACC_Stream_Mode0(sensor, ctx.session, ctx.client_id.c_str());
+            RM_ACC_Stream_Mode0(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_zenoh_context->should_exit);
         }
         break;
     }
     case IMU_GYRO:
     {
         if (enable_location) {
-            RM_GYR_Stream_Mode1(sensor, ctx.session, ctx.client_id.c_str(), locator);
+            RM_GYR_Stream_Mode1(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), locator, g_zenoh_context->should_exit);
         }
         else {
-            RM_GYR_Stream_Mode0(sensor, ctx.session, ctx.client_id.c_str());
+            RM_GYR_Stream_Mode0(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_zenoh_context->should_exit);
         }
         break;
     }
     case IMU_MAG:
     {
         if (enable_location) {
-            RM_MAG_Stream_Mode1(sensor, ctx.session, ctx.client_id.c_str(), locator);
+            RM_MAG_Stream_Mode1(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), locator, g_zenoh_context->should_exit);
         }
         else {
-            RM_MAG_Stream_Mode0(sensor, ctx.session, ctx.client_id.c_str());
+            RM_MAG_Stream_Mode0(sensor, z_loan(ctx.session), ctx.topic_prefix.c_str(), g_zenoh_context->should_exit);
         }
         break;
     }
@@ -151,8 +145,9 @@ static DWORD WINAPI RM_EntryPoint(void* param)
 }
 
 // OK
-void RM_Initialize(const char* client_id, z_session_t session, RMStreamConfig config)
+void RM_Initialize(HC_Context_Ptr& context, RMStreamConfig config)
 {
+    g_first_frame_sent = false;
     //ResearchModeSensorType const* sensortypes = ResearchMode_GetSensorTypes();
     int const sensorcount = ResearchMode_GetSensorTypeCount();
 
@@ -163,11 +158,8 @@ void RM_Initialize(const char* client_id, z_session_t session, RMStreamConfig co
         config.enable_imu_mag = false;
     }
 
-    g_zenoh_context = new RM_Context(); // release
-    g_zenoh_context->client_id = std::string(client_id);
-    g_zenoh_context->session = session;
-    g_zenoh_context->config = std::move(config);
-    g_zenoh_context->valid = true;
+    g_zenoh_context = context;
+    g_rm_stream_config = std::move(config);
 
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     
@@ -220,6 +212,6 @@ void RM_Cleanup()
     g_threads.clear();
     g_event_quit = NULL;
 
-    free(g_zenoh_context);
-    g_zenoh_context = NULL;
+    g_zenoh_context.reset();
+    g_first_frame_sent = false;
 }

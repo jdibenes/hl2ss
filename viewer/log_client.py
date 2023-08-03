@@ -2,7 +2,9 @@ import time
 import sys
 import zenoh
 import hl2ss_schema
-import coloredlogs, logging
+import coloredlogs
+import logging
+import argparse
 
 # Create a logger object.
 logger = logging.getLogger(__name__)
@@ -20,19 +22,27 @@ LVL_MAP = {
 def log_handler(sample):
     try:
         message = hl2ss_schema.Hololens2LogMessage.deserialize(sample.payload)
+        sender = message.header.frame_id
         for item in message.items:
-            LVL_MAP[item.severity](item.message[:-1])
+            LVL_MAP[item.severity]("{} >> {}".format(sender, item.message[:-1]))
     except Exception as e:
         logger.error("Error while decoding the Hololens2LogMessage.")
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Display Distributed Logs.')
+    parser.add_argument('--query', metavar='query', type=str, default='tcn/loc/*/*/logs',
+                        help='query for retrieving the logs')
+
+    args = parser.parse_args()
+
+    log_query = args.query
 
     logging.basicConfig(level=logging.DEBUG)
 
     z = zenoh.open(zenoh.Config())
-    print("Listening for hl2 logs on 'hl2/logs/**'")
-    subscriber = z.declare_subscriber('hl2/logs/**', log_handler)
+    print(f"Listening for logs on '{log_query}'")
+    subscriber = z.declare_subscriber(log_query, log_handler)
 
     print("Enter 'q' to quit...")
     c = '\0'

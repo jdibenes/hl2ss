@@ -29,7 +29,8 @@ std::string wide_string_to_string(const std::wstring& wide_string)
 
 	std::string result(size_needed, 0);
 	WideCharToMultiByte(CP_UTF8, 0, &wide_string.at(0), (int)wide_string.size(), &result.at(0), size_needed, nullptr, nullptr);
-	return result;
+	// maybe the conversion is a bit buggy .. seems that there is a \0 byte somewhere ..
+	return std::string(result.c_str());
 }
 
 

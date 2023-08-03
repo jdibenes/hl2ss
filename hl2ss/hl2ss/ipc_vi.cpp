@@ -11,12 +11,6 @@
 
 #include "pcpd_msgs/rpc/Hololens2VoiceInput.h"
 
-struct VI_Context {
-    std::string client_id;
-    z_session_t session;
-    bool valid{ false };
-};
-
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -26,7 +20,7 @@ HANDLE g_thread = NULL;
 HANDLE g_event_quit = NULL;
 HANDLE g_event_client = NULL;
 
-static VI_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -259,14 +253,14 @@ void VI_QueryHandler(const z_query_t* query, void* context) {
 static DWORD WINAPI VI_EntryPoint(void *param)
 {
 
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         SPDLOG_INFO("VI: Invalid Zenoh Context");
         return 1;
     }
 
     (void)param;
 
-    std::string keyexpr_str = "hl2/rpc/vi/" + g_zenoh_context->client_id;
+    std::string keyexpr_str = g_zenoh_context->topic_prefix + "/rpc/vi";
     SPDLOG_INFO("VI: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
@@ -282,7 +276,7 @@ static DWORD WINAPI VI_EntryPoint(void *param)
     callback.context = const_cast<void*>(static_cast<const void*>(expr));
     callback.drop = nullptr;
 
-    z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
+    z_owned_queryable_t qable = z_declare_queryable(z_loan(g_zenoh_context->session), keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
         SPDLOG_INFO("VI: Unable to create queryable.");
         return 1;
@@ -291,7 +285,7 @@ static DWORD WINAPI VI_EntryPoint(void *param)
     do
     {
         // heartbeat occassionally ??   
-    } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
+    } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT && !g_zenoh_context->should_exit);
 
     if (VoiceInput_IsRunning()) { 
         VoiceInput_Stop();
@@ -305,12 +299,9 @@ static DWORD WINAPI VI_EntryPoint(void *param)
 }
 
 // OK
-void VI_Initialize(const char* client_id, z_session_t session)
+void VI_Initialize(HC_Context_Ptr& context)
 {
-    g_zenoh_context = new VI_Context(); // release
-    g_zenoh_context->client_id = std::string(client_id);
-    g_zenoh_context->session = session;
-    g_zenoh_context->valid = true;
+    g_zenoh_context = context;
 
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -331,6 +322,5 @@ void VI_Cleanup()
     CloseHandle(g_event_client);
     CloseHandle(g_event_quit);
 
-    free(g_zenoh_context);
-    g_zenoh_context = NULL;
+    g_zenoh_context.reset();
 }

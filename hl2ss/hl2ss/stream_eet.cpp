@@ -25,13 +25,6 @@ using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Microsoft::MixedReality::EyeTracking;
 
 
-struct EET_Context {
-    std::string client_id;
-    z_session_t session;
-    uint8_t fps{ 0 };
-    bool valid{ false };
-};
-
 struct EET_Frame
 {
     float3   c_origin;
@@ -62,7 +55,9 @@ struct EET_Packet
 static HANDLE g_event_quit = NULL;
 static HANDLE g_thread = NULL;
 
-static EET_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context;
+static uint8_t g_eye_tracker_fps = 30;
+static bool g_first_frame_sent = false;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -72,18 +67,18 @@ static EET_Context* g_zenoh_context = NULL;
 static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
 {
 
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         SPDLOG_INFO("EET: Error invalid context");
         return;
     }
-    std::string& client_id = g_zenoh_context->client_id;
-    std::string keyexpr = "hl2/sensor/eet/" + client_id;
+    std::string& topic_prefix = g_zenoh_context->topic_prefix;
+    std::string keyexpr = topic_prefix + "/str/eet";
     SPDLOG_INFO("EET: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
 
-    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
+    z_owned_publisher_t pub = z_declare_publisher(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
         SPDLOG_INFO("EET: Error creating publisher");
@@ -97,7 +92,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     EyeGazeTrackerReading egtr = nullptr;
     DateTime td;
     EET_Packet eet_packet{};
-    uint8_t fps = g_zenoh_context->fps;
+    uint8_t fps = g_eye_tracker_fps;
     uint64_t delay;
     int64_t max_delta;
     int fps_index;
@@ -131,7 +126,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     {
         pcpd_msgs::msg::Hololens2StreamDescriptor value{};
 
-        value.stream_topic("hl2/sensor/eet/" + g_zenoh_context->client_id);
+        value.stream_topic(g_zenoh_context->topic_prefix + "/str/eet/");
         value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::EYE_TRACKING);
         value.frame_rate(fps);
 
@@ -139,10 +134,10 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
         value.serialize(buffer_cdr);
 
         // put message to zenoh
-        std::string keyexpr1 = "hl2/cfg/eet/" + g_zenoh_context->client_id;
+        std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/eet";
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
-        int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
             SPDLOG_INFO("EET: Error putting info");
         }
@@ -150,6 +145,37 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
             SPDLOG_INFO("EET: put info");
         }
     }
+
+    if (!g_first_frame_sent) {
+        g_first_frame_sent = true;
+
+        pcpd_msgs::msg::Hololens2StreamDescriptor value{};
+
+        value.stream_topic(g_zenoh_context->topic_prefix + "/str/eet");
+        value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::EYE_TRACKING);
+        value.frame_rate(g_eye_tracker_fps);
+
+        eprosima::fastcdr::FastBuffer buffer{};
+        eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
+
+        buffer_cdr.reset();
+        value.serialize(buffer_cdr);
+
+        // put message to zenoh
+        std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/eet";
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            SPDLOG_INFO("EET: Error putting info");
+        }
+        else {
+            SPDLOG_INFO("EET: put info: {}", keyexpr1);
+        }
+
+    }
+
+
 
     do
     {
@@ -198,7 +224,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
                 value.header().stamp().sec(ts_sec);
                 value.header().stamp().nanosec(ts_nsec);
 
-                value.header().frame_id(client_id);
+                value.header().frame_id(topic_prefix);
             }
 
             {
@@ -264,7 +290,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
             //SPDLOG_INFO("EET: no data");
         }
     }
-    while (ok && WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
+    while (ok && WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT && !g_zenoh_context->should_exit);
 
 
     z_undeclare_publisher(z_move(pub));
@@ -276,7 +302,7 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 {
     (void)param;
 
-    if (g_zenoh_context == NULL) {
+    if (!g_zenoh_context) {
         return 1;
     }
 
@@ -300,13 +326,11 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 }
 
 // OK
-void EET_Initialize(const char* client_id, z_session_t session, uint8_t fps)
+void EET_Initialize(HC_Context_Ptr& context, uint8_t fps)
 {
-    g_zenoh_context = new EET_Context(); // release
-    g_zenoh_context->client_id = std::string(client_id);
-    g_zenoh_context->session = session;
-    g_zenoh_context->fps = fps;
-    g_zenoh_context->valid = true;
+    g_first_frame_sent = false;
+    g_zenoh_context = context;
+    g_eye_tracker_fps = fps;
 
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, EET_EntryPoint, NULL, 0, NULL);
@@ -328,6 +352,6 @@ void EET_Cleanup()
     g_thread = NULL;
     g_event_quit = NULL;
 
-    free(g_zenoh_context);
-    g_zenoh_context = NULL;
+    g_zenoh_context.reset();
+    g_first_frame_sent = false;
 }

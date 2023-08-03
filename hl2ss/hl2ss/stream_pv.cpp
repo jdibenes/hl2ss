@@ -40,16 +40,9 @@ struct PV_Projection
     float4x4 pose;
     float3 rd;
     float2 td;
+    float4x4 undistorted_projection_transform;
 };
 
-struct PV_Context {
-    std::string client_id;
-    z_session_t session;
-    H26xFormat format;
-    bool enable_location{ true };
-    bool valid{ false };
-    bool first_frame_sent{ false };
-};
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -67,7 +60,10 @@ static DWORD g_dwVideoIndex = 0;
 //static HANDLE g_event_intrinsic = NULL; // alias
 //static float g_intrinsics[2 + 2 + 3 + 2 + 16];
 
-static PV_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context;
+static H26xFormat g_h26x_format = H26xFormat{};
+static bool g_enable_location = true;
+static bool g_first_frame_sent = false;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -107,21 +103,21 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pj.c = intrinsics.PrincipalPoint();
     pj.rd = intrinsics.RadialDistortion();
     pj.td = intrinsics.TangentialDistortion();
-    //intrinsics.UndistortedProjectionTransform();
+    pj.undistorted_projection_transform = intrinsics.UndistortedProjectionTransform();
 
     if constexpr(ENABLE_LOCATION)
     {
         pj.pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
-    }
+    } // else identity??
 
-    if (!g_zenoh_context->first_frame_sent) {
-        g_zenoh_context->first_frame_sent = true;
+    if (!g_first_frame_sent) {
+        g_first_frame_sent = true;
 
         pcpd_msgs::msg::Hololens2StreamDescriptor desc{};
 
-        desc.stream_topic("hl2/sensor/pv/" + g_zenoh_context->client_id);
+        desc.stream_topic(g_zenoh_context->topic_prefix + "/str/pv");
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::PERSONAL_VIDEO);
-        desc.frame_rate(g_zenoh_context->format.framerate);
+        desc.frame_rate(g_h26x_format.framerate);
         desc.image_width(pj.width);
         desc.image_height(pj.height);
 
@@ -129,7 +125,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
         desc.image_step(0);
         desc.image_format(pcpd_msgs::msg::PixelFormat_NV12);
 
-        switch (g_zenoh_context->format.profile) {
+        switch (g_h26x_format.profile) {
         case H26xProfile_None:
             desc.h26x_profile(pcpd_msgs::msg::H26xProfile_None);
             desc.image_compression(pcpd_msgs::msg::CompressionType_Raw);
@@ -152,7 +148,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
             break;
         }
 
-        desc.h26x_bitrate(g_zenoh_context->format.bitrate);
+        desc.h26x_bitrate(g_h26x_format.bitrate);
         desc.audio_channels(0);
         desc.aac_profile(pcpd_msgs::msg::AACProfile_None);
 
@@ -184,15 +180,64 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
         // put message to zenoh
         {
-            std::string keyexpr1 = "hl2/cfg/pv/" + g_zenoh_context->client_id;
+            std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/pv";
             z_put_options_t options1 = z_put_options_default();
             options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
-            int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+            int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
             if (res > 0) {
                 SPDLOG_INFO("PV: Error putting info");
             }
             else {
-                SPDLOG_INFO("PV: put info");
+                SPDLOG_INFO("PV: put info: {}", keyexpr1);
+            }
+        }
+
+        // publish calibration
+        pcpd_msgs::msg::Hololens2SensorIntrinsicsPV value{};
+
+        {
+            using namespace std::chrono;
+            auto ts_ = nanoseconds(timestamp * 100);
+            auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+            auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+            value.header().stamp().sec(ts_sec);
+            value.header().stamp().nanosec(ts_nsec);
+
+            value.header().frame_id(g_zenoh_context->topic_prefix);
+        }
+        value.width(pj.width);
+        value.height(pj.height);
+        value.focal_length({ pj.f.x, pj.f.y });
+        value.principal_point({ pj.c.x, pj.c.y });
+
+        value.radial_distortion({ pj.rd.x, pj.rd.y, pj.rd.z});
+        value.tangential_distortion({ pj.td.x, pj.td.y });
+
+        // column major
+        auto& t = pj.undistorted_projection_transform;
+        value.undistorted_projection_transform({
+            t.m11, t.m21, t.m31, t.m41,
+            t.m12, t.m22, t.m32, t.m42,
+            t.m13, t.m23, t.m33, t.m43,
+            t.m14, t.m24, t.m34, t.m44
+            });
+
+        buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
+        value.serialize(buffer_cdr);
+
+        // put message to zenoh
+        {
+            std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cal/pv";
+            z_put_options_t options1 = z_put_options_default();
+            options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+            int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+            if (res > 0) {
+                SPDLOG_INFO("PV: Error putting calib");
+            }
+            else {
+                SPDLOG_INFO("PV: put calib: {}", keyexpr1);
             }
         }
 
@@ -205,45 +250,6 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pSample->Release();
     pBuffer->Release();
 }
-
-/*
-// OK
-static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
-{
-    (void)args;
-
-    CameraIntrinsics intrinsics = nullptr;
-    MediaFrameReference frame = nullptr;
-    float2 f;
-    float2 c;
-    float3 r;
-    float2 t;
-    float4x4 p;
-    DWORD status;
-
-    frame = sender.TryAcquireLatestFrame();
-    if (!frame) { return; }
-
-    status = WaitForSingleObject(g_event_intrinsic, 0);
-    if (status != WAIT_TIMEOUT) { return; }
-
-    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
-    f = intrinsics.FocalLength();
-    c = intrinsics.PrincipalPoint();
-    r = intrinsics.RadialDistortion();
-    t = intrinsics.TangentialDistortion();
-    p = intrinsics.UndistortedProjectionTransform();
-
-    memcpy(&g_intrinsics[0], &f, sizeof(f));
-    memcpy(&g_intrinsics[2], &c, sizeof(c));
-    memcpy(&g_intrinsics[4], &r, sizeof(r));
-    memcpy(&g_intrinsics[7], &t, sizeof(t));
-    memcpy(&g_intrinsics[9], &p, sizeof(p));
-
-    SetEvent(g_event_intrinsic);
-}
-*/
-
 
 // OK
 template<bool ENABLE_LOCATION>
@@ -281,7 +287,7 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
         value.header().stamp().sec(ts_sec);
         value.header().stamp().nanosec(ts_nsec);
 
-        value.header().frame_id(g_zenoh_context->client_id);
+        value.header().frame_id(g_zenoh_context->topic_prefix);
     }
 
     if constexpr (ENABLE_LOCATION)
@@ -338,18 +344,18 @@ template<bool ENABLE_LOCATION>
 void PV_Stream(HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format)
 {
 
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         SPDLOG_INFO("PV: Error invalid context");
         return;
     }
 
-    std::string keyexpr = "hl2/sensor/pv/" + g_zenoh_context->client_id;
+    std::string keyexpr = g_zenoh_context->topic_prefix + "/str/pv";
     SPDLOG_INFO("PV: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
 
-    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
+    z_owned_publisher_t pub = z_declare_publisher(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
         SPDLOG_INFO("PV: Error creating publisher");
@@ -367,7 +373,7 @@ void PV_Stream(HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& f
     user.clientevent  = clientevent;
     user.data_profile = format.profile;
     user.options = options;
-    user.client_id = g_zenoh_context->client_id.c_str();
+    user.topic_prefix = g_zenoh_context->topic_prefix.c_str();
 
     switch (format.profile)
     {
@@ -395,42 +401,19 @@ void PV_Stream(HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& f
 
 }
 
-/*
-// OK
-static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader)
-{
-    WSABUF wsaBuf;
-
-    g_event_intrinsic = clientevent;
-
-    reader.FrameArrived(PV_OnVideoFrameArrived_Intrinsics);
-
-    reader.StartAsync().get();
-    WaitForSingleObject(g_event_intrinsic, INFINITE);
-    reader.StopAsync().get();
-
-    wsaBuf.buf = (char*)g_intrinsics;
-    wsaBuf.len = sizeof(g_intrinsics);
-
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    g_event_intrinsic = NULL;
-    memset(g_intrinsics, 0, sizeof(g_intrinsics));
-}
-*/
 
 // OK
 static void PV_Stream()
 {
 
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         SPDLOG_INFO("PV: Invalid Zenoh Context");
         return;
     }
 
     MediaFrameReader videoFrameReader = nullptr;
     HANDLE clientevent; // CloseHandle
-    H26xFormat format = g_zenoh_context->format;
+    H26xFormat format = g_h26x_format;
     bool ok;
     SPDLOG_DEBUG("PV: Start stream");
 
@@ -458,7 +441,7 @@ static void PV_Stream()
     videoFrameReader = PersonalVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
-    if (g_zenoh_context->enable_location) {
+    if (g_enable_location) {
         PV_Stream<true>(clientevent, videoFrameReader, format);
     }
     else {
@@ -491,15 +474,13 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 }
 
 // OK
-void PV_Initialize(const char* client_id, z_session_t session, bool enable_location, H26xFormat format)
+void PV_Initialize(HC_Context_Ptr& context, bool enable_location, H26xFormat format)
 {
+    g_first_frame_sent = false;
     SPDLOG_DEBUG("PV_Initialize");
-    g_zenoh_context = new PV_Context(); // release
-    g_zenoh_context->client_id = std::string(client_id);
-    g_zenoh_context->session = session;
-    g_zenoh_context->enable_location = enable_location;
-    g_zenoh_context->format = std::move(format);
-    g_zenoh_context->valid = true;
+    g_zenoh_context = context;
+    g_enable_location = enable_location;
+    g_h26x_format = std::move(format);
 
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, PV_EntryPoint, NULL, 0, NULL);
@@ -523,6 +504,6 @@ void PV_Cleanup()
     g_thread = NULL;
     g_event_quit = NULL;
 
-    free(g_zenoh_context);
-    g_zenoh_context = NULL;
+    g_zenoh_context.reset();
+    g_first_frame_sent = false;
 }

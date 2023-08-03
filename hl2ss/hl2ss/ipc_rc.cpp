@@ -15,13 +15,6 @@
 
 #include "pcpd_msgs/rpc/Hololens2RemoteControl.h"
 
-
-struct RC_Context {
-    std::string client_id;
-    z_session_t session;
-    bool valid{ false };
-};
-
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -30,7 +23,7 @@ static HANDLE g_thread = NULL; // CloseHandle
 static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_event_client = NULL; // CloseHandle
 
-static RC_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr  g_zenoh_context{};
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -212,6 +205,8 @@ struct RC_SetPVSceneMode {
 };
 
 
+
+
 /*
 * ArgumentHelper
 */
@@ -366,14 +361,14 @@ void RC_QueryHandler(const z_query_t* query, void* context) {
 static DWORD WINAPI RC_EntryPoint(void *param)
 {
 
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         SPDLOG_INFO("RC: Invalid Zenoh Context");
         return 1;
     }
 
     (void)param;
 
-    std::string keyexpr_str = "hl2/rpc/rc/" + g_zenoh_context->client_id;
+    std::string keyexpr_str = g_zenoh_context->topic_prefix + "/rpc/ctrl";
     SPDLOG_INFO("RC: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
@@ -389,7 +384,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
     callback.context = const_cast<void*>(static_cast<const void*>(expr));
     callback.drop = nullptr;
 
-    z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
+    z_owned_queryable_t qable = z_declare_queryable(z_loan(g_zenoh_context->session), keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
         SPDLOG_INFO("RC: Unable to create queryable.");
         return 1;
@@ -399,7 +394,7 @@ static DWORD WINAPI RC_EntryPoint(void *param)
     {
         // heartbeat occassionally ??   
     }
-    while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT && !g_zenoh_context->should_exit);
 
     z_undeclare_queryable(z_move(qable));
     SPDLOG_INFO("RC: Closed");
@@ -408,12 +403,9 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 }
 
 // OK
-void RC_Initialize(const char* client_id, z_session_t session)
+void RC_Initialize(HC_Context_Ptr& context)
 {
-    g_zenoh_context = new RC_Context(); // release
-    g_zenoh_context->client_id = std::string(client_id);
-    g_zenoh_context->session = session;
-    g_zenoh_context->valid = true;
+    g_zenoh_context = context;
 
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -439,6 +431,5 @@ void RC_Cleanup()
     g_event_client = NULL;
     g_event_quit = NULL;
 
-    free(g_zenoh_context);
-    g_zenoh_context = NULL;
+    g_zenoh_context.reset();
 }

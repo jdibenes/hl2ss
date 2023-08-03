@@ -12,6 +12,7 @@ module pcpd_msgs {
     struct Hololens2StreamDescriptor {
 
       string stream_topic;
+      string calib_topic;
       Hololens2SensorType sensor_type;
       uint32 frame_rate;
 
@@ -34,6 +35,13 @@ module pcpd_msgs {
       uint8 audio_channels;
       Hololens2AACProfile aac_profile;
 
+    };
+
+    struct Hololens2RigidTransform {
+      std_msgs::msg::Header header;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
     };
 
     struct Hololens2SensorInfoVLC {
@@ -67,6 +75,45 @@ module pcpd_msgs {
       float__2 tangential_distortion;
 
       float__16 undistorted_projection_transform;
+    };
+
+
+    struct Hololens2SensorInfoZHT {
+
+      std_msgs::msg::Header header;
+
+      float scale;
+      float alias;
+
+      sequence<float> uv2x;
+      sequence<float> uv2y;
+
+      sequence<float> mapx;
+      sequence<float> mapy;
+
+      float__4 K;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+
+    struct Hololens2SensorInfoZLT {
+
+      std_msgs::msg::Header header;
+
+      float scale;
+
+      sequence<float> uv2x;
+      sequence<float> uv2y;
+
+      sequence<float> mapx;
+      sequence<float> mapy;
+
+      float__4 K;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
     };
 
 

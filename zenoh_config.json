@@ -124,19 +124,30 @@
       __required__: true, // defaults to false
       http_port: 8000,
     },
+    // configuration of "storage-manager" plugin:
     storage_manager: {
+      backend_search_dirs: [
+        "D:/develop/apps/zenoh_ecosystem/zenoh/target/release", 
+        "D:/develop/apps/zenoh_ecosystem/zenoh-backend-filesystem/target/release"],
       volumes: {
-        storages: {
-          narvis_hl2: {
-            key_expr: "hl2/**",
-            volume: "memory",
-            garbage_collection: {
-              period: 3600,
-              lifespan: 86400,
-            },
-          },
-        },
+        // configuration of a "fs" volume (the "zenoh_backend_fs" backend library will be loaded at startup)
+        fs: {},
       },
+      storages: {
+        // configuration of a "demo" storage using the "fs" volume
+        tcn_local: {
+          // the key expression this storage will subscribes to
+          key_expr: "tcn/loc/**",
+          // this prefix will be stripped from the received key when converting to file path
+          // this argument is optional.
+          strip_prefix: "tcn/loc",
+          volume: {
+            id: "fs",
+            // the key/values will be stored as files within this directory (relative to ${ZENOH_BACKEND_FS_ROOT})
+            dir: "tcn_data"
+          }
+        }
+      }
     },
   },
 }

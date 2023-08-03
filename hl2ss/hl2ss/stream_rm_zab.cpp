@@ -96,7 +96,7 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
         value.header().stamp().sec(ts_sec);
         value.header().stamp().nanosec(ts_nsec);
 
-        value.header().frame_id(user->client_id);
+        value.header().frame_id(user->topic_prefix);
     }
 
     if constexpr (ENABLE_LOCATION)
@@ -145,7 +145,7 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
 
 // OK
 template<bool ENABLE_LOCATION>
-void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format, SpatialLocator const& locator)
+void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, H26xFormat format, SpatialLocator const& locator, const bool& should_exit)
 {
 
     std::string sub_path;
@@ -153,7 +153,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     switch (sensor->GetSensorType()) {
     case DEPTH_AHAT:
-        sub_path = "rm/zht/";
+        sub_path = "zht";
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_DEPTH_AHAT);
         break;
     default:
@@ -161,7 +161,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         return;
     }
 
-    std::string keyexpr = "hl2/sensor/" + sub_path + std::string(client_id);
+    std::string keyexpr = std::string(topic_prefix) + "/str/" + sub_path;
     desc.stream_topic(keyexpr);
 
     desc.image_width(RM_ZHT_WIDTH);
@@ -208,7 +208,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
-        std::string keyexpr1 = "hl2/cfg/" + sub_path + std::string(client_id);
+        std::string keyexpr1 = std::string(topic_prefix)+ "/cfg/" + sub_path;
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -220,6 +220,77 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         }
     }
 
+    // publish calibration
+    pcpd_msgs::msg::Hololens2SensorInfoZHT calib_depth{};
+    {
+        using namespace std::chrono;
+        auto ts_ = nanoseconds(GetCurrentQPCTimestamp() * 100);
+        auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+        auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+        calib_depth.header().stamp().sec(ts_sec);
+        calib_depth.header().stamp().nanosec(ts_nsec);
+
+        calib_depth.header().frame_id(topic_prefix);
+    }
+
+    {
+        calib_depth.scale(1000.0f);
+        calib_depth.alias(1055.0f);
+
+        std::vector<float> uv2x;
+        std::vector<float> uv2y;
+        std::vector<float> mapx;
+        std::vector<float> mapy;
+        float K[4];
+
+        ResearchMode_GetIntrinsics(sensor, calib_depth.uv2x(), calib_depth.uv2y(), calib_depth.mapx(), calib_depth.mapy(), K);
+        calib_depth.K({ K[0],K[1], K[2], K[3] });
+
+
+        DirectX::XMFLOAT4X4 e;
+        ResearchMode_GetExtrinsics(sensor, e);
+        DirectX::FXMMATRIX e1 = XMLoadFloat4x4(&e);;
+
+        float4x4 extrinsics;
+        XMStoreFloat4x4(&extrinsics, e1);
+
+        // add flag to note it is enabled?
+        float3 scale;
+        quaternion rotation;
+        float3 translation;
+
+        if (decompose(extrinsics, &scale, &rotation, &translation)) {
+            calib_depth.position().x(translation.x);
+            calib_depth.position().y(translation.y);
+            calib_depth.position().z(translation.z);
+
+            calib_depth.orientation().x(rotation.x);
+            calib_depth.orientation().y(rotation.y);
+            calib_depth.orientation().z(rotation.z);
+            calib_depth.orientation().w(rotation.w);
+        }
+
+    }
+
+
+    // put message to zenoh - calib_depth
+    {
+        buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
+        calib_depth.serialize(buffer_cdr);
+
+        std::string keyexpr1 = std::string(topic_prefix) + "/cal/" + sub_path + "/depth";
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            SPDLOG_INFO("RM_ZLT_DEPTH: Error putting calib_depth");
+        }
+        else {
+            SPDLOG_INFO("RM_ZLT_DEPTH: put calib_depth: {}", keyexpr1);
+        }
+    }
 
     SPDLOG_INFO("PV: publish on: {0}", keyexpr.c_str());
 
@@ -272,7 +343,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     user.clientevent  = clientevent;
     user.data_profile = format.profile;
     user.options = options;
-    user.client_id = client_id;
+    user.topic_prefix = topic_prefix;
 
     switch (format.profile)
     {
@@ -320,7 +391,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     pSample->Release();
     pBuffer->Release();
     }
-    while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT && !should_exit);
 
     sensor->CloseStream();
 
@@ -336,66 +407,23 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 }
 
 // OK
-void RM_ZHT_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format)
+void RM_ZHT_Stream_Mode0(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, H26xFormat format, const bool& should_exit)
 {
-    RM_ZHT_Stream<false>(sensor, session, client_id, format, nullptr);
+    RM_ZHT_Stream<false>(sensor, session, topic_prefix, format, nullptr, should_exit);
 }
 
 // OK
-void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format, SpatialLocator const& locator)
+void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, H26xFormat format, SpatialLocator const& locator, const bool& should_exit)
 {
-    RM_ZHT_Stream<true>(sensor, session, client_id, format, locator);
+    RM_ZHT_Stream<true>(sensor, session, topic_prefix, format, locator, should_exit);
 }
 
-// OK
-//void RM_ZHT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-//{
-//    float const scale = 1000.0f;
-//    float const alias = 1055.0f;
-//
-//    std::vector<float> uv2x;
-//    std::vector<float> uv2y;
-//    std::vector<float> mapx;
-//    std::vector<float> mapy;
-//    float K[4];
-//    DirectX::XMFLOAT4X4 extrinsics;
-//    WSABUF wsaBuf[8];
-//
-//    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
-//    ResearchMode_GetExtrinsics(sensor, extrinsics);
-//
-//    wsaBuf[0].buf = (char*)uv2x.data();
-//    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-//
-//    wsaBuf[1].buf = (char*)uv2y.data();
-//    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-//
-//    wsaBuf[2].buf = (char*)&extrinsics.m[0][0];
-//    wsaBuf[2].len = sizeof(extrinsics.m);
-//
-//    wsaBuf[3].buf = (char*)&scale;
-//    wsaBuf[3].len = sizeof(scale);
-//
-//    wsaBuf[4].buf = (char*)&alias;
-//    wsaBuf[4].len = sizeof(alias);
-//
-//    wsaBuf[5].buf = (char*)mapx.data();
-//    wsaBuf[5].len = (ULONG)(mapx.size() * sizeof(float));
-//
-//    wsaBuf[6].buf = (char*)mapy.data();
-//    wsaBuf[6].len = (ULONG)(mapy.size() * sizeof(float));
-//
-//    wsaBuf[7].buf = (char*)K;
-//    wsaBuf[7].len = sizeof(K);
-//
-//    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-//}
 
 // ZLT ************************************************************************
 
 // OK
 template<bool ENABLE_LOCATION>
-void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, SpatialLocator const& locator)
+void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, SpatialLocator const& locator, const bool& should_exit)
 {
 
     std::string sub_path;
@@ -404,7 +432,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     switch (sensor->GetSensorType()) {
     case DEPTH_LONG_THROW:
-        sub_path = "rm/zlt/";
+        sub_path = "zlt";
         desc_depth.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_DEPTH_LONG_THROW);
         desc_ir.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_DEPTH_LONG_THROW);
         break;
@@ -430,8 +458,8 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     desc_ir.image_format(pcpd_msgs::msg::PixelFormat_L16);
     desc_ir.image_compression(pcpd_msgs::msg::CompressionType_Png);
 
-    std::string keyexpr_depth = "hl2/sensor/" + sub_path + "depth/" + std::string(client_id);
-    std::string keyexpr_ir = "hl2/sensor/" + sub_path + "ir/" + std::string(client_id);
+    std::string keyexpr_depth = std::string(topic_prefix) + "/str/" + sub_path + "/depth";
+    std::string keyexpr_ir = std::string(topic_prefix) + "/str/" + sub_path + "/ir";
     desc_depth.stream_topic(keyexpr_depth);
     desc_ir.stream_topic(keyexpr_ir);
 
@@ -445,7 +473,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         buffer_cdr.serialize_encapsulation();
         desc_depth.serialize(buffer_cdr);
 
-        std::string keyexpr1 = "hl2/cfg/" + sub_path + "depth/" + std::string(client_id);
+        std::string keyexpr1 = std::string(topic_prefix) + "/cfg/" + sub_path + "/depth";
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -457,13 +485,85 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         }
     }
 
+    // publish calibration
+    pcpd_msgs::msg::Hololens2SensorInfoZLT calib_depth{};
+    {
+        using namespace std::chrono;
+        auto ts_ = nanoseconds(GetCurrentQPCTimestamp() * 100);
+        auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+        auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+        calib_depth.header().stamp().sec(ts_sec);
+        calib_depth.header().stamp().nanosec(ts_nsec);
+
+        calib_depth.header().frame_id(topic_prefix);
+    }
+
+    {
+        calib_depth.scale(1000.0f);
+
+        std::vector<float> uv2x;
+        std::vector<float> uv2y;
+        std::vector<float> mapx;
+        std::vector<float> mapy;
+        float K[4];
+
+        ResearchMode_GetIntrinsics(sensor, calib_depth.uv2x(), calib_depth.uv2y(), calib_depth.mapx(), calib_depth.mapy(), K);
+        calib_depth.K({ K[0],K[1], K[2], K[3] });
+
+
+        DirectX::XMFLOAT4X4 e;
+        ResearchMode_GetExtrinsics(sensor, e);
+        DirectX::FXMMATRIX e1 = XMLoadFloat4x4(&e);;
+
+        float4x4 extrinsics;
+        XMStoreFloat4x4(&extrinsics, e1);
+
+        // add flag to note it is enabled?
+        float3 scale;
+        quaternion rotation;
+        float3 translation;
+
+        if (decompose(extrinsics, &scale, &rotation, &translation)) {
+            calib_depth.position().x(translation.x);
+            calib_depth.position().y(translation.y);
+            calib_depth.position().z(translation.z);
+
+            calib_depth.orientation().x(rotation.x);
+            calib_depth.orientation().y(rotation.y);
+            calib_depth.orientation().z(rotation.z);
+            calib_depth.orientation().w(rotation.w);
+        }
+
+    }
+
+
+    // put message to zenoh - calib_depth
+    {
+        buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
+        calib_depth.serialize(buffer_cdr);
+
+        std::string keyexpr1 = std::string(topic_prefix) + "/cal/" + sub_path + "/depth";
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            SPDLOG_INFO("RM_ZLT_DEPTH: Error putting calib_depth");
+        }
+        else {
+            SPDLOG_INFO("RM_ZLT_DEPTH: put calib_depth: {}", keyexpr1);
+        }
+    }
+
+
     // put message to zenoh - ir
     {
  /*       buffer_cdr.reset();
        buffer_cdr.serialize_encapsulation();
         desc_ir.serialize(buffer_cdr);
 
-        std::string keyexpr1 = "hl2/cfg/" + sub_path + "ir/" + std::string(client_id);
+        std::string keyexpr1 = std::string(topic_prefix) + "/cfg/" + sub_path + "/ir";
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -475,7 +575,9 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         }*/
     }
 
-    // should put another message for extrinsics (need idl for it)
+    // should put another message for extrinsics - see above
+
+
 
     SPDLOG_INFO("RM_ZLT_DEPTH: publish on: {0}", keyexpr_depth.c_str());
     //SPDLOG_INFO("RM_ZLT_IR: publish on: {0}", keyexpr_ir.c_str());
@@ -564,7 +666,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
             value.header().stamp().sec(ts_sec);
             value.header().stamp().nanosec(ts_nsec);
 
-            value.header().frame_id(client_id);
+            value.header().frame_id(topic_prefix);
         }
 
         if constexpr (ENABLE_LOCATION)
@@ -647,7 +749,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     //        value.header().stamp().sec(ts_sec);
     //        value.header().stamp().nanosec(ts_nsec);
 
-    //        value.header().frame_id(client_id);
+    //        value.header().frame_id(topic_prefix);
     //    }
 
     //    if constexpr (ENABLE_LOCATION)
@@ -695,7 +797,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     pDepthFrame->Release();
     pSensorFrame->Release();
     }
-    while (ok);
+    while (ok && !should_exit);
 
     sensor->CloseStream();
 
@@ -705,53 +807,14 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 }
 
 // OK
-void RM_ZLT_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id)
+void RM_ZLT_Stream_Mode0(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, const bool& should_exit)
 {
-    RM_ZLT_Stream<false>(sensor, session, client_id, nullptr);
+    RM_ZLT_Stream<false>(sensor, session, topic_prefix, nullptr, should_exit);
 }
 
 // OK
-void RM_ZLT_Stream_Mode1(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, SpatialLocator const& locator)
+void RM_ZLT_Stream_Mode1(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, SpatialLocator const& locator, const bool& should_exit)
 {
-    RM_ZLT_Stream<true>(sensor, session, client_id, locator);
+    RM_ZLT_Stream<true>(sensor, session, topic_prefix, locator, should_exit);
 }
 
-// OK
-//void RM_ZLT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-//{
-//    float const scale = 1000.0f;
-//
-//    std::vector<float> uv2x;
-//    std::vector<float> uv2y;
-//    std::vector<float> mapx;
-//    std::vector<float> mapy;
-//    float K[4];
-//    DirectX::XMFLOAT4X4 extrinsics;
-//    WSABUF wsaBuf[7];
-//
-//    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
-//    ResearchMode_GetExtrinsics(sensor, extrinsics);
-//
-//    wsaBuf[0].buf = (char*)uv2x.data();
-//    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-//
-//    wsaBuf[1].buf = (char*)uv2y.data();
-//    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-//
-//    wsaBuf[2].buf = (char*)&extrinsics.m[0][0];
-//    wsaBuf[2].len = sizeof(extrinsics.m);
-//
-//    wsaBuf[3].buf = (char*)&scale;
-//    wsaBuf[3].len = sizeof(scale);
-//
-//    wsaBuf[4].buf = (char*)mapx.data();
-//    wsaBuf[4].len = (ULONG)(mapx.size() * sizeof(float));
-//
-//    wsaBuf[5].buf = (char*)mapy.data();
-//    wsaBuf[5].len = (ULONG)(mapy.size() * sizeof(float));
-//
-//    wsaBuf[6].buf = (char*)K;
-//    wsaBuf[6].len = sizeof(K);
-//
-//    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-//}

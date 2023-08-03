@@ -80,7 +80,7 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 static IUnityInterfaces* s_UnityInterfaces = NULL;
 static IUnityGraphics* s_Graphics = NULL;
 
-static HC_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context;
 
 extern "C" void	UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces * unityInterfaces)
 {
@@ -108,8 +108,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 
     if (g_zenoh_context != nullptr) {
  
-        free(g_zenoh_context);
-        g_zenoh_context = NULL;
+        g_zenoh_context.reset();
     }
 
 }
@@ -180,7 +179,7 @@ RegisterLoggingCallback(LoggingFuncCallBack cb) {
 
 
 // OK
-void InitializeStreams(const char* cid, const char* zcfg, uint32_t enable)
+void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t enable=0xFFFFFFFF)
 {
     if (g_zenoh_context != nullptr) {
         // plugin is already initialized
@@ -210,16 +209,31 @@ void InitializeStreams(const char* cid, const char* zcfg, uint32_t enable)
         return;
     }
 
-    g_zenoh_context = new HC_Context(); // release
+    auto context = std::make_shared<HC_Context>();
 
-    std::string host_name(cid);
-    if (host_name.empty()) {
+    /*
+     * Topic prefix consists of the following components
+     * - namespace: tcn (Tum Camp Narvis)
+     * - site: loc (default for unrouted networks)
+     * - category: [hl2|svc|...] The category of the entry
+     * - entity_id: the entity id, unique to the namespace/site parent
+     *   (to avoid issues it is better to have globally unique ids.)
+     *
+     */
+    std::string default_topic_prefix{"tcn/loc/dev/"};
+
+    std::string topic_prefix(_topic_prefix);
+    if (topic_prefix.empty()) {
+        std::string host_name;
         std::vector<wchar_t> buf;
         GetLocalHostname(buf);
         host_name.resize(buf.size(), '\0');
         std::copy(buf.begin(), buf.end(), host_name.begin());
+        topic_prefix = default_topic_prefix + host_name;
     }
-    g_zenoh_context->client_id = host_name;
+
+    context->topic_prefix = topic_prefix;
+    SPDLOG_INFO("Using Topic Prefix: {0}", context->topic_prefix);
 
     g_zenoh_context->session = z_open(z_move(config));
     if (!z_check(g_zenoh_context->session)) {
@@ -263,7 +277,7 @@ StartRMOnUI(
     H26xFormat depth_format,
     bool enable_imu_accel, bool enable_imu_gyro, bool enable_imu_mag)
 {
-    if (g_zenoh_context == nullptr) {
+    if (!g_zenoh_context) {
         return false;
     }
 
@@ -284,7 +298,7 @@ StartRMOnUI(
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopRMOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_RM) {
         call_deferred(StopRM, g_zenoh_context);
         return true;
@@ -295,7 +309,7 @@ StopRMOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartMCOnUI(AACFormat aac_format)
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_MC) {
         call_deferred(StartMC, g_zenoh_context, aac_format);
         return true;
@@ -306,7 +320,7 @@ StartMCOnUI(AACFormat aac_format)
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopMCOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_MC) {
         call_deferred(StopMC, g_zenoh_context);
         return true;
@@ -317,7 +331,7 @@ StopMCOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartPVOnUI(bool enable_location, H26xFormat pv_format)
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_PV) {
         call_deferred(StartPV, g_zenoh_context, enable_location, pv_format);
         return true;
@@ -328,7 +342,7 @@ StartPVOnUI(bool enable_location, H26xFormat pv_format)
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopPVOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_PV) {
         call_deferred(StopPV, g_zenoh_context);
         return true;
@@ -339,7 +353,7 @@ StopPVOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartSIOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_SI) {
         call_deferred(StartSI, g_zenoh_context);
         return true;
@@ -350,7 +364,7 @@ StartSIOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopSIOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_SI) {
         call_deferred(StopSI, g_zenoh_context);
         return true;
@@ -361,7 +375,7 @@ StopSIOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartRCOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_RC) {
         call_deferred(StartRC, g_zenoh_context);
         return true;
@@ -372,7 +386,7 @@ StartRCOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopRCOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_RC) {
         call_deferred(StopRC, g_zenoh_context);
         return true;
@@ -383,7 +397,7 @@ StopRCOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartSMOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_SM) {
         call_deferred(StartSM, g_zenoh_context);
         return true;
@@ -394,7 +408,7 @@ StartSMOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopSMOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_SM) {
         call_deferred(StopSM, g_zenoh_context);
         return true;
@@ -405,7 +419,7 @@ StopSMOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartSUOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_SU) {
         call_deferred(StartSU, g_zenoh_context);
         return true;
@@ -416,7 +430,7 @@ StartSUOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopSUOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_SU) {
         call_deferred(StopSU, g_zenoh_context);
         return true;
@@ -427,7 +441,7 @@ StopSUOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartVIOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_VI) {
         call_deferred(StartVI, g_zenoh_context);
         return true;
@@ -438,7 +452,7 @@ StartVIOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopVIOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_VI) {
         call_deferred(StopVI, g_zenoh_context);
         return true;
@@ -449,7 +463,7 @@ StopVIOnUI()
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StartEETOnUI(uint8_t eye_fps)
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_EET) {
         call_deferred(StartEET, g_zenoh_context, eye_fps);
         return true;
@@ -460,7 +474,7 @@ StartEETOnUI(uint8_t eye_fps)
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 StopEETOnUI()
 {
-    if (g_zenoh_context == nullptr) { return false; }
+    if (!g_zenoh_context) { return false; }
     if (g_zenoh_context->streams_enabled & HL2SS_ENABLE_EET) {
         call_deferred(StopEET, g_zenoh_context);
         return true;

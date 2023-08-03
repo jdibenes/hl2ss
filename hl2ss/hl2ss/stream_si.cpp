@@ -26,12 +26,6 @@ using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Windows::Perception::People;
 
-struct SI_Context {
-    std::string client_id;
-    z_session_t session;
-    bool valid{ false };
-};
-
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -39,7 +33,8 @@ struct SI_Context {
 static HANDLE g_thread = NULL; // CloseHandle
 static HANDLE g_event_quit = NULL; // CloseHandle
 
-static SI_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr g_zenoh_context;
+static bool g_first_frame_sent = false;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -49,18 +44,18 @@ static SI_Context* g_zenoh_context = NULL;
 static void SI_Stream()
 {
 
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         SPDLOG_INFO("SI: Error invalid context");
         return;
     }
-    std::string& client_id = g_zenoh_context->client_id;
-    std::string keyexpr = "hl2/sensor/si/" + client_id;
+    std::string& topic_prefix = g_zenoh_context->topic_prefix;
+    std::string keyexpr = "hl2/sensor/si/" + topic_prefix;
     SPDLOG_INFO("SI: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
     publisher_options.priority = Z_PRIORITY_REAL_TIME;
 
-    z_owned_publisher_t pub = z_declare_publisher(g_zenoh_context->session, z_keyexpr(keyexpr.c_str()), &publisher_options);
+    z_owned_publisher_t pub = z_declare_publisher(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr.c_str()), &publisher_options);
 
     if (!z_check(pub)) {
         SPDLOG_INFO("SI: Error creating publisher");
@@ -76,7 +71,7 @@ static void SI_Stream()
     {
         pcpd_msgs::msg::Hololens2StreamDescriptor value{};
 
-        value.stream_topic("hl2/sensor/si/" + g_zenoh_context->client_id);
+        value.stream_topic("hl2/sensor/si/" + g_zenoh_context->topic_prefix);
         value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::HAND_TRACKING);
         value.frame_rate(30);
 
@@ -85,10 +80,10 @@ static void SI_Stream()
         value.serialize(buffer_cdr);
 
         // put message to zenoh
-        std::string keyexpr1 = "hl2/cfg/si/" + g_zenoh_context->client_id;
+        std::string keyexpr1 = "hl2/cfg/si/" + g_zenoh_context->topic_prefix;
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
-        int res = z_put(g_zenoh_context->session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
             SPDLOG_INFO("SI: Error putting info");
         }
@@ -130,7 +125,7 @@ static void SI_Stream()
             value.header().stamp().sec(ts_sec);
             value.header().stamp().nanosec(ts_nsec);
 
-            value.header().frame_id(client_id);
+            value.header().frame_id(topic_prefix);
         }
 
 
@@ -213,7 +208,7 @@ static void SI_Stream()
             //SPDLOG_INFO("SI: published frame");
         }
     }
-    while (ok && WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
+    while (ok && WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT && !g_zenoh_context->should_exit);
 }
 
 // OK
@@ -221,7 +216,7 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 {
     (void)param;
 
-    if (g_zenoh_context == NULL) {
+    if (!g_zenoh_context) {
         return 1;
     }
 
@@ -237,13 +232,11 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 }
 
 // OK
-void SI_Initialize(const char* client_id, z_session_t session)
+void SI_Initialize(HC_Context_Ptr& context)
 {
 
-    g_zenoh_context = new SI_Context(); // release
-    g_zenoh_context->client_id = std::string(client_id);
-    g_zenoh_context->session = session;
-    g_zenoh_context->valid = true;
+    g_first_frame_sent = false;
+    g_zenoh_context = context;
 
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, SI_EntryPoint, NULL, 0, NULL);
@@ -262,6 +255,5 @@ void SI_Cleanup()
     CloseHandle(g_thread);
     CloseHandle(g_event_quit);
 
-    free(g_zenoh_context);
-    g_zenoh_context = NULL;
-}
+    g_zenoh_context.reset();
+    g_first_frame_sent = false;}

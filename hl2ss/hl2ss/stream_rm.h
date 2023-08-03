@@ -25,6 +25,6 @@ struct RMStreamConfig {
 
 };
 
-void RM_Initialize(const char* client_id, z_session_t session, RMStreamConfig config);
+void RM_Initialize(HC_Context_Ptr& context, RMStreamConfig config);
 void RM_Quit();
 void RM_Cleanup();

@@ -38,7 +38,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 {
 	bool m_windowClosed = false;
 	bool m_init = false;
-	HC_Context* context = NULL;
+	HC_Context_Ptr context = NULL;
 
 	IFrameworkView CreateView()
 	{
@@ -50,14 +50,11 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		(void)sender;
 		(void)args;
 		spdlog::info("Application was asked to suspend - exiting.");
-		if (context != nullptr) {
+		if (context) {
 			spdlog::debug("Zenoh: stop services");
 			StopManager(context);
 			z_close(std::move(&(context->session)));
-			free(context);
-			context = NULL;
 		}
-
 		CoreApplication::Exit(); // Suspending is not supported
 	}
 	
@@ -86,7 +83,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		if (m_init) { return; }
 
 		// application defaults
-		uint32_t streams_enabled = 0xFF;
+		uint32_t streams_enabled = 0xFFFFFFFF;
 
 		auto logger = std::make_shared<spdlog::logger>("application");
 		spdlog::set_default_logger(logger);
@@ -94,6 +91,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 		spdlog::flush_every(std::chrono::milliseconds(500));
 		spdlog::flush_on(spdlog::level::debug);
+		spdlog::set_pattern("%H:%M:%S.%e [%L] %v (%@, %t)");
 
 		SetupDebugLogSink();
 		SPDLOG_INFO("Init logging");
@@ -111,16 +109,26 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		// testing zenoh in uwp app
 		z_owned_config_t config = z_config_default();
 
-		context = new HC_Context(); // release
-		//std::string host_name = "dev00";
+		context = std::make_shared<HC_Context>();
+
+        /*
+         * Topic prefix consists of the following components
+         * - namespace: tcn (Tum Camp Narvis)
+         * - site: loc (default for unrouted networks)
+         * - category: [hl2|svc|...] The category of the entry
+         * - entity_id: the entity id, unique to the namespace/site parent
+         *   (to avoid issues it is better to have globally unique ids.)
+         *
+         */
+        std::string topic_prefix{"tcn/loc/hl2/"};
 
 		std::vector<wchar_t> buf;
 		GetLocalHostname(buf);
 		std::wstring host_name_w(buf.size(), '\0');
 		std::copy(buf.begin(), buf.end(), host_name_w.begin());
 
-		context->client_id = wide_string_to_string(host_name_w);
-		SPDLOG_INFO("Using Hostname: {0} as client_id", context->client_id);
+		context->topic_prefix = topic_prefix + wide_string_to_string(host_name_w);
+		SPDLOG_INFO("Using Topic Prefix: {0}", context->topic_prefix);
 
 		context->session = z_open(z_move(config));
 		if (!z_check(context->session)) {
@@ -132,6 +140,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		context->streams_enabled = streams_enabled;
 		context->streams_started = 0x00;
 		context->valid = true;
+		context->should_exit = false;
 
 		StartManager(context);
 

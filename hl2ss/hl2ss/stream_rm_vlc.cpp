@@ -66,7 +66,7 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
         value.header().stamp().sec(ts_sec);
         value.header().stamp().nanosec(ts_nsec);
 
-        value.header().frame_id(user->client_id);
+        value.header().frame_id(user->topic_prefix);
     }
 
     if constexpr (ENABLE_LOCATION)
@@ -115,7 +115,7 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
 // OK
 template <bool ENABLE_LOCATION>
-void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format, SpatialLocator const& locator)
+void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, H26xFormat format, SpatialLocator const& locator, const bool& should_exit)
 {
 
     std::string sub_path;
@@ -123,19 +123,19 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     switch (sensor->GetSensorType()) {
     case LEFT_FRONT:
-        sub_path = "rm/vlc_lf/";
+        sub_path = "vlc_lf";
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_LEFT_FRONT);
         break;
     case LEFT_LEFT:
-        sub_path = "rm/vlc_ll/";
+        sub_path = "vlc_ll";
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_LEFT_LEFT);
         break;
     case RIGHT_FRONT:
-        sub_path = "rm/vlc_rf/";
+        sub_path = "vlc_rf";
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_RIGHT_FRONT);
         break;
     case RIGHT_RIGHT:
-        sub_path = "rm/vlc_rr/";
+        sub_path = "vlc_rr";
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::RM_RIGHT_RIGHT);
         break;
     default:
@@ -177,7 +177,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 
     }
 
-    std::string keyexpr = "hl2/sensor/" + sub_path + std::string(client_id);
+    std::string keyexpr = std::string(topic_prefix) + "/str/" + sub_path;
     desc.stream_topic(keyexpr);
 
     // publish streamdescriptor
@@ -190,7 +190,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
         buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
-        std::string keyexpr1 = "hl2/cfg/" + sub_path + std::string(client_id);
+        std::string keyexpr1 = std::string(topic_prefix) + "/cfg/" + sub_path;
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -198,7 +198,74 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
             SPDLOG_INFO("RM_VLC: Error putting info");
         }
         else {
-            SPDLOG_INFO("RM_VLC: put info");
+            SPDLOG_INFO("RM_VLC: put info: {}", keyexpr1);
+        }
+    }
+
+    // publish calibration
+    pcpd_msgs::msg::Hololens2SensorInfoVLC calib{};
+    {
+        using namespace std::chrono;
+        auto ts_ = nanoseconds(GetCurrentQPCTimestamp() * 100);
+        auto ts_sec = static_cast<int32_t>(duration_cast<seconds>(ts_).count());
+        auto ts_nsec = static_cast<int32_t>(duration_cast<nanoseconds>(ts_ - seconds(ts_sec)).count());
+
+        calib.header().stamp().sec(ts_sec);
+        calib.header().stamp().nanosec(ts_nsec);
+
+        calib.header().frame_id(topic_prefix);
+    }
+
+    {
+        std::vector<float> uv2x;
+        std::vector<float> uv2y;
+        std::vector<float> mapx;
+        std::vector<float> mapy;
+        float K[4];
+
+        ResearchMode_GetIntrinsics(sensor, calib.uv2x(), calib.uv2y(), calib.mapx(), calib.mapy(), K);
+        calib.K({K[0],K[1], K[2], K[3]});
+
+        DirectX::XMFLOAT4X4 e;
+        ResearchMode_GetExtrinsics(sensor, e);
+        DirectX::FXMMATRIX e1 = XMLoadFloat4x4(&e);;
+
+        float4x4 extrinsics;
+        XMStoreFloat4x4(&extrinsics, e1);
+
+        // add flag to note it is enabled?
+        float3 scale;
+        quaternion rotation;
+        float3 translation;
+
+        if (decompose(extrinsics, &scale, &rotation, &translation)) {
+            calib.position().x(translation.x);
+            calib.position().y(translation.y);
+            calib.position().z(translation.z);
+
+            calib.orientation().x(rotation.x);
+            calib.orientation().y(rotation.y);
+            calib.orientation().z(rotation.z);
+            calib.orientation().w(rotation.w);
+        }
+
+    }
+
+    // put message to zenoh
+    {
+        buffer_cdr.reset();
+        buffer_cdr.serialize_encapsulation();
+        calib.serialize(buffer_cdr);
+
+        std::string keyexpr1 = std::string(topic_prefix) + "/cal/" + sub_path;
+        z_put_options_t options1 = z_put_options_default();
+        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
+        int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
+        if (res > 0) {
+            SPDLOG_INFO("RM_VLC: Error putting calib");
+        }
+        else {
+            SPDLOG_INFO("RM_VLC: put calib: {}", keyexpr1);
         }
     }
 
@@ -254,7 +321,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
     user.clientevent = clientevent;
     user.data_profile = format.profile;
     user.options = options;
-    user.client_id = client_id;
+    user.topic_prefix = topic_prefix;
 
     switch (format.profile)
     {
@@ -316,7 +383,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
             SPDLOG_ERROR("RM_VLC: Error during frame processing: {0}", e.what());
         }
     }
-    while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT);
+    while (WaitForSingleObject(clientevent, 0) == WAIT_TIMEOUT && !should_exit);
 
     sensor->CloseStream();
 
@@ -331,48 +398,13 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, z_session_t& session, const char
 }
 
 // OK
-void RM_VLC_Stream_Mode0(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format)
+void RM_VLC_Stream_Mode0(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, H26xFormat format, const bool& should_exit)
 {
-    RM_VLC_Stream<false>(sensor, session, client_id, format, nullptr);
+    RM_VLC_Stream<false>(sensor, session, topic_prefix, format, nullptr, should_exit);
 }
 
 // OK
-void RM_VLC_Stream_Mode1(IResearchModeSensor* sensor, z_session_t& session, const char* client_id, H26xFormat format, SpatialLocator const& locator)
+void RM_VLC_Stream_Mode1(IResearchModeSensor* sensor, z_session_t session, const char* topic_prefix, H26xFormat format, SpatialLocator const& locator, const bool& should_exit)
 {
-    RM_VLC_Stream<true>(sensor, session, client_id, format, locator);
+    RM_VLC_Stream<true>(sensor, session, topic_prefix, format, locator, should_exit);
 }
-
-// OK
-//void RM_VLC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-//{
-//    std::vector<float> uv2x;
-//    std::vector<float> uv2y;
-//    std::vector<float> mapx;
-//    std::vector<float> mapy;
-//    float K[4];
-//    DirectX::XMFLOAT4X4 extrinsics;
-//    WSABUF wsaBuf[6];
-//
-//    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
-//    ResearchMode_GetExtrinsics(sensor, extrinsics);
-//
-//    wsaBuf[0].buf = (char*)uv2x.data();
-//    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-//    
-//    wsaBuf[1].buf = (char*)uv2y.data();
-//    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-//    
-//    wsaBuf[2].buf = (char*)extrinsics.m;
-//    wsaBuf[2].len = sizeof(extrinsics.m);
-//
-//    wsaBuf[3].buf = (char*)mapx.data();
-//    wsaBuf[3].len = (ULONG)(mapx.size() * sizeof(float));
-//
-//    wsaBuf[4].buf = (char*)mapy.data();
-//    wsaBuf[4].len = (ULONG)(mapy.size() * sizeof(float));
-//
-//    wsaBuf[5].buf = (char*)K;
-//    wsaBuf[5].len = sizeof(K);
-//
-//    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-//}

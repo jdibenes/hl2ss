@@ -30,7 +30,7 @@ struct HookCallbackSocket
     HANDLE clientevent;
     int    data_profile;
     z_publisher_put_options_t options;
-    const char* client_id;
+    const char* topic_prefix;
 
 };
 

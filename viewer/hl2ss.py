@@ -330,6 +330,9 @@ class stream_base(_context_manager):
     def open(self):
         if self.desc is None:
             self.configure()
+        if self.desc is None:
+            log.error("{0} error - cannot retrieve stream_topic from configuration.")
+            raise ValueError("Cannot Connect")
         log.info("{0} subscribes to stream_topic: {1}".format(self.svc_name, self.desc.stream_topic))
         self.sub = self.session.declare_pull_subscriber(self.desc.stream_topic, self.cb_data, reliability=Reliability.RELIABLE())
 

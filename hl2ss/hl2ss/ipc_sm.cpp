@@ -18,12 +18,6 @@
 using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Windows::Foundation::Numerics;
 
-struct SM_Context {
-    std::string client_id;
-    z_session_t session;
-    bool valid{ false };
-};
-
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -33,7 +27,7 @@ static HANDLE g_thread = NULL;
 static HANDLE g_event_quit = NULL;
 static HANDLE g_event_client = NULL;
 
-static SM_Context* g_zenoh_context = NULL;
+static HC_Context_Ptr  g_zenoh_context{};
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -386,7 +380,7 @@ void SM_QueryHandler(const z_query_t* query, void* context) {
 // OK
 static DWORD WINAPI SM_EntryPoint(void* param)
 {
-    if (g_zenoh_context == NULL || !g_zenoh_context->valid) {
+    if (!g_zenoh_context || !g_zenoh_context->valid) {
         SPDLOG_INFO("SM: Invalid Zenoh Context");
         return 1;
     }
@@ -397,7 +391,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
 
     SpatialMapping_WaitForConsent();
 
-    std::string keyexpr_str = "hl2/rpc/sm/" + g_zenoh_context->client_id;
+    std::string keyexpr_str = g_zenoh_context->topic_prefix + "/rpc/sm";
     SPDLOG_INFO("SM: endpoint: {0}", keyexpr_str.c_str());
 
     z_keyexpr_t keyexpr = z_keyexpr(keyexpr_str.c_str());
@@ -413,7 +407,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
     callback.context = const_cast<void*>(static_cast<const void*>(expr));
     callback.drop = nullptr;
 
-    z_owned_queryable_t qable = z_declare_queryable(g_zenoh_context->session, keyexpr, z_move(callback), NULL);
+    z_owned_queryable_t qable = z_declare_queryable(z_loan(g_zenoh_context->session), keyexpr, z_move(callback), NULL);
     if (!z_check(qable)) {
         SPDLOG_INFO("SM: Unable to create queryable.");
         return 1;
@@ -422,7 +416,7 @@ static DWORD WINAPI SM_EntryPoint(void* param)
     do
     {
         // heartbeat occassionally ??   
-    } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT);
+    } while (WaitForSingleObject(g_event_quit, 100) == WAIT_TIMEOUT && !g_zenoh_context->should_exit);
 
     z_undeclare_queryable(z_move(qable));
     SPDLOG_INFO("SM: Closed");
@@ -431,12 +425,9 @@ static DWORD WINAPI SM_EntryPoint(void* param)
 }
 
 // OK
-void SM_Initialize(const char* client_id, z_session_t session)
+void SM_Initialize(HC_Context_Ptr& context)
 {
-    g_zenoh_context = new SM_Context(); // release
-    g_zenoh_context->client_id = std::string(client_id);
-    g_zenoh_context->session = session;
-    g_zenoh_context->valid = true;
+    g_zenoh_context = context;
 
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -462,6 +453,5 @@ void SM_Cleanup()
     g_event_client = NULL;
     g_event_quit = NULL;
 
-    free(g_zenoh_context);
-    g_zenoh_context = NULL;
+    g_zenoh_context.reset();
 }
