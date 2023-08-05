@@ -17,6 +17,6 @@ sources = Zdepth_cpp + Zdepth_c + zstd_cpp + zstd_c + ['./pyzdepth.cpp']
 ext = Extension('pyzdepth',
                 sources = sources,
                 language = 'c++',
-                include_dirs=[path_Zdepth + '/include', path_zstd + '/include'])
+                include_dirs=[path_Zdepth + '/include', path_zstd + '/include', path_zstd + '/src'])
 
 setup(name='pyzdepth', ext_modules=cythonize([ext]))
