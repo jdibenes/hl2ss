@@ -47,6 +47,7 @@ enum H26xProfile : uint8_t
 enum VideoSubtype : uint8_t
 {
     VideoSubtype_L8,
+    VideoSubtype_L16,
     VideoSubtype_NV12,
     VideoSubtype_ARGB
 };

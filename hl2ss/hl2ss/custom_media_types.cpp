@@ -126,6 +126,30 @@ static HRESULT CreateTypeL8(IMFMediaType **ppType, uint32_t width, uint32_t heig
 
 // https://learn.microsoft.com/en-us/windows/win32/medfound/video-subtype-guids
 // OK
+static HRESULT CreateTypeL16(IMFMediaType **ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den)
+{
+    IMFMediaType* pType;
+
+    MFCreateMediaType(&pType);
+
+    pType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+    pType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_L16);
+    pType->SetUINT32(MF_MT_DEFAULT_STRIDE, stride);
+    MFSetAttributeRatio(pType, MF_MT_FRAME_RATE, fps_num, fps_den);
+    MFSetAttributeSize(pType, MF_MT_FRAME_SIZE, width, height);
+    pType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlaceMode::MFVideoInterlace_Progressive);
+    pType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+    MFSetAttributeRatio(pType, MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
+    pType->SetUINT32(MF_MT_SAMPLE_SIZE, width * height * 2);
+    pType->SetUINT32(MF_MT_FIXED_SIZE_SAMPLES, TRUE);
+
+    *ppType = pType;
+
+    return S_OK;
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/medfound/video-subtype-guids
+// OK
 static HRESULT CreateTypeNV12(IMFMediaType **ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den)
 {
     IMFMediaType* pType;
@@ -226,6 +250,7 @@ HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, 
     }
 
     if (subtype == VideoSubtype::VideoSubtype_L8)   { return CreateTypeL8(  ppType, width, height, stride, fps_num, fps_den); }
+    if (subtype == VideoSubtype::VideoSubtype_L16)  { return CreateTypeL16( ppType, width, height, stride, fps_num, fps_den); }
     if (subtype == VideoSubtype::VideoSubtype_NV12) { return CreateTypeNV12(ppType, width, height, stride, fps_num, fps_den); }
     if (subtype == VideoSubtype::VideoSubtype_ARGB) { return CreateTypeARGB(ppType, width, height, stride, fps_num, fps_den); }
 
