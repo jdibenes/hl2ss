@@ -216,7 +216,7 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>Default</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)hl2ss\Generated Files;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)hl2ss\Generated Files;$(SolutionDir)hl2ss\Zdepth\include;$(SolutionDir)hl2ss\Zdepth\zstd\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -281,9 +281,35 @@
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
+    <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\timestamps.cpp" />
     <ClCompile Include="..\hl2ss\voice_input.cpp" />
+    <ClCompile Include="..\hl2ss\Zdepth\src\zdepth.cpp" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\debug.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\entropy_common.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\error_private.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\fse_compress.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\fse_decompress.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\hist.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\huf_compress.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\huf_decompress.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\pool.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\threading.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\xxhash.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstdmt_compress.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_common.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_compress.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_compress_literals.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_compress_sequences.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_ddict.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_decompress.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_decompress_block.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_double_fast.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_fast.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_lazy.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_ldm.c" />
+    <ClCompile Include="..\hl2ss\Zdepth\zstd\src\zstd_opt.c" />
     <ClCompile Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp" />
     <ClCompile Include="holographic_space_stub.cpp" />
     <ClCompile Include="plugin.cpp" />
@@ -324,10 +350,39 @@
     <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zab.h" />
+    <ClInclude Include="..\hl2ss\stream_rm_zlt.h" />
     <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\timestamps.h" />
     <ClInclude Include="..\hl2ss\types.h" />
     <ClInclude Include="..\hl2ss\voice_input.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\include\zdepth.hpp" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\include\fse.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\include\huf.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\include\xxhash.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\include\zstd.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\bitstream.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\compiler.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\cpu.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\debug.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\error_private.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\hist.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\mem.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\pool.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\threading.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstdmt_compress.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_compress_internal.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_compress_literals.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_compress_sequences.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_ddict.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_decompress_block.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_decompress_internal.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_double_fast.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_errors.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_fast.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_internal.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_lazy.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_ldm.h" />
+    <ClInclude Include="..\hl2ss\Zdepth\zstd\src\zstd_opt.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="hl2ss.h" />
     <ClInclude Include="plugin.h" />

@@ -115,6 +115,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(ProjectDir)Zdepth\include;$(ProjectDir)Zdepth\zstd\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -189,11 +190,40 @@
     <ClInclude Include="stream_rm_zab.h" />
     <ClInclude Include="stream_rm_imu.h" />
     <ClInclude Include="stream_rm_vlc.h" />
+    <ClInclude Include="stream_rm_zlt.h" />
     <ClInclude Include="stream_si.h" />
     <ClInclude Include="timestamps.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="lock.h" />
     <ClInclude Include="voice_input.h" />
+    <ClInclude Include="Zdepth\include\zdepth.hpp" />
+    <ClInclude Include="Zdepth\zstd\include\fse.h" />
+    <ClInclude Include="Zdepth\zstd\include\huf.h" />
+    <ClInclude Include="Zdepth\zstd\include\xxhash.h" />
+    <ClInclude Include="Zdepth\zstd\include\zstd.h" />
+    <ClInclude Include="Zdepth\zstd\src\bitstream.h" />
+    <ClInclude Include="Zdepth\zstd\src\compiler.h" />
+    <ClInclude Include="Zdepth\zstd\src\cpu.h" />
+    <ClInclude Include="Zdepth\zstd\src\debug.h" />
+    <ClInclude Include="Zdepth\zstd\src\error_private.h" />
+    <ClInclude Include="Zdepth\zstd\src\hist.h" />
+    <ClInclude Include="Zdepth\zstd\src\mem.h" />
+    <ClInclude Include="Zdepth\zstd\src\pool.h" />
+    <ClInclude Include="Zdepth\zstd\src\threading.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstdmt_compress.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_compress_internal.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_compress_literals.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_compress_sequences.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_ddict.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_decompress_block.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_decompress_internal.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_double_fast.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_errors.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_fast.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_internal.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_lazy.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_ldm.h" />
+    <ClInclude Include="Zdepth\zstd\src\zstd_opt.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cannon\AnimatedVector.cpp" />
@@ -231,6 +261,7 @@
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />
+    <ClCompile Include="stream_rm_zlt.cpp" />
     <ClCompile Include="stream_si.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -243,6 +274,31 @@
     <ClCompile Include="stream_rm.cpp" />
     <ClCompile Include="server.cpp" />
     <ClCompile Include="voice_input.cpp" />
+    <ClCompile Include="Zdepth\src\zdepth.cpp" />
+    <ClCompile Include="Zdepth\zstd\src\debug.c" />
+    <ClCompile Include="Zdepth\zstd\src\entropy_common.c" />
+    <ClCompile Include="Zdepth\zstd\src\error_private.c" />
+    <ClCompile Include="Zdepth\zstd\src\fse_compress.c" />
+    <ClCompile Include="Zdepth\zstd\src\fse_decompress.c" />
+    <ClCompile Include="Zdepth\zstd\src\hist.c" />
+    <ClCompile Include="Zdepth\zstd\src\huf_compress.c" />
+    <ClCompile Include="Zdepth\zstd\src\huf_decompress.c" />
+    <ClCompile Include="Zdepth\zstd\src\pool.c" />
+    <ClCompile Include="Zdepth\zstd\src\threading.c" />
+    <ClCompile Include="Zdepth\zstd\src\xxhash.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstdmt_compress.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_common.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_compress.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_compress_literals.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_compress_sequences.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_ddict.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_decompress.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_decompress_block.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_double_fast.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_fast.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_lazy.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_ldm.c" />
+    <ClCompile Include="Zdepth\zstd\src\zstd_opt.c" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
