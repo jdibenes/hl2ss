@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from shape_msgs/msg/Mesh.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Point.idl"
+#include "shape_msgs/msg/MeshTriangle.idl"
+
+module shape_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Definition of a mesh.")
+    struct Mesh {
+      @verbatim (language="comment", text=
+        "List of triangles; the index values refer to positions in vertices[].")
+      sequence<shape_msgs::msg::MeshTriangle> triangles;
+
+      @verbatim (language="comment", text=
+        "The actual vertices that make up the mesh.")
+      sequence<geometry_msgs::msg::Point> vertices;
+    };
+  };
+};

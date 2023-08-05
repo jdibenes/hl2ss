@@ -1,0 +1,24 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from geometry_msgs/msg/Point32.msg
+// generated code does not contain a copyright notice
+
+
+module geometry_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "This contains the position of a point in free space(with 32 bits of precision)." "\n"
+      "It is recommended to use Point wherever possible instead of Point32." "\n"
+      "" "\n"
+      "This recommendation is to promote interoperability." "\n"
+      "" "\n"
+      "This message is designed to take up less space when sending" "\n"
+      "lots of points at once, as in the case of a PointCloud.")
+    struct Point32 {
+      float x;
+
+      float y;
+
+      float z;
+    };
+  };
+};

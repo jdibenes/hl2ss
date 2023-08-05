@@ -1,0 +1,54 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/Image.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module sensor_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "This message contains an uncompressed image" "\n"
+      "(0, 0) is at top-left corner of image")
+    struct Image {
+      @verbatim (language="comment", text=
+        "Header timestamp should be acquisition time of image" "\n"
+        "Header frame_id should be optical frame of camera" "\n"
+        "origin of frame should be optical center of cameara" "\n"
+        "+x should point to the right in the image" "\n"
+        "+y should point down in the image" "\n"
+        "+z should point into to plane of the image" "\n"
+        "If the frame_id here and the frame_id of the CameraInfo" "\n"
+        "message associated with the image conflict" "\n"
+        "the behavior is undefined")
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "image height, that is, number of rows")
+      uint32 height;
+
+      @verbatim (language="comment", text=
+        "image width, that is, number of columns")
+      uint32 width;
+
+      @verbatim (language="comment", text=
+        "The legal values for encoding are in file include/sensor_msgs/image_encodings.hpp" "\n"
+        "If you want to standardize a new string format, join" "\n"
+        "ros-users@lists.ros.org and send an email proposing a new encoding." "\n"
+        "Encoding of pixels -- channel meaning, ordering, size" "\n"
+        "taken from the list of strings in include/sensor_msgs/image_encodings.hpp")
+      string encoding;
+
+      @verbatim (language="comment", text=
+        "is this data bigendian?")
+      uint8 is_bigendian;
+
+      @verbatim (language="comment", text=
+        "Full row length in bytes")
+      uint32 step;
+
+      @verbatim (language="comment", text=
+        "actual matrix data, size is (step * rows)")
+      sequence<uint8> data;
+    };
+  };
+};

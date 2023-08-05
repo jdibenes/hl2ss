@@ -1,0 +1,61 @@
+﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(1116,5): warning MSB8027: Two or more files with the name of Microsoft.MixedReality.SceneUnderstanding.cpp will produce outputs to the same location. This can lead to an incorrect build result.  The files involved are ..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp, D:\develop\apps\zenoh_ecosystem\hl2comm\hl2comm\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\..\..\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp.
+  custom_hook_callback.cpp
+  custom_media_buffers.cpp
+  custom_media_sink.cpp
+  custom_media_types.cpp
+  custom_media_type_handler.cpp
+  custom_sink_writers.cpp
+  custom_stream_sink.cpp
+  extended_eye_tracking.cpp
+  ipc_rc.cpp
+  ipc_sc.cpp
+  ipc_sm.cpp
+  ipc_su.cpp
+  ipc_vi.cpp
+  locator.cpp
+  lock.cpp
+  log.cpp
+  manager.cpp
+  microphone_capture.cpp
+  neon.cpp
+  nfo.cpp
+  personal_video.cpp
+  research_mode.cpp
+  scene_understanding.cpp
+  server.cpp
+  spatial_input.cpp
+  spatial_mapping.cpp
+  stream_eet.cpp
+  stream_mc.cpp
+  stream_pv.cpp
+  stream_rm.cpp
+  stream_rm_imu.cpp
+  stream_rm_vlc.cpp
+  stream_rm_zab.cpp
+  stream_si.cpp
+  timestamps.cpp
+  voice_input.cpp
+  Microsoft.MixedReality.SceneUnderstanding.cpp
+  holographic_space_stub.cpp
+  plugin.cpp
+  ipc.cpp
+  Microsoft.MixedReality.SceneUnderstanding.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.33.31629\include\xutility(4145,18): warning C4244: '=': conversion from 'wchar_t' to 'char', possible loss of data (compiling source file plugin.cpp)
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.33.31629\include\xutility(4157): message : see reference to function template instantiation '_OutIt *std::_Copy_unchecked<wchar_t*,char*>(_InIt,_InIt,_OutIt)' being compiled
+          with
+          [
+              _OutIt=char *,
+              _InIt=wchar_t *
+          ] (compiling source file plugin.cpp)
+D:\develop\apps\zenoh_ecosystem\hl2comm\hl2comm\unity_comm\plugin.cpp(232): message : see reference to function template instantiation '_OutIt std::copy<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<_Elem>>>,std::_String_iterator<std::_String_val<std::_Simple_types<char>>>>(_InIt,_InIt,_OutIt)' being compiled
+          with
+          [
+              _OutIt=std::_String_iterator<std::_String_val<std::_Simple_types<char>>>,
+              _Elem=wchar_t,
+              _InIt=std::_Vector_iterator<std::_Vector_val<std::_Simple_types<wchar_t>>>
+          ]
+ARM64\Release\Microsoft.MixedReality.SceneUnderstanding.obj : warning LNK4042: object specified more than once; extras ignored
+     Creating library D:\develop\apps\zenoh_ecosystem\hl2comm\hl2comm\ARM64\Release\unity_comm\unity_comm.lib and object D:\develop\apps\zenoh_ecosystem\hl2comm\hl2comm\ARM64\Release\unity_comm\unity_comm.exp
+  Generating code
+  Finished generating code
+  unity_comm.vcxproj -> D:\develop\apps\zenoh_ecosystem\hl2comm\hl2comm\ARM64\Release\unity_comm\unity_comm.dll

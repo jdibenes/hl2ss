@@ -1,0 +1,28 @@
+
+#include "pcpd_msgs/msg/Types.idl"
+#include "std_msgs/msg/Header.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "geometry_msgs/msg/Quaternion.idl"
+
+module pcpd_msgs {
+  module msg {
+
+    struct Hololens2VideoStream {
+
+      std_msgs::msg::Header header;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+
+      float__2 camera_focal_length;
+      float__2 camera_principal_point;
+      
+      float__3 camera_radial_distortion;
+      float__2 camera_tangential_distortion;
+
+      uint64 image_bytes;
+      sequence<uint8> image;
+
+    };
+  };
+};

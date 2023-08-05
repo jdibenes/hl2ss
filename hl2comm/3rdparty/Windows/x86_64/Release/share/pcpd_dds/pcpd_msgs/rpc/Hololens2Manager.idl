@@ -1,0 +1,79 @@
+#ifndef PCPD_RPC_HL2MANAGER
+#define PCPD_RPC_HL2MANAGER
+
+#include "pcpd_msgs/rpc/Types.idl"
+#include "pcpd_msgs/msg/Types.idl"
+#include "std_msgs/msg/Header.idl"
+
+module pcpd_msgs {
+  module rpc {
+
+    enum Hololens2LogLevel {
+      HL2_LOG_ERROR,
+      HL2_LOG_WARNING,
+      HL2_LOG_INFO,
+      HL2_LOG_DEBUG,
+      HL2_LOG_TRACE
+    };
+
+    struct Hololens2LogItem {
+        builtin_interfaces::msg::Time timestamp;
+        Hololens2LogLevel severity;
+        string message;
+    };
+
+    struct Hololens2LogMessage {
+        std_msgs::msg::Header header;
+        sequence<Hololens2LogItem> items;
+    };
+
+    struct Hololens2Presence {
+        std_msgs::msg::Header header;
+        uint64 heart_beat_counter;
+    };
+
+    struct HL2MGR_H26xFormat {
+      uint16 width;
+      uint16 height;
+      uint8 frame_rate;
+      pcpd_msgs::msg::Hololens2H26xProfile profile;
+      uint32 bitrate;
+    };
+
+    struct HL2MGR_AACFormat {
+      uint32 channels;
+      uint32 sample_rate;
+      pcpd_msgs::msg::Hololens2AACProfile profile;
+    };
+
+    struct HL2MGRRequest_StartRM {
+      boolean enable_location;
+      boolean enable_left_front;
+      boolean enable_left_left;
+      boolean enable_right_front;
+      boolean enable_right_right;
+      HL2MGR_H26xFormat vlc_format;
+
+      boolean enable_depth_ahat;
+      boolean enable_depth_long_throw;
+      HL2MGR_H26xFormat depth_format;
+
+      boolean enable_imu_accel;
+      boolean enable_imu_gyro;
+      boolean enable_imu_mag;
+    };
+
+    struct HL2MGRRequest_StartPV {
+      boolean enable_location;
+      HL2MGR_H26xFormat pv_format;
+    };
+
+    struct HL2MGRRequest_StartMC {
+      HL2MGR_AACFormat aac_format;
+    };
+
+
+  };
+};
+
+#endif

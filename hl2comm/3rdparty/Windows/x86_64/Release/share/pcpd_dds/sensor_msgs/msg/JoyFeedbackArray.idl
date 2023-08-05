@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/JoyFeedbackArray.msg
+// generated code does not contain a copyright notice
+
+#include "sensor_msgs/msg/JoyFeedback.idl"
+
+module sensor_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "This message publishes values for multiple feedback at once.")
+    struct JoyFeedbackArray {
+      sequence<sensor_msgs::msg::JoyFeedback> array;
+    };
+  };
+};

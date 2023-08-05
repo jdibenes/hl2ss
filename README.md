@@ -64,7 +64,50 @@ VS Project Settings:
   ```
 
 
+Conan 2.0 settings files for:
 
+ARM64/UWP:
+
+```
+[settings]
+arch=armv8
+build_type=Release
+compiler=msvc
+compiler.cppstd=17
+compiler.runtime=dynamic
+compiler.runtime_type=Release
+compiler.version=193
+os=WindowsStore
+os.version=10.0
+```
+
+ARM64/Native:
+
+```
+[settings]
+arch=armv8
+build_type=Release
+compiler=msvc
+compiler.cppstd=17
+compiler.runtime=dynamic
+compiler.runtime_type=Release
+compiler.version=193
+os=Windows
+```
+
+X86_64/Native:
+
+```
+[settings]
+arch=x86_64
+build_type=Release
+compiler=msvc
+compiler.cppstd=17
+compiler.runtime=dynamic
+compiler.runtime_type=Release
+compiler.version=192
+os=Windows
+```
 
 ---------------------- Original Readme from HL2SS --------
 

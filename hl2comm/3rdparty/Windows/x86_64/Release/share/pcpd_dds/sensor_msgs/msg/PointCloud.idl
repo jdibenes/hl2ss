@@ -1,0 +1,33 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/PointCloud.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Point32.idl"
+#include "sensor_msgs/msg/ChannelFloat32.idl"
+#include "std_msgs/msg/Header.idl"
+
+module sensor_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "THIS MESSAGE IS DEPRECATED AS OF FOXY" "\n"
+      "Please use sensor_msgs/PointCloud2")
+    struct PointCloud {
+      @verbatim (language="comment", text=
+        "This message holds a collection of 3d points, plus optional additional" "\n"
+        "information about each point." "\n"
+        "Time of sensor data acquisition, coordinate frame ID.")
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Array of 3d points. Each Point32 should be interpreted as a 3d point" "\n"
+        "in the frame given in the header.")
+      sequence<geometry_msgs::msg::Point32> points;
+
+      @verbatim (language="comment", text=
+        "Each channel should have the same number of elements as points array," "\n"
+        "and the data in each channel should correspond 1:1 with each point." "\n"
+        "Channel names in common practice are listed in ChannelFloat32.msg.")
+      sequence<sensor_msgs::msg::ChannelFloat32> channels;
+    };
+  };
+};

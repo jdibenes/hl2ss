@@ -1,0 +1,163 @@
+#ifndef PCPD_MSG_HL2SENSORINFO
+#define PCPD_MSG_HL2SENSORINFO
+
+#include "pcpd_msgs/msg/Types.idl"
+#include "std_msgs/msg/Header.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "geometry_msgs/msg/Quaternion.idl"
+
+module pcpd_msgs {
+  module msg {
+
+    struct Hololens2StreamDescriptor {
+
+      string stream_topic;
+      string calib_topic;
+      Hololens2SensorType sensor_type;
+      uint32 frame_rate;
+
+      // used if sensor has locality
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+
+      // used for image sensors
+      uint32 image_height;
+      uint32 image_width;
+      uint32 image_step;
+      Hololens2PixelFormat image_format;
+      Hololens2ImageCompression image_compression;
+
+      // used for h26x compression
+      Hololens2H26xProfile h26x_profile;
+      uint32 h26x_bitrate;
+
+      // used for microphone
+      uint8 audio_channels;
+      Hololens2AACProfile aac_profile;
+
+    };
+
+    struct Hololens2RigidTransform {
+      std_msgs::msg::Header header;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+    struct Hololens2SensorInfoVLC {
+
+      std_msgs::msg::Header header;
+
+      sequence<float> uv2x;
+      sequence<float> uv2y;
+
+      sequence<float> mapx;
+      sequence<float> mapy;
+
+      float__4 K;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+
+    struct Hololens2SensorIntrinsicsPV {
+
+      std_msgs::msg::Header header;
+
+      uint16 width;
+      uint16 height;
+
+      float__2 focal_length;
+      float__2 principal_point;
+      
+      float__3 radial_distortion;
+      float__2 tangential_distortion;
+
+      float__16 undistorted_projection_transform;
+    };
+
+
+    struct Hololens2SensorInfoZHT {
+
+      std_msgs::msg::Header header;
+
+      float scale;
+      float alias;
+
+      sequence<float> uv2x;
+      sequence<float> uv2y;
+
+      sequence<float> mapx;
+      sequence<float> mapy;
+
+      float__4 K;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+
+    struct Hololens2SensorInfoZLT {
+
+      std_msgs::msg::Header header;
+
+      float scale;
+
+      sequence<float> uv2x;
+      sequence<float> uv2y;
+
+      sequence<float> mapx;
+      sequence<float> mapy;
+
+      float__4 K;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+
+    struct Hololens2ImuAccel {
+
+      std_msgs::msg::Header header;
+
+      uint64 vinyl_hup_ticks;
+      uint64 soc_ticks;
+      float__3 values;
+      float temperature;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+
+    struct Hololens2ImuGyro {
+
+      std_msgs::msg::Header header;
+      
+      uint64 vinyl_hup_ticks;
+      uint64 soc_ticks;
+      float__3 values;
+      float temperature;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+
+    struct Hololens2ImuMag {
+
+      std_msgs::msg::Header header;
+
+      uint64 vinyl_hup_ticks;
+      uint64 soc_ticks;
+      float__3 values;
+
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+  };
+};
+
+#endif

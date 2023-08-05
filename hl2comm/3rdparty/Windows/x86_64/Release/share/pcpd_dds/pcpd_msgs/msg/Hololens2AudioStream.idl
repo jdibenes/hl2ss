@@ -1,0 +1,18 @@
+#include "pcpd_msgs/msg/Types.idl"
+#include "std_msgs/msg/Header.idl"
+
+module pcpd_msgs {
+  module msg {
+
+    struct Hololens2AudioStream {
+
+      std_msgs::msg::Header header;
+
+      Hololens2AACProfile profile;
+
+      uint64 data_size;
+      sequence<uint8> data;
+
+    };
+  };
+};

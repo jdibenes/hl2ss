@@ -1,0 +1,114 @@
+#ifndef PCPD_RPC_HL2SPATIALMAPPING
+#define PCPD_RPC_HL2SPATIALMAPPING
+
+#include "pcpd_msgs/rpc/Types.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "geometry_msgs/msg/Quaternion.idl"
+
+module pcpd_msgs {
+  module rpc {
+
+    enum HL2SpatialMapping_VolumeType {
+      SM_VT_BOX,
+      SM_VT_FRUSTUM,
+      SM_VT_ORIENTED_BOX,
+      SM_VT_SPHERE
+    };
+
+    struct HL2SpatialMapping_Plane {
+      geometry_msgs::msg::Vector3 normal;
+      float d;
+    };
+
+    struct HL2SpatialMapping_SurfaceInfo {
+      HL2Guid id;
+      int64 update_time;
+    };
+
+    struct HL2SpatialMapping_BoundingBox {
+      geometry_msgs::msg::Vector3 center;
+      geometry_msgs::msg::Vector3 extents;
+    };
+
+    struct HL2SpatialMapping_Frustum {
+      HL2SpatialMapping_Plane plane_near;
+      HL2SpatialMapping_Plane plane_far;
+      HL2SpatialMapping_Plane plane_right;
+      HL2SpatialMapping_Plane plane_left;
+      HL2SpatialMapping_Plane plane_top;
+      HL2SpatialMapping_Plane plane_bottom;
+    };
+
+    struct HL2SpatialMapping_OrientedBox {
+      geometry_msgs::msg::Vector3 center;
+      geometry_msgs::msg::Vector3 extents;
+      geometry_msgs::msg::Quaternion orientation;
+    };
+
+    struct HL2SpatialMapping_Sphere {
+      geometry_msgs::msg::Vector3 center;
+      float radius;
+    };
+
+    struct HL2SpatialMapping_MeshDescription {
+      HL2Guid id;
+      double maxtpcm;
+      uint32 vertex_format;
+      uint32 triangle_format;
+      uint32 normal_format;
+      uint32 flags;
+    };
+
+    struct HL2SpatialMapping_MeshInfo {
+      uint32 index;
+      uint32 status;
+      uint32 vpl;
+      uint32 til;
+      uint32 vnl;
+      geometry_msgs::msg::Vector3 scale;
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+      uint32 bsz;
+      HL2SpatialMapping_OrientedBox bounds;
+      sequence<uint8> vpd;
+      sequence<uint8> tid;
+      sequence<uint8> vnd;
+    };
+
+    union HL2SpatialMapping_Volume switch(HL2SpatialMapping_VolumeType) {
+      case SM_VT_BOX:
+        HL2SpatialMapping_BoundingBox bounding_box;
+      case SM_VT_FRUSTUM:
+        HL2SpatialMapping_Frustum frustum;
+      case SM_VT_ORIENTED_BOX:
+        HL2SpatialMapping_OrientedBox oriented_box;
+      case SM_VT_SPHERE:
+        HL2SpatialMapping_Sphere sphere;
+    };
+
+    struct HL2SMRequest_SetVolumes {
+      sequence<HL2SpatialMapping_Volume> volumes;
+    };
+
+    struct HL2SMResponse_GetObservedSurfaces {
+      sequence<HL2SpatialMapping_SurfaceInfo> surfaces;
+      RPCResponseStatus status;
+    };
+
+
+    struct HL2SMRequest_GetMeshes {
+      uint32 max_tasks;
+      sequence<HL2SpatialMapping_MeshDescription> description;
+    };
+
+    struct HL2SMResponse_GetMeshes {
+      sequence<HL2SpatialMapping_MeshInfo> meshes;
+      RPCResponseStatus status;
+    };
+
+
+
+  };
+};
+
+#endif

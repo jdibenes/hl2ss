@@ -1,0 +1,35 @@
+#ifndef PCPD_RPC_HL2REMOTECONTROL
+#define PCPD_RPC_HL2REMOTECONTROL
+
+#include "pcpd_msgs/rpc/Types.idl"
+
+module pcpd_msgs {
+  module rpc {
+
+    struct HL2RCResponse_GetApplicationVersion {
+      uint16__4 data;
+      RPCResponseStatus status;
+    };
+
+    struct HL2RCRequest_SetPVFocus {
+      uint32 focus_mode;
+      uint32 autofocus_range;
+      uint32 distance;
+      uint32 value;
+      uint32 disable_driver_fallback;
+    };
+
+    struct HL2RCRequest_SetPVExposure {
+      uint32 mode;
+      uint32 value;
+    };
+
+    struct HL2RCRequest_SetPVIsoSpeed {
+      uint32 setauto;
+      uint32 value;
+    };
+
+  };
+};
+
+#endif

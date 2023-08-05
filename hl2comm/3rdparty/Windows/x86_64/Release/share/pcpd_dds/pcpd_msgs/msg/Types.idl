@@ -1,0 +1,64 @@
+#ifndef PCPD_MSG_TYPES
+#define PCPD_MSG_TYPES
+
+module pcpd_msgs {
+  module msg {
+
+    typedef float float__2[2];
+    typedef float float__3[3];
+    typedef float float__4[4];
+    typedef float float__9[9];
+    typedef float float__12[12];
+    typedef float float__16[16];
+
+    enum Hololens2PixelFormat {
+      PixelFormat_NV12,
+      PixelFormat_ARGB,
+      PixelFormat_L8,
+      PixelFormat_L16
+    };
+
+    enum Hololens2ImageCompression {
+        CompressionType_Raw,
+        CompressionType_Png,
+        CompressionType_H26x,
+        CompressionType_Zdepth
+    };
+
+    enum Hololens2H26xProfile {
+        H264Profile_Base,
+        H264Profile_Main,
+        H264Profile_High,
+        H265Profile_Main,
+        H26xProfile_None
+    };
+
+    enum Hololens2AACProfile {
+        AACProfile_12000,
+        AACProfile_16000,
+        AACProfile_20000,
+        AACProfile_24000,
+        AACProfile_None
+    };
+
+    enum Hololens2SensorType {
+        PERSONAL_VIDEO,
+        EYE_TRACKING,
+        HAND_TRACKING,
+        MICROPHONE,
+        RM_LEFT_FRONT,
+        RM_LEFT_LEFT,
+        RM_RIGHT_FRONT,
+        RM_RIGHT_RIGHT,
+        RM_DEPTH_AHAT,
+        RM_DEPTH_LONG_THROW,
+        RM_IMU_ACCEL,
+        RM_IMU_GYRO,
+        RM_IMU_MAG
+    };
+
+
+  };
+};
+
+#endif

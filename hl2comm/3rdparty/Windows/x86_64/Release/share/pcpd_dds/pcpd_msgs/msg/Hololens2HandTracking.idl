@@ -1,0 +1,44 @@
+#ifndef PCPD_MSG_HANDTRACKING
+#define PCPD_MSG_HANDTRACKING
+
+#include "pcpd_msgs/msg/Types.idl"
+#include "std_msgs/msg/Header.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "geometry_msgs/msg/Quaternion.idl"
+
+module pcpd_msgs {
+  module msg {
+
+    enum Hololens2JointPoseAccuracy {
+      High,
+      Approximate
+    };
+
+    struct Hololens2HandJointPose {
+      geometry_msgs::msg::Quaternion orientation;
+      geometry_msgs::msg::Vector3 position;
+      float radius;
+      Hololens2JointPoseAccuracy accuracy;
+    };
+
+    struct Hololens2HandTracking {
+
+      std_msgs::msg::Header header;
+
+      geometry_msgs::msg::Vector3 head_position;
+      geometry_msgs::msg::Vector3 head_forward;
+      geometry_msgs::msg::Vector3 head_up;
+
+      geometry_msgs::msg::Vector3 gaze_origin;
+      geometry_msgs::msg::Vector3 gaze_direction;
+      
+      sequence<Hololens2HandJointPose> left_poses;
+      sequence<Hololens2HandJointPose> right_poses;
+
+      uint8 valid;
+
+    };
+  };
+};
+
+#endif

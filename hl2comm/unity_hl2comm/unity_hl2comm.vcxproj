@@ -39,7 +39,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0728170d-ecee-430c-85b0-0e1709801d31}</ProjectGuid>
     <Keyword>DynamicLibrary</Keyword>
-    <RootNamespace>plugin</RootNamespace>
+    <RootNamespace>unity_hl2comm</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <AppContainerApplication>true</AppContainerApplication>
@@ -47,7 +47,7 @@
     <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformMinVersion>10.0.17763.0</WindowsTargetPlatformMinVersion>
     <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
-    <ProjectName>hl2plugin</ProjectName>
+    <ProjectName>unity_hl2comm</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -219,14 +219,14 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>Default</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)unity_hl2comm\Generated Files;$(SolutionDir)3rdparty\UWP\arm64\Release\include;$(SolutionDir)3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)unity_hl2comm\Generated Files;$(SolutionDir)3rdparty\UWP\arm64\Release\include;$(SolutionDir)3rdparty\zenoh-c\UWP\arm64\Release\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>SPDLOG_FMT_EXTERNAL;SPDLOG_ACTIVE_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <AdditionalDependencies>mfuuid.lib;Microsoft.MixedReality.SceneUnderstanding.lib;$(SolutionDir)3rdparty\zenoh-c\lib\UWP\arm64\Release\zenohc.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\zstd_static.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\uriparser.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\fmt.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\spdlog.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mfuuid.lib;Microsoft.MixedReality.SceneUnderstanding.lib;$(SolutionDir)3rdparty\zenoh-c\UWP\arm64\Release\lib\zenohc.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\zstd_static.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\zdepth.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_std.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_geometry.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\hl2comm_idl_pcpd.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\libfastcdr-1.0.lib;$(SolutionDir)3rdparty\UWP\arm64\Release\lib\uriparser.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\fmt.lib;$(SolutionDir)/3rdparty\UWP\arm64\Release\lib\spdlog.lib;ws2_32.lib;crypt32.lib;secur32.lib;bcrypt.lib;ncrypt.lib;userenv.lib;ntdll.lib;iphlpapi.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\ARM64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

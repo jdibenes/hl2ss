@@ -1,0 +1,37 @@
+#ifndef PCPD_MSG_HL2EYETRACKING
+#define PCPD_MSG_HL2EYETRACKING
+
+#include "pcpd_msgs/msg/Types.idl"
+#include "std_msgs/msg/Header.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "geometry_msgs/msg/Quaternion.idl"
+
+module pcpd_msgs {
+  module msg {
+
+    struct Hololens2EyeTracking {
+
+      std_msgs::msg::Header header;
+      
+      geometry_msgs::msg::Vector3 position;
+      geometry_msgs::msg::Quaternion orientation;
+
+      geometry_msgs::msg::Vector3 c_origin;
+      geometry_msgs::msg::Vector3 c_direction;
+      
+      geometry_msgs::msg::Vector3 l_origin;
+      geometry_msgs::msg::Vector3 l_direction;
+      
+      geometry_msgs::msg::Vector3 r_origin;
+      geometry_msgs::msg::Vector3 r_direction;
+      
+      float l_openness;
+      float r_openness;
+      
+      float vergence_distance;
+      uint32 valid;
+    };
+  };
+};
+
+#endif

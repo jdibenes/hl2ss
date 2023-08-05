@@ -5,10 +5,12 @@ VisualStudioVersion = 17.2.32516.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hl2comm", "hl2comm\hl2comm.vcxproj", "{C9CAFDBC-ADB4-4E28-85C8-8B175CCBB969}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hl2plugin", "unity_hl2comm\unity_hl2comm.vcxproj", "{0728170D-ECEE-430C-85B0-0E1709801D31}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unity_hl2comm", "unity_hl2comm\unity_hl2comm.vcxproj", "{0728170D-ECEE-430C-85B0-0E1709801D31}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C9CAFDBC-ADB4-4E28-85C8-8B175CCBB969} = {C9CAFDBC-ADB4-4E28-85C8-8B175CCBB969}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unity_comm", "unity_comm\unity_comm.vcxproj", "{D1427571-235F-45C1-99EE-0ACD0808DC4A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -62,6 +64,22 @@ Global
 		{0728170D-ECEE-430C-85B0-0E1709801D31}.Release|x64.Build.0 = Release|x64
 		{0728170D-ECEE-430C-85B0-0E1709801D31}.Release|x86.ActiveCfg = Release|Win32
 		{0728170D-ECEE-430C-85B0-0E1709801D31}.Release|x86.Build.0 = Release|Win32
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|ARM.ActiveCfg = Debug|ARM
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|ARM.Build.0 = Debug|ARM
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|ARM64.Build.0 = Debug|ARM64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|x64.ActiveCfg = Debug|x64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|x64.Build.0 = Debug|x64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|x86.ActiveCfg = Debug|Win32
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Debug|x86.Build.0 = Debug|Win32
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|ARM.ActiveCfg = Release|ARM
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|ARM.Build.0 = Release|ARM
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|ARM64.ActiveCfg = Release|ARM64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|ARM64.Build.0 = Release|ARM64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|x64.ActiveCfg = Release|x64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|x64.Build.0 = Release|x64
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|x86.ActiveCfg = Release|Win32
+		{D1427571-235F-45C1-99EE-0ACD0808DC4A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

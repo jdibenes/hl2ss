@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from shape_msgs/msg/MeshTriangle.msg
+// generated code does not contain a copyright notice
+
+
+module shape_msgs {
+  module msg {
+    typedef uint32 uint32__3[3];
+    @verbatim (language="comment", text=
+      "Definition of a triangle's vertices.")
+    struct MeshTriangle {
+      uint32__3 vertex_indices;
+    };
+  };
+};

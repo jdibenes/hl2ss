@@ -1,0 +1,155 @@
+#ifndef PCPD_RPC_TYPES
+#define PCPD_RPC_TYPES
+
+module pcpd_msgs {
+  module rpc {
+
+    typedef uint16 uint16__4[4];
+    typedef uint8 uint8__8[8];
+
+
+    enum RPCResponseStatus {
+      RPC_STATUS_SUCCESS,
+      RPC_STATUS_ERROR
+    };
+
+
+    struct HL2Guid {
+      uint32 Data1;
+      uint16 Data2;
+      uint16 Data3;
+      uint8__8 Data4;
+    };
+
+
+    // null
+    struct NullRequest {
+        uint8 dummy;
+    };
+
+    struct NullReply {
+        RPCResponseStatus status;
+    };
+
+    // string
+    struct StringRequest {
+        string value;
+    };
+
+    struct StringReply {
+        string value;
+        RPCResponseStatus status;
+    };
+
+
+    // bool
+    struct BoolRequest {
+        boolean value;
+    };
+
+    struct BoolReply {
+        boolean value;
+        RPCResponseStatus status;
+    };
+
+    // uint8
+    struct UInt8Request {
+        uint8 value;
+    };
+
+    struct UInt8Reply {
+        uint8 value;
+        RPCResponseStatus status;
+    };
+
+    // uint16
+    struct UInt16Request {
+        uint16 value;
+    };
+
+    struct UInt16Reply {
+        uint16 value;
+        RPCResponseStatus status;
+    };
+    // uint32
+    struct UInt32Request {
+        uint32 value;
+    };
+
+    struct UInt32Reply {
+        uint32 value;
+        RPCResponseStatus status;
+    };
+    // uint64
+    struct UInt64Request {
+        uint64 value;
+    };
+
+    struct UInt64Reply {
+        uint64 value;
+        RPCResponseStatus status;
+    };
+
+    // int8
+    struct Int8Request {
+        int8 value;
+    };
+
+    struct Int8Reply {
+        int8 value;
+        RPCResponseStatus status;
+    };
+
+    // int16
+    struct Int16Request {
+        int16 value;
+    };
+
+    struct Int16Reply {
+        int16 value;
+        RPCResponseStatus status;
+    };
+    // uint32
+    struct Int32Request {
+        int32 value;
+    };
+
+    struct Int32Reply {
+        int32 value;
+        RPCResponseStatus status;
+    };
+    // int64
+    struct Int64Request {
+        int64 value;
+    };
+
+    struct Int64Reply {
+        int64 value;
+        RPCResponseStatus status;
+    };
+
+
+    // float32
+    struct Float32Request {
+        float value;
+    };
+
+    struct Float32Reply {
+        float value;
+        RPCResponseStatus status;
+    };
+    // float64
+    struct Float64Request {
+        double value;
+    };
+
+    struct Float64Reply {
+        double value;
+        RPCResponseStatus status;
+    };
+
+
+  };
+};
+
+#endif

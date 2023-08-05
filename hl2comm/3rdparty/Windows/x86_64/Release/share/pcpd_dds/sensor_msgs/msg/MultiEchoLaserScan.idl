@@ -1,0 +1,79 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sensor_msgs/msg/MultiEchoLaserScan.msg
+// generated code does not contain a copyright notice
+
+#include "sensor_msgs/msg/LaserEcho.idl"
+#include "std_msgs/msg/Header.idl"
+
+module sensor_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Single scan from a multi-echo planar laser range-finder" "\n"
+      "" "\n"
+      "If you have another ranging device with different behavior (e.g. a sonar" "\n"
+      "array), please find or create a different message, since applications" "\n"
+      "will make fairly laser-specific assumptions about this data")
+    struct MultiEchoLaserScan {
+      @verbatim (language="comment", text=
+        "timestamp in the header is the acquisition time of" "\n"
+        "the first ray in the scan." "\n"
+        "" "\n"
+        "in frame frame_id, angles are measured around" "\n"
+        "the positive Z axis (counterclockwise, if Z is up)" "\n"
+        "with zero angle being forward along the x axis")
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "start angle of the scan")
+      @unit (value="rad")
+      float angle_min;
+
+      @verbatim (language="comment", text=
+        "end angle of the scan")
+      @unit (value="rad")
+      float angle_max;
+
+      @verbatim (language="comment", text=
+        "angular distance between measurements")
+      @unit (value="rad")
+      float angle_increment;
+
+      @verbatim (language="comment", text=
+        "time between measurements - if your scanner" "\n"
+        "is moving, this will be used in interpolating position" "\n"
+        "of 3d points")
+      @unit (value="seconds")
+      float time_increment;
+
+      @verbatim (language="comment", text=
+        "time between scans")
+      @unit (value="seconds")
+      float scan_time;
+
+      @verbatim (language="comment", text=
+        "minimum range value")
+      @unit (value="m")
+      float range_min;
+
+      @verbatim (language="comment", text=
+        "maximum range value")
+      @unit (value="m")
+      float range_max;
+
+      @verbatim (language="comment", text=
+        "range data" "\n"
+        "(Note: NaNs, values < range_min or > range_max should be discarded)" "\n"
+        "+Inf measurements are out of range" "\n"
+        "-Inf measurements are too close to determine exact distance.")
+      @unit (value="m")
+      sequence<sensor_msgs::msg::LaserEcho> ranges;
+
+      @verbatim (language="comment", text=
+        "intensity data.  If your" "\n"
+        "device does not provide intensities, please leave" "\n"
+        "the array empty.")
+      @unit (value="device-specific units")
+      sequence<sensor_msgs::msg::LaserEcho> intensities;
+    };
+  };
+};

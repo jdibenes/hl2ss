@@ -1,0 +1,17 @@
+#ifndef STD_MSGS_UINT8
+#define STD_MSGS_UINT8
+
+module std_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "This was originally provided as an example message." "\n"
+      "It is deprecated as of Foxy" "\n"
+      "It is recommended to create your own semantically meaningful message." "\n"
+      "However if you would like to continue using this please use the equivalent in example_msgs.")
+    struct UInt8 {
+      uint8 data;
+    };
+  };
+};
+
+#endif
