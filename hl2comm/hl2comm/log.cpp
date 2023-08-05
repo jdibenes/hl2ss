@@ -126,6 +126,7 @@ void SetupCallbackLogSink(LoggingFuncCallBack cb) {
 
 void SetupDebugLogSink() {
 	auto cbs = std::make_shared< spdlog::sinks::console_logging_sink_mt>();
+	cbs->set_pattern("%H:%M:%S.%e [%L] %v (%s:%#)");
 	std::vector<spdlog::sink_ptr>& sinks = spdlog::details::registry::instance().get_default_raw()->sinks();
 	sinks.push_back(cbs);
 }
@@ -134,6 +135,7 @@ void SetupFileLogSink(const char* filename) {
 	auto max_size = 1048576 * 100;
 	auto max_files = 3;
 	auto filesink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(filename, max_size, max_files);
+	filesink->set_pattern("%H:%M:%S.%e [%L] %v (%s:%#)");
 	std::vector<spdlog::sink_ptr>& sinks = spdlog::details::registry::instance().get_default_raw()->sinks();
 	sinks.push_back(filesink);
 }

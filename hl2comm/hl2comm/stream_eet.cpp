@@ -126,43 +126,16 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
     {
         pcpd_msgs::msg::Hololens2StreamDescriptor value{};
 
-        value.stream_topic(g_zenoh_context->topic_prefix + "/str/eet/");
+        value.stream_topic(g_zenoh_context->topic_prefix + "/str/eet");
         value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::EYE_TRACKING);
         value.frame_rate(fps);
 
-        buffer_cdr.reset();        buffer_cdr.serialize_encapsulation();
+        buffer_cdr.reset();        
+        buffer_cdr.serialize_encapsulation();
         value.serialize(buffer_cdr);
 
         // put message to zenoh
-        std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/eet";
-        z_put_options_t options1 = z_put_options_default();
-        options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
-        int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
-        if (res > 0) {
-            SPDLOG_INFO("EET: Error putting info");
-        }
-        else {
-            SPDLOG_INFO("EET: put info");
-        }
-    }
-
-    if (!g_first_frame_sent) {
-        g_first_frame_sent = true;
-
-        pcpd_msgs::msg::Hololens2StreamDescriptor value{};
-
-        value.stream_topic(g_zenoh_context->topic_prefix + "/str/eet");
-        value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::EYE_TRACKING);
-        value.frame_rate(g_eye_tracker_fps);
-
-        eprosima::fastcdr::FastBuffer buffer{};
-        eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
-
-        buffer_cdr.reset();
-        value.serialize(buffer_cdr);
-
-        // put message to zenoh
-        std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/eet";
+        std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/desc/eet";
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -172,9 +145,7 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
         else {
             SPDLOG_INFO("EET: put info: {}", keyexpr1);
         }
-
     }
-
 
 
     do
@@ -267,6 +238,23 @@ static void EET_Stream(SpatialLocator const &locator, uint64_t utc_offset)
                 v_d.y(eet_packet.frame.r_direction.y);
                 v_d.z(eet_packet.frame.r_direction.z);
                 value.r_direction(v_d);
+            }
+
+            {
+                float3 scale;
+                quaternion rotation;
+                float3 translation;
+
+                if (decompose(eet_packet.pose, &scale, &rotation, &translation)) {
+                    value.position().x(translation.x);
+                    value.position().y(translation.y);
+                    value.position().z(translation.z);
+
+                    value.orientation().x(rotation.x);
+                    value.orientation().y(rotation.y);
+                    value.orientation().z(rotation.z);
+                    value.orientation().w(rotation.w);
+                }
             }
 
             value.l_openness(eet_packet.frame.l_openness);

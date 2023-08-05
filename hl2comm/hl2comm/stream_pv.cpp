@@ -116,6 +116,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
         pcpd_msgs::msg::Hololens2StreamDescriptor desc{};
 
         desc.stream_topic(g_zenoh_context->topic_prefix + "/str/pv");
+        desc.calib_topic(g_zenoh_context->topic_prefix + "/cfg/cal/pv");
         desc.sensor_type(pcpd_msgs::msg::Hololens2SensorType::PERSONAL_VIDEO);
         desc.frame_rate(g_h26x_format.framerate);
         desc.image_width(pj.width);
@@ -180,7 +181,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
         // put message to zenoh
         {
-            std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/pv";
+            std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/desc/pv";
             z_put_options_t options1 = z_put_options_default();
             options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
             int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -229,7 +230,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
         // put message to zenoh
         {
-            std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cal/pv";
+            std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/cal/pv";
             z_put_options_t options1 = z_put_options_default();
             options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
             int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);

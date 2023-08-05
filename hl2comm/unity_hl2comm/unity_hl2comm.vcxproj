@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.props')" />
+  <Import Project="..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props" Condition="Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM">
       <Configuration>Debug</Configuration>
@@ -45,6 +47,7 @@
     <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformMinVersion>10.0.17763.0</WindowsTargetPlatformMinVersion>
     <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
+    <ProjectName>hl2plugin</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -145,7 +148,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <GenerateManifest>false</GenerateManifest>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
-    <TargetName>hl2ss</TargetName>
+    <TargetName>unity_hl2comm</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <GenerateManifest>false</GenerateManifest>
@@ -216,7 +219,7 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>Default</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)hl2ss\Generated Files;$(SolutionDir)3rdparty\UWP\arm64\Release\include;$(SolutionDir)3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)unity_hl2comm\Generated Files;$(SolutionDir)3rdparty\UWP\arm64\Release\include;$(SolutionDir)3rdparty\zenoh-c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>SPDLOG_FMT_EXTERNAL;SPDLOG_ACTIVE_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -250,86 +253,86 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\hl2ss\custom_hook_callback.cpp" />
-    <ClCompile Include="..\hl2ss\custom_media_buffers.cpp" />
-    <ClCompile Include="..\hl2ss\custom_media_sink.cpp" />
-    <ClCompile Include="..\hl2ss\custom_media_types.cpp" />
-    <ClCompile Include="..\hl2ss\custom_media_type_handler.cpp" />
-    <ClCompile Include="..\hl2ss\custom_sink_writers.cpp" />
-    <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
-    <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp" />
-    <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
-    <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
-    <ClCompile Include="..\hl2ss\ipc_sm.cpp" />
-    <ClCompile Include="..\hl2ss\ipc_su.cpp" />
-    <ClCompile Include="..\hl2ss\ipc_vi.cpp" />
-    <ClCompile Include="..\hl2ss\locator.cpp" />
-    <ClCompile Include="..\hl2ss\lock.cpp" />
-    <ClCompile Include="..\hl2ss\log.cpp" />
-    <ClCompile Include="..\hl2ss\manager.cpp" />
-    <ClCompile Include="..\hl2ss\microphone_capture.cpp" />
-    <ClCompile Include="..\hl2ss\neon.cpp" />
-    <ClCompile Include="..\hl2ss\nfo.cpp" />
-    <ClCompile Include="..\hl2ss\personal_video.cpp" />
-    <ClCompile Include="..\hl2ss\research_mode.cpp" />
-    <ClCompile Include="..\hl2ss\scene_understanding.cpp" />
-    <ClCompile Include="..\hl2ss\server.cpp" />
-    <ClCompile Include="..\hl2ss\spatial_input.cpp" />
-    <ClCompile Include="..\hl2ss\spatial_mapping.cpp" />
-    <ClCompile Include="..\hl2ss\stream_eet.cpp" />
-    <ClCompile Include="..\hl2ss\stream_mc.cpp" />
-    <ClCompile Include="..\hl2ss\stream_pv.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
-    <ClCompile Include="..\hl2ss\stream_si.cpp" />
-    <ClCompile Include="..\hl2ss\timestamps.cpp" />
-    <ClCompile Include="..\hl2ss\voice_input.cpp" />
+    <ClCompile Include="..\hl2comm\custom_hook_callback.cpp" />
+    <ClCompile Include="..\hl2comm\custom_media_buffers.cpp" />
+    <ClCompile Include="..\hl2comm\custom_media_sink.cpp" />
+    <ClCompile Include="..\hl2comm\custom_media_types.cpp" />
+    <ClCompile Include="..\hl2comm\custom_media_type_handler.cpp" />
+    <ClCompile Include="..\hl2comm\custom_sink_writers.cpp" />
+    <ClCompile Include="..\hl2comm\custom_stream_sink.cpp" />
+    <ClCompile Include="..\hl2comm\extended_eye_tracking.cpp" />
+    <ClCompile Include="..\hl2comm\ipc_rc.cpp" />
+    <ClCompile Include="..\hl2comm\ipc_sc.cpp" />
+    <ClCompile Include="..\hl2comm\ipc_sm.cpp" />
+    <ClCompile Include="..\hl2comm\ipc_su.cpp" />
+    <ClCompile Include="..\hl2comm\ipc_vi.cpp" />
+    <ClCompile Include="..\hl2comm\locator.cpp" />
+    <ClCompile Include="..\hl2comm\lock.cpp" />
+    <ClCompile Include="..\hl2comm\log.cpp" />
+    <ClCompile Include="..\hl2comm\manager.cpp" />
+    <ClCompile Include="..\hl2comm\microphone_capture.cpp" />
+    <ClCompile Include="..\hl2comm\neon.cpp" />
+    <ClCompile Include="..\hl2comm\nfo.cpp" />
+    <ClCompile Include="..\hl2comm\personal_video.cpp" />
+    <ClCompile Include="..\hl2comm\research_mode.cpp" />
+    <ClCompile Include="..\hl2comm\scene_understanding.cpp" />
+    <ClCompile Include="..\hl2comm\server.cpp" />
+    <ClCompile Include="..\hl2comm\spatial_input.cpp" />
+    <ClCompile Include="..\hl2comm\spatial_mapping.cpp" />
+    <ClCompile Include="..\hl2comm\stream_eet.cpp" />
+    <ClCompile Include="..\hl2comm\stream_mc.cpp" />
+    <ClCompile Include="..\hl2comm\stream_pv.cpp" />
+    <ClCompile Include="..\hl2comm\stream_rm.cpp" />
+    <ClCompile Include="..\hl2comm\stream_rm_imu.cpp" />
+    <ClCompile Include="..\hl2comm\stream_rm_vlc.cpp" />
+    <ClCompile Include="..\hl2comm\stream_rm_zab.cpp" />
+    <ClCompile Include="..\hl2comm\stream_si.cpp" />
+    <ClCompile Include="..\hl2comm\timestamps.cpp" />
+    <ClCompile Include="..\hl2comm\voice_input.cpp" />
     <ClCompile Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp" />
     <ClCompile Include="holographic_space_stub.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="ipc.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\hl2ss\custom_hook_callback.h" />
-    <ClInclude Include="..\hl2ss\custom_media_buffers.h" />
-    <ClInclude Include="..\hl2ss\custom_media_sink.h" />
-    <ClInclude Include="..\hl2ss\custom_media_types.h" />
-    <ClInclude Include="..\hl2ss\custom_media_type_handler.h" />
-    <ClInclude Include="..\hl2ss\custom_sink_hook.h" />
-    <ClInclude Include="..\hl2ss\custom_sink_writers.h" />
-    <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
-    <ClInclude Include="..\hl2ss\extended_eye_tracking.h" />
-    <ClInclude Include="..\hl2ss\ipc_rc.h" />
-    <ClInclude Include="..\hl2ss\ipc_sc.h" />
-    <ClInclude Include="..\hl2ss\ipc_sm.h" />
-    <ClInclude Include="..\hl2ss\ipc_su.h" />
-    <ClInclude Include="..\hl2ss\ipc_vi.h" />
-    <ClInclude Include="..\hl2ss\locator.h" />
-    <ClInclude Include="..\hl2ss\lock.h" />
-    <ClInclude Include="..\hl2ss\log.h" />
-    <ClInclude Include="..\hl2ss\microphone_capture.h" />
-    <ClInclude Include="..\hl2ss\neon.h" />
-    <ClInclude Include="..\hl2ss\nfo.h" />
-    <ClInclude Include="..\hl2ss\personal_video.h" />
-    <ClInclude Include="..\hl2ss\ports.h" />
-    <ClInclude Include="..\hl2ss\research_mode.h" />
-    <ClInclude Include="..\hl2ss\scene_understanding.h" />
-    <ClInclude Include="..\hl2ss\server.h" />
-    <ClInclude Include="..\hl2ss\spatial_input.h" />
-    <ClInclude Include="..\hl2ss\spatial_mapping.h" />
-    <ClInclude Include="..\hl2ss\stream_eet.h" />
-    <ClInclude Include="..\hl2ss\stream_mc.h" />
-    <ClInclude Include="..\hl2ss\stream_pv.h" />
-    <ClInclude Include="..\hl2ss\stream_rm.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_zab.h" />
-    <ClInclude Include="..\hl2ss\stream_si.h" />
-    <ClInclude Include="..\hl2ss\timestamps.h" />
-    <ClInclude Include="..\hl2ss\types.h" />
-    <ClInclude Include="..\hl2ss\voice_input.h" />
+    <ClInclude Include="..\hl2comm\custom_hook_callback.h" />
+    <ClInclude Include="..\hl2comm\custom_media_buffers.h" />
+    <ClInclude Include="..\hl2comm\custom_media_sink.h" />
+    <ClInclude Include="..\hl2comm\custom_media_types.h" />
+    <ClInclude Include="..\hl2comm\custom_media_type_handler.h" />
+    <ClInclude Include="..\hl2comm\custom_sink_hook.h" />
+    <ClInclude Include="..\hl2comm\custom_sink_writers.h" />
+    <ClInclude Include="..\hl2comm\custom_stream_sink.h" />
+    <ClInclude Include="..\hl2comm\extended_eye_tracking.h" />
+    <ClInclude Include="..\hl2comm\ipc_rc.h" />
+    <ClInclude Include="..\hl2comm\ipc_sc.h" />
+    <ClInclude Include="..\hl2comm\ipc_sm.h" />
+    <ClInclude Include="..\hl2comm\ipc_su.h" />
+    <ClInclude Include="..\hl2comm\ipc_vi.h" />
+    <ClInclude Include="..\hl2comm\locator.h" />
+    <ClInclude Include="..\hl2comm\lock.h" />
+    <ClInclude Include="..\hl2comm\log.h" />
+    <ClInclude Include="..\hl2comm\microphone_capture.h" />
+    <ClInclude Include="..\hl2comm\neon.h" />
+    <ClInclude Include="..\hl2comm\nfo.h" />
+    <ClInclude Include="..\hl2comm\personal_video.h" />
+    <ClInclude Include="..\hl2comm\ports.h" />
+    <ClInclude Include="..\hl2comm\research_mode.h" />
+    <ClInclude Include="..\hl2comm\scene_understanding.h" />
+    <ClInclude Include="..\hl2comm\server.h" />
+    <ClInclude Include="..\hl2comm\spatial_input.h" />
+    <ClInclude Include="..\hl2comm\spatial_mapping.h" />
+    <ClInclude Include="..\hl2comm\stream_eet.h" />
+    <ClInclude Include="..\hl2comm\stream_mc.h" />
+    <ClInclude Include="..\hl2comm\stream_pv.h" />
+    <ClInclude Include="..\hl2comm\stream_rm.h" />
+    <ClInclude Include="..\hl2comm\stream_rm_imu.h" />
+    <ClInclude Include="..\hl2comm\stream_rm_vlc.h" />
+    <ClInclude Include="..\hl2comm\stream_rm_zab.h" />
+    <ClInclude Include="..\hl2comm\stream_si.h" />
+    <ClInclude Include="..\hl2comm\timestamps.h" />
+    <ClInclude Include="..\hl2comm\types.h" />
+    <ClInclude Include="..\hl2comm\voice_input.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="hl2ss.h" />
     <ClInclude Include="PlatformBase.h" />
@@ -344,7 +347,22 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\runtimes\win10-arm64\native\Microsoft.MixedReality.SceneUnderstanding.dll" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets" Condition="Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets')" />
+    <Import Project="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets" Condition="Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" />
+    <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+  </Target>
 </Project>

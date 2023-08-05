@@ -9,20 +9,24 @@
 from pynput import keyboard
 
 import hl2ss
+import hl2ss_schema
 import hl2ss_utilities
 import pyaudio
 import queue
 import threading
 
+import zenoh
+import logging
+
+log = logging.getLogger(__name__)
+
 # Settings --------------------------------------------------------------------
 
-# HoloLens address
-host = "192.168.1.7"
+DEFAULT_KEY = "tcn/loc/hl2/*"
 
-# Port
-port = hl2ss.StreamPort.MICROPHONE
+# most simple zenoh config for now
+conf = {"mode": "peer", "queries_default_timeout": 10000}
 
-# Audio encoding profile
 profile = hl2ss.AudioProfile.AAC_24000
 
 #------------------------------------------------------------------------------
@@ -47,17 +51,35 @@ def on_press(key):
     enable = key != keyboard.Key.esc
     return enable
 
+
+logging.basicConfig(level=logging.DEBUG)
+
 pcmqueue = queue.Queue()
 thread = threading.Thread(target=pcmworker, args=(pcmqueue,))
 listener = keyboard.Listener(on_press=on_press)
 thread.start()
 listener.start()
 
-client = hl2ss.rx_decoded_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile)
+fmt = hl2ss_schema.HL2MGR_AACFormat(channels=2, sample_rate=24000,
+                                    profile=hl2ss_schema.Hololens2AACProfile.AACProfile_24000)
+
+request = hl2ss_schema.HL2MGRRequest_StartMC(
+    aac_format=fmt,
+)
+
+with hl2ss.mgr_rpc_interface(conf, DEFAULT_KEY) as mgr:
+    if not mgr.start_mc(request):
+        log.error("Cannot Start Microphone Sensor")
+        exit(1)
+
+
+client = hl2ss.rx_decoded_microphone(conf, DEFAULT_KEY)
 client.open()
 
 while (enable): 
     data = client.get_next_packet()
+    if data is None:
+        continue
     # RAW format is s16 packed, AAC decoded format is f32 planar
     audio = hl2ss_utilities.microphone_planar_to_packed(data.payload) if (profile != hl2ss.AudioProfile.RAW) else data.payload
     pcmqueue.put(audio.tobytes())
@@ -68,3 +90,8 @@ enable = False
 pcmqueue.put(b'')
 thread.join()
 listener.join()
+
+with hl2ss.mgr_rpc_interface(conf, DEFAULT_KEY) as mgr:
+    if not mgr.stop_mc():
+        log.error("Cannot Stop Microphone Sensor")
+

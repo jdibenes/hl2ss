@@ -49,7 +49,7 @@ static void SI_Stream()
         return;
     }
     std::string& topic_prefix = g_zenoh_context->topic_prefix;
-    std::string keyexpr = "hl2/sensor/si/" + topic_prefix;
+    std::string keyexpr = topic_prefix + "/str/si";
     SPDLOG_INFO("SI: publish on: {0}", keyexpr.c_str());
 
     z_publisher_options_t publisher_options = z_publisher_options_default();
@@ -61,6 +61,7 @@ static void SI_Stream()
         SPDLOG_INFO("SI: Error creating publisher");
         return;
     }
+    Sleep(1);
 
     z_publisher_put_options_t options = z_publisher_put_options_default();
     options.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
@@ -71,7 +72,8 @@ static void SI_Stream()
     {
         pcpd_msgs::msg::Hololens2StreamDescriptor value{};
 
-        value.stream_topic("hl2/sensor/si/" + g_zenoh_context->topic_prefix);
+        value.stream_topic(g_zenoh_context->topic_prefix + "/str/si");
+        value.calib_topic("");
         value.sensor_type(pcpd_msgs::msg::Hololens2SensorType::HAND_TRACKING);
         value.frame_rate(30);
 
@@ -80,7 +82,7 @@ static void SI_Stream()
         value.serialize(buffer_cdr);
 
         // put message to zenoh
-        std::string keyexpr1 = "hl2/cfg/si/" + g_zenoh_context->topic_prefix;
+        std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/desc/si";
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -88,7 +90,7 @@ static void SI_Stream()
             SPDLOG_INFO("SI: Error putting info");
         }
         else {
-            SPDLOG_INFO("SI: put info");
+            SPDLOG_INFO("SI: put info: {}", keyexpr1);
         }
     }
 
@@ -193,6 +195,8 @@ static void SI_Stream()
             t.orientation().w(s.Orientation.w);
 
         }
+        value.right_poses(rps);
+        value.left_poses(lps);
         value.valid(valid);
 
         buffer_cdr.reset();

@@ -280,7 +280,7 @@ void RC_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                SPDLOG_INFO("Received argument: %s -> {0}", current->key, current->value);
+                SPDLOG_INFO("Received argument: {0} -> {1}", current->key, current->value);
             }
             current = current->next;
         }

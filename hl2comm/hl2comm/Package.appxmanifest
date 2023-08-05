@@ -12,8 +12,8 @@
     Version="1.0.22.0" />
   <mp:PhoneIdentity PhoneProductId="eaaf3af3-1402-4e5b-b6a1-5d0fbb7c1ba8" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
   <Properties>
-    <DisplayName>hl2ss</DisplayName>
-    <PublisherDisplayName>jcds</PublisherDisplayName>
+    <DisplayName>hl2comm</DisplayName>
+    <PublisherDisplayName>tcn</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Dependencies>
@@ -23,7 +23,7 @@
     <Resource Language="x-generate" />
   </Resources>
   <Applications>
-    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="hl2ss.App">
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="hl2comm.App">
       <uap:VisualElements DisplayName="HL2Comm" Description="Test Application for HL2COMM Plugin"
         Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" BackgroundColor="transparent">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png">

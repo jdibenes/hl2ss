@@ -193,7 +193,7 @@ void VI_QueryHandler(const z_query_t* query, void* context) {
         while (current != nullptr) {
             if (current->key != nullptr && current->value != nullptr) {
                 arguments.insert(std::pair(current->key, current->value));
-                SPDLOG_DEBUG("Received argument: {0} -> {1}", current->key, current->value);
+                SPDLOG_INFO("Received argument: {0} -> {1}", current->key, current->value);
             }
             current = current->next;
         }
@@ -227,6 +227,9 @@ void VI_QueryHandler(const z_query_t* query, void* context) {
         }
         else {
             call_success = false;
+        }
+        if (!call_success) {
+            SPDLOG_ERROR("VI: Execution of command: {0} failed.", cmd.mapped());
         }
     }
 

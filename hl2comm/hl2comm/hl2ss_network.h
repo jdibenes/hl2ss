@@ -59,11 +59,12 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
 
         eprosima::fastcdr::Cdr request_buffer_cdr(request_buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
         try {
+            request_buffer_cdr.read_encapsulation();
             request.deserialize(request_buffer_cdr);
             args_valid = true;
         }
         catch (const eprosima::fastcdr::exception::Exception& e) {
-            SPDLOG_INFO("RC: error deserializing request payload: {0}", e.what());
+            SPDLOG_ERROR("RC: error deserializing request payload: {0}", e.what());
             args_valid = false;
         }
     }
@@ -72,7 +73,7 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
             RpcRequestArgs<T::RequestT> ah{};
             args_valid = ah.parse(args, request);
         } catch(const std::exception& e) {
-            SPDLOG_INFO("RC: error parsing parameters: {0}", e.what());
+            SPDLOG_ERROR("RC: error parsing parameters: {0}", e.what());
             args_valid = false;
         }
     }
@@ -85,6 +86,7 @@ bool forward_rpc_call(T handler, void* context, z_value_t& request_payload, cons
     }
 
     eprosima::fastcdr::Cdr buffer_cdr(result_buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
+    buffer_cdr.serialize_encapsulation();
     call_success &= response.status() == pcpd_msgs::rpc::RPC_STATUS_SUCCESS;
     response.serialize(buffer_cdr);
     result_bytes = buffer_cdr.getSerializedDataLength();

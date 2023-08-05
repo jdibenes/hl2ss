@@ -1,9 +1,10 @@
 
 from enum import IntEnum
+from typing import List
 import numpy as np
 import quaternion
 
-import socket
+import time
 import struct
 import asyncio
 import websockets.client
@@ -202,7 +203,7 @@ def to_vec3(v):
 
 def to_quat(v):
     if isinstance(v, hl2ss_schema.Quaternion):
-        orientation = np.quaternion(v.w, v.x, v.y, v.z)
+        v = np.quaternion(v.w, v.x, v.y, v.z)
     # more ..
     return v
 
@@ -269,9 +270,12 @@ class rpc_interface(_context_manager):
     def make_request_payload(self, **kw):
         return kw, None
 
-    def __call__(self, **kw):
-        args, payload = self.make_request_payload(**kw)
-        query = "{}?{}".format(self.rpc_topic, "&".join("{0}={1}".format(k,v) for k,v in args.items()))
+    def _call_rpc(self, payload=None, **kw):
+        if payload is None:
+            kw, payload = self.make_request_payload(**kw)
+        elif isinstance(payload, hl2ss_schema.IdlStruct):
+            payload = payload.serialize()
+        query = "{}?{}".format(self.rpc_topic, "&".join("{0}={1}".format(k,v) for k,v in kw.items()))
         replies = self.session.get(query, zenoh.Queue(), target=QueryTarget.ALL(), value=payload)
         result = []
         for reply in replies.receiver:
@@ -279,13 +283,35 @@ class rpc_interface(_context_manager):
                 result.append(reply.ok)
             except:
                 log.error("RPC ERROR: '{}'", reply.err.payload.decode("utf-8"))
+        if not result:
+            log.warning(f"Call to {query} did not get any results.")
         return result
 
 
 class mgr_rpc_interface(rpc_interface):
+    commands = {
+        "StartRM": (hl2ss_schema.HL2MGRRequest_StartRM, hl2ss_schema.NullReply),
+        "StopRM": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartMC": (hl2ss_schema.HL2MGRRequest_StartMC, hl2ss_schema.NullReply),
+        "StopMC": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartPV": (hl2ss_schema.HL2MGRRequest_StartPV, hl2ss_schema.NullReply),
+        "StopPV": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartSI": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StopSI": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartRC": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StopRC": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartSM": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StopSM": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartSU": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StopSU": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartVI": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StopVI": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+        "StartEET": (hl2ss_schema.UInt8Request, hl2ss_schema.NullReply),
+        "StopEET": (hl2ss_schema.NullRequest, hl2ss_schema.NullReply),
+    }
 
-    def __init__(self, svc_name, session_config, client_id):
-        super().__init__(svc_name, session_config, "hl2/rpc/mgr/" + client_id)
+    def __init__(self, session_config, topic_prefix):
+        super().__init__("MGR", session_config, topic_prefix + "/rpc/mgr")
 
     def make_request_payload(self, **kw):
         if "cmd" not in kw:
@@ -293,10 +319,84 @@ class mgr_rpc_interface(rpc_interface):
             return kw, None
         cmd = kw["cmd"]
         payload = None
-
-        # adapt payload generation to cmd here ..
-
+        if cmd not in self.commands:
+            raise ValueError(f"Invalid Command: {cmd}")
         return kw, payload
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
+
+    def do_call(self, cmd=None, payload=None, **kw):
+        results = self._call_rpc(cmd=cmd, payload=payload, **kw)
+        if results:
+            if cmd not in self.commands:
+                raise ValueError(f"Invalid Command: {cmd}")
+            _, handler = self.commands[cmd]
+            reply = handler.deserialize(results[0].payload)
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return True
+        log.error("RC: rpc call failed")
+        return False
+
+    def start_rm(self, request: hl2ss_schema.HL2MGRRequest_StartRM):
+        return self.do_call(cmd="StartRM", payload=request)
+
+    def stop_rm(self):
+        return self.do_call(cmd="StopRM")
+
+    def start_mc(self, request: hl2ss_schema.HL2MGRRequest_StartMC):
+        return self.do_call(cmd="StartMC", payload=request)
+
+    def stop_mc(self):
+        return self.do_call(cmd="StopMC")
+
+    def start_pv(self, request: hl2ss_schema.HL2MGRRequest_StartPV):
+        return self.do_call(cmd="StartPV", payload=request)
+
+    def stop_pv(self):
+        return self.do_call(cmd="StopPV")
+
+    def start_si(self):
+        return self.do_call(cmd="StartSI")
+
+    def stop_si(self):
+        return self.do_call(cmd="StopSI")
+
+    def start_rc(self):
+        return self.do_call(cmd="StartRC")
+
+    def stop_rc(self):
+        return self.do_call(cmd="StopRC")
+
+    def start_sm(self):
+        return self.do_call(cmd="StartSM")
+
+    def stop_sm(self):
+        return self.do_call(cmd="StopSM")
+
+    def start_su(self):
+        return self.do_call(cmd="StartSU")
+
+    def stop_su(self):
+        return self.do_call(cmd="StopSU")
+
+    def start_vi(self):
+        return self.do_call(cmd="StartVI")
+
+    def stop_vi(self):
+        return self.do_call(cmd="StopVI")
+
+    def start_eet(self, eye_fps):
+        return self.do_call(cmd="StartEET", value=eye_fps)
+
+    def stop_eet(self):
+        return self.do_call(cmd="StopEET")
+
+
+
 
 #------------------------------------------------------------------------------
 # Receiver Wrappers
@@ -310,7 +410,7 @@ class stream_base(_context_manager):
         self.config_topic = config_topic
         self.desc = None
         self.sub = None
-        self.last_sample = None
+        self._queue = numpy_ringbuffer.RingBuffer(1024, dtype=np.object)
         self._session = None
 
     @property
@@ -323,9 +423,24 @@ class stream_base(_context_manager):
 
     def configure(self):
         replies = self.session.get(self.config_topic, zenoh.Queue(), target=QueryTarget.BEST_MATCHING())
-        desc_reply = next(replies).ok
-        self.desc = hl2ss_schema.Hololens2StreamDescriptor.deserialize(desc_reply.payload)
-        log.info("{0} received stream_config: {1}".format(self.svc_name, self.desc))
+        have_result = False
+        retry_counter = 0
+        while True:
+            try:
+                desc_reply = next(replies).ok
+                self.desc = hl2ss_schema.Hololens2StreamDescriptor.deserialize(desc_reply.payload)
+                log.info("{0} received stream_config: {1}".format(self.svc_name, self.desc))
+                return
+
+            except StopIteration:
+                pass
+            log.warning("{0} cannot find endpoint at: {1} - waiting ...".format(self.svc_name, self.config_topic))
+            time.sleep(2.)
+            replies = self.session.get(self.config_topic, zenoh.Queue(), target=QueryTarget.BEST_MATCHING())
+            retry_counter += 1
+            if retry_counter > 10:
+                raise ValueError("No stream endpoint found at: {0}".format(self.config_topic))
+
 
     def open(self):
         if self.desc is None:
@@ -334,37 +449,41 @@ class stream_base(_context_manager):
             log.error("{0} error - cannot retrieve stream_topic from configuration.")
             raise ValueError("Cannot Connect")
         log.info("{0} subscribes to stream_topic: {1}".format(self.svc_name, self.desc.stream_topic))
-        self.sub = self.session.declare_pull_subscriber(self.desc.stream_topic, self.cb_data, reliability=Reliability.RELIABLE())
+        self.sub = self.session.declare_subscriber(self.desc.stream_topic, zenoh.Queue(bound=1024), reliability=Reliability.RELIABLE())
 
     def cb_data(self, sample):
-        self.last_sample = sample
+        self._queue.append(sample)
 
     def close(self):
         self.sub.undeclare()
 
     def get_next_packet(self):
-        self.last_sample = None
-        while self.last_sample is None:  # do we need a stop criterion?
-            self.sub.pull()
-        return self.process_sample()
+        try:
+            sample = next(self.sub.receiver)
+            while sample is None:  # do we need a stop criterion?
+                sample = next(self.sub.receiver)
+            return self.process_sample(sample)
+        except StopIteration:
+            return None
 
-    def process_sample(self):
+    def process_sample(self, sample):
         raise NotImplemented
 
 
 
 class rx_video_stream(stream_base):
-    def process_sample(self):
-        if self.last_sample is None:
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2VideoStream.deserialize(self.last_sample.payload)
+        value = hl2ss_schema.Hololens2VideoStream.deserialize(sample.payload)
         pose = Pose(value.position, value.orientation).to_matrix()
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, pose)
         d = self.desc
-        if d.image_compression == hl2ss_schema.Hololens2ImageCompression.CompressionType_Raw:
+        if d.image_compression == hl2ss_schema.Hololens2ImageCompression.CompressionType_Raw and \
+                self.desc.h26x_profile == hl2ss_schema.Hololens2H26xProfile.H26xProfile_None:
             width = self.desc.image_width
             height = self.desc.image_height
             stride = 0
@@ -378,13 +497,44 @@ class rx_video_stream(stream_base):
         return p
 
 
+class rx_pv(rx_video_stream):
+
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("PV", cfg, topic_prefix + "/cfg/desc/pv")
+
+
+class rx_rm_vlc(rx_video_stream):
+    
+    def __init__(self, cfg, topic_prefix, port: StreamType):
+        suffix = None
+        if port == StreamType.RM_VLC_LEFTFRONT:
+            suffix = "lf"
+        elif port == StreamType.RM_VLC_LEFTLEFT:
+            suffix = "ll"
+        elif port == StreamType.RM_VLC_RIGHTRIGHT:
+            suffix = "rr"
+        elif port == StreamType.RM_VLC_RIGHTFRONT:
+            suffix = "rf"
+        super().__init__("VLC_{0}".format(suffix.upper()), cfg, topic_prefix + "/cfg/desc/vlc_{0}".format(suffix))
+
+
+class rx_rm_depth_ahat(rx_video_stream):
+    
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("ZHT", cfg, topic_prefix + "/cfg/desc/zht")
+
+
 class rx_rm_depth_longthrow(stream_base):
-    def process_sample(self):
-        if self.last_sample is None:
+
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("ZLT-D", cfg, topic_prefix + "/cfg/desc/zlt/depth")
+
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2VideoStream.deserialize(self.last_sample.payload)
+        value = hl2ss_schema.Hololens2VideoStream.deserialize(sample.payload)
         pose = Pose(value.position, value.orientation).to_matrix()
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, pose)
@@ -404,77 +554,94 @@ class rx_rm_depth_longthrow(stream_base):
 
 
 class rx_rm_imu_accel(stream_base):
-    def process_sample(self):
-        if self.last_sample is None:
+
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("IMU_ACC", cfg, topic_prefix + "/cfg/desc/imu_acc")
+
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2ImuAccel.deserialize(self.last_sample.payload)
+        value = hl2ss_schema.Hololens2ImuAccel.deserialize(sample.payload)
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, np.zeros((4, 4)))
         return p
 
 
 class rx_rm_imu_gyro(stream_base):
-    def process_sample(self):
-        if self.last_sample is None:
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("IMU_GYRO", cfg, topic_prefix + "/cfg/desc/imu_gyro")
+
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2ImuGyro.deserialize(self.last_sample.payload)
+        value = hl2ss_schema.Hololens2ImuGyro.deserialize(sample.payload)
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, np.zeros((4, 4)))
         return p
 
 
 class rx_rm_imu_mag(stream_base):
-    def process_sample(self):
-        if self.last_sample is None:
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("IMU_MAG", cfg, topic_prefix + "/cfg/desc/imu_mag")
+
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2ImuMAg.deserialize(self.last_sample.payload)
+        value = hl2ss_schema.Hololens2ImuMAg.deserialize(sample.payload)
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, np.zeros((4, 4)))
         return p
 
 
 class rx_microphone(stream_base):
-    def process_sample(self):
-        if self.last_sample is None:
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("MIC", cfg, topic_prefix + "/cfg/desc/mic")
+
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2AudioStream.deserialize(self.last_sample.payload)
+        value = hl2ss_schema.Hololens2AudioStream.deserialize(sample.payload)
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, np.zeros((4, 4)))
         return p
 
 
 class rx_si(stream_base):
-    def process_sample(self):
-        if self.last_sample is None:
+
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("SI", cfg, topic_prefix + "/cfg/desc/si")
+
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2HandTracking.deserialize(self.last_sample.payload)
-        pose = Pose(value.position, value.orientation).to_matrix()
+        value = hl2ss_schema.Hololens2HandTracking.deserialize(sample.payload)
+        # pose = Pose(value.position, value.orientation).to_matrix()
+        pose = None
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, pose)
         return p
 
 
 class rx_eet(stream_base):
+    def __init__(self, cfg, topic_prefix):
+        super().__init__("EET", cfg, topic_prefix + "/cfg/desc/eet")
 
-    def configure(self):
-        pass
-
-    def process_sample(self):
-        if self.last_sample is None:
+    def process_sample(self, sample):
+        if sample is None:
             log.warning("{0} processed empty sample", self.svc_name)
             return
 
-        value = hl2ss_schema.Hololens2EyeTracking.deserialize(self.last_sample.payload)
+        value = hl2ss_schema.Hololens2EyeTracking.deserialize(sample.payload)
         pose = Pose(value.position, value.orientation).to_matrix()
         ts = hl2ss_core.Time.from_msg(value.header.stamp)
         p = _packet(ts, value, pose)
@@ -558,6 +725,20 @@ class _decode_rm_vlc:
                     return frame.to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
         except av.error.InvalidDataError as e:
             log.error(e)
+            def print_nalu(bytes):
+                print("nalu: " + len(bytes))
+
+            def parse_sps(bytes):
+                sps = SPS(bytes)
+                sps.print_verbose()
+
+            from h26x_extractor.h26x_parser import H26xParser
+            from h26x_extractor.nalutypes import SPS
+            p = H26xParser("test.h264", True)
+            p.set_callback("nalu", print_nalu)
+            p.set_callback("sps", parse_sps)
+            p.parse()
+
         return None
 
 
@@ -616,9 +797,13 @@ class _decode_rm_depth_ahat:
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray())
+        try:
+            # this will only decode one packet ...
+            for packet in self._codec.parse(bytes(payload.image)):
+                for frame in self._codec.decode(packet):
+                    return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray())
+        except av.error.InvalidDataError as e:
+            log.error(e)
         return None
 
 
@@ -880,26 +1065,18 @@ class _Mode0Layout_SI:
 
 
 class _SI_Hand:
-    def __init__(self, payload):
+    def __init__(self, payload: List[hl2ss_schema.HandJointPose]):
         self._data = payload
 
-    def get_joint_pose(self, joint):
-        begin = joint * _Mode0Layout_SI_Hand.BYTE_COUNT
-        end = begin + _Mode0Layout_SI_Hand.BYTE_COUNT
-        data = self._data[begin:end]
-
-        orientation = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_ORIENTATION : _Mode0Layout_SI_Hand.END_ORIENTATION], dtype=np.float32)
-        position    = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_POSITION    : _Mode0Layout_SI_Hand.END_POSITION],    dtype=np.float32)
-        radius      = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_RADIUS      : _Mode0Layout_SI_Hand.END_RADIUS],      dtype=np.float32)
-        accuracy    = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_ACCURACY    : _Mode0Layout_SI_Hand.END_ACCURACY],    dtype=np.int32)
-
-        return _SI_HandJointPose(orientation, position, radius, accuracy)
+    def get_joint_pose(self, joint: int):
+        v = self._data[joint]
+        return _SI_HandJointPose(to_quat(v.orientation), to_vec3(v.position), v.radius, v.accuracy)
 
 
 class unpack_si:
-    def __init__(self, payload):
+    def __init__(self, payload: hl2ss_schema.Hololens2HandTracking):
         self._data = payload
-        self._valid = np.frombuffer(payload[_Mode0Layout_SI.BEGIN_VALID : _Mode0Layout_SI.END_VALID], dtype=np.uint8)
+        self._valid = payload.valid
 
     def is_valid_head_pose(self):
         return (self._valid & _SI_Field.HEAD) != 0
@@ -914,23 +1091,18 @@ class unpack_si:
         return (self._valid & _SI_Field.RIGHT) != 0
 
     def get_head_pose(self):
-        position = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_POSITION : _Mode0Layout_SI.END_HEAD_POSITION], dtype=np.float32)
-        forward  = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_FORWARD  : _Mode0Layout_SI.END_HEAD_FORWARD],  dtype=np.float32)
-        up       = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_UP       : _Mode0Layout_SI.END_HEAD_UP],       dtype=np.float32)
-
-        return _SI_HeadPose(position, forward, up)
+        return _SI_HeadPose(to_vec3(self._data.head_position),
+                            to_vec3(self._data.head_forward),
+                            to_vec3(self._data.head_up))
 
     def get_eye_ray(self):
-        origin    = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_EYE_ORIGIN    : _Mode0Layout_SI.END_EYE_ORIGIN],    dtype=np.float32)
-        direction = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_EYE_DIRECTION : _Mode0Layout_SI.END_EYE_DIRECTION], dtype=np.float32)
-
-        return _SI_EyeRay(origin, direction)
+        return _SI_EyeRay(to_vec3(self._data.gaze_origin), to_vec3(self._data.gaze_direction))
 
     def get_hand_left(self):
-        return _SI_Hand(self._data[_Mode0Layout_SI.BEGIN_HAND_LEFT : _Mode0Layout_SI.END_HAND_LEFT])
+        return _SI_Hand(self._data.left_poses)
 
     def get_hand_right(self):
-        return _SI_Hand(self._data[_Mode0Layout_SI.BEGIN_HAND_RIGHT : _Mode0Layout_SI.END_HAND_RIGHT])
+        return _SI_Hand(self._data.right_poses)
 
 
 #------------------------------------------------------------------------------
@@ -961,9 +1133,9 @@ class unpack_eet:
 # Decoded Receivers
 #------------------------------------------------------------------------------
 
-class rx_decoded_rm_vlc(rx_video_stream):
-    def __init__(self, session_config, config_topic, fmt):
-        super().__init__("RM_HT", session_config, config_topic)
+class rx_decoded_rm_vlc(rx_rm_vlc):
+    def __init__(self, session_config, config_topic, fmt, stream: StreamType):
+        super().__init__(session_config, config_topic, stream)
         self.format = fmt
         self._codec = None
 
@@ -979,8 +1151,8 @@ class rx_decoded_rm_vlc(rx_video_stream):
 
     def get_next_packet(self):
         data = super().get_next_packet()
-        data.payload = _unpack_rm_vlc(data.payload)
-        data.payload.image = self._codec.decode(data.payload.image)
+        data.payload.raw_image = data.payload.image
+        data.payload.image = self._codec.decode(bytes(data.payload.image))
         return data
 
 
@@ -1002,8 +1174,9 @@ class rx_decoded_rm_depth_ahat(rx_video_stream):
 
     def get_next_packet(self):
         data = super().get_next_packet()
-        data.payload = _unpack_rm_depth_ahat(data.payload)
-        data.payload.image = self._codec.decode(data.payload.image, self.format)
+        #data.payload = _unpack_rm_depth_ahat(data.payload)
+        data.payload.image = self._codec.decode(data.payload)
+        return data
 
 
 class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
@@ -1043,11 +1216,17 @@ class rx_decoded_pv(rx_video_stream):
 
 
 class rx_decoded_microphone(rx_microphone):
-    def __init__(self, host, port, chunk, profile):
-        super().__init__(host, port, chunk, profile)
-        self._codec = decode_microphone(profile)
-        
+    def __init__(self, session_config, config_topic):
+        super().__init__("MIC", session_config, config_topic)
+        self._codec = None
+
     def open(self):
+        self.configure()
+        if self.desc is None:
+            raise ValueError("No stream descriptor found.")
+
+        profile = map_audioprofile[self.desc.aac_profile]
+        self._codec = decode_microphone(profile)
         self._codec.create()
         super().open()
 
@@ -1291,7 +1470,7 @@ class _PortName:
 
 
 def get_port_index(port):
-    return port - StreamPort.RM_VLC_LEFTFRONT
+    return port - StreamType.RM_VLC_LEFTFRONT
 
 
 def get_port_name(port):
@@ -1401,94 +1580,171 @@ class PV_BacklightCompensationState:
     Enable = 1
 
 
-class ipc_rc(_context_manager):
-    _CMD_GET_APPLICATION_VERSION = 0x00
-    _CMD_GET_UTC_OFFSET = 0x01
-    _CMD_SET_HS_MARKER_STATE = 0x02
-    _CMD_GET_PV_SUBSYSTEM_STATUS = 0x03
-    _CMD_SET_PV_FOCUS = 0x04
-    _CMD_SET_PV_VIDEO_TEMPORAL_DENOISING = 0x05
-    _CMD_SET_PV_WHITE_BALANCE_PRESET = 0x06
-    _CMD_SET_PV_WHITE_BALANCE_VALUE = 0x07
-    _CMD_SET_PV_EXPOSURE = 0x08
-    _CMD_SET_PV_EXPOSURE_PRIORITY_VIDEO = 0x09
-    _CMD_SET_PV_ISO_SPEED = 0x0A
-    _CMD_SET_PV_BACKLIGHT_COMPENSATION = 0x0B
-    _CMD_SET_PV_SCENE_MODE = 0x0C
+class ipc_rc(rpc_interface):
+    commands = {
+        "GetApplicationVersion": (hl2ss_schema.NullRequest, hl2ss_schema.HL2RCResponse_GetApplicationVersion),
+        "GetUTCOffset": (hl2ss_schema.UInt32Request, hl2ss_schema.UInt64Reply),
+        "SetHSMarkerState": (hl2ss_schema.UInt32Request, hl2ss_schema.NullReply),
+        "GetPVSubsystemStatus": (hl2ss_schema.NullRequest, hl2ss_schema.BoolReply),
+        "SetPVFocus": (hl2ss_schema.HL2RCRequest_SetPVFocus, hl2ss_schema.NullReply),
+        "SetPVVideoTemporalDenoising": (hl2ss_schema.UInt32Request, hl2ss_schema.NullReply),
+        "SetPVWhiteBalancePreset": (hl2ss_schema.UInt32Request, hl2ss_schema.NullReply),
+        "SetPVWhiteBalanceValue": (hl2ss_schema.UInt32Request, hl2ss_schema.NullReply),
+        "SetPVExposure": (hl2ss_schema.HL2RCRequest_SetPVExposure, hl2ss_schema.NullReply),
+        "SetPVExposurePriorityVideo": (hl2ss_schema.UInt32Request, hl2ss_schema.NullReply),
+        "SetPVIsoSpeed": (hl2ss_schema.HL2RCRequest_SetPVIsoSpeed, hl2ss_schema.NullReply),
+        "SetPVBacklightCompensation": (hl2ss_schema.UInt32Request, hl2ss_schema.NullReply),
+        "SetPVSceneMode": (hl2ss_schema.UInt32Request, hl2ss_schema.NullReply),
+    }
 
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
+    def __init__(self, session_config, topic_prefix):
+        super().__init__("RC", session_config, topic_prefix + "/rpc/ctrl")
+
+    def make_request_payload(self, **kw):
+        if "cmd" not in kw:
+            log.warning("RC: called without command")
+            return kw, None
+        cmd = kw["cmd"]
+        payload = None
+
+        if cmd not in self.commands:
+            raise ValueError(f"Invalid Command: {cmd}")
+
+        return kw, payload
 
     def open(self):
-        self._client = _client()
-        self._client.open(self.host, self.port)
+        pass
 
     def close(self):
-        self._client.close()
+        pass
+
+    def decode_response(self, cmd, payload):
+        if cmd not in self.commands:
+            raise ValueError(f"Invalid Command: {cmd}")
+        _, request = self.commands[cmd]
+        return request.deserialize(payload.payload)
 
     def get_application_version(self):
-        command = struct.pack('<B', ipc_rc._CMD_GET_APPLICATION_VERSION)
-        self._client.sendall(command)
-        data = self._client.download(_SIZEOF.SHORT * 4, ChunkSize.SINGLE_TRANSFER)
-        version = struct.unpack('<HHHH', data)
-        return version
+        cmd = "GetApplicationVersion"
+        results = self._call_rpc(cmd=cmd)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return reply.data
+        log.error("RC: rpc call failed")
 
     def get_utc_offset(self, samples):
-        command = struct.pack('<BI', ipc_rc._CMD_GET_UTC_OFFSET, samples)
-        self._client.sendall(command)
-        data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
-        return struct.unpack('<Q', data)[0]
+        cmd = "GetUTCOffset"
+        results = self._call_rpc(cmd=cmd, value=samples)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return reply.value
+        log.error("RC: rpc call failed")
 
     def set_hs_marker_state(self, state):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_HS_MARKER_STATE, state)
-        self._client.sendall(command)
+        cmd = "SetHSMarkerState"
+        results = self._call_rpc(cmd=cmd, value=state)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def get_pv_subsystem_status(self):
-        command = struct.pack('<B', ipc_rc._CMD_GET_PV_SUBSYSTEM_STATUS)
-        self._client.sendall(command)
-        data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
-        return struct.unpack('<B', data)[0] != 0
-    
+        cmd = "GetPVSubsystemStatus"
+        results = self._call_rpc(cmd=cmd)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return reply.value
+        log.error("RC: rpc call failed")
+
     def wait_for_pv_subsystem(self, status):
-        while (self.get_pv_subsystem_status() != status):
+        while self.get_pv_subsystem_status() != status:
             pass
 
     def set_pv_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
-        command = struct.pack('<BIIIII', ipc_rc._CMD_SET_PV_FOCUS, focusmode, autofocusrange, distance, value, driverfallback)
-        self._client.sendall(command)
+        cmd = "SetPVFocus"
+        results = self._call_rpc(cmd=cmd, focus_mode=focusmode, autofocus_range=autofocusrange,
+                                 distance=distance, value=value, disable_driver_fallback=driverfallback)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def set_pv_video_temporal_denoising(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_VIDEO_TEMPORAL_DENOISING, mode)
-        self._client.sendall(command)
+        cmd = "SetPVVideoTemporalDenoising"
+        results = self._call_rpc(cmd=cmd, value=mode)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def set_pv_white_balance_preset(self, preset):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_PRESET, preset)
-        self._client.sendall(command)
+        cmd = "SetPVWhiteBalancePreset"
+        results = self._call_rpc(cmd=cmd, value=preset)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def set_pv_white_balance_value(self, value):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_VALUE, value)
-        self._client.sendall(command)
+        cmd = "SetPVWhiteBalanceValue"
+        results = self._call_rpc(cmd=cmd, value=value)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def set_pv_exposure(self, mode, value):
-        command = struct.pack('<BII', ipc_rc._CMD_SET_PV_EXPOSURE, mode, value)
-        self._client.sendall(command)
+        cmd = "SetPVExposure"
+        results = self._call_rpc(cmd=cmd, mode=mode, value=value)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
     
     def set_pv_exposure_priority_video(self, enabled):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_EXPOSURE_PRIORITY_VIDEO, enabled)
-        self._client.sendall(command)
+        cmd = "SetPVExposurePriorityVideo"
+        results = self._call_rpc(cmd=cmd, value=enabled)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def set_pv_iso_speed(self, mode, value):
-        command = struct.pack('<BII', ipc_rc._CMD_SET_PV_ISO_SPEED, mode, value)
-        self._client.sendall(command)
+        cmd = "SetPVIsoSpeed"
+        results = self._call_rpc(cmd=cmd, mode=mode, value=value)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def set_pv_backlight_compensation(self, state):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_BACKLIGHT_COMPENSATION, state)
-        self._client.sendall(command)
+        cmd = "SetPVBacklightCompensation"
+        results = self._call_rpc(cmd=cmd, value=state)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
     def set_pv_scene_mode(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_SCENE_MODE, mode)
-        self._client.sendall(command)
+        cmd = "SetPVSceneMode"
+        results = self._call_rpc(cmd=cmd, value=mode)
+        if results:
+            reply = self.decode_response(cmd, results[0])
+            if reply.status == hl2ss_schema.RPCResponseStatus.RPC_STATUS_SUCCESS:
+                return
+        log.error("RC: rpc call failed")
 
 
 #------------------------------------------------------------------------------

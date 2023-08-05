@@ -14,6 +14,10 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 
+# custom wrapper for zdepth can be found here: https://github.com/TUM-CAMP-NARVIS/pyzdepth
+import pyzdepth
+
+
 # Settings --------------------------------------------------------------------
 
 # HoloLens address

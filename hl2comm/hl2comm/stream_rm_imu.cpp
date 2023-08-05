@@ -57,6 +57,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
 
     std::string keyexpr = std::string(topic_prefix) + "/str/" + sub_path;
     desc.stream_topic(keyexpr);
+    desc.calib_topic(std::string(topic_prefix) + "/cfg/cal/" + sub_path);
 
     // publish streamdescriptor
     eprosima::fastcdr::FastBuffer buffer{};
@@ -68,7 +69,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
         buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
-        std::string keyexpr1 = std::string(topic_prefix) + "/cfg/" + sub_path;
+        std::string keyexpr1 = std::string(topic_prefix) + "/cfg/desc/" + sub_path;
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -125,7 +126,7 @@ void RM_IMU_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
         buffer_cdr.serialize_encapsulation();
         calib.serialize(buffer_cdr);
 
-        std::string keyexpr1 = std::string(topic_prefix) + "/cal/" + sub_path;
+        std::string keyexpr1 = std::string(topic_prefix) + "/cfg/cal/" + sub_path;
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);

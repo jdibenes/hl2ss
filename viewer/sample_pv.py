@@ -16,7 +16,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-DEFAULT_KEY = "tcn/loc/hl2/*/cfg/pv"
+DEFAULT_KEY = "tcn/loc/hl2/*/cfg/desc/pv"
 
 #------------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     zenoh.init_logger()
 
     # most simple zenoh config for now
-    conf = {"mode": "peer"}
+    conf = {"mode": "peer", "queries_default_timeout": 10000}
 
     # Start PV stream ------------------------------------------------
     producer = hl2ss_mp.producer()

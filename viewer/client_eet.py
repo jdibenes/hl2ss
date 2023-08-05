@@ -8,16 +8,17 @@ from pynput import keyboard
 
 import hl2ss
 
-import zenoh
 import logging
 
 log = logging.getLogger(__name__)
 
-DEFAULT_KEY = "tcn/loc/hl2/*/cfg/eet"
 
 # Settings --------------------------------------------------------------------
 
-
+DEFAULT_KEY = "tcn/loc/hl2/*"
+# most simple zenoh config for now
+conf = {"mode": "peer", "queries_default_timeout": 10000}
+eye_fps = 30
 #------------------------------------------------------------------------------
 
 enable = True
@@ -32,12 +33,12 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-zenoh.init_logger()
+with hl2ss.mgr_rpc_interface(conf, DEFAULT_KEY) as mgr:
+    if not mgr.start_eet(eye_fps=eye_fps):
+        log.error("Cannot Start Eye Tracking Sensor")
+        exit(1)
 
-# most simple zenoh config for now
-conf = {"mode": "peer"}
-
-client = hl2ss.rx_eet("EET", conf, DEFAULT_KEY)
+client = hl2ss.rx_eet(conf, DEFAULT_KEY)
 client.open()
 
 while (enable):
@@ -63,3 +64,7 @@ while (enable):
 
 client.close()
 listener.join()
+
+with hl2ss.mgr_rpc_interface(conf, DEFAULT_KEY) as mgr:
+    if not mgr.stop_eet():
+        log.error("Cannot Stop Eye Tracking Sensor")

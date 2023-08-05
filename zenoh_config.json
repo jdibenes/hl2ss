@@ -137,14 +137,14 @@
         // configuration of a "demo" storage using the "fs" volume
         tcn_local: {
           // the key expression this storage will subscribes to
-          key_expr: "tcn/loc/**",
+          key_expr: "tcn/loc/*/*/cfg/**",
           // this prefix will be stripped from the received key when converting to file path
           // this argument is optional.
           strip_prefix: "tcn/loc",
           volume: {
             id: "fs",
             // the key/values will be stored as files within this directory (relative to ${ZENOH_BACKEND_FS_ROOT})
-            dir: "tcn_data"
+            dir: "tcn_loc_cfg"
           }
         }
       }

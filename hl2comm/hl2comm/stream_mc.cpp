@@ -184,7 +184,7 @@ static void MC_Shoutcast()
 		value.serialize(buffer_cdr);
 
 		// put message to zenoh
-		std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/mic";
+		std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/desc/mic";
 		z_put_options_t options1 = z_put_options_default();
 		options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
 		int res = z_put(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);

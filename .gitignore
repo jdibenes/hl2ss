@@ -1,16 +1,18 @@
 
-hl2ss/.vs/
-hl2ss/ARM64/
-hl2ss/packages/
-hl2ss/hl2ss/ARM64/
-hl2ss/hl2ss/Generated Files/
-hl2ss/hl2ss/code_bin.txt
-hl2ss/enc_temp_folder/
-hl2ss/plugin/BundleArtifacts/
-hl2ss/plugin/ARM64/
-hl2ss/plugin/Generated Files/
-hl2ss/plugin/code_bin.txt
-hl2ss/plugin/BundleArtifacts/
+hl2comm/.vs/
+hl2comm/ARM64/
+hl2comm/packages/
+hl2comm/hl2comm/ARM64/
+hl2comm/hl2comm/x64/
+hl2comm/hl2comm/Generated Files/
+hl2comm/hl2comm/code_bin.txt
+hl2comm/enc_temp_folder/
+hl2comm/unity_hl2comm/BundleArtifacts/
+hl2comm/unity_hl2comm/ARM64/
+hl2comm/unity_hl2comm/x64/
+hl2comm/unity_hl2comm/Generated Files/
+hl2comm/unity_hl2comm/code_bin.txt
+hl2comm/unity_hl2comm/BundleArtifacts/
 /release/
 *.pfx
 *.user
@@ -31,12 +33,16 @@ tools/build_3rdparty/conanrunenv.bat
 tools/build_3rdparty/deactivate_conanbuild.bat
 tools/build_3rdparty/deactivate_conanrun.bat
 
-hl2ss/3rdparty/UWP/arm64/Debug/
-hl2ss/3rdparty/zenoh-c/bin/UWP/arm64/Debug/
-hl2ss/3rdparty/zenoh-c/lib/UWP/arm64/Debug/
+hl2comm/3rdparty/UWP/arm64/Debug/
+hl2comm/3rdparty/zenoh-c/bin/UWP/arm64/Debug/
+hl2comm/3rdparty/zenoh-c/lib/UWP/arm64/Debug/
 
 viewer/.idea/
 
 .idea/
 
 *.bin
+
+*.h264
+
+*.h26x

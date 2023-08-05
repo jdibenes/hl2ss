@@ -9,7 +9,7 @@
 #include "spdlog/sinks/base_sink.h"
 #include "spdlog/details/log_msg_buffer.h"
 #include "spdlog/details/null_mutex.h"
-
+#include "spdlog/fmt/ranges.h"
 
 #define URI_STATIC_BUILD
 #include "uriparser/Uri.h"
@@ -47,7 +47,7 @@ namespace spdlog {
                     return;
                 }
                 _topic_prefix = g_zenoh_context->topic_prefix.c_str();
-                std::string keyexpr = g_zenoh_context->topic_prefix + "/logs";
+                std::string keyexpr = g_zenoh_context->topic_prefix + "/str/logs";
                 OutputDebugStringA(fmt::format("MGR: publish logs at: {0}\\n", keyexpr).c_str());
 
                 z_publisher_options_t publisher_options = z_publisher_options_default();
@@ -229,7 +229,7 @@ struct MGR_StartRM {
     using ResponseT = pcpd_msgs::rpc::NullReply;
 
     bool call(const RequestT& request, ResponseT& response, void* /*context*/) {
-        SPDLOG_DEBUG("MGR: StopRM");
+        SPDLOG_DEBUG("MGR: StartRM");
         H26xFormat vlc_fmt;
         vlc_fmt.width = request.vlc_format().width();
         vlc_fmt.height = request.vlc_format().height();
@@ -587,7 +587,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2MGRRequest_StartRM> {
             request.enable_right_right(args_extract<bool, false>(args, "vlc_rr"));
 
             request.enable_depth_ahat(args_extract<bool, false>(args, "depth_ahat"));
-            request.enable_depth_long_throw(args_extract<bool, true>(args, "depth_lt"));
+            request.enable_depth_long_throw(args_extract<bool, false>(args, "depth_lt"));
 
             request.enable_imu_accel(args_extract<bool, false>(args, "imu_accel"));
             request.enable_imu_gyro(args_extract<bool, false>(args, "imu_gyro"));
@@ -605,7 +605,7 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2MGRRequest_StartRM> {
             df.height(args_extract<uint16_t, 512>(args, "ahat_height"));
             df.frame_rate(args_extract<uint8_t, 45>(args, "ahat_fps"));
             df.profile(extract_h26x_profile(args, "ahat_profile"));
-            df.bitrate(args_extract<uint32_t, 20000 * 8>(args, "ahat_bitrate")); // unsure about sensible default for bitrate here
+            df.bitrate(args_extract<uint32_t, 8 * 1024 * 1024>(args, "ahat_bitrate"));
 
         }
         catch (const std::invalid_argument& e) {
@@ -682,70 +682,78 @@ void MGR_QueryHandler(const z_query_t* query, void* context) {
     }
     uriFreeQueryListA(queryList);
 
+    SPDLOG_INFO("MGR: called with: {0}", arguments);
+
     eprosima::fastcdr::FastBuffer result_buffer{};
     std::size_t result_bytes{0};
     bool call_success{ false };
 
     if (arguments.find("cmd") != arguments.end()) {
         auto cmd = arguments.extract("cmd");
+        try {
 
-        if (cmd.mapped() == "StartRM") {
-            call_success = forward_rpc_call(MGR_StartRM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            if (cmd.mapped() == "StartRM") {
+                call_success = forward_rpc_call(MGR_StartRM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopRM") {
+                call_success = forward_rpc_call(MGR_StopRM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartMC") {
+                call_success = forward_rpc_call(MGR_StartMC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopMC") {
+                call_success = forward_rpc_call(MGR_StopMC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartPV") {
+                call_success = forward_rpc_call(MGR_StartPV{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopPV") {
+                call_success = forward_rpc_call(MGR_StopPV{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartSI") {
+                call_success = forward_rpc_call(MGR_StartSI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopSI") {
+                call_success = forward_rpc_call(MGR_StopSI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartRC") {
+                call_success = forward_rpc_call(MGR_StartRC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopRC") {
+                call_success = forward_rpc_call(MGR_StopRC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartSM") {
+                call_success = forward_rpc_call(MGR_StartSM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopSM") {
+                call_success = forward_rpc_call(MGR_StopSM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartSU") {
+                call_success = forward_rpc_call(MGR_StartSU{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopSU") {
+                call_success = forward_rpc_call(MGR_StopSU{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartVI") {
+                call_success = forward_rpc_call(MGR_StartVI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopVI") {
+                call_success = forward_rpc_call(MGR_StopVI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StartEET") {
+                call_success = forward_rpc_call(MGR_StartEET{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else if (cmd.mapped() == "StopEET") {
+                call_success = forward_rpc_call(MGR_StopEET{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
+            else {
+                call_success = false;
+            }
         }
-        else if (cmd.mapped() == "StopRM") {
-            call_success = forward_rpc_call(MGR_StopRM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("MGR: Error executing command: {0}", e.what());
         }
-        else if (cmd.mapped() == "StartMC") {
-            call_success = forward_rpc_call(MGR_StartMC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopMC") {
-            call_success = forward_rpc_call(MGR_StopMC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StartPV") {
-            call_success = forward_rpc_call(MGR_StartPV{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopPV") {
-            call_success = forward_rpc_call(MGR_StopPV{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StartSI") {
-            call_success = forward_rpc_call(MGR_StartSI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopSI") {
-            call_success = forward_rpc_call(MGR_StopSI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StartRC") {
-            call_success = forward_rpc_call(MGR_StartRC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopRC") {
-            call_success = forward_rpc_call(MGR_StopRC{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StartSM") {
-            call_success = forward_rpc_call(MGR_StartSM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopSM") {
-            call_success = forward_rpc_call(MGR_StopSM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StartSU") {
-            call_success = forward_rpc_call(MGR_StartSU{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopSU") {
-            call_success = forward_rpc_call(MGR_StopSU{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StartVI") {
-            call_success = forward_rpc_call(MGR_StartVI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopVI") {
-            call_success = forward_rpc_call(MGR_StopVI{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StartEET") {
-            call_success = forward_rpc_call(MGR_StartEET{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else if (cmd.mapped() == "StopEET") {
-            call_success = forward_rpc_call(MGR_StopEET{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
-        }
-        else {
-            call_success = false;
-        }
+
     }
 
     if (!call_success) {
@@ -782,6 +790,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
     // register zenoh logger
     auto cbs = std::make_shared< spdlog::sinks::zenoh_logging_sink_mt>();
     std::vector<spdlog::sink_ptr>& sinks = spdlog::details::registry::instance().get_default_raw()->sinks();
+    cbs->set_pattern("%H:%M:%S.%e [%L] %v (%s:%#)");
     sinks.push_back(cbs);
 
     std::string keyexpr_str = g_zenoh_context->topic_prefix + "/rpc/mgr";
@@ -810,7 +819,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
 
     eprosima::fastcdr::FastBuffer buffer{};
     eprosima::fastcdr::Cdr buffer_cdr(buffer, eprosima::fastcdr::Cdr::DEFAULT_ENDIAN, eprosima::fastcdr::Cdr::DDS_CDR);
-    std::string keyexpr1 = g_zenoh_context->topic_prefix + "/presence";
+    std::string keyexpr1 = g_zenoh_context->topic_prefix + "/cfg/presence";
 
     {
         pcpd_msgs::rpc::Hololens2Presence value{};
@@ -841,7 +850,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
             SPDLOG_ERROR("MGR: Error putting presence");
         }
         else {
-            SPDLOG_INFO("MGR: put presence");
+            SPDLOG_INFO("MGR: put presence: {}", keyexpr1);
         }
     }
 
@@ -881,7 +890,7 @@ static DWORD WINAPI MGR_EntryPoint(void* param)
         }
 
         ++heart_beat_counter;
-    } while (WaitForSingleObject(g_event_quit, 5*1000) == WAIT_TIMEOUT);
+    } while (WaitForSingleObject(g_event_quit, 10*1000) == WAIT_TIMEOUT);
 
     z_delete_options_t options = z_delete_options_default();
     int res = z_delete(z_loan(g_zenoh_context->session), z_keyexpr(keyexpr1.c_str()), &options);
@@ -922,9 +931,7 @@ void MGR_Cleanup() {
     g_event_client = NULL;
     g_event_quit = NULL;
 
-    // who is responsible for cleaning up .. the app or the manager??
-    //free(g_zenoh_context);
-    //g_zenoh_context = NULL;
+    g_zenoh_context.reset();
 }
 
 
@@ -974,7 +981,7 @@ bool StartRM(HC_Context_Ptr& context,
         return false;
     }
     if (context->streams_started & HL2SS_ENABLE_RM) { 
-        SPDLOG_WARN("StartRM: are already started");
+        SPDLOG_WARN("StartRM: ist already started");
         return false;
     }
     context->streams_started |= HL2SS_ENABLE_RM;

@@ -31,7 +31,7 @@ def log_handler(sample):
 
 def main():
     parser = argparse.ArgumentParser(description='Display Distributed Logs.')
-    parser.add_argument('--query', metavar='query', type=str, default='tcn/loc/*/*/logs',
+    parser.add_argument('--query', metavar='query', type=str, default='tcn/loc/*/*/str/logs',
                         help='query for retrieving the logs')
 
     args = parser.parse_args()

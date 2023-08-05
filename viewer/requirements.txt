@@ -1,0 +1,5 @@
+coloredlogs
+eclipse-zenoh
+pycdr2
+numpy-quaternion
+numpy_ringbuffer

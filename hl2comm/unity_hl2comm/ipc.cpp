@@ -3,10 +3,10 @@
 #include <malloc.h>
 #include "plugin.h"
 
-#include "../hl2ss/server.h"
-#include "../hl2ss/ports.h"
-#include "../hl2ss/lock.h"
-#include "../hl2ss/log.h"
+#include "../hl2comm/server.h"
+#include "../hl2comm/ports.h"
+#include "../hl2comm/lock.h"
+#include "../hl2comm/log.h"
 
 struct MQ_MSG
 {

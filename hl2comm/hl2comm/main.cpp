@@ -85,13 +85,13 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		// application defaults
 		uint32_t streams_enabled = 0xFFFFFFFF;
 
-		auto logger = std::make_shared<spdlog::logger>("application");
+		auto logger = std::make_shared<spdlog::logger>("hl2comm");
+		logger->set_level(spdlog::level::debug);
+		logger->set_pattern("%H:%M:%S.%e [%L] %v (%@, %t)");
 		spdlog::set_default_logger(logger);
-		spdlog::set_level(spdlog::level::debug);
 
 		spdlog::flush_every(std::chrono::milliseconds(500));
 		spdlog::flush_on(spdlog::level::debug);
-		spdlog::set_pattern("%H:%M:%S.%e [%L] %v (%@, %t)");
 
 		SetupDebugLogSink();
 		SPDLOG_INFO("Init logging");
@@ -106,7 +106,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		if (streams_enabled & HL2SS_ENABLE_SU) { SceneUnderstanding_Initialize(); }
 		if (streams_enabled & HL2SS_ENABLE_VI) { VoiceInput_Initialize(); }
 
-		// testing zenoh in uwp app
+		// As Default use this config .. which will make it a peer
 		z_owned_config_t config = z_config_default();
 
 		context = std::make_shared<HC_Context>();
@@ -118,7 +118,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
          * - category: [hl2|svc|...] The category of the entry
          * - entity_id: the entity id, unique to the namespace/site parent
          *   (to avoid issues it is better to have globally unique ids.)
-         *
+         * - comm_type: [str|cfg|rpc] either streaming, configuration or remote-procedure calls 
          */
         std::string topic_prefix{"tcn/loc/hl2/"};
 

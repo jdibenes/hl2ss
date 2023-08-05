@@ -11,25 +11,20 @@ from pynput import keyboard
 
 import numpy as np
 import cv2
-import hl2ss_imshow
 import hl2ss
 
+import logging
+
+log = logging.getLogger(__name__)
+
 # Settings --------------------------------------------------------------------
+DEFAULT_KEY = "tcn/loc/hl2/*"
+# most simple zenoh config for now
+conf = {"mode": "peer", "queries_default_timeout": 10000}
 
-# HoloLens address
-host = "192.168.1.7"
-
-# Port
-port = hl2ss.StreamPort.RM_DEPTH_AHAT
-
-# Operating mode
-# 0: video
-# 1: video + rig pose
-# 2: query calibration (single transfer)
-mode = hl2ss.StreamMode.MODE_1
 
 # Video encoding profile
-profile = hl2ss.VideoProfile.H265_MAIN
+profile = hl2ss.VideoProfile.H264_MAIN
 
 # Encoded stream average bits per second
 # Must be > 0
@@ -37,22 +32,23 @@ bitrate = 8*1024*1024
 
 #------------------------------------------------------------------------------
 
-if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_depth_ahat(host, port)
-    print('Calibration data')
-    print('Image point to unit plane')
-    print(data.uv2xy)
-    print('Extrinsics')
-    print(data.extrinsics)
-    print(f'Scale: {data.scale}')
-    print(f'Alias: {data.alias}')
-    print('Undistort map')
-    print(data.undistort_map)
-    print('Intrinsics (undistorted only)')
-    print(data.intrinsics)
-    quit()
+# data = hl2ss.download_calibration_rm_depth_ahat(host, port)
+# print('Calibration data')
+# print('Image point to unit plane')
+# print(data.uv2xy)
+# print('Extrinsics')
+# print(data.extrinsics)
+# print(f'Scale: {data.scale}')
+# print(f'Alias: {data.alias}')
+# print('Undistort map')
+# print(data.undistort_map)
+# print('Intrinsics (undistorted only)')
+# print(data.intrinsics)
+# quit()
 
 enable = True
+
+logging.basicConfig(level=logging.DEBUG)
 
 def on_press(key):
     global enable
@@ -62,15 +58,21 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, profile, bitrate)
+client = hl2ss.rx_decoded_rm_depth_ahat(conf, DEFAULT_KEY, profile)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
+    if data is None:
+        print("no data")
+        cv2.waitKey(1)
+        continue
     print(f'Pose at time {data.timestamp}')
     print(data.pose)
-    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
-    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
+    if data.payload.depth:
+        cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
+    if data.payload.ab:
+        cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
     cv2.waitKey(1)
 
 client.close()

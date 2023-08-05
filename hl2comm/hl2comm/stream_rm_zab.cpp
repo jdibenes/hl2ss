@@ -163,10 +163,12 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
 
     std::string keyexpr = std::string(topic_prefix) + "/str/" + sub_path;
     desc.stream_topic(keyexpr);
+    desc.calib_topic(std::string(topic_prefix) + "/cal/" + sub_path);
 
     desc.image_width(RM_ZHT_WIDTH);
     desc.image_height(RM_ZHT_HEIGHT);
     desc.frame_rate(RM_ZHT_FPS);
+    desc.h26x_bitrate(format.bitrate);
 
     desc.image_format(pcpd_msgs::msg::PixelFormat_L16);
     switch (format.profile) {
@@ -195,8 +197,19 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
         desc.image_compression(pcpd_msgs::msg::CompressionType_H26x);
         desc.image_step(RM_ZHT_WIDTH * 3 / 2);
         break;
+    default:
+        SPDLOG_WARN("RM_ZHT: Unknown profile: {0}", (int)format.profile);
 
     }
+    SPDLOG_DEBUG("RM_ZHT: Start stream with parameters: {0}x{1}@{2} [{3}] compression: {4} format: {5} bitrate: {6}",
+        desc.image_width(), desc.image_height(), 
+        desc.frame_rate(), desc.image_step(),
+        (int)desc.image_compression(), 
+        (int)desc.image_format(), 
+        desc.h26x_bitrate());
+
+    desc.aac_profile(pcpd_msgs::msg::AACProfile_None);
+
 
     // publish streamdescriptor
     eprosima::fastcdr::FastBuffer buffer{};
@@ -208,7 +221,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
         buffer_cdr.serialize_encapsulation();
         desc.serialize(buffer_cdr);
 
-        std::string keyexpr1 = std::string(topic_prefix)+ "/cfg/" + sub_path;
+        std::string keyexpr1 = std::string(topic_prefix)+ "/cfg/desc/" + sub_path;
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
@@ -280,15 +293,15 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
         buffer_cdr.serialize_encapsulation();
         calib_depth.serialize(buffer_cdr);
 
-        std::string keyexpr1 = std::string(topic_prefix) + "/cal/" + sub_path + "/depth";
+        std::string keyexpr1 = std::string(topic_prefix) + "/cal/" + sub_path;
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);
         if (res > 0) {
-            SPDLOG_INFO("RM_ZLT_DEPTH: Error putting calib_depth");
+            SPDLOG_INFO("RM_ZHT_DEPTH: Error putting calib_depth");
         }
         else {
-            SPDLOG_INFO("RM_ZLT_DEPTH: put calib_depth: {}", keyexpr1);
+            SPDLOG_INFO("RM_ZHT_DEPTH: put calib_depth: {}", keyexpr1);
         }
     }
 
@@ -461,7 +474,19 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
     std::string keyexpr_depth = std::string(topic_prefix) + "/str/" + sub_path + "/depth";
     std::string keyexpr_ir = std::string(topic_prefix) + "/str/" + sub_path + "/ir";
     desc_depth.stream_topic(keyexpr_depth);
+    desc_depth.calib_topic(std::string(topic_prefix) + "/cal/" + sub_path + "/depth");
     desc_ir.stream_topic(keyexpr_ir);
+    desc_ir.calib_topic(std::string(topic_prefix) + "/cal/" + sub_path + "/ir");
+
+    SPDLOG_DEBUG("RM_ZLT: Start depth_stream with parameters: {0}x{1}@{2} [{3}] compression: {4} format: {5} bitrate: {6}",
+        desc_depth.image_width(), desc_depth.image_height(), 
+        desc_depth.frame_rate(), desc_depth.image_step(),
+        static_cast<int>(desc_depth.image_compression()), 
+        static_cast<int>(desc_depth.image_format()), 
+        desc_depth.h26x_bitrate());
+
+    desc_depth.aac_profile(pcpd_msgs::msg::AACProfile_None);
+
 
     // publish streamdescriptor
     eprosima::fastcdr::FastBuffer buffer{};
@@ -544,7 +569,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, z_session_t session, const char*
         buffer_cdr.serialize_encapsulation();
         calib_depth.serialize(buffer_cdr);
 
-        std::string keyexpr1 = std::string(topic_prefix) + "/cal/" + sub_path + "/depth";
+        std::string keyexpr1 = std::string(topic_prefix) + "/cfg/cal/" + sub_path + "/depth";
         z_put_options_t options1 = z_put_options_default();
         options1.encoding = z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, NULL);
         int res = z_put(session, z_keyexpr(keyexpr1.c_str()), (const uint8_t*)buffer.getBuffer(), buffer_cdr.getSerializedDataLength(), &options1);

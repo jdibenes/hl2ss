@@ -4,27 +4,27 @@
 #include "ipc.h"
 #include "plugin.h"
 
-#include "../hl2ss/server.h"
-#include "../hl2ss/timestamps.h"
-#include "../hl2ss/log.h"
-#include "../hl2ss/nfo.h"
-#include "../hl2ss/types.h"
-#include "../hl2ss/locator.h"
-#include "../hl2ss/research_mode.h"
-#include "../hl2ss/spatial_input.h"
-#include "../hl2ss/personal_video.h"
-#include "../hl2ss/spatial_mapping.h"
-#include "../hl2ss/scene_understanding.h"
-#include "../hl2ss/voice_input.h"
-#include "../hl2ss/stream_rm.h"
-#include "../hl2ss/stream_mc.h"
-#include "../hl2ss/stream_pv.h"
-#include "../hl2ss/stream_si.h"
-#include "../hl2ss/ipc_rc.h"
-#include "../hl2ss/ipc_sm.h"
-#include "../hl2ss/ipc_su.h"
-#include "../hl2ss/ipc_vi.h"
-#include "../hl2ss/stream_eet.h"
+#include "../hl2comm/server.h"
+#include "../hl2comm/timestamps.h"
+#include "../hl2comm/log.h"
+#include "../hl2comm/nfo.h"
+#include "../hl2comm/types.h"
+#include "../hl2comm/locator.h"
+#include "../hl2comm/research_mode.h"
+#include "../hl2comm/spatial_input.h"
+#include "../hl2comm/personal_video.h"
+#include "../hl2comm/spatial_mapping.h"
+#include "../hl2comm/scene_understanding.h"
+#include "../hl2comm/voice_input.h"
+#include "../hl2comm/stream_rm.h"
+#include "../hl2comm/stream_mc.h"
+#include "../hl2comm/stream_pv.h"
+#include "../hl2comm/stream_si.h"
+#include "../hl2comm/ipc_rc.h"
+#include "../hl2comm/ipc_sm.h"
+#include "../hl2comm/ipc_su.h"
+#include "../hl2comm/ipc_vi.h"
+#include "../hl2comm/stream_eet.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.UI.Core.h>
@@ -32,8 +32,8 @@
 
 #include <chrono>
 
-#include "../hl2ss/hl2ss_network.h"
-#include "../hl2ss/manager.h"
+#include "../hl2comm/hl2ss_network.h"
+#include "../hl2comm/manager.h"
 
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
@@ -218,6 +218,7 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
      * - category: [hl2|svc|...] The category of the entry
      * - entity_id: the entity id, unique to the namespace/site parent
      *   (to avoid issues it is better to have globally unique ids.)
+     * - comm_type: [str|cfg|rpc] either streaming, configuration or remote-procedure calls
      *
      */
     std::string default_topic_prefix{"tcn/loc/dev/"};

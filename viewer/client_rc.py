@@ -7,10 +7,16 @@
 
 import hl2ss
 
-# Settings --------------------------------------------------------------------
+import zenoh
+import logging
 
-# HoloLens address
-host = '192.168.1.7'
+log = logging.getLogger(__name__)
+
+# Settings --------------------------------------------------------------------
+DEFAULT_TARGET = "tcn/loc/hl2/*"
+# most simple zenoh config for now
+conf = {"mode": "peer", "queries_default_timeout": 10000}
+
 
 # Display marker state
 # Marks the FOV of the PV camera in the display
@@ -39,7 +45,7 @@ white_balance_value = hl2ss.PV_WhiteBalanceValue.Min # 92 - 300
 # Exposure mode
 # https://learn.microsoft.com/en-us/uwp/api/windows.media.devices.exposurecontrol?view=winrt-22621
 exposure_mode = hl2ss.PV_ExposureMode.Manual
-exposure_value = 10000 # 100 - 66000
+exposure_value = 10000  # 100 - 66000
 
 # Exposure priority video
 # https://learn.microsoft.com/en-us/uwp/api/windows.media.devices.exposurepriorityvideocontrol?view=winrt-22621
@@ -60,21 +66,37 @@ scene_mode = hl2ss.PV_CaptureSceneMode.Auto
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+logging.basicConfig(level=logging.DEBUG)
+
+with hl2ss.mgr_rpc_interface(conf, DEFAULT_KEY) as mgr:
+    if not mgr.start_rc():
+        log.error("Cannot Remote Control Service")
+        exit(1)
+
+client = hl2ss.ipc_rc(conf, DEFAULT_TARGET)
 client.open()
 
 version = client.get_application_version()
-print(f'Installed version {version[0]}.{version[1]}.{version[2]}.{version[3]}')
+if version:
+    print(f'Installed version {version[0]}.{version[1]}.{version[2]}.{version[3]}')
+else:
+    print("No result for get_application_version")
 
 # Add this offset to timestamps to convert to utc (Windows FILETIME)
 utc_offset = client.get_utc_offset(32)
-print(f'QPC timestamp to UTC offset is {utc_offset} hundreds of nanoseconds')
+if utc_offset:
+    print(f'QPC timestamp to UTC offset is {utc_offset} hundreds of nanoseconds')
+else:
+    print("No result for utc_offset")
 
 client.set_hs_marker_state(marker_state)
 
 # PV camera configuration
 pv_status = client.get_pv_subsystem_status()
-print(f'PV subsystem is {("On" if (pv_status) else "Off")}')
+if pv_status:
+    print(f'PV subsystem is {("On" if (pv_status) else "Off")}')
+else:
+    print("No result for pv_status")
 
 # Ignored if PV subsystem is Off
 client.set_pv_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)
@@ -88,3 +110,7 @@ client.set_pv_backlight_compensation(backlight_compensation_state)
 client.set_pv_scene_mode(scene_mode)
 
 client.close()
+
+with hl2ss.mgr_rpc_interface(conf, DEFAULT_KEY) as mgr:
+    if not mgr.start_rc():
+        log.error("Cannot Remote Control Service")
