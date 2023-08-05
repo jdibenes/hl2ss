@@ -7,6 +7,7 @@
 #include "timestamps.h"
 #include "neon.h"
 #include "ipc_sc.h"
+#include "zdepth.hpp"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.Numerics.h>
@@ -25,7 +26,13 @@ using namespace winrt::Windows::Storage::Streams;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
-typedef void(*ZHT_KERNEL)(u16 const*, u16 const*, u8*);
+typedef void(*RM_ZAB_KERNEL)(u16 const*, u8*);
+
+struct RM_ZAB_Blob
+{
+    std::vector<uint8_t>* z;
+    float4x4 pose;
+};
 
 // Notes
 // https://github.com/microsoft/HoloLens2ForCV/issues/133
@@ -35,15 +42,10 @@ typedef void(*ZHT_KERNEL)(u16 const*, u16 const*, u8*);
 // Functions
 //-----------------------------------------------------------------------------
 
-// ZHT ************************************************************************
-
 // OK
-static void RM_ZHT_Stack(u16 const* pDepth, u16 const* pAb, u8 *out)
+static void RM_ZHT_AbPT(uint16_t const *pAb, uint8_t *out)
 {
-    int const block = RM_ZHT_WIDTH * RM_ZHT_HEIGHT * sizeof(u16);
-    
-    memcpy(out,         pDepth, block);
-    memcpy(out + block, pAb,    block);
+    memcpy(out, pAb, RM_ZHT_ABSIZE);
 }
 
 // OK
@@ -52,35 +54,39 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
 {
     IMFMediaBuffer *pBuffer; // Release
     HookCallbackSocket* user;
-    LONGLONG sampletime;
-    BYTE* pBytes;
-    DWORD cbData;
-    float4x4 pose;    
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
+    int64_t sampletime;
+    BYTE* pAb;
+    DWORD cbAb;
+    uint32_t ab_size;
+    uint32_t z_size;
+    uint32_t cbData;
+    RM_ZAB_Blob blob;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 7 : 6];
     bool ok;
 
     user = (HookCallbackSocket*)param;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
+    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&blob, sizeof(blob), NULL);
 
-    pBuffer->Lock(&pBytes, NULL, &cbData);
+    pBuffer->Lock(&pAb, NULL, &cbAb);
 
-    wsaBuf[0].buf = (char*)&sampletime;
-    wsaBuf[0].len = sizeof(sampletime);
+    ab_size = (uint32_t)cbAb;
+    z_size = (uint32_t)blob.z->size();
 
-    wsaBuf[1].buf = (char*)&cbData;
-    wsaBuf[1].len = sizeof(cbData);
+    cbData = sizeof(ab_size) + sizeof(z_size) + ab_size + z_size;
 
-    wsaBuf[2].buf = (char*)pBytes;
-    wsaBuf[2].len = cbData;
+    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
+    pack_buffer(wsaBuf, 2, &ab_size, sizeof(ab_size));
+    pack_buffer(wsaBuf, 3, &z_size, sizeof(z_size));
+    pack_buffer(wsaBuf, 4, pAb, ab_size);
+    pack_buffer(wsaBuf, 5, blob.z->data(), z_size);
 
-    if constexpr(ENABLE_LOCATION)
+    if constexpr (ENABLE_LOCATION)
     {
-    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(pose), NULL);
-    
-    wsaBuf[3].buf = (char*)&pose;
-    wsaBuf[3].len = sizeof(pose);
+    pack_buffer(wsaBuf, 6, &blob.pose, sizeof(blob.pose));
     }
 
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -88,20 +94,23 @@ void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
 
     pBuffer->Unlock();
     pBuffer->Release();
+
+    delete blob.z;
 }
 
 // OK
 template<bool ENABLE_LOCATION>
 void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    uint32_t const width      = RM_ZHT_WIDTH;
-    uint32_t const height     = RM_ZHT_HEIGHT;
-    uint32_t const framerate  = RM_ZHT_FPS;
-    uint32_t const duration   = HNS_BASE / framerate;
+    uint32_t const width     = RM_ZHT_WIDTH;
+    uint32_t const height    = RM_ZHT_HEIGHT;
+    uint32_t const framerate = RM_ZHT_FPS;
+    uint32_t const duration  = HNS_BASE / framerate;
 
     PerceptionTimestamp ts = nullptr;
     uint32_t f = 0;
-    float4x4 pose;
+    uint32_t g = 0;
+    RM_ZAB_Blob blob;
     IResearchModeSensorFrame* pSensorFrame; // Release
     ResearchModeSensorTimestamp timestamp;
     IResearchModeSensorDepthFrame* pDepthFrame; // Release
@@ -119,9 +128,10 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     HookCallbackSocket user;
     HANDLE clientevent; // CloseHandle
     uint32_t framebytes;
-    ZHT_KERNEL kernel;
+    RM_ZAB_KERNEL kernel;
     HRESULT hr;
-    VideoSubtype subtype;    
+    VideoSubtype subtype;
+    zdepth::DepthCompressor compressor;
     bool ok;
 
     ok = ReceiveH26xFormat_Divisor(clientsocket, format);
@@ -142,8 +152,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     switch (format.profile)
     {
-    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_Stack;   framebytes = width * height * 2 * 2;   subtype = VideoSubtype::VideoSubtype_ARGB; break;
-    default:                            kernel = Neon_ZHTToNV12; framebytes = (width * height * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
+    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_AbPT;   framebytes =  width * height * 2;      subtype = VideoSubtype::VideoSubtype_L16;  break;
+    default:                            kernel = Neon_AbToNV12; framebytes = (width * height * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
     }
 
     CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user);
@@ -163,10 +173,15 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pDepthFrame->GetBuffer(&pDepth, &nDepthCount);
     pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
 
+    Neon_ZHTInvalidate(pDepth, const_cast<UINT16*>(pDepth));
+    blob.z = new (std::nothrow) std::vector<uint8_t>(); // delete    
+    compressor.Compress(width, height, pDepth, *blob.z, g == 0);
+    g = (g + 1) % format.gop_size;
+
     MFCreateMemoryBuffer(framebytes, &pBuffer);
 
     pBuffer->Lock(&pDst, NULL, NULL);
-    kernel(pDepth, pAbImage, pDst);
+    kernel(pAbImage, pDst);
     pBuffer->Unlock();
     pBuffer->SetCurrentLength(framebytes);
 
@@ -179,9 +194,10 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     if constexpr (ENABLE_LOCATION)
     {
     ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
-    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
+    blob.pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
     }
+
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&blob, sizeof(blob));
 
     pSinkWriter->WriteSample(dwVideoIndex, pSample);
 
@@ -207,19 +223,19 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 }
 
 // OK
-void RM_ZHT_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_ZHT_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
     RM_ZHT_Stream<false>(sensor, clientsocket, nullptr);
 }
 
 // OK
-void RM_ZHT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_ZHT_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
     RM_ZHT_Stream<true>(sensor, clientsocket, locator);
 }
 
 // OK
-void RM_ZHT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_ZHT_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
     float const scale = 1000.0f;
     float const alias = 1055.0f;
@@ -235,194 +251,14 @@ void RM_ZHT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
     ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
     ResearchMode_GetExtrinsics(sensor, extrinsics);
 
-    wsaBuf[0].buf = (char*)uv2x.data();
-    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-
-    wsaBuf[1].buf = (char*)uv2y.data();
-    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-
-    wsaBuf[2].buf = (char*)&extrinsics.m[0][0];
-    wsaBuf[2].len = sizeof(extrinsics.m);
-
-    wsaBuf[3].buf = (char*)&scale;
-    wsaBuf[3].len = sizeof(scale);
-
-    wsaBuf[4].buf = (char*)&alias;
-    wsaBuf[4].len = sizeof(alias);
-
-    wsaBuf[5].buf = (char*)mapx.data();
-    wsaBuf[5].len = (ULONG)(mapx.size() * sizeof(float));
-
-    wsaBuf[6].buf = (char*)mapy.data();
-    wsaBuf[6].len = (ULONG)(mapy.size() * sizeof(float));
-
-    wsaBuf[7].buf = (char*)K;
-    wsaBuf[7].len = sizeof(K);
-
-    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-}
-
-// ZLT ************************************************************************
-
-// OK
-template<bool ENABLE_LOCATION>
-void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
-{
-    int const width  = RM_ZLT_WIDTH;
-    int const height = RM_ZLT_HEIGHT;
-
-    PerceptionTimestamp ts = nullptr;
-    uint32_t f = 0;
-    float4x4 pose;
-    IResearchModeSensorFrame* pSensorFrame; // Release
-    ResearchModeSensorTimestamp timestamp;
-    IResearchModeSensorDepthFrame* pDepthFrame; // Release
-    BYTE const* pSigma;
-    UINT16 const* pDepth;
-    UINT16 const* pAbImage;
-    size_t nSigmaCount;
-    size_t nDepthCount;
-    size_t nAbCount;
-    BYTE* pixelBufferData;
-    UINT32 pixelBufferDataLength;
-    BitmapPropertySet pngProperties;
-    PngFilterMode filter;
-    uint32_t streamSize;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
-    HRESULT hr;
-    H26xFormat format;
-    bool ok;
-
-    ok = ReceiveH26xFormat_Divisor(clientsocket, format);
-    if (!ok) { return; }
-
-    ok = ReceivePNGFilter(clientsocket, filter);
-    if (!ok) { return; }
-
-    format.width     = width;
-    format.height    = height;
-    format.framerate = RM_ZLT_FPS;
-    format.profile   = H26xProfile::H26xProfile_None;
-    format.gop_size  = 1;
-    format.bitrate   = 0;
-
-    pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(filter), winrt::Windows::Foundation::PropertyType::UInt8));
-    
-    sensor->OpenStream();
-
-    do
-    {
-    hr = sensor->GetNextBuffer(&pSensorFrame); // block
-    if (FAILED(hr)) { break; }
-
-    if (f == 0)
-    {
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pDepthFrame));
-
-    pDepthFrame->GetSigmaBuffer(&pSigma, &nSigmaCount);
-    pDepthFrame->GetBuffer(&pDepth, &nDepthCount);
-    pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
-
-    auto softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Straight);
-    {
-    auto bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
-    auto spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
-    spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
-    Neon_ZLTToBGRA8(pSigma, pDepth, pAbImage, (u32*)pixelBufferData);
-    }
-
-    auto stream = InMemoryRandomAccessStream();
-    auto encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, pngProperties).get();
-
-    encoder.SetSoftwareBitmap(softwareBitmap);
-    encoder.FlushAsync().get();
-
-    streamSize = (uint32_t)stream.Size();
-    auto streamBuf = Buffer(streamSize);
-
-    stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
-
-    wsaBuf[0].buf = (char*)&timestamp.HostTicks;
-    wsaBuf[0].len = sizeof(timestamp.HostTicks);
-
-    wsaBuf[1].buf = (char*)&streamSize;
-    wsaBuf[1].len = sizeof(streamSize);
-
-    wsaBuf[2].buf = (char*)streamBuf.data();
-    wsaBuf[2].len = streamSize;
-
-    if constexpr (ENABLE_LOCATION)
-    {
-    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
-    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
-
-    wsaBuf[3].buf = (char*)&pose;
-    wsaBuf[3].len = sizeof(pose);
-    }
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    pDepthFrame->Release();
-    }
-
-    f = (f + 1) % format.divisor;
-
-    pSensorFrame->Release();
-    }
-    while (ok);
-
-    sensor->CloseStream();
-}
-
-// OK
-void RM_ZLT_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    RM_ZLT_Stream<false>(sensor, clientsocket, nullptr);
-}
-
-// OK
-void RM_ZLT_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
-{
-    RM_ZLT_Stream<true>(sensor, clientsocket, locator);
-}
-
-// OK
-void RM_ZLT_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    float const scale = 1000.0f;
-
-    std::vector<float> uv2x;
-    std::vector<float> uv2y;
-    std::vector<float> mapx;
-    std::vector<float> mapy;
-    float K[4];
-    DirectX::XMFLOAT4X4 extrinsics;
-    WSABUF wsaBuf[7];
-
-    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
-    ResearchMode_GetExtrinsics(sensor, extrinsics);
-
-    wsaBuf[0].buf = (char*)uv2x.data();
-    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-
-    wsaBuf[1].buf = (char*)uv2y.data();
-    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-
-    wsaBuf[2].buf = (char*)&extrinsics.m[0][0];
-    wsaBuf[2].len = sizeof(extrinsics.m);
-
-    wsaBuf[3].buf = (char*)&scale;
-    wsaBuf[3].len = sizeof(scale);
-
-    wsaBuf[4].buf = (char*)mapx.data();
-    wsaBuf[4].len = (ULONG)(mapx.size() * sizeof(float));
-
-    wsaBuf[5].buf = (char*)mapy.data();
-    wsaBuf[5].len = (ULONG)(mapy.size() * sizeof(float));
-
-    wsaBuf[6].buf = (char*)K;
-    wsaBuf[6].len = sizeof(K);
+    pack_buffer(wsaBuf, 0, uv2x.data(), (ULONG)(uv2x.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 1, uv2y.data(), (ULONG)(uv2y.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 2, &extrinsics.m[0][0], sizeof(extrinsics.m));
+    pack_buffer(wsaBuf, 3, &scale, sizeof(scale));
+    pack_buffer(wsaBuf, 4, &alias, sizeof(alias));
+    pack_buffer(wsaBuf, 5, mapx.data(), (ULONG)(mapx.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 6, mapy.data(), (ULONG)(mapy.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 7, K, sizeof(K));
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
