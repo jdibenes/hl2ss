@@ -289,9 +289,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\runtimes\win10-arm64\native\Microsoft.MixedReality.SceneUnderstanding.dll">
-      <Filter>Libraries\SceneUnderstanding</Filter>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
 </Project>

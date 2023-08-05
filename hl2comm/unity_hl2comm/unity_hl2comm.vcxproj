@@ -346,14 +346,13 @@
     <ClInclude Include="Unity\IUnityInterface.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\runtimes\win10-arm64\native\Microsoft.MixedReality.SceneUnderstanding.dll" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets" Condition="Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets')" />
-    <Import Project="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets" Condition="Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" />
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
+    <Import Project="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets" Condition="Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -361,8 +360,8 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.props'))" />
     <Error Condition="!Exists('..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.EyeTracking.1.0.2\build\native\Microsoft.MixedReality.EyeTracking.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.230706.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\build\native\Microsoft.MixedReality.SceneUnderstanding.targets'))" />
   </Target>
 </Project>
