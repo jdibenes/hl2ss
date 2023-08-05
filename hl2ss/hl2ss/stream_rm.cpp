@@ -4,6 +4,7 @@
 #include "stream_rm_vlc.h"
 #include "stream_rm_imu.h"
 #include "stream_rm_zab.h"
+#include "stream_rm_zlt.h"
 #include "log.h"
 #include "ports.h"
 #include "types.h"
@@ -103,8 +104,8 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     case LEFT_LEFT:
     case RIGHT_FRONT:
     case RIGHT_RIGHT:      RM_Stream<RM_VLC_Stream_Mode0, RM_VLC_Stream_Mode1, RM_VLC_Stream_Mode2>(sensor, clientsocket, locator); break;
-    case DEPTH_AHAT:       RM_Stream<RM_ZHT_Stream_Mode0, RM_ZHT_Stream_Mode1, RM_ZHT_Stream_Mode2>(sensor, clientsocket, locator); break;
-    case DEPTH_LONG_THROW: RM_Stream<RM_ZLT_Stream_Mode0, RM_ZLT_Stream_Mode1, RM_ZLT_Stream_Mode2>(sensor, clientsocket, locator); break;
+    case DEPTH_AHAT:       RM_Stream<RM_ZHT_Mode0, RM_ZHT_Mode1, RM_ZHT_Mode2>(sensor, clientsocket, locator); break;
+    case DEPTH_LONG_THROW: RM_Stream<RM_ZLT_Mode0, RM_ZLT_Mode1, RM_ZLT_Mode2>(sensor, clientsocket, locator); break;
     case IMU_ACCEL:        RM_Stream<RM_ACC_Stream_Mode0, RM_ACC_Stream_Mode1, RM_ACC_Stream_Mode2>(sensor, clientsocket, locator); break;
     case IMU_GYRO:         RM_Stream<RM_GYR_Stream_Mode0, RM_GYR_Stream_Mode1, RM_GYR_Stream_Mode2>(sensor, clientsocket, locator); break;
     case IMU_MAG:          RM_Stream<RM_MAG_Stream_Mode0, RM_MAG_Stream_Mode1, RM_MAG_Stream_Mode2>(sensor, clientsocket, locator); break;
