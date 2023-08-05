@@ -113,3 +113,10 @@ bool send_multiple(SOCKET s, LPWSABUF buffers, DWORD dwBufferCount)
 	status = WSASend(s, buffers, dwBufferCount, &dwBytesSent, 0, NULL, NULL);
 	return status != SOCKET_ERROR;
 }
+
+// OK
+void pack_buffer(WSABUF *dst, int index, void const *buffer, ULONG length)
+{
+	dst[index].buf = (char*)buffer;
+	dst[index].len = length;
+}
