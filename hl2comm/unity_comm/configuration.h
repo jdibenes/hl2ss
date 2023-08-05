@@ -1,4 +1,4 @@
 
 #pragma once
 
-#include "../hl2comm/manager.h"
+#include "../hl2comm/hl2ss_network.h"

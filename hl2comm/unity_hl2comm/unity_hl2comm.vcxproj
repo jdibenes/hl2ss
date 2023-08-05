@@ -250,6 +250,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -334,7 +335,7 @@
     <ClInclude Include="..\hl2comm\types.h" />
     <ClInclude Include="..\hl2comm\voice_input.h" />
     <ClInclude Include="configuration.h" />
-    <ClInclude Include="hl2ss.h" />
+    <ClInclude Include="plugin_exports.h" />
     <ClInclude Include="PlatformBase.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="ipc.h" />

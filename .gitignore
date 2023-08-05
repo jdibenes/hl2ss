@@ -1,6 +1,7 @@
 
 hl2comm/.vs/
 hl2comm/ARM64/
+hl2comm/x64/
 hl2comm/packages/
 hl2comm/hl2comm/ARM64/
 hl2comm/hl2comm/x64/
@@ -12,7 +13,11 @@ hl2comm/unity_hl2comm/ARM64/
 hl2comm/unity_hl2comm/x64/
 hl2comm/unity_hl2comm/Generated Files/
 hl2comm/unity_hl2comm/code_bin.txt
-hl2comm/unity_hl2comm/BundleArtifacts/
+hl2comm/unity_comm/BundleArtifacts/
+hl2comm/unity_comm/ARM64/
+hl2comm/unity_comm/x64/
+hl2comm/unity_comm/Generated Files/
+hl2comm/unity_comm/code_bin.txt
 /release/
 *.pfx
 *.user

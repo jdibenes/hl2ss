@@ -3,8 +3,7 @@
 #include <malloc.h>
 #include "plugin.h"
 
-#include "../hl2comm/server.h"
-#include "../hl2comm/ports.h"
+#include <winsock2.h>
 #include "../hl2comm/lock.h"
 #include "../hl2comm/log.h"
 

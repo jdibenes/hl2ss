@@ -215,7 +215,7 @@
     <ClInclude Include="..\hl2comm\stream_si.h">
       <Filter>Libraries\hl2comm</Filter>
     </ClInclude>
-    <ClInclude Include="hl2ss.h">
+    <ClInclude Include="plugin_exports.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2comm\timestamps.h">
