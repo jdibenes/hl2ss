@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 6e7ba1293e4ff2d4186bc13810ea95da
+guid: 636a02feb56bd3c44bb11ae369b3ce1b
 PluginImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -52,13 +52,13 @@ PluginImporter:
     second:
       enabled: 0
       settings:
-        CPU: x86
+        CPU: None
   - first:
       Standalone: Win64
     second:
       enabled: 0
       settings:
-        CPU: x86_64
+        CPU: None
   - first:
       Windows Store Apps: WindowsStoreApps
     second:

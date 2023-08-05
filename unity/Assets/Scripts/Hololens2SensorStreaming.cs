@@ -3,6 +3,12 @@ using UnityEngine;
 
 public class Hololens2SensorStreaming : MonoBehaviour
 {
+    [Tooltip("Enter the Zenoh Topic Prefix.")]
+    public string topicPrefix = "tcn/loc/hl2/device00";
+
+    [Tooltip("Optional Zenoh Configuration as json string.")]
+    public string zenohConfig = "";
+
     [Tooltip("Enable Research Mode streams.")]
     public bool enableRM = true;
 
@@ -35,7 +41,7 @@ public class Hololens2SensorStreaming : MonoBehaviour
 
     void Start()
     {
-        hl2ss.UpdateCoordinateSystem();
-        hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ, enableEET);
+        hl2comm.UpdateCoordinateSystem();
+        hl2comm.Initialize(topicPrefix, zenohConfig, enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ, enableEET);
     }
 }

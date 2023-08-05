@@ -155,8 +155,8 @@ namespace spdlog {
 
         private:
             std::vector<std::tuple<std::chrono::nanoseconds, spdlog::level::level_enum, std::string>> _items;
-            z_owned_publisher_t _publisher;
-            const char* _topic_prefix;
+            z_owned_publisher_t _publisher{};
+            const char* _topic_prefix{ nullptr };
             bool _is_active{ false };
         };
 
@@ -222,6 +222,20 @@ pcpd_msgs::msg::Hololens2AACProfile extract_aac_profile(const std::map<std::stri
     return default;
 }
 
+
+// OK
+struct MGR_Ping {
+    using RequestT = pcpd_msgs::rpc::NullRequest;
+    using ResponseT = pcpd_msgs::rpc::NullReply;
+
+    bool call(const RequestT& /*request*/, ResponseT& response, void* /*context*/) {
+        SPDLOG_DEBUG("MGR: Ping");
+        response.status(pcpd_msgs::rpc::RPC_STATUS_SUCCESS);
+        return true;
+    }
+};
+
+#ifdef WINDOWS_UWP
 
 // OK
 struct MGR_StartRM {
@@ -655,6 +669,8 @@ struct RpcRequestArgs<pcpd_msgs::rpc::HL2MGRRequest_StartMC> {
     }
 };
 
+#endif // WINDOWS_UWP
+
 
 
 
@@ -691,8 +707,16 @@ void MGR_QueryHandler(const z_query_t* query, void* context) {
     if (arguments.find("cmd") != arguments.end()) {
         auto cmd = arguments.extract("cmd");
         try {
+            // commands for all platforms
+            if (cmd.mapped() == "Ping") {
+                call_success = forward_rpc_call(MGR_Ping{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
+            }
 
-            if (cmd.mapped() == "StartRM") {
+
+
+#ifdef WINDOWS_UWP
+            // commands only for hololens
+            else if (cmd.mapped() == "StartRM") {
                 call_success = forward_rpc_call(MGR_StartRM{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
             }
             else if (cmd.mapped() == "StopRM") {
@@ -746,6 +770,7 @@ void MGR_QueryHandler(const z_query_t* query, void* context) {
             else if (cmd.mapped() == "StopEET") {
                 call_success = forward_rpc_call(MGR_StopEET{}, nullptr, payload_value, arguments, result_buffer, result_bytes);
             }
+#endif // WINDOWS_UWP
             else {
                 call_success = false;
             }
@@ -964,6 +989,7 @@ bool StopManager(HC_Context_Ptr& context) {
 
 
 
+#ifdef WINDOWS_UWP
 
 bool StartRM(HC_Context_Ptr& context,
     bool enable_location,
@@ -1321,3 +1347,5 @@ bool StopEET(HC_Context_Ptr& context) {
     EET_Cleanup();
     return true;
 }
+
+#endif // WINDOWS_UWP

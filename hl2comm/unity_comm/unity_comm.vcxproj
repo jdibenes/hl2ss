@@ -254,12 +254,16 @@
   <ItemGroup>
     <ClCompile Include="..\hl2comm\lock.cpp" />
     <ClCompile Include="..\hl2comm\log.cpp" />
+    <ClCompile Include="..\hl2comm\manager.cpp" />
+    <ClCompile Include="..\hl2comm\timestamps.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="ipc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2comm\lock.h" />
     <ClInclude Include="..\hl2comm\log.h" />
+    <ClInclude Include="..\hl2comm\manager.h" />
+    <ClInclude Include="..\hl2comm\timestamps.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="plugin_exports.h" />
     <ClInclude Include="PlatformBase.h" />

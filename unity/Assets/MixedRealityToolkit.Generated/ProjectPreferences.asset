@@ -22,7 +22,7 @@ MonoBehaviour:
     keys:
     - _MixedRealityToolkit_Editor_ConfiguratorState
     - MixedRealityToolkit_Editor_AudioSpatializerCount
-    values: f401000000000000
+    values: 6400000000000000
   floatPreferences:
     keys: []
     values: []

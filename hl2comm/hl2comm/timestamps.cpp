@@ -2,12 +2,16 @@
 #include <Windows.h>
 #include "timestamps.h"
 #include "types.h"
+#include <cstdlib>
 
+
+#ifdef WINDOWS_UWP
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Perception.h>
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Perception;
+#endif
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -81,14 +85,19 @@ UINT64 GetQPCToUTCOffset(int samples)
 	return offset;
 }
 
+#ifdef WINDOWS_UWP
+
 // OK
 PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime)
 {
 	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(QPCTimestampToTimeSpan(qpctime));
 }
 
+
 // OK
 TimeSpan QPCTimestampToTimeSpan(LONGLONG qpctime)
 {
 	return std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime);
 }
+
+#endif

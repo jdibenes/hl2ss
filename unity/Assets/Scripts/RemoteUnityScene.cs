@@ -31,9 +31,9 @@ public class RemoteUnityScene : MonoBehaviour
     {
         uint command;
         byte[] data;
-        if (!hl2ss.PullMessage(out command, out data)) { return false; }
-        hl2ss.PushResult(ProcessMessage(command, data));
-        hl2ss.AcknowledgeMessage(command);
+        if (!hl2comm.PullMessage(out command, out data)) { return false; }
+        hl2comm.PushResult(ProcessMessage(command, data));
+        hl2comm.AcknowledgeMessage(command);
         return true;
     }
 

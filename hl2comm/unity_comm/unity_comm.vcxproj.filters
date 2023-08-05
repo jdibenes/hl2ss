@@ -27,6 +27,12 @@
     <ClCompile Include="..\hl2comm\lock.cpp">
       <Filter>Libraries\hl2comm</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2comm\manager.cpp">
+      <Filter>Libraries\hl2comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2comm\timestamps.cpp">
+      <Filter>Libraries\hl2comm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ipc.h">
@@ -66,6 +72,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2comm\lock.h">
+      <Filter>Libraries\hl2comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2comm\manager.h">
+      <Filter>Libraries\hl2comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2comm\timestamps.h">
       <Filter>Libraries\hl2comm</Filter>
     </ClInclude>
   </ItemGroup>

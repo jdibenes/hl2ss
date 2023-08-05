@@ -2,6 +2,8 @@
 
 #include "hl2ss_network.h"
 
+#ifdef WINDOWS_UWP
+
 #include "stream_eet.h"
 #include "stream_mc.h"
 #include "stream_pv.h"
@@ -13,10 +15,14 @@
 #include "ipc_su.h"
 #include "ipc_vi.h"
 
+#endif // WINDOWS_UWP
+
 
 bool StartManager(HC_Context_Ptr& context);
 
 bool StopManager(HC_Context_Ptr& context);
+
+#ifdef WINDOWS_UWP
 
 bool StartRM(HC_Context_Ptr& context,
     bool enable_location,
@@ -62,3 +68,6 @@ bool StopVI(HC_Context_Ptr& context);
 bool StartEET(HC_Context_Ptr& context, uint8_t eye_fps);
 
 bool StopEET(HC_Context_Ptr& context);
+
+#endif // WINDOWS_UWP
+

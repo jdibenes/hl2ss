@@ -8,21 +8,27 @@ public class BuildPostProcessor
 {
     public static void AddCapability(XmlDocument xml, string name, string capability, string namespaceURI, bool append)
     {
+
+#if WINDOWS_UWP
         XmlNode capabilities = xml.DocumentElement.GetElementsByTagName("Capabilities")[0];
         foreach (XmlNode childnode in capabilities.ChildNodes) { if ((childnode.Name == name) && (childnode.Attributes["Name"].Value == capability)) { return; } }
         XmlElement element = xml.CreateElement(name, namespaceURI);
         element.SetAttribute("Name", capability);
         if (!append) { capabilities.PrependChild(element); } else { capabilities.AppendChild(element); }
+#endif
     }
 
     public static void AddNamespace(XmlDocument xml, string name, string URI)
     {
+#if WINDOWS_UWP
         xml.DocumentElement.SetAttribute(name, URI);
+#endif
     }
 
     [PostProcessBuildAttribute(1)]
     public static void OnPostprocessBuild(BuildTarget target, string pathToBuiltProject)
     {
+#if WINDOWS_UWP
         string project_name = System.IO.Path.GetFileNameWithoutExtension(System.IO.Directory.GetFiles(pathToBuiltProject, "*.sln")[0]);
         string appxmanifest_fname = pathToBuiltProject + "/" + project_name + "/Package.appxmanifest";
         string rescapURI = "http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities";
@@ -33,5 +39,6 @@ public class BuildPostProcessor
         AddCapability(xml, "rescap:Capability", "perceptionSensorsExperimental", rescapURI, false);
         AddCapability(xml, "DeviceCapability", "backgroundSpatialPerception", devcapURI, true);
         xml.Save(appxmanifest_fname);
+#endif
     }
 }

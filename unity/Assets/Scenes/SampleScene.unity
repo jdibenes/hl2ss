@@ -262,9 +262,9 @@ GameObject:
   - component: {fileID: 963194232}
   - component: {fileID: 963194230}
   - component: {fileID: 963194234}
-  - component: {fileID: 963194233}
   - component: {fileID: 963194231}
   - component: {fileID: 963194235}
+  - component: {fileID: 963194233}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -418,6 +418,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1f4554c40a672247a33f6a49da2f850, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  topicPrefix: tcn/loc/hl2/device00
+  zenohConfig: 
   enableRM: 1
   enablePV: 1
   enableMC: 1

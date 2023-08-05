@@ -138,6 +138,7 @@
     <ClCompile Include="..\hl2comm\manager.cpp">
       <Filter>Libraries\hl2comm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2comm\custom_hook_callback.h">
@@ -290,5 +291,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(SceneUnderstanding-Platform)\native\Microsoft.MixedReality.SceneUnderstanding.dll" />
   </ItemGroup>
 </Project>

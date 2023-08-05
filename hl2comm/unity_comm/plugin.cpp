@@ -17,6 +17,7 @@
 #include <chrono>
 
 #include "../hl2comm/hl2ss_network.h"
+#include "../hl2comm/manager.h"
 
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
@@ -85,7 +86,9 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
     }
 
     if (g_zenoh_context != nullptr) {
- 
+        MQ_Quit();
+        MQ_Cleanup();
+        StopManager(g_zenoh_context);
         g_zenoh_context.reset();
     }
 
@@ -154,6 +157,16 @@ RegisterLoggingCallback(LoggingFuncCallBack cb) {
     SetupCallbackLogSink(cb);
 }
 
+extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+RegisterRawZSubscriber(const char* name, const char* keyexpr, ZenohSubscriptionCallBack cb) {
+    return MQ_SetupZenohRawSubscription(name, keyexpr, cb);
+}
+
+extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+ZSendMessage(const char* keyexpr, uint8_t * buffer, std::size_t buffer_len, z_encoding_prefix_t encoding, bool block) {
+    return MQ_SendMessage(keyexpr, buffer, buffer_len, encoding, block);
+}
+
 
 
 // OK
@@ -180,7 +193,7 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
         return;
     }
 
-    auto context = std::make_shared<HC_Context>();
+    g_zenoh_context = std::make_shared<HC_Context>();
 
     /*
      * Topic prefix consists of the following components
@@ -209,8 +222,8 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
         topic_prefix = default_topic_prefix + host_name;
     }
 
-    context->topic_prefix = topic_prefix;
-    SPDLOG_INFO("Using Topic Prefix: {0}", context->topic_prefix);
+    g_zenoh_context->topic_prefix = topic_prefix;
+    SPDLOG_INFO("Using Topic Prefix: {0}", g_zenoh_context->topic_prefix);
 
     g_zenoh_context->session = z_open(z_move(config));
     if (!z_check(g_zenoh_context->session)) {
@@ -222,13 +235,16 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
     g_zenoh_context->streams_started = 0x00;
     g_zenoh_context->valid = true;
 
+    StartManager(g_zenoh_context);
+
+    MQ_Initialize(g_zenoh_context);
 }
 
 // OK
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
-InitializeStreamsOnUI(const char* cid, const char* zcfg, uint32_t enable)
+InitializeStreamsOnUI(const char* topic_prefix, const char* zcfg, uint32_t enable)
 {
-    call_deferred(InitializeStreams, cid, zcfg, enable);
+    call_deferred(InitializeStreams, topic_prefix, zcfg, enable);
 }
 
 

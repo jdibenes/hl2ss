@@ -24,9 +24,9 @@ public class IPCSkeleton : MonoBehaviour
     {
         uint command;
         byte[] data;
-        if (!hl2ss.PullMessage(out command, out data)) { return false; } // If there are no messages in the queue return false else get the next message
-        hl2ss.PushResult(ProcessMessage(command, data)); // Process the message and send the result (uint) to the client
-        hl2ss.AcknowledgeMessage(command); // Signal to the library that the message has been processed
+        if (!hl2comm.PullMessage(out command, out data)) { return false; } // If there are no messages in the queue return false else get the next message
+        hl2comm.PushResult(ProcessMessage(command, data)); // Process the message and send the result (uint) to the client
+        hl2comm.AcknowledgeMessage(command); // Signal to the library that the message has been processed
         return true; // Done
     }
 
@@ -61,7 +61,7 @@ public class IPCSkeleton : MonoBehaviour
     {
         string str;
         try { str = System.Text.Encoding.UTF8.GetString(data); } catch { return 0; } // Decode string and return 0 to the client if decode failed
-        hl2ss.Print(str); // Send string to debugger
+        hl2comm.Print(str); // Send string to debugger
         return 1; // Return 1 to the client to indicate success
     }
 }
