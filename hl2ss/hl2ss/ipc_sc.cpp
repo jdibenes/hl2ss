@@ -2,6 +2,7 @@
 #include "server.h"
 #include "custom_media_types.h"
 #include "custom_sink_writers.h"
+#include "ipc_sc.h"
 
 #include <winrt/Windows.Graphics.Imaging.h>
 
@@ -112,7 +113,7 @@ bool ReceiveH26xFormat_Profile(SOCKET clientsocket, H26xFormat& format)
 }
 
 // OK
-bool ReceivePNGFilter(SOCKET clientsocket, PngFilterMode& filter)
+bool ReceiveZABFormat_PNGFilter(SOCKET clientsocket, ZABFormat& format)
 {
 	bool ok;
 	uint8_t filterid;
@@ -122,13 +123,13 @@ bool ReceivePNGFilter(SOCKET clientsocket, PngFilterMode& filter)
 
 	switch (filterid)
 	{
-	case static_cast<int>(PngFilterMode::Automatic): filter =  PngFilterMode::Automatic;  break;
-	case static_cast<int>(PngFilterMode::None):      filter =  PngFilterMode::None;       break;
-	case static_cast<int>(PngFilterMode::Sub):       filter =  PngFilterMode::Sub;        break;
-	case static_cast<int>(PngFilterMode::Up):        filter =  PngFilterMode::Up;         break;
-	case static_cast<int>(PngFilterMode::Average):   filter =  PngFilterMode::Average;    break;
-	case static_cast<int>(PngFilterMode::Paeth):     filter =  PngFilterMode::Paeth;      break;
-	case static_cast<int>(PngFilterMode::Adaptive):  filter =  PngFilterMode::Adaptive;   break;
+	case static_cast<int>(PngFilterMode::Automatic): format.filter =  PngFilterMode::Automatic;  break;
+	case static_cast<int>(PngFilterMode::None):      format.filter =  PngFilterMode::None;       break;
+	case static_cast<int>(PngFilterMode::Sub):       format.filter =  PngFilterMode::Sub;        break;
+	case static_cast<int>(PngFilterMode::Up):        format.filter =  PngFilterMode::Up;         break;
+	case static_cast<int>(PngFilterMode::Average):   format.filter =  PngFilterMode::Average;    break;
+	case static_cast<int>(PngFilterMode::Paeth):     format.filter =  PngFilterMode::Paeth;      break;
+	case static_cast<int>(PngFilterMode::Adaptive):  format.filter =  PngFilterMode::Adaptive;   break;
 	default: return false;
 	}
 
