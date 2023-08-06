@@ -78,8 +78,7 @@ namespace tcn
         void HandleMessage(tcn.Sample sample)
         {
             UnityEngine.Debug.Log("received some message: " + sample.ValueToString());
-            byte[] msg = Encoding.UTF8.GetBytes(sample.ValueToString() + " Replied.");
-            hl2comm.DoSendMessage("demo/example/reply", msg);
+            hl2comm.PutStr("demo/example/reply", sample.ValueToString() + " Replied.");
         }
 
     }

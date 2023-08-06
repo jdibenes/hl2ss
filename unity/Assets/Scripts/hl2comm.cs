@@ -9,125 +9,7 @@ using UnityEngine.Events;
 namespace tcn
 {
 
-    public static class hl2comm
-    {
-
-        // setup the dll interface for the plugin
-#if WINDOWS_UWP
-    public const string DllName = "unity_hl2comm";
-#else
-        public const string DllName = "unity_comm";
-#endif
-        public const string ZenohDllName = "zenohc";
-
-        private static UnityEvent<bool> haveSessionEvent = new UnityEvent<bool>();
-
-
-        [DllImport(hl2comm.DllName)]
-        private static extern void InitializeStreamsOnUI(string topic_prefix, string zenoh_config, uint enable);
-
-        [DllImport(hl2comm.DllName)]
-        private static extern void TeardownStreamsOnUI();
-
-        [DllImport(hl2comm.DllName)]
-        private static extern void DebugMessage(string str);
-
-        [DllImport(hl2comm.DllName)]
-        private static extern bool ZSendMessage(string keyexpr, byte[] data);
-
-
-        // unity_comm may also implement these functions later if it makes sense without HL2 ...
-#if WINDOWS_UWP
-    private static extern void GetLocalIPv4Address(byte[] data, int size);
-    [DllImport("unity_hl2comm")]
-    private static extern int OverrideWorldCoordinateSystem(IntPtr scs);
-
-#else
-        private static void GetLocalIPv4Address(byte[] data, int size)
-        {
-        }
-
-        private static int OverrideWorldCoordinateSystem(IntPtr scs)
-        {
-            return 1;
-        }
-#endif
-
-        public static void Initialize(string topic_prefix, string zenoh_config)
-        {
-            UnityEngine.Debug.Log("Initialize Unity Comm Plugin.");
-            InitializeStreamsOnUI(topic_prefix, zenoh_config, 0U);
-            haveSessionEvent.Invoke(true);
-        }
-
-        public static void Initialize(string topic_prefix, string zenoh_config, bool enableRM, bool enablePV, bool enableMC, bool enableSI, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ, bool enableEET)
-        {
-            UnityEngine.Debug.Log("Initialize Unity Comm Plugin.");
-            InitializeStreamsOnUI(topic_prefix, zenoh_config, (enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableSI ? 8U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U) | (enableMQ ? 256U : 0U) | (enableEET ? 512U : 0U));
-            haveSessionEvent.Invoke(true);
-        }
-
-        public static void DoSendMessage(string topic, byte[] data)
-        {
-            ZSendMessage(topic, data);
-        }
-
-        public static void Teardown()
-        {
-            UnityEngine.Debug.Log("Teardown Unity Comm Plugin.");
-            haveSessionEvent.Invoke(false);
-            TeardownStreamsOnUI();
-        }
-        public static void RegisterForSessionEvent(UnityAction<bool> action)
-        {
-            haveSessionEvent.AddListener(action); // register action to receive the event callback
-        }
-
-        public static void UnregisterSessionEvent(UnityAction<bool> action)
-        {
-            haveSessionEvent.RemoveListener(action); // unregister to stop receiving the event callback
-        }
-
-        public static void Print(string str)
-        {
-            DebugMessage(str);
-        }
-
-        public static string GetIPAddress()
-        {
-            byte[] ipaddress = new byte[16 * 2];
-            GetLocalIPv4Address(ipaddress, ipaddress.Length);
-            return System.Text.Encoding.Unicode.GetString(ipaddress);
-        }
-
-        public static bool UpdateCoordinateSystem()
-        {
-            var scs = Microsoft.MixedReality.OpenXR.PerceptionInterop.GetSceneCoordinateSystem(Pose.identity);
-            if (scs == null) { return false; }
-            var unk = Marshal.GetIUnknownForObject(scs);
-            bool ret = OverrideWorldCoordinateSystem(unk) != 0;
-            Marshal.Release(unk);
-            return ret;
-        }
-
-        public static string IdBytesToStr(byte[] buf)
-        {
-            StringBuilder str = new StringBuilder();
-            for (int i = buf.Length - 1; i >= 0; i--)
-            {
-                str.Append($"{buf[i]:X2}");
-            }
-
-            return str.ToString();
-        }
-
-        internal const int RoutersNum = 128;
-        internal const int PeersNum = 256;
-        internal const int IdLength = 16;
-
-    }
-
-
+ 
     // wrap some essential types from Zenoh for communication (taken from zenoh-csharp branch of sanri)
 
     public enum ZEncodingPrefix : int // z_encoding_prefix_t
@@ -363,4 +245,156 @@ namespace tcn
         [DllImport(hl2comm.ZenohDllName, EntryPoint = "z_bytes_free", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void ZBytesFree(ref ZString s);
     }
+
+    // wrap unity_hl2comm/comm
+
+    public static class hl2comm
+    {
+
+        // setup the dll interface for the plugin
+#if WINDOWS_UWP
+    public const string DllName = "unity_hl2comm";
+#else
+        public const string DllName = "unity_comm";
+#endif
+        public const string ZenohDllName = "zenohc";
+
+        private static UnityEvent<bool> haveSessionEvent = new UnityEvent<bool>();
+
+
+        [DllImport(hl2comm.DllName)]
+        private static extern void InitializeStreamsOnUI(string topic_prefix, string zenoh_config, uint enable);
+
+        [DllImport(hl2comm.DllName)]
+        private static extern void TeardownStreamsOnUI();
+
+        [DllImport(hl2comm.DllName)]
+        private static extern void DebugMessage(string str);
+
+        [DllImport(hl2comm.DllName)]
+        private static extern bool ZSendMessage(string keyexpr, IntPtr buffer, ulong buffer_len, ZEncodingPrefix encoding, bool block);
+
+
+        // unity_comm may also implement these functions later if it makes sense without HL2 ...
+#if WINDOWS_UWP
+    private static extern void GetLocalIPv4Address(byte[] data, int size);
+    [DllImport("unity_hl2comm")]
+    private static extern int OverrideWorldCoordinateSystem(IntPtr scs);
+
+#else
+        private static void GetLocalIPv4Address(byte[] data, int size)
+        {
+        }
+
+        private static int OverrideWorldCoordinateSystem(IntPtr scs)
+        {
+            return 1;
+        }
+#endif
+
+        public static void Initialize(string topic_prefix, string zenoh_config)
+        {
+            UnityEngine.Debug.Log("Initialize Unity Comm Plugin.");
+            InitializeStreamsOnUI(topic_prefix, zenoh_config, 0U);
+            haveSessionEvent.Invoke(true);
+        }
+
+        public static void Initialize(string topic_prefix, string zenoh_config, bool enableRM, bool enablePV, bool enableMC, bool enableSI, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ, bool enableEET)
+        {
+            UnityEngine.Debug.Log("Initialize Unity Comm Plugin.");
+            InitializeStreamsOnUI(topic_prefix, zenoh_config, (enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableSI ? 8U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U) | (enableMQ ? 256U : 0U) | (enableEET ? 512U : 0U));
+            haveSessionEvent.Invoke(true);
+        }
+
+        public static bool PutStr(string key, string s)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(s);
+            return _Put(key, data, ZEncodingPrefix.TextPlain);
+        }
+
+        public static bool PutJson(string key, string s)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(s);
+            return _Put(key, data, ZEncodingPrefix.AppJson);
+        }
+
+        public static bool PutInt(string key, Int64 value)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(value.ToString());
+            return _Put(key, data, ZEncodingPrefix.AppInteger);
+        }
+
+        public static bool PutFloat(string key, double value)
+        {
+            string s = value.ToString();
+            byte[] data = Encoding.UTF8.GetBytes(s);
+            return _Put(key, data, ZEncodingPrefix.AppFloat);
+        }
+
+        public static bool _Put(string key, byte[] value, ZEncodingPrefix encoding)
+        {
+            IntPtr v = Marshal.AllocHGlobal(value.Length);
+            Marshal.Copy(value, 0, v, value.Length);
+            bool r = ZSendMessage(key, v, (ulong)value.Length, encoding, true);
+            Marshal.FreeHGlobal(v);
+            return r;
+        }
+
+        public static void Teardown()
+        {
+            UnityEngine.Debug.Log("Teardown Unity Comm Plugin.");
+            haveSessionEvent.Invoke(false);
+            TeardownStreamsOnUI();
+        }
+        public static void RegisterForSessionEvent(UnityAction<bool> action)
+        {
+            haveSessionEvent.AddListener(action); // register action to receive the event callback
+        }
+
+        public static void UnregisterSessionEvent(UnityAction<bool> action)
+        {
+            haveSessionEvent.RemoveListener(action); // unregister to stop receiving the event callback
+        }
+
+        public static void Print(string str)
+        {
+            DebugMessage(str);
+        }
+
+        public static string GetIPAddress()
+        {
+            byte[] ipaddress = new byte[16 * 2];
+            GetLocalIPv4Address(ipaddress, ipaddress.Length);
+            return System.Text.Encoding.Unicode.GetString(ipaddress);
+        }
+
+        public static bool UpdateCoordinateSystem()
+        {
+            var scs = Microsoft.MixedReality.OpenXR.PerceptionInterop.GetSceneCoordinateSystem(Pose.identity);
+            if (scs == null) { return false; }
+            var unk = Marshal.GetIUnknownForObject(scs);
+            bool ret = OverrideWorldCoordinateSystem(unk) != 0;
+            Marshal.Release(unk);
+            return ret;
+        }
+
+        public static string IdBytesToStr(byte[] buf)
+        {
+            StringBuilder str = new StringBuilder();
+            for (int i = buf.Length - 1; i >= 0; i--)
+            {
+                str.Append($"{buf[i]:X2}");
+            }
+
+            return str.ToString();
+        }
+
+        internal const int RoutersNum = 128;
+        internal const int PeersNum = 256;
+        internal const int IdLength = 16;
+
+    }
+
+
+
 }
