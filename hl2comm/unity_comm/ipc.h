@@ -5,7 +5,7 @@
 
 
 //Create a callback delegate
-typedef void(*ZenohSubscriptionCallBack)(const char* name, const z_sample_t& Sample);
+typedef void(*ZenohSubscriptionCallBack)(const z_sample_t* Sample);
 
 
 int MQ_SetupZenohRawSubscription(const char* name, const char* keyexpr, ZenohSubscriptionCallBack cb);

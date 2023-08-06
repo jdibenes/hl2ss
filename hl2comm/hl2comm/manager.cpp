@@ -84,6 +84,11 @@ namespace spdlog {
                 );
             }
             void flush_() override {
+                if (!g_zenoh_context || !g_zenoh_context->valid) {
+                    // cannot log here anymore ..
+                    return;
+                }
+
                 if (_items.empty()) {
                     return;
                 }

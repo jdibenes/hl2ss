@@ -10,31 +10,17 @@
 #include "../hl2comm/hl2ss_network.h"
 
 
-struct MQ_MSG
-{
-	uint32_t command;
-	uint32_t size;
-	void* data;
-};
-
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-//static HANDLE g_thread; // CloseHandle
-//static HANDLE g_event_restart; // CloseHandle
-//static HANDLE g_semaphore_so; // CloseHandle
-//static HANDLE g_event_error; // CloseHandle
 static HANDLE g_event_quit; // CloseHandle
 static CRITICAL_SECTION g_lock_sub; // DeleteCriticalSection
-//static CRITICAL_SECTION g_lock_so; // DeleteCriticalSection
-//static std::queue<MQ_MSG> g_queue_si;
-//static std::queue<uint32_t> g_queue_so;
 
 
 static HC_Context_Ptr g_zenoh_context{};
 
-typedef void(*ZenohSubscriptionCallBack)(const char* name, const z_sample_t& Sample);
+typedef void(*ZenohSubscriptionCallBack)(const z_sample_t* Sample);
 
 
 struct subscriber_handle {
@@ -57,7 +43,7 @@ void handle_subscriber_callback(const z_sample_t* sample, void* context) {
 	auto handle = static_cast<subscriber_context*>(context);
 	if (handle != nullptr && sample != nullptr) {
 		try {
-			handle->callback(handle->name, *sample);
+			handle->callback(sample);
 		}
 		catch (const std::exception& e) {
 			SPDLOG_ERROR("Error during subscription callback for: {0} -> {1}", handle->name, e.what());
@@ -121,7 +107,7 @@ int MQ_SetupZenohRawSubscription(const char* name, const char* keyexpr, ZenohSub
 bool MQ_SendMessage(const char* keyexpr, uint8_t* buffer, std::size_t buffer_len, z_encoding_prefix_t encoding, bool block) {
 	if (!g_zenoh_context) {
 		SPDLOG_ERROR("SendMessage called, but Zenoh context is empty.");
-		return -1;
+		return false;
 	}
 
 	z_put_options_t options = z_put_options_default();
@@ -143,11 +129,9 @@ void MQ_Initialize(HC_Context_Ptr& context)
 void MQ_Quit()
 {
 	SetEvent(g_event_quit);
-
 	for (auto& handle : g_subscribers) {
 		z_undeclare_subscriber(z_move(handle.subscriber));
 	}
-
 }
 
 // OK
@@ -155,9 +139,6 @@ void MQ_Cleanup()
 {
 
 	g_subscribers.clear();
-
 	CloseHandle(g_event_quit);
-
 	DeleteCriticalSection(&g_lock_sub);
-
 }

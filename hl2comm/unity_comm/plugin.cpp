@@ -238,6 +238,17 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
     StartManager(g_zenoh_context);
 
     MQ_Initialize(g_zenoh_context);
+
+
+}
+
+void TeardownStreams() {
+    if (g_zenoh_context != nullptr) {
+        MQ_Quit();
+        MQ_Cleanup();
+        StopManager(g_zenoh_context);
+        g_zenoh_context.reset();
+    }
 }
 
 // OK
@@ -247,6 +258,14 @@ InitializeStreamsOnUI(const char* topic_prefix, const char* zcfg, uint32_t enabl
     call_deferred(InitializeStreams, topic_prefix, zcfg, enable);
 }
 
+
+
+// OK
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+TeardownStreamsOnUI()
+{
+    call_deferred(TeardownStreams);
+}
 
 // OK
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
