@@ -21,7 +21,7 @@ using namespace winrt::Windows::Perception::Spatial;
 
 // OK
 template<bool ENABLE_LOCATION>
-void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
+void RM_VLC_SendSample(IMFSample* pSample, void* param)
 {
     IMFMediaBuffer* pBuffer; // Release
     LONGLONG sampletime;
@@ -39,21 +39,14 @@ void RM_VLC_SendSampleToSocket(IMFSample* pSample, void* param)
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    wsaBuf[0].buf = (char*)&sampletime;
-    wsaBuf[0].len = sizeof(sampletime);
-    
-    wsaBuf[1].buf = (char*)&cbData;
-    wsaBuf[1].len = sizeof(cbData);
-    
-    wsaBuf[2].buf = (char*)pBytes;
-    wsaBuf[2].len = cbData;
+    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
+    pack_buffer(wsaBuf, 2, pBytes, cbData);
 
     if constexpr(ENABLE_LOCATION)
     {
     pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(pose), NULL);
-    
-    wsaBuf[3].buf = (char*)&pose;
-    wsaBuf[3].len = sizeof(pose);
+    pack_buffer(wsaBuf, 3, &pose, sizeof(pose));
     }
 
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -119,7 +112,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     default:                            chromasize = lumasize / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
     }
 
-    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_VLC_SendSampleToSocket<ENABLE_LOCATION>, &user);
+    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_VLC_SendSample<ENABLE_LOCATION>, &user);
 
     framebytes = lumasize + chromasize;
 
@@ -182,19 +175,19 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 }
 
 // OK
-void RM_VLC_Stream_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_VLC_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
     RM_VLC_Stream<false>(sensor, clientsocket, nullptr);
 }
 
 // OK
-void RM_VLC_Stream_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void RM_VLC_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
     RM_VLC_Stream<true>(sensor, clientsocket, locator);
 }
 
 // OK
-void RM_VLC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
+void RM_VLC_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 {
     std::vector<float> uv2x;
     std::vector<float> uv2y;
@@ -207,23 +200,12 @@ void RM_VLC_Stream_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
     ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
     ResearchMode_GetExtrinsics(sensor, extrinsics);
 
-    wsaBuf[0].buf = (char*)uv2x.data();
-    wsaBuf[0].len = (ULONG)(uv2x.size() * sizeof(float));
-    
-    wsaBuf[1].buf = (char*)uv2y.data();
-    wsaBuf[1].len = (ULONG)(uv2y.size() * sizeof(float));
-    
-    wsaBuf[2].buf = (char*)extrinsics.m;
-    wsaBuf[2].len = sizeof(extrinsics.m);
-
-    wsaBuf[3].buf = (char*)mapx.data();
-    wsaBuf[3].len = (ULONG)(mapx.size() * sizeof(float));
-
-    wsaBuf[4].buf = (char*)mapy.data();
-    wsaBuf[4].len = (ULONG)(mapy.size() * sizeof(float));
-
-    wsaBuf[5].buf = (char*)K;
-    wsaBuf[5].len = sizeof(K);
+    pack_buffer(wsaBuf, 0, uv2x.data(), (ULONG)(uv2x.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 1, uv2y.data(), (ULONG)(uv2y.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 2, extrinsics.m, sizeof(extrinsics.m));
+    pack_buffer(wsaBuf, 3, mapx.data(), (ULONG)(mapx.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 4, mapy.data(), (ULONG)(mapy.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 5, K, sizeof(K));
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

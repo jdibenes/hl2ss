@@ -24,6 +24,9 @@ using namespace winrt::Windows::Storage::Streams;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
+// Notes
+// https://github.com/microsoft/HoloLens2ForCV/issues/142
+
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
@@ -156,7 +159,7 @@ void RM_ZLT_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
 
     pack_buffer(wsaBuf, 0, uv2x.data(), (ULONG)(uv2x.size() * sizeof(float)));
     pack_buffer(wsaBuf, 1, uv2y.data(), (ULONG)(uv2y.size() * sizeof(float)));
-    pack_buffer(wsaBuf, 2, &extrinsics.m[0][0], sizeof(extrinsics.m));
+    pack_buffer(wsaBuf, 2, extrinsics.m, sizeof(extrinsics.m));
     pack_buffer(wsaBuf, 3, &scale, sizeof(scale));
     pack_buffer(wsaBuf, 4, mapx.data(), (ULONG)(mapx.size() * sizeof(float)));
     pack_buffer(wsaBuf, 5, mapy.data(), (ULONG)(mapy.size() * sizeof(float)));

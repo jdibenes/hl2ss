@@ -36,7 +36,6 @@ struct RM_ZAB_Blob
 
 // Notes
 // https://github.com/microsoft/HoloLens2ForCV/issues/133
-// https://github.com/microsoft/HoloLens2ForCV/issues/142
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -50,7 +49,7 @@ static void RM_ZHT_AbPT(uint16_t const *pAb, uint8_t *out)
 
 // OK
 template<bool ENABLE_LOCATION>
-void RM_ZHT_SendSampleToSocket(IMFSample* pSample, void* param)
+void RM_ZHT_SendSample(IMFSample* pSample, void* param)
 {
     IMFMediaBuffer *pBuffer; // Release
     HookCallbackSocket* user;
@@ -156,7 +155,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     default:                            kernel = Neon_AbToNV12; framebytes = (width * height * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
     }
 
-    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_ZHT_SendSampleToSocket<ENABLE_LOCATION>, &user);
+    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_ZHT_SendSample<ENABLE_LOCATION>, &user);
 
     sensor->OpenStream();
 

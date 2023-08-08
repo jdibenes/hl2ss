@@ -100,15 +100,15 @@ static DWORD WINAPI RM_EntryPoint(void* param)
 
     switch (type)
     {
-    case LEFT_FRONT:
-    case LEFT_LEFT:
-    case RIGHT_FRONT:
-    case RIGHT_RIGHT:      RM_Stream<RM_VLC_Stream_Mode0, RM_VLC_Stream_Mode1, RM_VLC_Stream_Mode2>(sensor, clientsocket, locator); break;
-    case DEPTH_AHAT:       RM_Stream<RM_ZHT_Mode0, RM_ZHT_Mode1, RM_ZHT_Mode2>(sensor, clientsocket, locator); break;
-    case DEPTH_LONG_THROW: RM_Stream<RM_ZLT_Mode0, RM_ZLT_Mode1, RM_ZLT_Mode2>(sensor, clientsocket, locator); break;
-    case IMU_ACCEL:        RM_Stream<RM_ACC_Stream_Mode0, RM_ACC_Stream_Mode1, RM_ACC_Stream_Mode2>(sensor, clientsocket, locator); break;
-    case IMU_GYRO:         RM_Stream<RM_GYR_Stream_Mode0, RM_GYR_Stream_Mode1, RM_GYR_Stream_Mode2>(sensor, clientsocket, locator); break;
-    case IMU_MAG:          RM_Stream<RM_MAG_Stream_Mode0, RM_MAG_Stream_Mode1, RM_MAG_Stream_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::LEFT_FRONT:       RM_Stream<RM_VLC_Mode0, RM_VLC_Mode1, RM_VLC_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::LEFT_LEFT:        RM_Stream<RM_VLC_Mode0, RM_VLC_Mode1, RM_VLC_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::RIGHT_FRONT:      RM_Stream<RM_VLC_Mode0, RM_VLC_Mode1, RM_VLC_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::RIGHT_RIGHT:      RM_Stream<RM_VLC_Mode0, RM_VLC_Mode1, RM_VLC_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::DEPTH_AHAT:       RM_Stream<RM_ZHT_Mode0, RM_ZHT_Mode1, RM_ZHT_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::DEPTH_LONG_THROW: RM_Stream<RM_ZLT_Mode0, RM_ZLT_Mode1, RM_ZLT_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::IMU_ACCEL:        RM_Stream<RM_ACC_Mode0, RM_ACC_Mode1, RM_ACC_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::IMU_GYRO:         RM_Stream<RM_GYR_Mode0, RM_GYR_Mode1, RM_GYR_Mode2>(sensor, clientsocket, locator); break;
+    case ResearchModeSensorType::IMU_MAG:          RM_Stream<RM_MAG_Mode0, RM_MAG_Mode1, RM_MAG_Mode2>(sensor, clientsocket, locator); break;
     }
 
     closesocket(clientsocket);
