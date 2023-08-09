@@ -2,7 +2,7 @@
 #pragma once
 
 #include <vector>
-#include "researchmode/ResearchModeApi.h"
+#include <researchmode/ResearchModeApi.h>
 
 int const RM_VLC_WIDTH  = 640;
 int const RM_VLC_HEIGHT = 480;

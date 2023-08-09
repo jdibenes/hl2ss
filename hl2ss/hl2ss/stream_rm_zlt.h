@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "researchmode/ResearchModeApi.h"
+#include <researchmode/ResearchModeApi.h>
 #include <WinSock2.h>
 
 #include <winrt/Windows.Perception.Spatial.h>

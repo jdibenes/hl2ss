@@ -4,27 +4,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Cannon\AnimatedVector.cpp">
-      <Filter>Libraries\Cannon</Filter>
-    </ClCompile>
-    <ClCompile Include="Cannon\DrawCall.cpp">
-      <Filter>Libraries\Cannon</Filter>
-    </ClCompile>
-    <ClCompile Include="Cannon\FloatingSlate.cpp">
-      <Filter>Libraries\Cannon</Filter>
-    </ClCompile>
-    <ClCompile Include="Cannon\FloatingText.cpp">
-      <Filter>Libraries\Cannon</Filter>
-    </ClCompile>
-    <ClCompile Include="Cannon\MixedReality.cpp">
-      <Filter>Libraries\Cannon</Filter>
-    </ClCompile>
-    <ClCompile Include="Cannon\RecordedValue.cpp">
-      <Filter>Libraries\Cannon</Filter>
-    </ClCompile>
-    <ClCompile Include="Cannon\TrackedHands.cpp">
-      <Filter>Libraries\Cannon</Filter>
-    </ClCompile>
     <ClCompile Include="stream_rm.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
@@ -139,83 +118,104 @@
     <ClCompile Include="stream_eet.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
-    <ClCompile Include="Zdepth\src\zdepth.cpp">
-      <Filter>Libraries\Zdepth</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\debug.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\entropy_common.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\error_private.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\fse_compress.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\fse_decompress.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\hist.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\huf_compress.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\huf_decompress.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\pool.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\threading.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\xxhash.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_common.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_compress.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_compress_literals.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_compress_sequences.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_ddict.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_decompress.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_decompress_block.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_double_fast.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_fast.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_lazy.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_ldm.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstd_opt.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
-    <ClCompile Include="Zdepth\zstd\src\zstdmt_compress.c">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClCompile>
     <ClCompile Include="stream_rm_zlt.cpp">
       <Filter>Source Files\streams</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\AnimatedVector.cpp">
+      <Filter>Libraries\Cannon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\DrawCall.cpp">
+      <Filter>Libraries\Cannon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingSlate.cpp">
+      <Filter>Libraries\Cannon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingText.cpp">
+      <Filter>Libraries\Cannon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\MixedReality.cpp">
+      <Filter>Libraries\Cannon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\RecordedValue.cpp">
+      <Filter>Libraries\Cannon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\TrackedHands.cpp">
+      <Filter>Libraries\Cannon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\src\zdepth.cpp">
+      <Filter>Libraries\Zdepth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\debug.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\entropy_common.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\error_private.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\fse_compress.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\fse_decompress.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\hist.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\huf_compress.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\huf_decompress.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\pool.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\threading.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\xxhash.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_common.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_literals.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_sequences.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ddict.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_block.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_double_fast.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_fast.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstdmt_compress.c">
+      <Filter>Libraries\Zdepth\zstd</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -275,15 +275,6 @@
     <Filter Include="Libraries">
       <UniqueIdentifier>{76257412-a737-46fe-b5df-75da267b6959}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Libraries\researchmode">
-      <UniqueIdentifier>{d3c01eb7-c9d4-4427-8bdc-a5db8f6a69b1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Libraries\Cannon">
-      <UniqueIdentifier>{59ac2317-54f1-4b47-b66d-1a8082686312}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Libraries\Cannon\Common">
-      <UniqueIdentifier>{38ae5f3b-a14a-421f-a756-a5dc0cf95772}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Metadata">
       <UniqueIdentifier>{d9f6e53e-c543-4fca-b3c7-4ce0b1f00737}</UniqueIdentifier>
     </Filter>
@@ -296,17 +287,26 @@
     <Filter Include="Source Files\server">
       <UniqueIdentifier>{f79784ea-758b-40b8-803d-418b1e1bc1b5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Libraries\Cannon\Shaders">
-      <UniqueIdentifier>{c1ffcf68-dab7-4e2e-8d39-62e6bd99b99f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Libraries\SceneUnderstanding">
       <UniqueIdentifier>{a94c3462-d48c-4d9d-80dc-711bb512086c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libraries\researchmode">
+      <UniqueIdentifier>{a02821fc-77e5-49d1-832b-636de33a5f53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Cannon">
+      <UniqueIdentifier>{a9142e27-34f6-4f6b-aea7-68f7e2e5364c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Cannon\Shaders">
+      <UniqueIdentifier>{3ddd1f38-d731-4dd3-ab2b-3fc6ff197a47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Cannon\Common">
+      <UniqueIdentifier>{0b1571a6-e253-460f-b3c6-e14e9d0f22d1}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Libraries\Zdepth">
-      <UniqueIdentifier>{ff29e2ac-6ad7-4ad0-a40a-bdad61344e48}</UniqueIdentifier>
+      <UniqueIdentifier>{eedce1b6-fc21-40dd-a18b-6ed33a197712}</UniqueIdentifier>
     </Filter>
     <Filter Include="Libraries\Zdepth\zstd">
-      <UniqueIdentifier>{503d16b5-abef-4485-87fb-1eb49754fa94}</UniqueIdentifier>
+      <UniqueIdentifier>{3a4148ae-8ee1-46aa-8405-1f4e6850e6bd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -324,44 +324,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Cannon\AnimatedVector.h">
-      <Filter>Libraries\Cannon</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\DrawCall.h">
-      <Filter>Libraries\Cannon</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\FloatingSlate.h">
-      <Filter>Libraries\Cannon</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\FloatingText.h">
-      <Filter>Libraries\Cannon</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\MixedReality.h">
-      <Filter>Libraries\Cannon</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\RecordedValue.h">
-      <Filter>Libraries\Cannon</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\TrackedHands.h">
-      <Filter>Libraries\Cannon</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\Common\FileUtilities.h">
-      <Filter>Libraries\Cannon\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\Common\FilterDoubleExponential.h">
-      <Filter>Libraries\Cannon\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\Common\Intersectable.h">
-      <Filter>Libraries\Cannon\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Cannon\Common\Timer.h">
-      <Filter>Libraries\Cannon\Common</Filter>
-    </ClInclude>
     <ClInclude Include="types.h">
       <Filter>Header Files\utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="researchmode\ResearchModeApi.h">
-      <Filter>Libraries\researchmode</Filter>
     </ClInclude>
     <ClInclude Include="research_mode.h">
       <Filter>Header Files\devices</Filter>
@@ -480,92 +444,128 @@
     <ClInclude Include="stream_eet.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
-    <ClInclude Include="Zdepth\zstd\include\fse.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\include\huf.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\include\xxhash.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\include\zstd.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\bitstream.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\compiler.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\cpu.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\debug.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\error_private.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\hist.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\mem.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\pool.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\threading.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_compress_internal.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_compress_literals.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_compress_sequences.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_ddict.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_decompress_block.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_decompress_internal.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_double_fast.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_errors.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_fast.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_internal.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_lazy.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_ldm.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstd_opt.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\zstd\src\zstdmt_compress.h">
-      <Filter>Libraries\Zdepth\zstd</Filter>
-    </ClInclude>
-    <ClInclude Include="Zdepth\include\zdepth.hpp">
-      <Filter>Libraries\Zdepth</Filter>
-    </ClInclude>
     <ClInclude Include="stream_rm_zlt.h">
       <Filter>Header Files\streams</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\researchmode\ResearchModeApi.h">
+      <Filter>Libraries\researchmode</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\AnimatedVector.h">
+      <Filter>Libraries\Cannon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\DrawCall.h">
+      <Filter>Libraries\Cannon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingSlate.h">
+      <Filter>Libraries\Cannon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingText.h">
+      <Filter>Libraries\Cannon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\MixedReality.h">
+      <Filter>Libraries\Cannon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\RecordedValue.h">
+      <Filter>Libraries\Cannon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\TrackedHands.h">
+      <Filter>Libraries\Cannon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\FileUtilities.h">
+      <Filter>Libraries\Cannon\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\FilterDoubleExponential.h">
+      <Filter>Libraries\Cannon\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\Intersectable.h">
+      <Filter>Libraries\Cannon\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\Timer.h">
+      <Filter>Libraries\Cannon\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\include\zdepth.hpp">
+      <Filter>Libraries\Zdepth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\bitstream.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\compiler.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\cpu.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\debug.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\error_private.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\hist.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\mem.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\pool.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\threading.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_internal.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_literals.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_sequences.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ddict.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_block.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_internal.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_double_fast.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_errors.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_fast.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_internal.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstdmt_compress.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\fse.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\huf.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\xxhash.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\zstd.h">
+      <Filter>Libraries\Zdepth\zstd</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -574,25 +574,28 @@
     </AppxManifest>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Cannon\Shaders\Lit_PS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Lit_PS.hlsl">
       <Filter>Libraries\Cannon\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Lit_VS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Lit_VS.hlsl">
       <Filter>Libraries\Cannon\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Lit_VS_SPS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Lit_VS_SPS.hlsl">
       <Filter>Libraries\Cannon\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\LitTexture_PS.hlsl">
       <Filter>Libraries\Cannon\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Unlit_VS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
       <Filter>Libraries\Cannon\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Unlit_VS_SPS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Unlit_VS.hlsl">
       <Filter>Libraries\Cannon\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\UnlitTexture_PS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Unlit_VS_SPS.hlsl">
+      <Filter>Libraries\Cannon\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\UnlitTexture_PS.hlsl">
       <Filter>Libraries\Cannon\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
