@@ -187,7 +187,7 @@
     <ClInclude Include="research_mode.h" />
     <ClInclude Include="stream_rm.h" />
     <ClInclude Include="server.h" />
-    <ClInclude Include="stream_rm_zab.h" />
+    <ClInclude Include="stream_rm_zht.h" />
     <ClInclude Include="stream_rm_imu.h" />
     <ClInclude Include="stream_rm_vlc.h" />
     <ClInclude Include="stream_rm_zlt.h" />
@@ -267,7 +267,7 @@
     </ClCompile>
     <ClCompile Include="stream_pv.cpp" />
     <ClCompile Include="stream_rm_imu.cpp" />
-    <ClCompile Include="stream_rm_zab.cpp" />
+    <ClCompile Include="stream_rm_zht.cpp" />
     <ClCompile Include="stream_rm_vlc.cpp" />
     <ClCompile Include="timestamps.cpp" />
     <ClCompile Include="lock.cpp" />

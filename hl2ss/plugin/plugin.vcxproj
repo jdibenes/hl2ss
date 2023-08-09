@@ -280,7 +280,7 @@
     <ClCompile Include="..\hl2ss\stream_rm.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
+    <ClCompile Include="..\hl2ss\stream_rm_zht.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\timestamps.cpp" />
@@ -349,7 +349,7 @@
     <ClInclude Include="..\hl2ss\stream_rm.h" />
     <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_zab.h" />
+    <ClInclude Include="..\hl2ss\stream_rm_zht.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zlt.h" />
     <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\timestamps.h" />

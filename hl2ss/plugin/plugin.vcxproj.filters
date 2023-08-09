@@ -78,9 +78,6 @@
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_zab.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
     <ClCompile Include="plugin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -219,6 +216,9 @@
     <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_zht.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -279,9 +279,6 @@
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_zab.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\types.h">
@@ -432,6 +429,9 @@
       <Filter>Libraries\Zdepth\zstd</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\stream_rm_zlt.h">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_zht.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>

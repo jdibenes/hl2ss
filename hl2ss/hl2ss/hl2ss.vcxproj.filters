@@ -34,7 +34,7 @@
     <ClCompile Include="stream_rm_vlc.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
-    <ClCompile Include="stream_rm_zab.cpp">
+    <ClCompile Include="stream_rm_zht.cpp">
       <Filter>Source Files\streams</Filter>
     </ClCompile>
     <ClCompile Include="custom_hook_callback.cpp">
@@ -375,7 +375,7 @@
     <ClInclude Include="stream_rm_vlc.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
-    <ClInclude Include="stream_rm_zab.h">
+    <ClInclude Include="stream_rm_zht.h">
       <Filter>Header Files\streams</Filter>
     </ClInclude>
     <ClInclude Include="microphone_capture.h">
