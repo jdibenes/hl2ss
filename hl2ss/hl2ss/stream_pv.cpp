@@ -140,7 +140,7 @@ static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, Me
 
 // OK
 template<bool ENABLE_LOCATION>
-void PV_SendSampleToSocket(IMFSample* pSample, void* param)
+void PV_SendSample(IMFSample* pSample, void* param)
 {
     IMFMediaBuffer* pBuffer; // Release
     LONGLONG sampletime;
@@ -162,25 +162,15 @@ void PV_SendSampleToSocket(IMFSample* pSample, void* param)
 
     cbDataEx = cbData + sizeof(pj.f) + sizeof(pj.c);
 
-    wsaBuf[0].buf = (char*)&sampletime;
-    wsaBuf[0].len = sizeof(sampletime);
-
-    wsaBuf[1].buf = (char*)&cbDataEx;
-    wsaBuf[1].len = sizeof(cbDataEx);
-
-    wsaBuf[2].buf = (char*)pBytes;
-    wsaBuf[2].len = cbData;
-      
-    wsaBuf[3].buf = (char*)&pj.f;
-    wsaBuf[3].len = sizeof(pj.f);
-
-    wsaBuf[4].buf = (char*)&pj.c;
-    wsaBuf[4].len = sizeof(pj.c);
+    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
+    pack_buffer(wsaBuf, 2, pBytes, cbData);
+    pack_buffer(wsaBuf, 3, &pj.f, sizeof(pj.f));
+    pack_buffer(wsaBuf, 4, &pj.c, sizeof(pj.c));
 
     if constexpr(ENABLE_LOCATION)
     {
-    wsaBuf[5].buf = (char*)&pj.pose;
-    wsaBuf[5].len = sizeof(pj.pose);
+    pack_buffer(wsaBuf, 5, &pj.pose, sizeof(pj.pose));
     }
     
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -195,6 +185,7 @@ template<bool ENABLE_LOCATION>
 void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format)
 {
     CustomMediaSink* pSink; // Release
+    std::vector<uint64_t> options;
     HookCallbackSocket user;
     bool ok;
 
@@ -204,11 +195,14 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     ok = ReceiveH26xFormat_Profile(clientsocket, format);
     if (!ok) { return; }
 
+    ok = ReceiveH26xEncoder_Options(clientsocket, options);
+    if (!ok) { return; }
+
     user.clientsocket = clientsocket;
     user.clientevent  = clientevent;
     user.format       = &format;
 
-    CreateSinkWriterVideo(&pSink, &g_pSinkWriter, &g_dwVideoIndex, VideoSubtype::VideoSubtype_NV12, format, PV_SendSampleToSocket<ENABLE_LOCATION>, &user);
+    CreateSinkWriterVideo(&pSink, &g_pSinkWriter, &g_dwVideoIndex, VideoSubtype::VideoSubtype_NV12, format, options, PV_SendSample<ENABLE_LOCATION>, &user);
 
     reader.FrameArrived(PV_OnVideoFrameArrived<ENABLE_LOCATION>);
 
@@ -225,15 +219,12 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     g_pSinkWriter->Release();
     pSink->Shutdown();
     pSink->Release();
-
-    g_pSinkWriter = NULL;
-    g_dwVideoIndex = 0;
 }
 
 // OK
 static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader)
 {
-    WSABUF wsaBuf;
+    WSABUF wsaBuf[1];
 
     g_event_intrinsic = clientevent;
 
@@ -243,13 +234,9 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
     WaitForSingleObject(g_event_intrinsic, INFINITE);
     reader.StopAsync().get();
 
-    wsaBuf.buf = (char*)g_intrinsics;
-    wsaBuf.len = sizeof(g_intrinsics);
+    pack_buffer(wsaBuf, 0, g_intrinsics, sizeof(g_intrinsics));
 
-    send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    g_event_intrinsic = NULL;
-    memset(g_intrinsics, 0, sizeof(g_intrinsics));
+    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
