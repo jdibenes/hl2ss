@@ -47,7 +47,7 @@ void Neon_XABToNV12(u16 const* pAb, u8* pOut)
 	pOut += 32;
 	}
 
-	memset(pOut, 0x80, RM_ZHT_PIXELS / 2);
+	memset(pOut, NV12_ZERO_CHROMA, RM_ZHT_PIXELS / 2);
 }
 
 // OK
