@@ -5,6 +5,7 @@
 #include "custom_media_types.h"
 #include "custom_hook_callback.h"
 #include <mfreadwrite.h>
+#include <vector>
 
 struct H26xFormat
 {
@@ -13,7 +14,7 @@ struct H26xFormat
     uint8_t     framerate;
     uint8_t     divisor;
     H26xProfile profile;
-    uint8_t     gop_size;
+    int8_t      level;
     uint32_t    bitrate;
 };
 
@@ -34,4 +35,4 @@ struct HookCallbackSocket
 };
 
 void CreateSinkWriterAudio(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AudioSubtype input_subtype, AACFormat  const& format, HOOK_SINK_PROC hookproc, void* hookparam);
-void CreateSinkWriterVideo(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, VideoSubtype input_subtype, H26xFormat const& format, HOOK_SINK_PROC hookproc, void* hookparam);
+void CreateSinkWriterVideo(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwVideoIndex, VideoSubtype input_subtype, H26xFormat const& format, std::vector<uint64_t> const& encoder_options, HOOK_SINK_PROC hookproc, void* hookparam);
