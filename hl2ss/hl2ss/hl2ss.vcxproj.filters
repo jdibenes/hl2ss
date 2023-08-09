@@ -290,9 +290,6 @@
     <Filter Include="Libraries\SceneUnderstanding">
       <UniqueIdentifier>{a94c3462-d48c-4d9d-80dc-711bb512086c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Libraries\researchmode">
-      <UniqueIdentifier>{a02821fc-77e5-49d1-832b-636de33a5f53}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Libraries\Cannon">
       <UniqueIdentifier>{a9142e27-34f6-4f6b-aea7-68f7e2e5364c}</UniqueIdentifier>
     </Filter>
@@ -446,9 +443,6 @@
     </ClInclude>
     <ClInclude Include="stream_rm_zlt.h">
       <Filter>Header Files\streams</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\3rdparty\researchmode\ResearchModeApi.h">
-      <Filter>Libraries\researchmode</Filter>
     </ClInclude>
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\AnimatedVector.h">
       <Filter>Libraries\Cannon</Filter>

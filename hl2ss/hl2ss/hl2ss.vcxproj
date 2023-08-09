@@ -154,7 +154,6 @@
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\MixedReality.h" />
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\RecordedValue.h" />
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\TrackedHands.h" />
-    <ClInclude Include="..\..\3rdparty\researchmode\ResearchModeApi.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\include\zdepth.hpp" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\fse.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\huf.h" />

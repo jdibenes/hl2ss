@@ -50,26 +50,13 @@ static void SI_Stream(SOCKET clientsocket)
     left_poses.resize(HAND_JOINTS);
     right_poses.resize(HAND_JOINTS);
 
-    wsaBuf[0].buf = (char*)&qpc;
-    wsaBuf[0].len = (ULONG)sizeof(qpc);
-
-    wsaBuf[1].buf = (char*)&packet_size;
-    wsaBuf[1].len = sizeof(packet_size);
-
-    wsaBuf[2].buf = (char*)&valid;
-    wsaBuf[2].len = (ULONG)sizeof(valid);
-
-    wsaBuf[3].buf = (char*)&head_pose;
-    wsaBuf[3].len = (ULONG)sizeof(head_pose);
-
-    wsaBuf[4].buf = (char*)&eye_ray;
-    wsaBuf[4].len = (ULONG)sizeof(eye_ray);
-
-    wsaBuf[5].buf = (char*)left_poses.data();
-    wsaBuf[5].len = hand_size;
-
-    wsaBuf[6].buf = (char*)right_poses.data();
-    wsaBuf[6].len = hand_size;
+    pack_buffer(wsaBuf, 0, &qpc, sizeof(qpc));
+    pack_buffer(wsaBuf, 1, &packet_size, sizeof(packet_size));
+    pack_buffer(wsaBuf, 2, &valid, sizeof(valid));
+    pack_buffer(wsaBuf, 3, &head_pose, sizeof(head_pose));
+    pack_buffer(wsaBuf, 4, &eye_ray, sizeof(eye_ray));
+    pack_buffer(wsaBuf, 5, left_poses.data(), hand_size);
+    pack_buffer(wsaBuf, 6, right_poses.data(), hand_size);
 
     do
     {

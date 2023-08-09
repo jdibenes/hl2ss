@@ -50,8 +50,9 @@ static void RM_ZHT_SetZAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* 
 }
 
 // OK
-static void RM_ZHT_SetXAB(uint16_t const*, uint16_t const* pAb, uint8_t* out)
+static void RM_ZHT_SetXAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* out)
 {
+    (void)pDepth;
     memcpy(out, pAb, RM_ZHT_ABSIZE);
 }
 
@@ -62,14 +63,17 @@ static void RM_ZHT_ZABToNV12(uint16_t const* pDepth, uint16_t const* pAb, uint8_
 }
 
 // OK
-static void RM_ZHT_XABToNV12(uint16_t const*, uint16_t const* pAb, uint8_t* pNV12)
+static void RM_ZHT_XABToNV12(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* pNV12)
 {
+    (void)pDepth;
     Neon_XABToNV12(pAb, pNV12);
 }
 
 // OK
-static void RM_ZHT_BypassZ(zdepth::DepthCompressor&, uint16_t const*, std::vector<uint8_t>*& pData)
+static void RM_ZHT_BypassZ(zdepth::DepthCompressor& compressor, uint16_t const* pDepth, std::vector<uint8_t>*& pData)
 {
+    (void)compressor;
+    (void)pDepth;
     pData = NULL;
 }
 
