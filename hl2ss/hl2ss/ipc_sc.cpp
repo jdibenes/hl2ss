@@ -89,7 +89,7 @@ bool ReceiveH26xFormat_Profile(SOCKET clientsocket, H26xFormat& format)
 	ok = recv_u8(clientsocket, *((uint8_t*)&format.profile));
 	if (!ok) { return false; }
 
-	ok = recv_u8(clientsocket, format.gop_size);
+	ok = recv_u8(clientsocket, *((uint8_t*)&format.level));
 	if (!ok) { return false; }
 
 	ok = recv_u32(clientsocket, format.bitrate);
@@ -105,9 +105,24 @@ bool ReceiveH26xFormat_Profile(SOCKET clientsocket, H26xFormat& format)
 	default: return false;
 	}
 
-	if (format.gop_size <= 0) { return false; }
-
 	if (format.bitrate <= 0) { return false; }
+
+	return true;
+}
+
+// OK
+bool ReceiveH26xEncoder_Options(SOCKET clientsocket, std::vector<uint64_t> &options)
+{
+	bool ok;
+	uint8_t count;
+
+	ok = recv_u8(clientsocket, count);
+	if (!ok) { return false; }
+
+	options.resize(count * 2);
+
+	ok = recv(clientsocket, (char*)options.data(), (int)(options.size() * sizeof(uint64_t)));
+	if (!ok) { return false; }
 
 	return true;
 }
@@ -130,6 +145,24 @@ bool ReceiveZABFormat_PNGFilter(SOCKET clientsocket, ZABFormat& format)
 	case static_cast<int>(PngFilterMode::Average):   format.filter =  PngFilterMode::Average;    break;
 	case static_cast<int>(PngFilterMode::Paeth):     format.filter =  PngFilterMode::Paeth;      break;
 	case static_cast<int>(PngFilterMode::Adaptive):  format.filter =  PngFilterMode::Adaptive;   break;
+	default: return false;
+	}
+
+	return true;
+}
+
+// OK
+bool ReceiveZABFormat_Profile(SOCKET clientsocket, ZABFormat& format)
+{
+	bool ok;
+
+	ok = recv_u8(clientsocket, *(uint8_t*)&format.profile);
+	if (!ok) { return false; }
+
+	switch (format.profile)
+	{
+	case ZProfile::ZProfile_Same:   break;
+	case ZProfile::ZProfile_Zdepth: break;
 	default: return false;
 	}
 
