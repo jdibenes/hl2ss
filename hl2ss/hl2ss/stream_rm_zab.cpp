@@ -26,7 +26,8 @@ using namespace winrt::Windows::Storage::Streams;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
-typedef void(*RM_ZAB_KERNEL)(u16 const*, u8*);
+typedef void(*RM_ZAB_KERNEL)(u16 const*, u16 const*, u8*);
+typedef void(*RM_ZXX_KERNEL)(zdepth::DepthCompressor&, uint16_t const*, std::vector<uint8_t>*&);
 
 struct RM_ZAB_Blob
 {
@@ -42,47 +43,80 @@ struct RM_ZAB_Blob
 //-----------------------------------------------------------------------------
 
 // OK
-static void RM_ZHT_AbPT(uint16_t const *pAb, uint8_t *out)
+static void RM_ZHT_SetZAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* out)
+{
+    memcpy(out,                pDepth, RM_ZHT_ZSIZE);
+    memcpy(out + RM_ZHT_ZSIZE, pAb,    RM_ZHT_ABSIZE);
+}
+
+// OK
+static void RM_ZHT_SetXAB(uint16_t const*, uint16_t const* pAb, uint8_t* out)
 {
     memcpy(out, pAb, RM_ZHT_ABSIZE);
 }
 
 // OK
-template<bool ENABLE_LOCATION>
-void RM_ZHT_SendSample(IMFSample* pSample, void* param)
+static void RM_ZHT_ZABToNV12(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* pNV12)
 {
-    IMFMediaBuffer *pBuffer; // Release
-    HookCallbackSocket* user;
-    int64_t sampletime;
-    BYTE* pAb;
-    DWORD cbAb;
-    uint32_t ab_size;
-    uint32_t z_size;
-    uint32_t cbData;
-    RM_ZAB_Blob blob;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 7 : 6];
+    Neon_ZABToNV12(pDepth, pAb, pNV12);
+}
+
+// OK
+static void RM_ZHT_XABToNV12(uint16_t const*, uint16_t const* pAb, uint8_t* pNV12)
+{
+    Neon_XABToNV12(pAb, pNV12);
+}
+
+// OK
+static void RM_ZHT_BypassZ(zdepth::DepthCompressor&, uint16_t const*, std::vector<uint8_t>*& pData)
+{
+    pData = NULL;
+}
+
+// OK
+static void RM_ZHT_AppendZ(zdepth::DepthCompressor& compressor, uint16_t const* pDepth, std::vector<uint8_t>*& pData)
+{
+    Neon_ZHTInvalidate(pDepth, const_cast<UINT16*>(pDepth));
+    pData = new (std::nothrow) std::vector<uint8_t>(); // delete
+    compressor.Compress(RM_ZHT_WIDTH, RM_ZHT_HEIGHT, pDepth, *pData, true);
+}
+
+// OK
+template<bool ENABLE_LOCATION>
+void RM_ZHT_SendBypassZ(HookCallbackSocket* user, uint64_t sampletime, uint32_t cbData, BYTE const* pBytes, RM_ZAB_Blob const& blob)
+{
+    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
     bool ok;
-
-    user = (HookCallbackSocket*)param;
-
-    pSample->GetSampleTime(&sampletime);
-    pSample->ConvertToContiguousBuffer(&pBuffer);
-    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&blob, sizeof(blob), NULL);
-
-    pBuffer->Lock(&pAb, NULL, &cbAb);
-
-    ab_size = (uint32_t)cbAb;
-    z_size = (uint32_t)blob.z->size();
-
-    cbData = sizeof(ab_size) + sizeof(z_size) + ab_size + z_size;
 
     pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
     pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
-    pack_buffer(wsaBuf, 2, &ab_size, sizeof(ab_size));
-    pack_buffer(wsaBuf, 3, &z_size, sizeof(z_size));
-    pack_buffer(wsaBuf, 4, pAb, ab_size);
-    pack_buffer(wsaBuf, 5, blob.z->data(), z_size);
+    pack_buffer(wsaBuf, 2, pBytes, cbData);
 
+    if constexpr (ENABLE_LOCATION)
+    {
+    pack_buffer(wsaBuf, 3, &blob.pose, sizeof(blob.pose));
+    }
+
+    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { SetEvent(user->clientevent); }
+}
+
+// OK
+template<bool ENABLE_LOCATION>
+void RM_ZHT_SendAppendZ(HookCallbackSocket* user, uint64_t sampletime, uint32_t absize, BYTE const* pBytes, RM_ZAB_Blob const& blob)
+{
+    uint32_t zsize = (uint32_t)blob.z->size();
+    uint32_t cbData = sizeof(zsize) + sizeof(absize) + zsize + absize;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 7 : 6];
+    bool ok;
+
+    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
+    pack_buffer(wsaBuf, 2, &zsize, sizeof(zsize));
+    pack_buffer(wsaBuf, 3, &absize, sizeof(absize));
+    pack_buffer(wsaBuf, 4, blob.z->data(), zsize);
+    pack_buffer(wsaBuf, 5, pBytes, absize);
+    
     if constexpr (ENABLE_LOCATION)
     {
     pack_buffer(wsaBuf, 6, &blob.pose, sizeof(blob.pose));
@@ -91,10 +125,30 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 
-    pBuffer->Unlock();
-    pBuffer->Release();
-
     delete blob.z;
+}
+
+// OK
+template<bool ENABLE_LOCATION>
+void RM_ZHT_SendSample(IMFSample* pSample, void* param)
+{
+    IMFMediaBuffer* pBuffer; // Release
+    HookCallbackSocket* user;
+    int64_t sampletime;
+    BYTE* pBytes;
+    DWORD cbData;
+    RM_ZAB_Blob blob;
+
+    user = (HookCallbackSocket*)param;
+
+    pSample->GetSampleTime(&sampletime);
+    pSample->ConvertToContiguousBuffer(&pBuffer);
+    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&blob, sizeof(blob), NULL);
+
+    pBuffer->Lock(&pBytes, NULL, &cbData);
+    if (blob.z != NULL) { RM_ZHT_SendAppendZ<ENABLE_LOCATION>(user, sampletime, (uint32_t)cbData, pBytes, blob); } else { RM_ZHT_SendBypassZ<ENABLE_LOCATION>(user, sampletime, (uint32_t)cbData, pBytes, blob); }
+    pBuffer->Unlock();
+    pBuffer->Release();    
 }
 
 // OK
@@ -108,7 +162,6 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     PerceptionTimestamp ts = nullptr;
     uint32_t f = 0;
-    uint32_t g = 0;
     RM_ZAB_Blob blob;
     IResearchModeSensorFrame* pSensorFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -119,6 +172,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     size_t nAbCount;
     BYTE* pDst;
     H26xFormat format;
+    ZABFormat zabformat;
+    std::vector<uint64_t> options;
     CustomMediaSink* pSink; // Release
     IMFSinkWriter* pSinkWriter; // Release
     IMFMediaBuffer* pBuffer; // Release
@@ -127,7 +182,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     HookCallbackSocket user;
     HANDLE clientevent; // CloseHandle
     uint32_t framebytes;
-    RM_ZAB_KERNEL kernel;
+    RM_ZAB_KERNEL kernel_sink;
+    RM_ZXX_KERNEL kernel_blob;
     HRESULT hr;
     VideoSubtype subtype;
     zdepth::DepthCompressor compressor;
@@ -136,7 +192,13 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     ok = ReceiveH26xFormat_Divisor(clientsocket, format);
     if (!ok) { return; }
 
+    ok = ReceiveZABFormat_Profile(clientsocket, zabformat);
+    if (!ok) { return; }
+
     ok = ReceiveH26xFormat_Profile(clientsocket, format);
+    if (!ok) { return; }
+
+    ok = ReceiveH26xEncoder_Options(clientsocket, options);
     if (!ok) { return; }
 
     format.width     = width;
@@ -149,13 +211,15 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     user.clientevent  = clientevent;
     user.format       = &format;
 
-    switch (format.profile)
+    switch (2*(zabformat.profile != ZProfile::ZProfile_Same) + (format.profile != H26xProfile::H26xProfile_None))
     {
-    case H26xProfile::H26xProfile_None: kernel = RM_ZHT_AbPT;   framebytes =  width * height * 2;      subtype = VideoSubtype::VideoSubtype_L16;  break;
-    default:                            kernel = Neon_AbToNV12; framebytes = (width * height * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
+    case 0:  kernel_sink = RM_ZHT_SetZAB;    kernel_blob = RM_ZHT_BypassZ; framebytes =  width * height * 4;      subtype = VideoSubtype::VideoSubtype_ARGB; break;
+    case 1:  kernel_sink = RM_ZHT_ZABToNV12; kernel_blob = RM_ZHT_BypassZ; framebytes = (width * height * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
+    case 2:  kernel_sink = RM_ZHT_SetXAB;    kernel_blob = RM_ZHT_AppendZ; framebytes =  width * height * 2;      subtype = VideoSubtype::VideoSubtype_L16;  break;
+    default: kernel_sink = RM_ZHT_XABToNV12; kernel_blob = RM_ZHT_AppendZ; framebytes = (width * height * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
     }
 
-    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_ZHT_SendSample<ENABLE_LOCATION>, &user);
+    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, options, RM_ZHT_SendSample<ENABLE_LOCATION>, &user);
 
     sensor->OpenStream();
 
@@ -172,15 +236,10 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pDepthFrame->GetBuffer(&pDepth, &nDepthCount);
     pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
 
-    Neon_ZHTInvalidate(pDepth, const_cast<UINT16*>(pDepth));
-    blob.z = new (std::nothrow) std::vector<uint8_t>(); // delete    
-    compressor.Compress(width, height, pDepth, *blob.z, g == 0);
-    g = (g + 1) % format.gop_size;
-
     MFCreateMemoryBuffer(framebytes, &pBuffer);
 
     pBuffer->Lock(&pDst, NULL, NULL);
-    kernel(pAbImage, pDst);
+    kernel_sink(pDepth, pAbImage, pDst);
     pBuffer->Unlock();
     pBuffer->SetCurrentLength(framebytes);
 
@@ -189,6 +248,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(duration);
     pSample->SetSampleTime(timestamp.HostTicks);
+
+    kernel_blob(compressor, pDepth, blob.z);
 
     if constexpr (ENABLE_LOCATION)
     {
