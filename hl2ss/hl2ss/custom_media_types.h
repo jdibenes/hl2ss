@@ -4,6 +4,7 @@
 #include <mfidl.h>
 
 uint8_t const RAW_PROFILE = 0xFF;
+int32_t const H26xLevel_Default = -1;
 
 enum AACProfile : uint8_t
 {
@@ -53,4 +54,4 @@ enum VideoSubtype : uint8_t
 };
 
 HRESULT CreateTypeAudio(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AudioSubtype subtype, AACProfile profile, AACLevel level);
-HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den, VideoSubtype subtype, H26xProfile profile, uint32_t bitrate);
+HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den, VideoSubtype subtype, H26xProfile profile, int32_t level, uint32_t bitrate);

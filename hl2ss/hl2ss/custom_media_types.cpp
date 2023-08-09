@@ -198,7 +198,7 @@ static HRESULT CreateTypeARGB(IMFMediaType** ppType, uint32_t width, uint32_t he
 
 // https://docs.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder
 // OK
-static HRESULT CreateTypeH264(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps_num, uint32_t fps_den, eAVEncH264VProfile profile, uint32_t bitrate)
+static HRESULT CreateTypeH264(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps_num, uint32_t fps_den, eAVEncH264VProfile profile, int32_t level, uint32_t bitrate)
 {
     IMFMediaType* pType;
 
@@ -211,6 +211,7 @@ static HRESULT CreateTypeH264(IMFMediaType** ppType, uint32_t width, uint32_t he
     MFSetAttributeSize(pType, MF_MT_FRAME_SIZE, width, height);
     pType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlaceMode::MFVideoInterlace_Progressive);
     pType->SetUINT32(MF_MT_MPEG2_PROFILE, profile);
+    if (level != H26xLevel_Default) { pType->SetUINT32(MF_MT_MPEG2_LEVEL, level); }
 
     *ppType = pType;
 
@@ -219,7 +220,7 @@ static HRESULT CreateTypeH264(IMFMediaType** ppType, uint32_t width, uint32_t he
 
 // https://docs.microsoft.com/en-us/windows/win32/medfound/h-265---hevc-video-encoder
 // OK
-static HRESULT CreateTypeHEVC(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps_num, uint32_t fps_den, eAVEncH265VProfile profile, uint32_t bitrate)
+static HRESULT CreateTypeHEVC(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps_num, uint32_t fps_den, eAVEncH265VProfile profile, int32_t level, uint32_t bitrate)
 {
     IMFMediaType* pType;
 
@@ -232,6 +233,7 @@ static HRESULT CreateTypeHEVC(IMFMediaType** ppType, uint32_t width, uint32_t he
     MFSetAttributeSize(pType, MF_MT_FRAME_SIZE, width, height);
     pType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlaceMode::MFVideoInterlace_Progressive);
     pType->SetUINT32(MF_MT_MPEG2_PROFILE, profile);
+    if (level != H26xLevel_Default) { pType->SetUINT32(MF_MT_MPEG2_LEVEL, level); }
 
     *ppType = pType;
 
@@ -239,14 +241,14 @@ static HRESULT CreateTypeHEVC(IMFMediaType** ppType, uint32_t width, uint32_t he
 }
 
 // OK
-HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den, VideoSubtype subtype, H26xProfile profile, uint32_t bitrate)
+HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den, VideoSubtype subtype, H26xProfile profile, int32_t level, uint32_t bitrate)
 {
     switch (profile)
     {
-    case H26xProfile::H264Profile_Base: return CreateTypeH264(ppType, width, height, fps_num, fps_den, eAVEncH264VProfile::eAVEncH264VProfile_Base,       bitrate);
-    case H26xProfile::H264Profile_Main: return CreateTypeH264(ppType, width, height, fps_num, fps_den, eAVEncH264VProfile::eAVEncH264VProfile_Main,       bitrate);
-    case H26xProfile::H264Profile_High: return CreateTypeH264(ppType, width, height, fps_num, fps_den, eAVEncH264VProfile::eAVEncH264VProfile_High,       bitrate);
-    case H26xProfile::H265Profile_Main: return CreateTypeHEVC(ppType, width, height, fps_num, fps_den, eAVEncH265VProfile::eAVEncH265VProfile_Main_420_8, bitrate);
+    case H26xProfile::H264Profile_Base: return CreateTypeH264(ppType, width, height, fps_num, fps_den, eAVEncH264VProfile::eAVEncH264VProfile_Base,       level, bitrate);
+    case H26xProfile::H264Profile_Main: return CreateTypeH264(ppType, width, height, fps_num, fps_den, eAVEncH264VProfile::eAVEncH264VProfile_Main,       level, bitrate);
+    case H26xProfile::H264Profile_High: return CreateTypeH264(ppType, width, height, fps_num, fps_den, eAVEncH264VProfile::eAVEncH264VProfile_High,       level, bitrate);
+    case H26xProfile::H265Profile_Main: return CreateTypeHEVC(ppType, width, height, fps_num, fps_den, eAVEncH265VProfile::eAVEncH265VProfile_Main_420_8, level, bitrate);
     }
 
     if (subtype == VideoSubtype::VideoSubtype_L8)   { return CreateTypeL8(  ppType, width, height, stride, fps_num, fps_den); }
