@@ -87,61 +87,21 @@ static void RM_ZHT_AppendZ(zdepth::DepthCompressor& compressor, uint16_t const* 
 
 // OK
 template<bool ENABLE_LOCATION>
-void RM_ZHT_SendBypassZ(HookCallbackSocket* user, uint64_t sampletime, uint32_t cbData, BYTE const* pBytes, RM_ZAB_Blob const& blob)
-{
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
-    bool ok;
-
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
-    pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
-    pack_buffer(wsaBuf, 2, pBytes, cbData);
-
-    if constexpr (ENABLE_LOCATION)
-    {
-    pack_buffer(wsaBuf, 3, &blob.pose, sizeof(blob.pose));
-    }
-
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(user->clientevent); }
-}
-
-// OK
-template<bool ENABLE_LOCATION>
-void RM_ZHT_SendAppendZ(HookCallbackSocket* user, uint64_t sampletime, uint32_t absize, BYTE const* pBytes, RM_ZAB_Blob const& blob)
-{
-    uint32_t zsize = (uint32_t)blob.z->size();
-    uint32_t cbData = sizeof(zsize) + sizeof(absize) + zsize + absize;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 7 : 6];
-    bool ok;
-
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
-    pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
-    pack_buffer(wsaBuf, 2, &zsize, sizeof(zsize));
-    pack_buffer(wsaBuf, 3, &absize, sizeof(absize));
-    pack_buffer(wsaBuf, 4, blob.z->data(), zsize);
-    pack_buffer(wsaBuf, 5, pBytes, absize);
-    
-    if constexpr (ENABLE_LOCATION)
-    {
-    pack_buffer(wsaBuf, 6, &blob.pose, sizeof(blob.pose));
-    }
-
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(user->clientevent); }
-
-    delete blob.z;
-}
-
-// OK
-template<bool ENABLE_LOCATION>
 void RM_ZHT_SendSample(IMFSample* pSample, void* param)
 {
     IMFMediaBuffer* pBuffer; // Release
     HookCallbackSocket* user;
     int64_t sampletime;
+    uint8_t* p_z;
     BYTE* pBytes;
     DWORD cbData;
+    uint32_t size_p;
+    uint32_t size_z;
+    uint32_t size_ab;
     RM_ZAB_Blob blob;
+    bool has_z;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 7 : 6];
+    bool ok;
 
     user = (HookCallbackSocket*)param;
 
@@ -149,10 +109,35 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     pSample->ConvertToContiguousBuffer(&pBuffer);
     pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&blob, sizeof(blob), NULL);
 
+    has_z = blob.z != NULL;
+
+    if (has_z) { p_z = blob.z->data(); size_z = (uint32_t)blob.z->size(); }
+    else       { p_z = NULL;           size_z = 0;}
+
     pBuffer->Lock(&pBytes, NULL, &cbData);
-    if (blob.z != NULL) { RM_ZHT_SendAppendZ<ENABLE_LOCATION>(user, sampletime, (uint32_t)cbData, pBytes, blob); } else { RM_ZHT_SendBypassZ<ENABLE_LOCATION>(user, sampletime, (uint32_t)cbData, pBytes, blob); }
+
+    size_ab = (uint32_t)cbData;
+    size_p  = ((sizeof(size_z) + sizeof(size_ab)) * has_z) + size_z + size_ab;
+
+    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 1, &size_p, sizeof(size_p));
+    pack_buffer(wsaBuf, 2, &size_z, sizeof(size_z)*has_z);
+    pack_buffer(wsaBuf, 3, &size_ab, sizeof(size_ab)*has_z);
+    pack_buffer(wsaBuf, 4, p_z, size_z);
+    pack_buffer(wsaBuf, 5, pBytes, size_ab);
+
+    if constexpr (ENABLE_LOCATION)
+    {
+    pack_buffer(wsaBuf, 6, &blob.pose, sizeof(blob.pose));
+    }
+
+    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { SetEvent(user->clientevent); }
+    
     pBuffer->Unlock();
-    pBuffer->Release();    
+    pBuffer->Release();
+
+    if (has_z) { delete blob.z; }
 }
 
 // OK
