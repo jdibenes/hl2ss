@@ -77,6 +77,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     size_t length;
     BYTE* pDst;
     H26xFormat format;
+    std::vector<uint64_t> options;
     CustomMediaSink* pSink; // Release
     IMFSinkWriter* pSinkWriter; // Release
     IMFMediaBuffer* pBuffer; // Release
@@ -96,6 +97,9 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     ok = ReceiveH26xFormat_Profile(clientsocket, format);
     if (!ok) { return; }
 
+    ok = ReceiveH26xEncoder_Options(clientsocket, options);
+    if (!ok) { return; }
+
     format.width     = width;
     format.height    = height;
     format.framerate = framerate;
@@ -112,7 +116,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     default:                            chromasize = lumasize / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
     }
 
-    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, RM_VLC_SendSample<ENABLE_LOCATION>, &user);
+    CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, options, RM_VLC_SendSample<ENABLE_LOCATION>, &user);
 
     framebytes = lumasize + chromasize;
 
