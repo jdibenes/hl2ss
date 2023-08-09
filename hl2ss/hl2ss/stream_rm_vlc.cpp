@@ -60,12 +60,11 @@ void RM_VLC_SendSample(IMFSample* pSample, void* param)
 template <bool ENABLE_LOCATION>
 void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
 {
-    uint32_t const width      = RM_VLC_WIDTH;
-    uint32_t const height     = RM_VLC_HEIGHT;
-    uint32_t const framerate  = RM_VLC_FPS;
-    uint32_t const lumasize   = width * height;
-    LONGLONG const duration   = HNS_BASE / framerate;
-    uint8_t  const zerochroma = 0x80;
+    uint32_t const width     = RM_VLC_WIDTH;
+    uint32_t const height    = RM_VLC_HEIGHT;
+    uint32_t const framerate = RM_VLC_FPS;
+    uint32_t const lumasize  = width * height;
+    LONGLONG const duration  = HNS_BASE / framerate;
 
     PerceptionTimestamp ts = nullptr;
     uint32_t f = 0;
@@ -138,7 +137,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     pBuffer->Lock(&pDst, NULL, NULL);
     memcpy(pDst, pImage, lumasize);
-    memset(pDst + lumasize, zerochroma, chromasize);
+    memset(pDst + lumasize, NV12_ZERO_CHROMA, chromasize);
     pBuffer->Unlock();
     pBuffer->SetCurrentLength(framebytes);
 
