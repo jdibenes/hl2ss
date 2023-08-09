@@ -5,16 +5,16 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm_imu.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm_vlc.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm_zht.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="custom_hook_callback.cpp">
       <Filter>Source Files\sink</Filter>
@@ -38,7 +38,7 @@
       <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="stream_mc.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="locator.cpp">
       <Filter>Source Files\devices</Filter>
@@ -47,7 +47,7 @@
       <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="spatial_input.cpp">
       <Filter>Source Files\devices</Filter>
@@ -56,7 +56,7 @@
       <Filter>Source Files\sink</Filter>
     </ClCompile>
     <ClCompile Include="stream_si.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="lock.cpp">
       <Filter>Source Files\utilities</Filter>
@@ -98,28 +98,28 @@
       <Filter>Libraries\SceneUnderstanding</Filter>
     </ClCompile>
     <ClCompile Include="ipc_sm.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="ipc_rc.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="ipc_su.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="voice_input.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="ipc_vi.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="extended_eye_tracking.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="stream_eet.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm_zlt.cpp">
-      <Filter>Source Files\streams</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\AnimatedVector.cpp">
       <Filter>Libraries\Cannon</Filter>
@@ -254,9 +254,6 @@
     <Filter Include="Header Files\sink">
       <UniqueIdentifier>{8ba447e5-bcc7-4453-a9ed-ef08b9e29295}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\streams">
-      <UniqueIdentifier>{f3e105db-3dac-4194-b4dd-8cd6f1fbc8a6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{8d23e6cd-1170-4e23-a4cb-c9eec0c5690c}</UniqueIdentifier>
     </Filter>
@@ -265,9 +262,6 @@
     </Filter>
     <Filter Include="Source Files\sink">
       <UniqueIdentifier>{fe00bec6-4239-4474-a37d-29bbcdb34081}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\streams">
-      <UniqueIdentifier>{80cec913-7259-403e-b12a-d26aa7032cbd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\utilities">
       <UniqueIdentifier>{b9d42606-b835-4d74-a429-7f6ba1e94449}</UniqueIdentifier>
@@ -305,6 +299,12 @@
     <Filter Include="Libraries\Zdepth\zstd">
       <UniqueIdentifier>{3a4148ae-8ee1-46aa-8405-1f4e6850e6bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\interfaces">
+      <UniqueIdentifier>{80cec913-7259-403e-b12a-d26aa7032cbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\interfaces">
+      <UniqueIdentifier>{f3e105db-3dac-4194-b4dd-8cd6f1fbc8a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
@@ -328,16 +328,16 @@
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm_imu.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm_vlc.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm_zht.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="microphone_capture.h">
       <Filter>Header Files\devices</Filter>
@@ -367,10 +367,10 @@
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="stream_mc.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="stream_pv.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="personal_video.h">
       <Filter>Header Files\devices</Filter>
@@ -379,7 +379,7 @@
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="stream_si.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="custom_media_buffers.h">
       <Filter>Header Files\sink</Filter>
@@ -418,31 +418,31 @@
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="ipc_rc.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="ipc_sm.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="scene_understanding.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="ipc_su.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="voice_input.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="ipc_vi.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="extended_eye_tracking.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="stream_eet.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm_zlt.h">
-      <Filter>Header Files\streams</Filter>
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\AnimatedVector.h">
       <Filter>Libraries\Cannon</Filter>
