@@ -13,14 +13,12 @@ from pynput import keyboard
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
 host = "192.168.1.7"
-
-# Port
-port = hl2ss.StreamPort.PERSONAL_VIDEO
 
 # Operating mode
 # 0: video
@@ -34,18 +32,11 @@ height    = 1080
 framerate = 30
 
 # Framerate denominator (must be > 0)
-# Effective framerate is framerate / divisor
+# Effective FPS is framerate / divisor
 divisor = 1 
 
 # Video encoding profile
 profile = hl2ss.VideoProfile.H265_MAIN
-
-# Group of pictures (GOP) size
-gop_size = hl2ss.get_video_codec_default_gop_size(framerate, divisor)
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, divisor, hl2ss.get_video_codec_default_factor(profile))
 
 # Decoded format
 # Options include:
@@ -58,10 +49,10 @@ decoded_format = 'bgr24'
 
 #------------------------------------------------------------------------------
 
-hl2ss.start_subsystem_pv(host, port)
+hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_pv(host, port, width, height, framerate)
+    data = hl2ss.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate)
     print('Calibration')
     print(f'Focal length: {data.focal_length}')
     print(f'Principal point: {data.principal_point}')
@@ -82,7 +73,7 @@ else:
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    client = hl2ss.rx_decoded_pv(host, port, hl2ss.ChunkSize.PERSONAL_VIDEO, mode, width, height, framerate, divisor, profile, gop_size, bitrate, decoded_format)
+    client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, mode=mode, width=width, height=height, framerate=framerate, divisor=divisor, profile=profile, decoded_format=decoded_format)
     client.open()
 
     while (enable):
@@ -99,4 +90,4 @@ else:
     client.close()
     listener.join()
 
-hl2ss.stop_subsystem_pv(host, port)
+hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)

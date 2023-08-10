@@ -11,6 +11,7 @@ from pynput import keyboard
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 
 # Settings --------------------------------------------------------------------
 
@@ -38,13 +39,6 @@ divisor = 1
 # Video encoding profile
 profile = hl2ss.VideoProfile.H265_MAIN
 
-# Group of pictures (GOP) size
-gop_size = hl2ss.get_video_codec_default_gop_size(hl2ss.Parameters_RM_DEPTH_AHAT.FPS, divisor)
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = 1*1024*1024
-
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -70,7 +64,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_vlc(host, port, hl2ss.ChunkSize.RM_VLC, mode, divisor, profile, gop_size, bitrate)
+client = hl2ss_lnm.rx_rm_vlc(host, port, mode=mode, divisor=divisor, profile=profile)
 client.open()
 
 while (enable):

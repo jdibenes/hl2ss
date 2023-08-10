@@ -9,6 +9,7 @@
 from pynput import keyboard
 
 import hl2ss
+import hl2ss_lnm
 import hl2ss_utilities
 import pyaudio
 import queue
@@ -19,14 +20,8 @@ import threading
 # HoloLens address
 host = "192.168.1.7"
 
-# Port
-port = hl2ss.StreamPort.MICROPHONE
-
 # Audio encoding profile
 profile = hl2ss.AudioProfile.AAC_24000
-
-# Audio encoding level
-level = hl2ss.AACLevel.L2
 
 #------------------------------------------------------------------------------
 
@@ -56,7 +51,7 @@ listener = keyboard.Listener(on_press=on_press)
 thread.start()
 listener.start()
 
-client = hl2ss.rx_decoded_microphone(host, port, hl2ss.ChunkSize.MICROPHONE, profile, level)
+client = hl2ss_lnm.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, profile=profile)
 client.open()
 
 while (enable): 

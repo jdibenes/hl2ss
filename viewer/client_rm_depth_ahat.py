@@ -13,14 +13,13 @@ import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
 host = "192.168.1.7"
-
-# Port
-port = hl2ss.StreamPort.RM_DEPTH_AHAT
 
 # Operating mode
 # 0: video
@@ -32,20 +31,16 @@ mode = hl2ss.StreamMode.MODE_1
 # Effective framerate is framerate / divisor
 divisor = 1 
 
+# Depth encoding profile
+profile_z = hl2ss.DepthProfile.ZDEPTH
+
 # Video encoding profile
-profile = hl2ss.VideoProfile.H265_MAIN
-
-# Group of pictures (GOP) size
-gop_size = hl2ss.get_video_codec_default_gop_size(hl2ss.Parameters_RM_DEPTH_AHAT.FPS, divisor)
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = 8*1024*1024
+profile_ab = hl2ss.VideoProfile.H265_MAIN
 
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_depth_ahat(host, port)
+    data = hl2ss.download_calibration_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT)
     print('Calibration data')
     print('Image point to unit plane')
     print(data.uv2xy)
@@ -69,16 +64,29 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_depth_ahat(host, port, hl2ss.ChunkSize.RM_DEPTH_AHAT, mode, divisor, profile, gop_size, bitrate)
+qpc = hl2ss_utilities.framerate_counter()
+
+client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=mode, divisor=divisor, profile_z=profile_z, profile_ab=profile_ab)
 client.open()
+
+qpc.reset()
 
 while (enable):
     data = client.get_next_packet()
-    print(f'Pose at time {data.timestamp}')
-    print(data.pose)
+    qpc.increment()
+    #print(f'Pose at time {data.timestamp}')
+    #print(data.pose)
     cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
     cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
     cv2.waitKey(1)
+    #print(data.payload.depth.shape)
+    #print(data.payload.depth.dtype)
+    #print(data.payload.ab.shape)
+    #print(data.payload.ab.dtype)
+
+    if (qpc.delta() > 3):
+        print(f'FPS {qpc.get()}')
+        qpc.reset()
 
 client.close()
 listener.join()

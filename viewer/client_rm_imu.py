@@ -13,6 +13,7 @@
 from pynput import keyboard
 
 import hl2ss
+import hl2ss_lnm
 
 # Settings --------------------------------------------------------------------
 
@@ -24,14 +25,7 @@ host = "192.168.1.7"
 # hl2ss.StreamPort.RM_IMU_ACCELEROMETER
 # hl2ss.StreamPort.RM_IMU_GYROSCOPE
 # hl2ss.StreamPort.RM_IMU_MAGNETOMETER
-port = hl2ss.StreamPort.RM_IMU_ACCELEROMETER
-
-# Maximum bytes to receive per step
-# Options:
-# hl2ss.ChunkSize.RM_IMU_ACCELEROMETER
-# hl2ss.ChunkSize.RM_IMU_GYROSCOPE
-# hl2ss.ChunkSize.RM_IMU_MAGNETOMETER
-chunk_size = hl2ss.ChunkSize.RM_IMU_ACCELEROMETER
+port = hl2ss.StreamPort.RM_IMU_MAGNETOMETER
 
 # Operating mode
 # 0: samples
@@ -58,7 +52,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_rm_imu(host, port, chunk_size, mode)
+client = hl2ss_lnm.rx_rm_imu(host, port, mode=mode)
 client.open()
 
 while (enable):

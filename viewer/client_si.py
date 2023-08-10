@@ -7,14 +7,12 @@
 from pynput import keyboard
 
 import hl2ss
+import hl2ss_lnm
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
 host = "192.168.1.7"
-
-# Port
-port = hl2ss.StreamPort.SPATIAL_INPUT
 
 #------------------------------------------------------------------------------
 
@@ -28,7 +26,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_si(host, port, hl2ss.ChunkSize.SPATIAL_INPUT)
+client = hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT)
 client.open()
 
 while (enable):

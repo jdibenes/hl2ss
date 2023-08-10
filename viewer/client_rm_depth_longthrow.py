@@ -13,14 +13,12 @@ import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
 host = "192.168.1.7"
-
-# Port
-port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 
 # Operating mode
 # 0: video
@@ -32,13 +30,10 @@ mode = hl2ss.StreamMode.MODE_1
 # Effective framerate is framerate / divisor
 divisor = 1
 
-# PNG filter
-png_filter = hl2ss.PngFilterMode.Paeth
-
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_depth_longthrow(host, port)
+    data = hl2ss.download_calibration_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
     print('Calibration data')
     print('Image point to unit plane')
     print(data.uv2xy)
@@ -61,7 +56,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.rx_decoded_rm_depth_longthrow(host, port, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, mode, divisor, png_filter)
+client = hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, mode=mode, divisor=divisor)
 client.open()
 
 while (enable):
