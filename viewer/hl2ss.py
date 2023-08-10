@@ -56,10 +56,11 @@ class StreamMode:
 
 
 # Video Encoder Profile
-# 0: H264 base
-# 1: H264 main
-# 2: H264 high
-# 3: H265 main (HEVC)
+#   0: H264 base
+#   1: H264 main
+#   2: H264 high
+#   3: H265 main (HEVC)
+# 255: No encoding
 class VideoProfile:
     H264_BASE = 0
     H264_MAIN = 1
@@ -112,16 +113,18 @@ class DepthProfile:
 
 
 # Audio Encoder Profile
-# 0: AAC 12000 bytes/s
-# 1: AAC 16000 bytes/s
-# 2: AAC 20000 bytes/s
-# 3: AAC 24000 bytes/s
+#   0: AAC 12000 bytes/s
+#   1: AAC 16000 bytes/s
+#   2: AAC 20000 bytes/s
+#   3: AAC 24000 bytes/s
+# 255: No encoding
 class AudioProfile:
     AAC_12000 = 0
     AAC_16000 = 1
     AAC_20000 = 2
     AAC_24000 = 3
     RAW       = 0xFF
+
 
 # Audio Encoder Level
 # 0x29: AAC Profile L2 (default)
@@ -145,7 +148,6 @@ class AACLevel:
     HEV2L3  = 0x31
     HEV2L4  = 0x32
     HEV2L5  = 0x33
-    DEFAULT = L2
 
 
 # PNG Filters
@@ -850,7 +852,7 @@ def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv):
     v = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_AB_V_Y  : _Mode0Layout_RM_DEPTH_AHAT.END_AB_V_Y,  :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH // 4))
 
     depth = np.multiply(y, 4, dtype=np.uint16)
-    ab = np.zeros((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH), dtype=np.uint16)
+    ab = np.empty((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH), dtype=np.uint16)
 
     u = np.square(u, dtype=np.uint16)
     v = np.square(v, dtype=np.uint16)
@@ -888,54 +890,63 @@ class _unpack_rm_depth_ahat:
         return _RM_Depth_Frame(depth, ab)
 
 
-class _unpack_rm_depth_ahat_zdepth:
+class _decompress_zdepth:
     def create(self):
         import pyzdepth
-        self._codec_z  = pyzdepth.DepthCompressor()
+        self._codec = pyzdepth.DepthCompressor()
 
     def decode(self, payload):
-        size_z, size_ab = struct.unpack_from('<II', payload, 0)
-
-        start_z  = 8
-        start_ab = 8 + size_z
-
-        result, width, height, decompressed = self._codec_z.Decompress(bytes(payload[start_z:start_ab]))
-
-        depth = np.frombuffer(decompressed, dtype=np.uint16                                                        ).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        ab    = np.frombuffer(payload,      dtype=np.uint16, offset=start_ab, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-
-        return _RM_Depth_Frame(depth, ab)
+        result, width, height, decompressed = self._codec.Decompress(payload)
+        return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
 
 
-class _decode_rm_depth_ahat_zdepth:
+class _decode_ab_rm_depth_ahat:
     def __init__(self, profile):
         self.profile = profile
 
     def create(self):
-        import pyzdepth
-        self._codec_ab = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
-        self._codec_z  = pyzdepth.DepthCompressor()
+        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
+                return np.square(frame.to_ndarray()[:Parameters_RM_DEPTH_AHAT.HEIGHT, :Parameters_RM_DEPTH_AHAT.WIDTH], dtype=np.uint16)
+        return None
+
+
+class _unpack_ab_rm_depth_ahat:
+    def create(self):
+        pass
+
+    def decode(self, payload):
+        return np.frombuffer(payload, dtype=np.uint16, offset=0, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+
+
+class _decode_rm_depth_ahat_zdepth:
+    def __init__(self, profile):
+        self._codec_z  = _decompress_zdepth()
+        self._codec_ab = _unpack_ab_rm_depth_ahat() if (profile == VideoProfile.RAW) else _decode_ab_rm_depth_ahat(profile)
+
+    def create(self):
+        self._codec_z.create()
+        self._codec_ab.create()
 
     def decode(self, payload):
         size_z, size_ab = struct.unpack_from('<II', payload, 0)
 
         start_z  = 8
-        start_ab = 8 + size_z
+        end_z    = start_z + size_z
+        start_ab = end_z
+        end_ab   = start_ab + size_ab
 
-        result, width, height, decompressed = self._codec_z.Decompress(bytes(payload[start_z:start_ab]))
-
-        depth = np.frombuffer(decompressed, dtype=np.uint16).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        ab    = None
-
-        for packet in self._codec_ab.parse(payload[start_ab:]):
-            for frame in self._codec_ab.decode(packet):
-                ab = np.square(frame.to_ndarray()[:Parameters_RM_DEPTH_AHAT.HEIGHT, :Parameters_RM_DEPTH_AHAT.WIDTH], dtype=np.uint16)
+        depth = self._codec_z.decode(bytes(payload[start_z:end_z]))
+        ab    = self._codec_ab.decode(payload[start_ab:end_ab])
 
         return _RM_Depth_Frame(depth, ab)
 
 
 def decode_rm_depth_ahat(profile_z, profile_ab):
-    return (_unpack_rm_depth_ahat() if (profile_ab == VideoProfile.RAW) else _decode_rm_depth_ahat(profile_ab)) if (profile_z == DepthProfile.SAME) else (_unpack_rm_depth_ahat_zdepth() if (profile_ab == VideoProfile.RAW) else _decode_rm_depth_ahat_zdepth(profile_ab))
+    return (_unpack_rm_depth_ahat() if (profile_ab == VideoProfile.RAW) else _decode_rm_depth_ahat(profile_ab)) if (profile_z == DepthProfile.SAME) else _decode_rm_depth_ahat_zdepth(profile_ab)
 
 
 def decode_rm_depth_longthrow(payload):
