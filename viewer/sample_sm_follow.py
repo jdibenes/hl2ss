@@ -9,6 +9,7 @@ from pynput import keyboard
 import multiprocessing as mp
 import open3d as o3d
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_sa
 
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     sm_manager.open()
 
     producer = hl2ss_mp.producer()
-    producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.configure(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
     producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, buffer_size * hl2ss.Parameters_SI.SAMPLE_RATE)
     producer.start(hl2ss.StreamPort.SPATIAL_INPUT)
 
