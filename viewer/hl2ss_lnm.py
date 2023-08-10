@@ -25,8 +25,7 @@ def get_video_codec_default_bitrate(width, height, framerate, divisor, profile):
 
 def get_video_codec_default_options(width, height, framerate, divisor, profile):
     options = dict()
-    if (profile != hl2ss.VideoProfile.RAW):
-        options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize] = get_video_codec_default_gop_size(framerate, divisor)
+    options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize] = get_video_codec_default_gop_size(framerate, divisor) if (profile != hl2ss.VideoProfile.RAW) else 1
     return options
 
 
@@ -69,7 +68,7 @@ def rx_pv(host, port, chunk=hl2ss.ChunkSize.PERSONAL_VIDEO, mode=hl2ss.StreamMod
     if (options is None):
         options = get_video_codec_default_options(width, height, framerate, divisor, profile)
     
-    return hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options, decoded_format) if (decoded_format is not None) else hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
+    return hl2ss.rx_decoded_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options, decoded_format) if (decoded_format) else hl2ss.rx_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
 
 
 def rx_microphone(host, port, chunk=hl2ss.ChunkSize.MICROPHONE, profile=hl2ss.AudioProfile.AAC_24000, level=hl2ss.AACLevel.L2, decoded=True):
