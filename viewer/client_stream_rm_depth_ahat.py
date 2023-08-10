@@ -14,7 +14,6 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
-import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -32,10 +31,10 @@ mode = hl2ss.StreamMode.MODE_1
 divisor = 1 
 
 # Depth encoding profile
-profile_z = hl2ss.DepthProfile.ZDEPTH
+profile_z = hl2ss.DepthProfile.SAME
 
 # Video encoding profile
-profile_ab = hl2ss.VideoProfile.H265_MAIN
+profile_ab = hl2ss.VideoProfile.H264_HIGH
 
 #------------------------------------------------------------------------------
 
@@ -64,29 +63,18 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-qpc = hl2ss_utilities.framerate_counter()
-
 client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=mode, divisor=divisor, profile_z=profile_z, profile_ab=profile_ab)
 client.open()
 
-qpc.reset()
-
 while (enable):
     data = client.get_next_packet()
-    qpc.increment()
-    #print(f'Pose at time {data.timestamp}')
-    #print(data.pose)
+    
+    print(f'Pose at time {data.timestamp}')
+    print(data.pose)
+    
     cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
     cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
     cv2.waitKey(1)
-    #print(data.payload.depth.shape)
-    #print(data.payload.depth.dtype)
-    #print(data.payload.ab.shape)
-    #print(data.payload.ab.dtype)
-
-    if (qpc.delta() > 3):
-        print(f'FPS {qpc.get()}')
-        qpc.reset()
 
 client.close()
 listener.join()

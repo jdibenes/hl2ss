@@ -12,9 +12,6 @@ import hl2ss_sa
 # HoloLens address
 host = '192.168.1.7'
 
-# Port
-port = hl2ss.IPCPort.SPATIAL_MAPPING
-
 # Maximum triangles per cubic meter
 tpcm = 1000
 
@@ -44,7 +41,7 @@ extents = [8.0, 8.0, 8.0] # Dimensions of the box
 # https://learn.microsoft.com/en-us/windows/mixed-reality/develop/native/spatial-mapping-in-directx
 # for details
 
-client = hl2ss.ipc_sm(host, port)
+client = hl2ss.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
 
 client.open()
 

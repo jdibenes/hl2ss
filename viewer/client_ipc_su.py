@@ -13,9 +13,6 @@ import hl2ss_sa
 # HoloLens address
 host = '192.168.1.7'
 
-# Port
-port = hl2ss.IPCPort.SCENE_UNDERSTANDING
-
 # Query parameters
 enable_scene_object_quads = True
 enable_scene_object_meshes = True
@@ -73,7 +70,7 @@ task = hl2ss.su_task(enable_scene_object_quads,
                      guid_list)
 task.pack()
 
-client = hl2ss.ipc_su(host, port)
+client = hl2ss.ipc_su(host, hl2ss.IPCPort.SCENE_UNDERSTANDING)
 client.open()
 result = client.query(task)
 client.close()

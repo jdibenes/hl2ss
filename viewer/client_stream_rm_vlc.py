@@ -37,7 +37,7 @@ mode = hl2ss.StreamMode.MODE_1
 divisor = 1 
 
 # Video encoding profile
-profile = hl2ss.VideoProfile.H265_MAIN
+profile = hl2ss.VideoProfile.H264_HIGH
 
 #------------------------------------------------------------------------------
 

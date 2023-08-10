@@ -13,9 +13,6 @@ import hl2ss
 # HoloLens address
 host = '192.168.1.7'
 
-# Port
-port = hl2ss.IPCPort.VOICE_INPUT
-
 # Voice commands
 strings = ['cat', 'dog', 'red', 'blue']
 
@@ -37,7 +34,7 @@ def get_word(strings, index):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.ipc_vi(host, port)
+client = hl2ss.ipc_vi(host, hl2ss.IPCPort.VOICE_INPUT)
 client.open()
 
 # See

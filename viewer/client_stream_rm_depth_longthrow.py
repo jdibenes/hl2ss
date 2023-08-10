@@ -61,8 +61,10 @@ client.open()
 
 while (enable):
     data = client.get_next_packet()
+
     print(f'Pose at time {data.timestamp}')
     print(data.pose)
+    
     cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
     cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
     cv2.waitKey(1)
