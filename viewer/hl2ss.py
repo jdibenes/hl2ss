@@ -179,7 +179,6 @@ class Parameters_RM_DEPTH_AHAT:
     PIXELS = WIDTH * HEIGHT
     SHAPE  = (HEIGHT, WIDTH)
     PERIOD = 1 / FPS
-    FACTOR = 1
 
 
 # RM Depth Long Throw Parameters
