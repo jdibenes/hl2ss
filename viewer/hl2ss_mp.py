@@ -368,6 +368,9 @@ class producer:
     def stop(self, port):
         self._producer[port].stop()
 
+    def get_receiver(self, port):
+        return self._rx[port]
+
     def _get_interface(self, port):
         return self._producer[port].get_interface()
 
@@ -397,12 +400,4 @@ class consumer:
         self._sink[port] = sink
 
         return sink
-
-
-#------------------------------------------------------------------------------
-# Stream Sync Period
-#------------------------------------------------------------------------------
-
-def get_sync_frame_stamp(frame_stamp, sync_period):
-    return frame_stamp + ((sync_period - (frame_stamp % sync_period)) % sync_period)
 
