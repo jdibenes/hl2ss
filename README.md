@@ -10,8 +10,8 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Right Front
   - Right Right
 - Research Mode Depth
-  - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB as NV12 luma+chroma, H264 or HEVC encoded) 
-  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB, encoded as a single 32-bit PNG)
+  - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB, H264 or HEVC encoded or Lossless* Zdepth for Depth)
+  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB, PNG encoded)
 - Research Mode IMU
   - Accelerometer (m/s^2)
   - Gyroscope (deg/s)
@@ -80,26 +80,25 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 **Interfaces**
 
-- RM VLC: [viewer/client_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_vlc.py)
-- RM Depth AHAT: [viewer/client_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_ahat.py)
-- RM Depth Long Throw: [viewer/client_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_longthrow.py)
-- RM IMU: [viewer/client_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_imu.py)
-- Front Camera: [viewer/client_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_pv.py)
-- Microphone: [viewer/client_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_microphone.py)
-- Spatial Input: [viewer/client_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_si.py)
-- Remote Configuration: [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py)
-- Spatial Mapping: [viewer/client_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_sm.py)
-- Scene Understanding: [viewer/client_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_su.py)
-- Voice Input: [viewer/client_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_vi.py)
-- Unity Message Queue: [viewer/client_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_umq.py)
-- Extended Eye Tracking: [viewer/client_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_eet.py)
+- RM VLC: [viewer/client_stream_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_vlc.py)
+- RM Depth AHAT: [viewer/client_stream_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_depth_ahat.py)
+- RM Depth Long Throw: [viewer/client_stream_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_depth_longthrow.py)
+- RM IMU: [viewer/client_stream_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_imu.py)
+- Front Camera: [viewer/client_stream_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_pv.py)
+- Microphone: [viewer/client_stream_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_microphone.py)
+- Spatial Input: [viewer/client_stream_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_si.py)
+- Remote Configuration: [viewer/client_ipc_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py)
+- Spatial Mapping: [viewer/client_ipc_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_sm.py)
+- Scene Understanding: [viewer/client_ipc_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_su.py)
+- Voice Input: [viewer/client_ipc_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_vi.py)
+- Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py)
+- Extended Eye Tracking: [viewer/client_stream_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_eet.py)
 
 **Required packages**
 
 - [OpenCV](https://github.com/opencv/opencv-python) `pip install opencv-python`
 - [PyAV](https://github.com/PyAV-Org/PyAV) `pip install av`
 - [NumPy](https://numpy.org/) `pip install numpy`
-- [Websockets](https://github.com/aaugustin/websockets) `pip install websockets`
 
 **Optional packages**
 
@@ -107,6 +106,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [MMDetection](https://github.com/open-mmlab/mmdetection)
+- [Websockets](https://github.com/aaugustin/websockets) `pip install websockets`
 
 ## Unity plugin
 
@@ -185,3 +185,4 @@ If you wish to create the server application appxbundle, right click the hl2ss p
 ## References
 
 This project uses the HoloLens 2 Research Mode API and the Cannon library, both available at the [HoloLens2ForCV](https://github.com/microsoft/HoloLens2ForCV) repository.
+Lossless* depth compression enabled by the [Zdepth](https://github.com/catid/Zdepth) library.
