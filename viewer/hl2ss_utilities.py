@@ -552,8 +552,8 @@ def unpack_to_mp4(input_filenames, output_filename):
     [reader.open() for reader in readers]
 
     container = av.open(output_filename, mode='w')
-    streams = [container.add_stream(get_av_codec_name(reader.port, reader.profile), rate=get_av_framerate(reader.port) if (get_av_framerate(reader.port) is not None) else reader.framerate) for reader in readers]
-    codecs = [av.CodecContext.create(get_av_codec_name(reader.port, reader.profile), "r") for reader in readers]
+    streams = [container.add_stream(get_av_codec_name(reader.port, reader.profile_ab if (reader.port == hl2ss.StreamPort.RM_DEPTH_AHAT) else reader.profile), rate=get_av_framerate(reader.port) if (get_av_framerate(reader.port) is not None) else reader.framerate) for reader in readers]
+    codecs = [av.CodecContext.create(get_av_codec_name(reader.port, reader.profile_ab if (reader.port == hl2ss.StreamPort.RM_DEPTH_AHAT) else reader.profile), "r") for reader in readers]
 
     for stream in streams:
         stream.time_base = time_base
