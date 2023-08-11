@@ -1,5 +1,4 @@
 
-from Cython.Build import cythonize
 from distutils.core import setup
 from distutils.extension import Extension
 from glob import glob
@@ -19,4 +18,4 @@ ext = Extension('pyzdepth',
                 language = 'c++',
                 include_dirs=[path_Zdepth + '/include', path_zstd + '/include', path_zstd + '/src'])
 
-setup(name='pyzdepth', ext_modules=cythonize([ext]))
+setup(name='pyzdepth', ext_modules=[ext])
