@@ -5,6 +5,8 @@
 # transfer). Depth and AB data are scaled for visibility. The ahat and long 
 # throw streams cannot be used simultaneously.
 # Press esc to stop.
+# See https://github.com/jdibenes/hl2ss/tree/main/extensions before setting
+# profile_z to hl2ss.DepthProfile.ZDEPTH (lossless* compression).
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
