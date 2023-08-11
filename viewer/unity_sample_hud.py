@@ -15,9 +15,6 @@ import hl2ss_rus
 # HoloLens address
 host = '192.168.1.7'
 
-# Port
-port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
-
 # Position in camera space (x, y, z)
 position = [0,0, 0.5]
 
@@ -46,7 +43,7 @@ listener.start()
 with open(texture_file, mode='rb') as file:
     texture = file.read()
 
-ipc = hl2ss.ipc_umq(host, port)
+ipc = hl2ss.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
 ipc.open()
 
 key = 0

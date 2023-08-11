@@ -12,6 +12,7 @@ import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
@@ -24,16 +25,9 @@ host = "192.168.1.7"
 
 # Camera parameters
 # See etc/hl2_capture_formats.txt for a list of supported formats
-width     = 760
-height    = 428
-framerate = 30
-
-# Video Encoding profiles
-profile = hl2ss.VideoProfile.H265_MAIN
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
+pv_width     = 760
+pv_height    = 428
+pv_framerate = 30
 
 # EET parameters
 eet_fps = 30 # 30, 60, 90
@@ -84,9 +78,9 @@ if __name__ == '__main__':
     
     # Start PV and EET streams ------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'bgr24')
-    producer.configure_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, eet_fps)
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
+    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate))
+    producer.configure(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss_lnm.rx_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, fps=eet_fps))
+    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, pv_framerate * buffer_length)
     producer.initialize(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
     producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
     producer.start(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)

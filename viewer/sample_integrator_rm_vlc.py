@@ -10,6 +10,7 @@ import multiprocessing as mp
 import open3d as o3d
 import cv2
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
 
@@ -22,9 +23,7 @@ host = '192.168.1.7'
 calibration_path = '../calibration'
 
 # Camera selection and parameters
-port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
-profile = hl2ss.VideoProfile.H265_MAIN
-bitrate = 1*1024*1024
+vlc_port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
 # Buffer length in seconds
 buffer_length = 10
@@ -50,7 +49,7 @@ if __name__ == '__main__':
 
     # Get RM VLC and RM Depth Long Throw calibration --------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
+    calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, vlc_port, calibration_path)
     calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
@@ -66,16 +65,16 @@ if __name__ == '__main__':
 
     # Start RM VLC and RM Depth Long Throw streams ----------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
-    producer.initialize(port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
+    producer.configure(vlc_port, hl2ss_lnm.rx_rm_vlc(host, vlc_port))
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
+    producer.initialize(vlc_port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
-    producer.start(port)
+    producer.start(vlc_port)
     producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     consumer = hl2ss_mp.consumer()
     manager = mp.Manager()    
-    sink_vlc = consumer.create_sink(producer, port, manager, None)
+    sink_vlc = consumer.create_sink(producer, vlc_port, manager, None)
     sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
 
     sink_vlc.get_attach_response()
@@ -137,7 +136,7 @@ if __name__ == '__main__':
     # Stop RM VLC and RM Depth Long Throw streams -----------------------------
     sink_vlc.detach()
     sink_depth.detach()
-    producer.stop(port)
+    producer.stop(vlc_port)
     producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     # Stop keyboard events ----------------------------------------------------

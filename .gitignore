@@ -18,3 +18,5 @@ tools/__pycache__/
 bbn/__pycache__/
 bbn/tests/__pycache__/
 calibration
+extensions/build/
+extensions/.vscode/

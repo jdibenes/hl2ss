@@ -38,7 +38,7 @@ static void VI_MSG_RegisterCommands(SOCKET clientsocket)
     std::vector<uint8_t> buffer;
     uint16_t stlen;
     uint8_t result;
-    WSABUF wsaBuf;
+    WSABUF wsaBuf[1];
     bool ok;
 
     ok = recv_u8(clientsocket, clear);
@@ -78,10 +78,9 @@ static void VI_MSG_RegisterCommands(SOCKET clientsocket)
 
     result = VoiceInput_RegisterCommands(commands, clear != 0);
 
-    wsaBuf.buf = (char*)&result;
-    wsaBuf.len = sizeof(result);
+    pack_buffer(wsaBuf, 0, &result, sizeof(result));
     
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
     {
         VI_TransferError();
@@ -101,28 +100,26 @@ static void VI_MSG_Pop(SOCKET clientsocket)
 {
     uint32_t count;
     VoiceInput_Result result;
-    WSABUF wsaBuf;
+    WSABUF wsaBuf[1];
     bool ok;
 
     count = (uint32_t)VoiceInput_GetCount();
 
-    wsaBuf.buf = (char*)&count;
-    wsaBuf.len = sizeof(count);
+    pack_buffer(wsaBuf, 0, &count, sizeof(count));
 
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
     {
         VI_TransferError();
         return;
     }
 
-    wsaBuf.buf = (char*)&result;
-    wsaBuf.len = sizeof(result);
+    pack_buffer(wsaBuf, 0, &result, sizeof(result));
 
     for (uint32_t i = 0; i < count; ++i)
     {
     result = VoiceInput_Pop();
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
     {
         VI_TransferError();

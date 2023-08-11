@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 import argparse
 import hl2ss
+import hl2ss_lnm
 import hl2ss_3dcv
 
 parser = argparse.ArgumentParser(description='HL2SS PV Extrinsic Calibration Tool. This tool requires that the HL2 is stationary. For best results, place the HL2 on a flat surface such as a table.')
@@ -16,18 +17,11 @@ args = parser.parse_args()
 host = args.host
 path = args.path
 
-samples      = 32
-pv_width     = 640
-pv_height    = 360
-pv_framerate = 30
-pv_profile   = hl2ss.VideoProfile.H264_BASE
-pv_bitrate   = 2*1024*1024
-lf_profile   = hl2ss.VideoProfile.H264_BASE
-lf_bitrate   = 2*1024*1024
+samples = 32
 
 client_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
-client_pv = hl2ss.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO,   hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate)
-client_rn = hl2ss.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, lf_profile, lf_bitrate)
+client_pv = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+client_rn = hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTFRONT)
 
 list_pv = []
 list_rn = []

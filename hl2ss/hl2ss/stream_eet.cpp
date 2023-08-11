@@ -89,8 +89,7 @@ static void EET_Stream(SOCKET clientsocket, SpatialLocator const &locator, uint6
 
     ExtendedEyeTracking_SetTargetFrameRate(fps_index);
 
-    wsaBuf[0].buf = (char*)&eet_packet;
-    wsaBuf[0].len = sizeof(eet_packet);
+    pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
 
     eet_packet.size = sizeof(uint32_t) + sizeof(EET_Frame);
     eet_packet.reserved = 0;

@@ -14,6 +14,7 @@ import open3d as o3d
 import mmcv
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
 
@@ -31,10 +32,6 @@ vlc_port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
 # Calibration path (must exist but can be empty)
 calibration_path = '../calibration/'
-
-# Camera parameters
-vlc_profile = hl2ss.VideoProfile.H265_MAIN
-vlc_bitrate = 1*1024*1024
 
 # Buffer length in seconds
 buffer_length = 5
@@ -84,8 +81,8 @@ if __name__ == '__main__':
 
     # Start RM VLC and RM Depth Long Throw streams ----------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, vlc_port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, vlc_profile, vlc_bitrate)
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.configure(vlc_port, hl2ss_lnm.rx_rm_vlc(host, vlc_port))
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
     producer.initialize(vlc_port, buffer_length * hl2ss.Parameters_RM_VLC.FPS)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, buffer_length * hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
     producer.start(vlc_port)

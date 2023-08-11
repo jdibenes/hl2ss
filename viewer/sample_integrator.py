@@ -9,6 +9,7 @@ import multiprocessing as mp
 import open3d as o3d
 import cv2
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
 
     # Start RM Depth Long Throw stream ----------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
     producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
