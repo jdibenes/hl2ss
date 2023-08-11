@@ -401,17 +401,17 @@ def _create_csv_row(port, data):
 
 
 def unpack_to_csv(input_filename, output_filename):    
-    rd = hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
+    rd = hl2ss_io.create_rd(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
     rd.open()
 
-    port = rd.header.port
+    port = rd.port
 
     wr = open(output_filename, 'w', newline='')
     csv_wr = csv.writer(wr)
     csv_wr.writerow(_create_csv_header(port))
 
     while (True):
-        data = rd.read()
+        data = rd.get_next_packet()
         if (data is None):
             break
         csv_wr.writerow(_create_csv_row(port, data))
@@ -457,12 +457,12 @@ def get_av_framerate(port):
 def unpack_to_mp4(input_filenames, output_filename):
     time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
 
-    readers = [hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
+    readers = [hl2ss_io.create_rd(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
     [reader.open() for reader in readers]
 
     container = av.open(output_filename, mode='w')
-    streams = [container.add_stream(get_av_codec_name(reader.header.port, reader.header.profile), rate=get_av_framerate(reader.header.port) if (get_av_framerate(reader.header.port) is not None) else reader.header.framerate) for reader in readers]
-    codecs = [av.CodecContext.create(get_av_codec_name(reader.header.port, reader.header.profile), "r") for reader in readers]
+    streams = [container.add_stream(get_av_codec_name(reader.port, reader.profile), rate=get_av_framerate(reader.port) if (get_av_framerate(reader.port) is not None) else reader.framerate) for reader in readers]
+    codecs = [av.CodecContext.create(get_av_codec_name(reader.port, reader.profile), "r") for reader in readers]
 
     for stream in streams:
         stream.time_base = time_base
@@ -472,7 +472,7 @@ def unpack_to_mp4(input_filenames, output_filename):
     base = 0#hl2ss._RANGEOF.U64_MAX
 
     for reader in readers:
-        data = reader.read()
+        data = reader.get_next_packet()
         if ((data is not None) and (data.timestamp > base)):
             base = data.timestamp
 
@@ -481,11 +481,11 @@ def unpack_to_mp4(input_filenames, output_filename):
 
     for reader, codec, stream in zip(readers, codecs, streams):
         while (True):
-            data = reader.read()
+            data = reader.get_next_packet()
             if (data is None):
                 break
 
-            if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
+            if (reader.port == hl2ss.StreamPort.PERSONAL_VIDEO):
                 payload = hl2ss.unpack_pv(data.payload).image
             else:
                 payload = data.payload
@@ -506,14 +506,14 @@ def unpack_to_mp4(input_filenames, output_filename):
 
 
 def unpack_to_png(input_filename, output_filename):
-    rd = hl2ss_io.create_rd(True, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
+    rd = hl2ss_io.create_rd(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, True)
     rd.open()
 
     tar = tarfile.open(output_filename, 'w')
     idx = 0
 
     while (True):
-        data = rd.read()
+        data = rd.get_next_packet()
         if (data is None):
             break
         depth = cv2.imencode('.png', data.payload.depth)[1].tobytes()
