@@ -82,3 +82,40 @@ def rx_si(host, port, chunk=hl2ss.ChunkSize.SPATIAL_INPUT):
 def rx_eet(host, port, chunk=hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps=30):
     return hl2ss.rx_eet(host, port, chunk, fps)
 
+
+#------------------------------------------------------------------------------
+# Stream Sync Period
+#------------------------------------------------------------------------------
+
+def get_sync_frame_stamp(frame_stamp, sync_period):
+    return frame_stamp + ((sync_period - (frame_stamp % sync_period)) % sync_period)
+
+
+def get_sync_period(rx):
+    if (rx.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
+        return rx.options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize]
+    if (rx.port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
+        return rx.options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize]
+    if (rx.port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
+        return rx.options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize]
+    if (rx.port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
+        return rx.options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize]
+    if (rx.port == hl2ss.StreamPort.RM_DEPTH_AHAT):
+        return rx.options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize]
+    if (rx.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
+        return 1
+    if (rx.port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
+        return 1
+    if (rx.port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
+        return 1
+    if (rx.port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
+        return 1
+    if (rx.port == hl2ss.StreamPort.PERSONAL_VIDEO):
+        return rx.options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize]
+    if (rx.port == hl2ss.StreamPort.MICROPHONE):
+        return 1
+    if (rx.port == hl2ss.StreamPort.SPATIAL_INPUT):
+        return 1
+    if (rx.port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
+        return 1
+
