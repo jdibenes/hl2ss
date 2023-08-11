@@ -326,10 +326,6 @@ def create_wr_from_rx(filename, rx, user):
         return _create_wr_from_rx_eet(filename, rx, user)
 
 
-def create_wr_from_producer(filename, producer, port, user):
-    return create_wr_from_rx(filename, producer._rx[port], user)
-
-
 #------------------------------------------------------------------------------
 # File Reader
 #------------------------------------------------------------------------------
