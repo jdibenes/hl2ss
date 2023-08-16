@@ -30,6 +30,18 @@ def get_video_codec_default_options(width, height, framerate, divisor, profile):
 
 
 #------------------------------------------------------------------------------
+# Control
+#------------------------------------------------------------------------------
+
+def start_subsystem_pv(host, port):
+    hl2ss.start_subsystem_pv(host, port)
+
+
+def stop_subsystem_pv(host, port):
+    hl2ss.stop_subsystem_pv(host, port)
+
+
+#------------------------------------------------------------------------------
 # Receivers
 #------------------------------------------------------------------------------
 
@@ -81,6 +93,54 @@ def rx_si(host, port, chunk=hl2ss.ChunkSize.SPATIAL_INPUT):
 
 def rx_eet(host, port, chunk=hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps=30):
     return hl2ss.rx_eet(host, port, chunk, fps)
+
+
+#------------------------------------------------------------------------------
+# Mode 2
+#------------------------------------------------------------------------------
+
+def download_calibration_rm_vlc(host, port):
+    return hl2ss.download_calibration_rm_vlc(host, port)
+
+
+def download_calibration_rm_depth_ahat(host, port):
+    return hl2ss.download_calibration_rm_depth_ahat(host, port)
+
+
+def download_calibration_rm_depth_longthrow(host, port):
+    return hl2ss.download_calibration_rm_depth_longthrow(host, port)
+
+
+def download_calibration_rm_imu(host, port):
+    return hl2ss.download_calibration_rm_imu(host, port)
+
+
+def download_calibration_pv(host, port, width, height, framerate):
+    return hl2ss.download_calibration_pv(host, port, width, height, framerate)
+
+
+#------------------------------------------------------------------------------
+# IPC
+#------------------------------------------------------------------------------
+
+def ipc_rc(host, port):
+    return hl2ss.ipc_rc(host, port)
+
+
+def ipc_sm(host, port):
+    return hl2ss.ipc_sm(host, port)
+
+
+def ipc_su(host, port):
+    return hl2ss.ipc_su(host, port)
+
+
+def ipc_vi(host, port):
+    return hl2ss.ipc_vi(host, port)
+
+
+def ipc_umq(host, port):
+    return hl2ss.ipc_umq(host, port)
 
 
 #------------------------------------------------------------------------------
