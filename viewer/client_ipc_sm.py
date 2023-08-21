@@ -4,6 +4,7 @@
 
 import open3d as o3d
 import hl2ss
+import hl2ss_lnm
 import hl2ss_3dcv
 import hl2ss_sa
 
@@ -41,7 +42,7 @@ extents = [8.0, 8.0, 8.0] # Dimensions of the box
 # https://learn.microsoft.com/en-us/windows/mixed-reality/develop/native/spatial-mapping-in-directx
 # for details
 
-client = hl2ss.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
+client = hl2ss_lnm.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
 
 client.open()
 

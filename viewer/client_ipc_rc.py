@@ -6,6 +6,7 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
+import hl2ss_lnm
 
 # Settings --------------------------------------------------------------------
 
@@ -60,7 +61,7 @@ scene_mode = hl2ss.PV_CaptureSceneMode.Auto
 
 #------------------------------------------------------------------------------
 
-client = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+client = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 client.open()
 
 version = client.get_application_version()

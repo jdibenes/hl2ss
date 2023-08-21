@@ -59,7 +59,7 @@ if __name__ == '__main__':
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Wait for PV subsystem and fix exposure, iso speed, and white balance ----
-    ipc_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    ipc_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
     ipc_rc.open()
     ipc_rc.wait_for_pv_subsystem(True)
     ipc_rc.set_pv_exposure(pv_exposure_mode, pv_exposure)

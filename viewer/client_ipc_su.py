@@ -5,6 +5,7 @@
 
 import open3d as o3d
 import hl2ss
+import hl2ss_lnm
 import hl2ss_3dcv
 import hl2ss_sa
 
@@ -70,7 +71,7 @@ task = hl2ss.su_task(enable_scene_object_quads,
                      guid_list)
 task.pack()
 
-client = hl2ss.ipc_su(host, hl2ss.IPCPort.SCENE_UNDERSTANDING)
+client = hl2ss_lnm.ipc_su(host, hl2ss.IPCPort.SCENE_UNDERSTANDING)
 client.open()
 result = client.query(task)
 client.close()

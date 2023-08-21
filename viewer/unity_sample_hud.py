@@ -7,6 +7,7 @@ from pynput import keyboard
 
 import threading
 import hl2ss
+import hl2ss_lnm
 import hl2ss_rus
 
 
@@ -43,7 +44,7 @@ listener.start()
 with open(texture_file, mode='rb') as file:
     texture = file.read()
 
-ipc = hl2ss.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
+ipc = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
 ipc.open()
 
 key = 0

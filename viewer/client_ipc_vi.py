@@ -7,6 +7,7 @@
 from pynput import keyboard
 
 import hl2ss
+import hl2ss_lnm
 
 # Settings --------------------------------------------------------------------
 
@@ -34,7 +35,7 @@ def get_word(strings, index):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss.ipc_vi(host, hl2ss.IPCPort.VOICE_INPUT)
+client = hl2ss_lnm.ipc_vi(host, hl2ss.IPCPort.VOICE_INPUT)
 client.open()
 
 # See

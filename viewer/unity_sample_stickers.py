@@ -65,7 +65,7 @@ listener.start()
 with open(texture_file, mode='rb') as file:
     image = file.read()
 
-ipc = hl2ss.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
+ipc = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
 ipc.open()
 
 key = 0

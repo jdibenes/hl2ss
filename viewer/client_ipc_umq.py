@@ -5,6 +5,7 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
+import hl2ss_lnm
 
 #------------------------------------------------------------------------------
 
@@ -31,7 +32,7 @@ class command_buffer(hl2ss.umq_command_buffer):
     # See hl2ss_rus.py and the unity_sample scripts for more examples.
 
 
-client = hl2ss.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE) # Create hl2ss client object
+client = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE) # Create hl2ss client object
 client.open() # Connect to HL2
 
 buffer = command_buffer() # Create command buffer
