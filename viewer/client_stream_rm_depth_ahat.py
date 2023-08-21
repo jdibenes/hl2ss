@@ -41,7 +41,7 @@ profile_ab = hl2ss.VideoProfile.H265_MAIN
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT)
+    data = hl2ss_lnm.download_calibration_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT)
     print('Calibration data')
     print('Image point to unit plane')
     print(data.uv2xy)

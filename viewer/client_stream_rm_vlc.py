@@ -42,7 +42,7 @@ profile = hl2ss.VideoProfile.H265_MAIN
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss.download_calibration_rm_vlc(host, port)
+    data = hl2ss_lnm.download_calibration_rm_vlc(host, port)
     print('Calibration data')
     print('Image point to unit plane')
     print(data.uv2xy)
