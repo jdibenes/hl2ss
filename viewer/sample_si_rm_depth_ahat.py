@@ -28,7 +28,7 @@ calibration_path = '../calibration'
 
 # AHAT Profile
 ht_profile_z = hl2ss.DepthProfile.SAME
-ht_profile_ab = hl2ss.VideoProfile.H264_HIGH
+ht_profile_ab = hl2ss.VideoProfile.H265_MAIN
 
 # Marker properties
 radius = 5

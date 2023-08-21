@@ -36,7 +36,7 @@ divisor = 1
 profile_z = hl2ss.DepthProfile.SAME
 
 # Video encoding profile
-profile_ab = hl2ss.VideoProfile.H264_HIGH
+profile_ab = hl2ss.VideoProfile.H265_MAIN
 
 #------------------------------------------------------------------------------
 

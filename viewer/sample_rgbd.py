@@ -32,7 +32,7 @@ use_ab = False
 
 # AHAT Profile
 ht_profile_z = hl2ss.DepthProfile.SAME
-ht_profile_ab = hl2ss.VideoProfile.H264_HIGH
+ht_profile_ab = hl2ss.VideoProfile.H265_MAIN
 
 # Buffer length in seconds
 buffer_length = 10
