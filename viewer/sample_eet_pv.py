@@ -63,7 +63,7 @@ if __name__ == '__main__':
     listener.start()
 
     # Start PV Subsystem ------------------------------------------------------
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Start Spatial Mapping data manager --------------------------------------
     # Set region of 3D space to sample
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     producer.stop(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)
 
     # Stop PV subsystem -------------------------------------------------------
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()

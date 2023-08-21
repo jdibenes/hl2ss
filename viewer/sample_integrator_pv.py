@@ -56,7 +56,7 @@ if __name__ == '__main__':
     listener.start()
 
     # Start PV Subsystem ------------------------------------------------------
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Wait for PV subsystem and fix exposure, iso speed, and white balance ----
     ipc_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     # Stop PV subsystem -------------------------------------------------------
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()

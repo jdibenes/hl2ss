@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     # Start PV Subsystem if PV is selected ------------------------------------
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
-        hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+        hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Start receivers ---------------------------------------------------------
     producer = hl2ss_mp.producer()
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     # Stop PV Subsystem if PV is selected -------------------------------------
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
-        hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+        hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()

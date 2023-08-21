@@ -68,7 +68,7 @@ if __name__ == '__main__':
     first_pcd = True
 
     # Start PV subsystem ------------------------------------------------------
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Get calibration ---------------------------------------------------------
     calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     # Stop PV subsystem -------------------------------------------------------
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()

@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     # Start PV stream ---------------------------------------------------------
     # Start PV subsystem
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Fix PV focus
     rc_client = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # Stop PV stream ----------------------------------------------------------
     sink_pv.detach()
     producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Close SM manager --------------------------------------------------------
     sm_manager.close()
