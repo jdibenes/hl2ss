@@ -8,7 +8,7 @@ import hl2ss
 
 def get_video_codec_default_factor(profile):
     name = hl2ss.get_video_codec_name(profile)
-    return 1/50 if (name == 'h264') else 1/100 if (name == 'hevc') else 1.0
+    return 1/75 if (name == 'h264') else 1/150 if (name == 'hevc') else 1.0
 
 
 def get_video_codec_default_gop_size(framerate, divisor):
@@ -79,10 +79,10 @@ def stop_subsystem_pv(host, port):
 
 
 #------------------------------------------------------------------------------
-# Receivers
+# Modes 0, 1
 #------------------------------------------------------------------------------
 
-def rx_rm_vlc(host, port, chunk=hl2ss.ChunkSize.RM_VLC, mode=hl2ss.StreamMode.MODE_1, divisor=1, profile=hl2ss.VideoProfile.H264_HIGH, level=hl2ss.H26xLevel.DEFAULT, bitrate=None, options=None, decoded=True):
+def rx_rm_vlc(host, port, chunk=hl2ss.ChunkSize.RM_VLC, mode=hl2ss.StreamMode.MODE_1, divisor=1, profile=hl2ss.VideoProfile.H265_MAIN, level=hl2ss.H26xLevel.DEFAULT, bitrate=None, options=None, decoded=True):
     if (bitrate is None):
         bitrate = get_video_codec_default_bitrate(hl2ss.Parameters_RM_VLC.WIDTH, hl2ss.Parameters_RM_VLC.HEIGHT, hl2ss.Parameters_RM_VLC.FPS, divisor, profile)
 
@@ -92,7 +92,7 @@ def rx_rm_vlc(host, port, chunk=hl2ss.ChunkSize.RM_VLC, mode=hl2ss.StreamMode.MO
     return hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options) if (decoded) else hl2ss.rx_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options)
 
 
-def rx_rm_depth_ahat(host, port, chunk=hl2ss.ChunkSize.RM_DEPTH_AHAT, mode=hl2ss.StreamMode.MODE_1, divisor=1, profile_z=hl2ss.DepthProfile.SAME, profile_ab=hl2ss.VideoProfile.H264_HIGH, level=hl2ss.H26xLevel.DEFAULT, bitrate=None, options=None, decoded=True):
+def rx_rm_depth_ahat(host, port, chunk=hl2ss.ChunkSize.RM_DEPTH_AHAT, mode=hl2ss.StreamMode.MODE_1, divisor=1, profile_z=hl2ss.DepthProfile.SAME, profile_ab=hl2ss.VideoProfile.H265_MAIN, level=hl2ss.H26xLevel.DEFAULT, bitrate=None, options=None, decoded=True):
     if (bitrate is None):
         bitrate = get_video_codec_default_bitrate(hl2ss.Parameters_RM_DEPTH_AHAT.WIDTH, hl2ss.Parameters_RM_DEPTH_AHAT.HEIGHT, hl2ss.Parameters_RM_DEPTH_AHAT.FPS, divisor, profile_ab) * (4 if ((profile_z == hl2ss.DepthProfile.SAME) and (profile_ab != hl2ss.VideoProfile.RAW)) else 1)
 
@@ -110,7 +110,7 @@ def rx_rm_imu(host, port, chunk=hl2ss.ChunkSize.RM_IMU, mode=hl2ss.StreamMode.MO
     return hl2ss.rx_rm_imu(host, port, chunk, mode)
 
 
-def rx_pv(host, port, chunk=hl2ss.ChunkSize.PERSONAL_VIDEO, mode=hl2ss.StreamMode.MODE_1, width=1920, height=1080, framerate=30, divisor=1, profile=hl2ss.VideoProfile.H264_HIGH, level=hl2ss.H26xLevel.DEFAULT, bitrate=None, options=None, decoded_format='bgr24'):
+def rx_pv(host, port, chunk=hl2ss.ChunkSize.PERSONAL_VIDEO, mode=hl2ss.StreamMode.MODE_1, width=1920, height=1080, framerate=30, divisor=1, profile=hl2ss.VideoProfile.H265_MAIN, level=hl2ss.H26xLevel.DEFAULT, bitrate=None, options=None, decoded_format='bgr24'):
     if (bitrate is None):
         bitrate = get_video_codec_default_bitrate(width, height, framerate, divisor, profile)
 
