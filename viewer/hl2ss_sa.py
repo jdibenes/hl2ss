@@ -4,6 +4,7 @@ import threading
 import numpy as np
 import open3d as o3d
 import hl2ss
+import hl2ss_lnm
 import hl2ss_3dcv
 
 
@@ -50,7 +51,7 @@ class sm_manager:
         self._vnf = hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized
         self._normals = True
         self._bounds = False
-        self._ipc = hl2ss.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
+        self._ipc = hl2ss_lnm.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
         self._surfaces = {}
         self._volumes = None
 
@@ -237,7 +238,7 @@ class su_manager:
         self._get_meshes = True
         self._get_collider_meshes = False
         self._guid_list = []
-        self._ipc = hl2ss.ipc_su(host, hl2ss.IPCPort.SCENE_UNDERSTANDING)
+        self._ipc = hl2ss_lnm.ipc_su(host, hl2ss.IPCPort.SCENE_UNDERSTANDING)
 
     def open(self):
         self._ipc.open()
