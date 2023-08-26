@@ -36,6 +36,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
 - Client can send messages to a Unity application using the plugin.
+- **[Experimental]** [C++ client library](https://github.com/jdibenes/hl2ss/tree/main/extensions/client_cpp).
 
 ## Preparation
 
