@@ -42,6 +42,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 
 Before using the server software configure your HoloLens as follows:
 
+0. Update your HoloLens (optional but strongly recommended): Settings -> Update & Security -> Windows Update.
 1. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
 2. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
 3. Enable research mode: Refer to the Enabling Research Mode section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
@@ -107,7 +108,6 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [MMDetection](https://github.com/open-mmlab/mmdetection)
-- [Websockets](https://github.com/aaugustin/websockets) `pip install websockets`
 
 ## Unity plugin
 
