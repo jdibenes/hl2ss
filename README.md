@@ -179,8 +179,7 @@ If you wish to create the server application appxbundle, right click the hl2ss p
 ## Known issues and limitations
 
 - Multiple streams can be active at the same time but only one client per stream is allowed.
-- Ocassionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
-- Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens OS. See https://github.com/microsoft/HoloLens2ForCV/issues/133.
+- Occasionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
 - The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
 
 ## References
