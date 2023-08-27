@@ -51,7 +51,7 @@ Please note that **enabling Research Mode on the HoloLens increases battery usag
 
 ## Installation (sideloading)
 
-The server application is distributed as a single appxbundle file and can be installed using one of the two following methods.
+The server application is distributed as a single appxbundle file and can be installed using one of the three following methods.
 
 **Method 1**
 
@@ -64,6 +64,12 @@ The server application is distributed as a single appxbundle file and can be ins
 1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
 2. Go to the Device Portal (type the IP address of your HoloLens in the address bar of your preferred web browser) and upload the appxbundle to the HoloLens (System -> File explorer -> Downloads).
 3. On your HoloLens, open the File Explorer and locate the appxbundle. Tap the appxbundle file to open the installer and tap Install.
+
+**Method 3**
+
+1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
+2. Go to the Device Portal and navigate to Views -> Apps. Under Deploy apps, select Local Storage, click Browse, and select the appxbundle.
+3. Click Install, wait for the installation to complete, then click Done.
 
 You can find the server application (hl2ss) in the All apps list.
 
