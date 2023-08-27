@@ -42,7 +42,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 
 Before using the server software configure your HoloLens as follows:
 
-0. Update your HoloLens (optional but strongly recommended): Settings -> Update & Security -> Windows Update.
+0. Update your HoloLens: Settings -> Update & Security -> Windows Update.
 1. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
 2. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
 3. Enable research mode: Refer to the Enabling Research Mode section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
