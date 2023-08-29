@@ -1,0 +1,5 @@
+topics:
+  - query: tcn/loc/hl2/*/cfg/presence
+    root_type: Hololens2Presence
+  - query: tcn/loc/hl2/*/str/si
+    root_type: Hololens2HandTracking
