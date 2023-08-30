@@ -3,18 +3,19 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdexcept>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 #include "hl2ss.h"
 #include "types.h"
 
-#include <iostream>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+#ifdef HL2SS_ENABLE_ZDEPTH
+#include <zdepth.hpp>
+#endif
 
 namespace hl2ss
 {
 //------------------------------------------------------------------------------
-// Network Client
+// * Client
 //------------------------------------------------------------------------------
 
 client::client()
@@ -24,7 +25,7 @@ client::client()
 
 client::~client()
 {
-    close();
+    if (m_socket >= 0) { close(); }
 }
 
 void client::open(char const* host, uint16_t port)
@@ -44,32 +45,32 @@ void client::open(char const* host, uint16_t port)
     if (status < 0) { throw std::runtime_error("hl2ss::client::open : connect failed"); }
 }
 
-void client::sendall(char const* data, size_t count)
+void client::sendall(void const* data, size_t count)
 {
     ssize_t sent = 0;
     while (count > 0)
     {
-    ssize_t bytes = send(m_socket, data + sent, count, 0);
-    if (bytes < 0) { throw std::runtime_error("hl2ss::client::sendall : send failed"); }
+    ssize_t bytes = send(m_socket, (char*)data + sent, count, 0);
+    if (bytes <= 0) { throw std::runtime_error("hl2ss::client::sendall : send failed"); }
     count -= bytes;
     sent  += bytes;
     }
 }
 
-size_t client::recv(char* buffer, size_t count)
+size_t client::recv(void* buffer, size_t count)
 {
     size_t bytes = ::recv(m_socket, buffer, count, 0);
     if ((bytes <= 0) && (count > 0)) { throw std::runtime_error("hl2ss::client::recv : recv failed"); }
     return bytes;
 }
 
-void client::download(char* buffer, size_t total, size_t chunk_size)
+void client::download(void* buffer, size_t total, size_t chunk)
 {
     size_t received = 0;
     while (total > 0)
     {
-    if (chunk_size > total) { chunk_size = total; }
-    size_t bytes = recv(buffer + received, chunk_size);
+    if (chunk > total) { chunk = total; }
+    size_t bytes = recv((char*)buffer + received, chunk);
     total    -= bytes;
     received += bytes;
     }
@@ -77,65 +78,51 @@ void client::download(char* buffer, size_t total, size_t chunk_size)
 
 void client::close()
 {
-    if (m_socket < 0) { return; }
     ::close(m_socket);
     m_socket = -1;
 }
 
 //------------------------------------------------------------------------------
-// Packet
+// * Packet
 //------------------------------------------------------------------------------
 
 packet::packet()
 {
     timestamp = 0;
     sz_payload = 0;
-    payload = NULL;
-    pose = NULL;
+    payload = nullptr;
+    pose = nullptr;
 }
 
-packet::~packet()
+void packet::init_payload(uint32_t size)
 {
-    free_payload();
-    free_pose();
+    sz_payload = size;    
+    payload = (size > 0) ? std::make_unique<uint8_t[]>(size) : nullptr;
 }
 
-void packet::init_payload()
+void packet::swap_payload(uint32_t size, std::unique_ptr<uint8_t[]> new_payload)
 {
-    payload = new uint8_t[sz_payload];
+    payload.swap(new_payload);
+    sz_payload = size;
 }
 
 void packet::init_pose()
 {
-    pose = new float[SZ_POSE / sizeof(float)];
-}
-
-void packet::free_payload()
-{
-    if (payload == NULL) { return; }
-    delete[] payload;
-    payload = NULL;
-}
-
-void packet::free_pose()
-{
-    if (pose == NULL) { return; }
-    delete[] pose;
-    pose = NULL;
+    pose = std::make_unique<float[]>(SZ_POSE / sizeof(float));
 }
 
 //------------------------------------------------------------------------------
-// Packet Gatherer
+// * Packet Gatherer
 //------------------------------------------------------------------------------
 
-void gatherer::open(char const* host, uint16_t port, size_t chunk_size, uint8_t mode)
+void gatherer::open(char const* host, uint16_t port, size_t chunk, uint8_t mode)
 {
     m_client.open(host, port);
-    m_chunk_size = chunk_size;
+    m_chunk = chunk;
     m_mode = mode;
 }
 
-void gatherer::sendall(char const* data, size_t count)
+void gatherer::sendall(void const* data, size_t count)
 {
     m_client.sendall(data, count);
 }
@@ -144,14 +131,14 @@ std::shared_ptr<packet> gatherer::get_next_packet()
 {
     std::shared_ptr<packet> p = std::make_shared<packet>();
 
-    m_client.download((char*)&p->timestamp, sizeof(p->timestamp), m_chunk_size);
-    m_client.download((char*)&p->sz_payload, sizeof(p->sz_payload), m_chunk_size);
-    p->init_payload();
-    m_client.download((char*)p->payload, p->sz_payload, m_chunk_size);
+    m_client.download(&p->timestamp, sizeof(p->timestamp), m_chunk);
+    m_client.download(&p->sz_payload, sizeof(p->sz_payload), m_chunk);
+    p->init_payload(p->sz_payload);
+    m_client.download(p->payload.get(), p->sz_payload, m_chunk);
     if (m_mode == stream_mode::MODE_1)
     {
     p->init_pose();
-    m_client.download((char*)p->pose, packet::SZ_POSE, m_chunk_size);
+    m_client.download(p->pose.get(), packet::SZ_POSE, m_chunk);
     }
 
     return p;
@@ -163,294 +150,241 @@ void gatherer::close()
 }
 
 //------------------------------------------------------------------------------
-// Stream Configuration
+// * Packer
 //------------------------------------------------------------------------------
 
-static void create_configuration_for_mode(std::vector<uint8_t>& cfg, uint8_t mode)
+void push_u8(std::vector<uint8_t>& sc, uint8_t byte)
 {
-    v8 _mode;
-    
-    _mode.b = mode;
-
-    cfg.push_back(_mode.b);
+    sc.push_back(byte);
 }
 
-static void create_configuration_for_video_format(std::vector<uint8_t>& cfg, uint16_t width, uint16_t height, uint8_t framerate)
+void push_u16(std::vector<uint8_t>& sc, uint16_t word)
 {
-    v16 _width;
-    v16 _height;
-    v8  _framerate;
+    v16 data;
 
-    _width.w = width;
-    _height.w = height;
-    _framerate.b = framerate;
+    data.w = word;
 
-    cfg.push_back(_width.b.b0.b);
-    cfg.push_back(_width.b.b1.b);
-    cfg.push_back(_height.b.b0.b);
-    cfg.push_back(_height.b.b1.b);
-    cfg.push_back(_framerate.b);
+    push_u8(sc, data.b.b0.b);
+    push_u8(sc, data.b.b1.b);
 }
 
-static void create_configuration_for_video_divisor(std::vector<uint8_t>& cfg, uint8_t divisor)
+void push_u32(std::vector<uint8_t>& sc, uint32_t dword)
 {
-    v8 _divisor;
+    v32 data;
 
-    _divisor.b = divisor;
+    data.d = dword;
 
-    cfg.push_back(_divisor.b);
+    push_u16(sc, data.w.w0.w);
+    push_u16(sc, data.w.w1.w);
 }
 
-static void create_configuration_for_video_encoding(std::vector<uint8_t>& cfg, uint8_t profile, uint8_t level, uint32_t bitrate)
+void push_u64(std::vector<uint8_t>& sc, uint64_t qword)
 {
-    v8 _profile;
-    v8 _level;
-    v32 _bitrate;
+    v64 data;
 
-    _profile.b = profile;
-    _level.b = level;
-    _bitrate.d = bitrate;
+    data.q = qword;
 
-    cfg.push_back(_profile.b);
-    cfg.push_back(_level.b);
-    cfg.push_back(_bitrate.w.w0.b.b0.b);
-    cfg.push_back(_bitrate.w.w0.b.b1.b);
-    cfg.push_back(_bitrate.w.w1.b.b0.b);
-    cfg.push_back(_bitrate.w.w1.b.b1.b);
+    push_u32(sc, data.d.d0.d);
+    push_u32(sc, data.d.d1.d);
 }
 
-static void create_configuration_for_depth_encoding(std::vector<uint8_t>& cfg, uint8_t profile)
+void push_float(std::vector<uint8_t>& sc, float f)
 {
-    v8 _profile;
-
-    _profile.b = profile;
-
-    cfg.push_back(_profile.b);
+    push_u32(sc, *(uint32_t*)&f);
 }
 
-static void create_configuration_for_audio_encoding(std::vector<uint8_t>& cfg, uint8_t profile, uint8_t level)
+void push_double(std::vector<uint8_t>& sc, double d)
 {
-    v8 _profile;
-    v8 _level;
-
-    _profile.b = profile;
-    _level.b = level;
-
-    cfg.push_back(_profile.b);
-    cfg.push_back(_level.b);
+    push_u64(sc, *(uint64_t*)&d);
 }
 
-static void create_configuration_for_png_encoding(std::vector<uint8_t>& cfg, uint8_t png_filter)
+//------------------------------------------------------------------------------
+// * Configuration Primitives
+//------------------------------------------------------------------------------
+
+void create_configuration_for_mode(std::vector<uint8_t>& sc, uint8_t mode)
 {
-    v8 _png_filter;
-
-    _png_filter.b = png_filter;
-
-    cfg.push_back(_png_filter.b);
+    push_u8(sc, mode);
 }
 
-static void create_configuration_for_h26x_encoding(std::vector<uint8_t>& cfg, std::vector<uint64_t> const& options)
+void create_configuration_for_video_resolution(std::vector<uint8_t>& sc, uint16_t width, uint16_t height)
 {
-    v8 _count;
+    push_u16(sc, width);
+    push_u16(sc, height);
+}
 
-    _count.b = (uint8_t)(options.size() / 2);
+void create_configuration_for_framerate(std::vector<uint8_t>& sc, uint8_t framerate)
+{
+    push_u8(sc, framerate);
+}
 
-    cfg.push_back(_count.b);
+void create_configuration_for_video_divisor(std::vector<uint8_t>& sc, uint8_t divisor)
+{
+    push_u8(sc, divisor);
+}
+
+void create_configuration_for_video_encoding(std::vector<uint8_t>& sc, uint8_t profile, uint8_t level, uint32_t bitrate)
+{
+    push_u8(sc, profile);
+    push_u8(sc, level);
+    push_u32(sc, bitrate);
+}
+
+void create_configuration_for_depth_encoding(std::vector<uint8_t>& sc, uint8_t profile)
+{
+    push_u8(sc, profile);
+}
+
+void create_configuration_for_audio_encoding(std::vector<uint8_t>& sc, uint8_t profile, uint8_t level)
+{
+    push_u8(sc, profile);
+    push_u8(sc, level);
+}
+
+void create_configuration_for_png_encoding(std::vector<uint8_t>& sc, uint8_t png_filter)
+{
+    push_u8(sc, png_filter);
+}
+
+void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vector<uint64_t> const& options)
+{
+    push_u8(sc, (uint8_t)(options.size() / 2));
 
     for (size_t i = 0; i < options.size(); i += 2)
     {
-    v64 _index;
-    v64 _value;
-
-    _index.q = options[i];
-    _value.q = options[i+1];
-
-    cfg.push_back(_index.d.d0.w.w0.b.b0.b);
-    cfg.push_back(_index.d.d0.w.w0.b.b1.b);
-    cfg.push_back(_index.d.d0.w.w1.b.b0.b);
-    cfg.push_back(_index.d.d0.w.w1.b.b1.b);
-    cfg.push_back(_index.d.d1.w.w0.b.b0.b);
-    cfg.push_back(_index.d.d1.w.w0.b.b1.b);
-    cfg.push_back(_index.d.d1.w.w1.b.b0.b);
-    cfg.push_back(_index.d.d1.w.w1.b.b1.b);
-    cfg.push_back(_value.d.d0.w.w0.b.b0.b);
-    cfg.push_back(_value.d.d0.w.w0.b.b1.b);
-    cfg.push_back(_value.d.d0.w.w1.b.b0.b);
-    cfg.push_back(_value.d.d0.w.w1.b.b1.b);
-    cfg.push_back(_value.d.d1.w.w0.b.b0.b);
-    cfg.push_back(_value.d.d1.w.w0.b.b1.b);
-    cfg.push_back(_value.d.d1.w.w1.b.b0.b);
-    cfg.push_back(_value.d.d1.w.w1.b.b1.b);
+    push_u64(sc, options[i]);
+    push_u64(sc, options[i+1]);
     }
 }
 
-static void create_configuration_for_rm_vlc(std::vector<uint8_t>& cfg, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
+//------------------------------------------------------------------------------
+// * Stream Configuration
+//------------------------------------------------------------------------------
+
+void create_configuration_for_rm_vlc(std::vector<uint8_t>& sc, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
 {
-    create_configuration_for_mode(cfg, mode);
-    create_configuration_for_video_divisor(cfg, divisor);
-    create_configuration_for_video_encoding(cfg, profile, level, bitrate);
-    create_configuration_for_h26x_encoding(cfg, options);
+    create_configuration_for_mode(sc, mode);
+    create_configuration_for_video_divisor(sc, divisor);
+    create_configuration_for_video_encoding(sc, profile, level, bitrate);
+    create_configuration_for_h26x_encoding(sc, options);
 }
 
-static void create_configuration_for_rm_depth_ahat(std::vector<uint8_t>& cfg, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
+void create_configuration_for_rm_depth_ahat(std::vector<uint8_t>& sc, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
 {
-    create_configuration_for_mode(cfg, mode);
-    create_configuration_for_video_divisor(cfg, divisor);
-    create_configuration_for_depth_encoding(cfg, profile_z);
-    create_configuration_for_video_encoding(cfg, profile_ab, level, bitrate);
-    create_configuration_for_h26x_encoding(cfg, options);
+    create_configuration_for_mode(sc, mode);
+    create_configuration_for_video_divisor(sc, divisor);
+    create_configuration_for_depth_encoding(sc, profile_z);
+    create_configuration_for_video_encoding(sc, profile_ab, level, bitrate);
+    create_configuration_for_h26x_encoding(sc, options);
 }
 
-static void create_configuration_for_rm_depth_longthrow(std::vector<uint8_t>& cfg, uint8_t mode, uint8_t divisor, uint8_t png_filter)
+void create_configuration_for_rm_depth_longthrow(std::vector<uint8_t>& sc, uint8_t mode, uint8_t divisor, uint8_t png_filter)
 {
-    create_configuration_for_mode(cfg, mode);
-    create_configuration_for_video_divisor(cfg, divisor);
-    create_configuration_for_png_encoding(cfg, png_filter);
+    create_configuration_for_mode(sc, mode);
+    create_configuration_for_video_divisor(sc, divisor);
+    create_configuration_for_png_encoding(sc, png_filter);
 }
 
-static void create_configuration_for_rm_imu(std::vector<uint8_t>& cfg, uint8_t mode)
+void create_configuration_for_rm_imu(std::vector<uint8_t>& sc, uint8_t mode)
 {
-    create_configuration_for_mode(cfg, mode);
+    create_configuration_for_mode(sc, mode);
 }
 
-static void create_configuration_for_pv(std::vector<uint8_t>& cfg, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
+void create_configuration_for_pv(std::vector<uint8_t>& sc, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
 {
-    create_configuration_for_mode(cfg, mode);
-    create_configuration_for_video_format(cfg, width, height, framerate);
-    create_configuration_for_video_divisor(cfg, divisor);
-    create_configuration_for_video_encoding(cfg, profile, level, bitrate);
-    create_configuration_for_h26x_encoding(cfg, options);
+    create_configuration_for_mode(sc, mode);
+    create_configuration_for_video_resolution(sc, width, height);
+    create_configuration_for_framerate(sc, framerate);
+    create_configuration_for_video_divisor(sc, divisor);
+    create_configuration_for_video_encoding(sc, profile, level, bitrate);
+    create_configuration_for_h26x_encoding(sc, options);
 }
 
-static void create_configuration_for_microphone(std::vector<uint8_t>& cfg, uint8_t profile, uint8_t level)
+void create_configuration_for_microphone(std::vector<uint8_t>& sc, uint8_t profile, uint8_t level)
 {
-    create_configuration_for_audio_encoding(cfg, profile, level);
+    create_configuration_for_audio_encoding(sc, profile, level);
 }
 
-static void create_configuration_for_eet(std::vector<uint8_t>& cfg, uint8_t fps)
+void create_configuration_for_si(std::vector<uint8_t>& sc)
 {
-    v8 _fps;
-
-    _fps.b = fps;
-
-    cfg.push_back(_fps.b);
+    (void)sc;
 }
 
-static void create_configuration_for_rm_mode2(std::vector<uint8_t>& cfg, uint8_t mode)
+void create_configuration_for_eet(std::vector<uint8_t>& sc, uint8_t framerate)
 {
-    create_configuration_for_mode(cfg, mode);
+    create_configuration_for_framerate(sc, framerate);
 }
 
-static void create_configuration_for_pv_mode2(std::vector<uint8_t>& cfg, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate)
+void create_configuration_for_rm_mode_2(std::vector<uint8_t>& sc, uint8_t mode)
 {
-    create_configuration_for_mode(cfg, mode);
-    create_configuration_for_video_format(cfg, width, height, framerate);
+    create_configuration_for_mode(sc, mode);
+}
+
+void create_configuration_for_pv_mode_2(std::vector<uint8_t>& sc, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate)
+{
+    create_configuration_for_mode(sc, mode);
+    create_configuration_for_video_resolution(sc, width, height);
+    create_configuration_for_framerate(sc, framerate);
 }
 
 //------------------------------------------------------------------------------
-// Mode 0 and Mode 1 Data Acquisition
+// * PV Control
 //------------------------------------------------------------------------------
 
-static void connect_client_rm_vlc(gatherer& client, char const* host, uint16_t port, size_t chunk_size, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
+namespace pv_control
 {
-    std::vector<uint8_t> cfg;
-
-    create_configuration_for_rm_vlc(cfg, mode, divisor, profile, level, bitrate, options);
-    client.open(host, port, chunk_size, mode);
-    client.sendall((char*)cfg.data(), cfg.size());
-}
-
-static void connect_client_rm_depth_ahat(gatherer& client, char const* host, uint16_t port, size_t chunk_size, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
-{
-    std::vector<uint8_t> cfg;
-
-    create_configuration_for_rm_depth_ahat(cfg, mode, divisor, profile_z, profile_ab, level, bitrate, options);
-    client.open(host, port, chunk_size, mode);
-    client.sendall((char*)cfg.data(), cfg.size());
-}
-
-static void connect_client_rm_depth_longthrow(gatherer& client, char const* host, uint16_t port, size_t chunk_size, uint8_t mode, uint8_t divisor, uint8_t png_filter)
-{
-    std::vector<uint8_t> cfg;
-
-    create_configuration_for_rm_depth_longthrow(cfg, mode, divisor, png_filter);
-    client.open(host, port, chunk_size, mode);
-    client.sendall((char*)cfg.data(), cfg.size());
-}
-
-static void connect_client_rm_imu(gatherer& client, char const* host, uint16_t port, size_t chunk_size, uint8_t mode)
-{
-    std::vector<uint8_t> cfg;
-
-    create_configuration_for_rm_imu(cfg, mode);
-    client.open(host, port, chunk_size, mode);
-    client.sendall((char*)cfg.data(), cfg.size());
-}
-
-static void connect_client_pv(gatherer& client, char const* host, uint16_t port, size_t chunk_size, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
-{
-    std::vector<uint8_t> cfg;
-
-    create_configuration_for_pv(cfg, mode, width, height, framerate, divisor, profile, level, bitrate, options);
-    client.open(host, port, chunk_size, mode);
-    client.sendall((char*)cfg.data(), cfg.size());
-}
-
-static void connect_client_microphone(gatherer& client, char const* host, uint16_t port, size_t chunk_size, uint8_t profile, uint8_t level)
-{
-    std::vector<uint8_t> cfg;
-
-    create_configuration_for_microphone(cfg, profile, level);
-    client.open(host, port, chunk_size, stream_mode::MODE_0);
-    client.sendall((char*)cfg.data(), cfg.size());
-}
-
-static void connect_client_si(gatherer& client, char const* host, uint16_t port, size_t chunk_size)
-{
-    client.open(host, port, chunk_size, stream_mode::MODE_0);
-}
-
-static void connect_client_eet(gatherer& client, char const* host, uint16_t port, size_t chunk_size, uint8_t fps)
-{
-    std::vector<uint8_t> cfg;
-
-    create_configuration_for_eet(cfg, fps);
-    client.open(host, port, chunk_size, stream_mode::MODE_1);
-    client.sendall((char*)cfg.data(), cfg.size());
-}
-
-enum PVCNT : uint8_t
-{
-    START  = 0x04,
-    STOP   = 0x08,
-    MODE_3 = 0x03,
+uint8_t const START  = 0x04;
+uint8_t const STOP   = 0x08;
+uint8_t const MODE_3 = 0x03;
 };
 
 void start_subsystem_pv(char const* host, uint16_t port)
 {
     std::vector<uint8_t> cfg;
-    create_configuration_for_pv_mode2(cfg, PVCNT::START | PVCNT::MODE_3, 1920, 1080, 30);
-
     client c;
+
+    create_configuration_for_pv_mode_2(cfg, pv_control::START | pv_control::MODE_3, 1920, 1080, 30);
+
     c.open(host, port);
-    c.sendall((char*)cfg.data(), cfg.size());
+    c.sendall(cfg.data(), cfg.size());
     c.close();
 }
 
 void stop_subsystem_pv(char const* host, uint16_t port)
 {
     std::vector<uint8_t> cfg;
-    create_configuration_for_pv_mode2(cfg, PVCNT::STOP | PVCNT::MODE_3, 1920, 1080, 30);
-
     client c;
+
+    create_configuration_for_pv_mode_2(cfg, pv_control::STOP | pv_control::MODE_3, 1920, 1080, 30);
+
     c.open(host, port);
-    c.sendall((char*)cfg.data(), cfg.size());
+    c.sendall(cfg.data(), cfg.size());
     c.close();
 }
 
 //------------------------------------------------------------------------------
-// Receiver Wrappers
+// * Modes 0, 1 Data Acquisition
 //------------------------------------------------------------------------------
+
+rx::rx(char const* host, uint16_t port, size_t chunk, uint8_t mode)
+{
+    this->host = host;
+    this->port = port;
+    this->chunk = chunk;
+    this->mode = mode;
+}
+
+rx::~rx()
+{
+}
+
+void rx::open()
+{
+    create_configuration(m_sc);
+    m_client.open(host.c_str(), port, chunk, mode);
+    m_client.sendall(m_sc.data(), m_sc.size());
+    m_sc.clear();
+}
 
 std::shared_ptr<packet> rx::get_next_packet()
 {
@@ -462,12 +396,8 @@ void rx::close()
     return m_client.close();
 }
 
-rx_rm_vlc::rx_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
+rx_rm_vlc::rx_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
-    this->mode = mode;
     this->divisor = divisor;
     this->profile = profile;
     this->level = level;
@@ -475,17 +405,13 @@ rx_rm_vlc::rx_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode
     this->options = options;
 }
 
-void rx_rm_vlc::open()
+void rx_rm_vlc::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_rm_vlc(m_client, host.c_str(), port, chunk, mode, divisor, profile, level, bitrate, options);
+    create_configuration_for_rm_vlc(sc, mode, divisor, profile, level, bitrate, options);
 }
 
-rx_rm_depth_ahat::rx_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
+rx_rm_depth_ahat::rx_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
-    this->mode = mode;
     this->divisor = divisor;
     this->profile_z = profile_z;
     this->profile_ab = profile_ab;
@@ -494,45 +420,33 @@ rx_rm_depth_ahat::rx_rm_depth_ahat(char const* host, uint16_t port, size_t chunk
     this->options = options;
 }
 
-void rx_rm_depth_ahat::open()
+void rx_rm_depth_ahat::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_rm_depth_ahat(m_client, host.c_str(), port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options);
+    create_configuration_for_rm_depth_ahat(sc, mode, divisor, profile_z, profile_ab, level, bitrate, options);
 }
 
-rx_rm_depth_longthrow::rx_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter)
+rx_rm_depth_longthrow::rx_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx(host, port, chunk, mode)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
-    this->mode = mode;
     this->divisor = divisor;
     this->png_filter = png_filter;
 }
 
-void rx_rm_depth_longthrow::open()
+void rx_rm_depth_longthrow::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_rm_depth_longthrow(m_client, host.c_str(), port, chunk, mode, divisor, png_filter);
+    create_configuration_for_rm_depth_longthrow(sc, mode, divisor, png_filter);
 }
 
-rx_rm_imu::rx_rm_imu(char const* host, uint16_t port, size_t chunk, uint8_t mode)
+rx_rm_imu::rx_rm_imu(char const* host, uint16_t port, size_t chunk, uint8_t mode) : rx(host, port, chunk, mode)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
-    this->mode = mode;
 }
 
-void rx_rm_imu::open()
+void rx_rm_imu::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_rm_imu(m_client, host.c_str(), port, chunk, mode);
+    create_configuration_for_rm_imu(sc, mode);
 }
 
-rx_pv::rx_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
+rx_pv::rx_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
-    this->mode = mode;
     this->width = width;
     this->height = height;
     this->framerate = framerate;
@@ -542,78 +456,59 @@ rx_pv::rx_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16
     this->bitrate = bitrate;
     this->options = options;
 }
-    
-void rx_pv::open()
+
+void rx_pv::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_pv(m_client, host.c_str(), port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options);
+    create_configuration_for_pv(sc, mode, width, height, framerate, divisor, profile, level, bitrate, options);
 }
 
-rx_microphone::rx_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level)
+rx_microphone::rx_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level) : rx(host, port, chunk, stream_mode::MODE_0)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
     this->profile = profile;
     this->level = level;
 }
 
-void rx_microphone::open()
+void rx_microphone::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_microphone(m_client, host.c_str(), port, chunk, profile, level);
+    create_configuration_for_microphone(sc, profile, level);
 }
 
-rx_si::rx_si(char const* host, uint16_t port, size_t chunk)
+rx_si::rx_si(char const* host, uint16_t port, size_t chunk) : rx(host, port, chunk, stream_mode::MODE_0)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
 }
 
-void rx_si::open()
+void rx_si::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_si(m_client, host.c_str(), port, chunk);
+    create_configuration_for_si(sc);
 }
 
-rx_eet::rx_eet(char const* host, uint16_t port, size_t chunk, uint8_t fps)
+rx_eet::rx_eet(char const* host, uint16_t port, size_t chunk, uint8_t framerate) : rx(host, port, chunk, stream_mode::MODE_1)
 {
-    this->host = host;
-    this->port = port;
-    this->chunk = chunk;
-    this->fps = fps;
+    this->framerate = framerate;
 }
 
-void rx_eet::open()
+void rx_eet::create_configuration(std::vector<uint8_t>& sc)
 {
-    connect_client_eet(m_client, host.c_str(), port, chunk, fps);
+    create_configuration_for_eet(sc, framerate);
 }
 
 //------------------------------------------------------------------------------
-// Frame
+// * Frame
 //------------------------------------------------------------------------------
 
 frame::frame()
-{
-    av_frame = NULL;
-}
-
-frame::~frame()
-{
-    free_frame();
-}
-
-void frame::init_frame()
 {
     av_frame = av_frame_alloc();
     if (av_frame == NULL) { throw std::runtime_error("hl2ss::frame::init_frame : av_frame_alloc failed"); }
 }
 
-void frame::free_frame()
+frame::~frame()
 {
     if (av_frame != NULL) { av_frame_free(&av_frame); }
 }
 
 //------------------------------------------------------------------------------
-// Codecs
+// * Codec
 //------------------------------------------------------------------------------
 
 AVCodecID get_video_codec_id(uint8_t profile)
@@ -688,8 +583,6 @@ std::shared_ptr<frame> codec::decode(uint8_t* payload, uint32_t size)
     int status = avcodec_send_packet(m_c, m_avpkt);
     if (status < 0) { throw std::runtime_error("hl2ss::codec::codec : avcodec_send_packet failed"); }
 
-    f->init_frame();
-
     status = avcodec_receive_frame(m_c, f->av_frame);
     if (status < 0) { throw std::runtime_error("hl2ss::codec::codec : avcodec_receive_frame failed"); }
 
@@ -702,7 +595,11 @@ void codec::close()
     if (m_avpkt != NULL) { av_packet_free(&m_avpkt); }
 }
 
-static void trim_plane(uint8_t* dst, uint8_t const* src, uint16_t height, uint16_t width, uint16_t stride)
+//------------------------------------------------------------------------------
+// * Decoders
+//------------------------------------------------------------------------------
+
+void trim_plane(uint8_t* dst, uint8_t const* src, uint16_t height, uint16_t width, uint16_t stride)
 {
     if (width == stride)
     {
@@ -717,135 +614,25 @@ static void trim_plane(uint8_t* dst, uint8_t const* src, uint16_t height, uint16
     }
 }
 
-static void collect_I420(uint8_t* dst, int width, int height, uint8_t* data[8], int linesize[8])
+void collect_I420(uint8_t* dst, int width, int height, uint8_t* data[8], int linesize[8])
 {
     trim_plane(dst,                           data[0], height,     width,     linesize[0]);
     trim_plane(dst + (   height * width),     data[1], height / 2, width / 2, linesize[1]);
     trim_plane(dst + (5 *height * width) / 4, data[2], height / 2, width / 2, linesize[2]);
 }
 
-static void collect_NV12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* src, uint16_t stride)
+void collect_NV12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* src, uint16_t stride)
 {
     trim_plane(dst,                    src,                     height, width,     stride);
     trim_plane(dst + (height * width), src + (height * stride), height, width / 2, stride / 2);
 }
 
-static uint16_t get_video_stride(uint16_t width)
+uint16_t get_video_stride(uint16_t width)
 {
     return width + ((64 - (width & 63)) & 63);
 }
 
-//------------------------------------------------------------------------------
-// Decoded Receivers
-//------------------------------------------------------------------------------
-
-rx_decoded_rm_vlc::rx_decoded_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options)
-{
-}
-
-void rx_decoded_rm_vlc::open()
-{
-    if (profile != video_profile::VIDEO_RAW) { m_codec.open(get_video_codec_id(profile)); }
-    rx_rm_vlc::open();
-}
-
-std::shared_ptr<packet> rx_decoded_rm_vlc::get_next_packet()
-{
-    std::shared_ptr<packet> p = rx_rm_vlc::get_next_packet();
-    if (profile == video_profile::VIDEO_RAW) { return p; }
-    std::shared_ptr<frame> f = m_codec.decode(p->payload, p->sz_payload);
-    p->free_payload();
-    p->sz_payload = parameters_rm_vlc::PIXELS * sizeof(uint8_t);
-    p->init_payload();
-    memcpy(p->payload, f->av_frame->data[0], p->sz_payload);
-    return p;
-}
-
-void rx_decoded_rm_vlc::close()
-{
-    rx_rm_vlc::close();
-    if (profile != video_profile::VIDEO_RAW) {  m_codec.close(); }
-}
-
-rx_decoded_rm_depth_ahat::rx_decoded_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_depth_ahat(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options)
-{
-}
-
-void rx_decoded_rm_depth_ahat::open()
-{
-    if (profile_ab != video_profile::VIDEO_RAW) { m_codec.open(get_video_codec_id(profile_ab)); }
-    rx_rm_depth_ahat::open();
-}
-
-std::shared_ptr<packet> rx_decoded_rm_depth_ahat::get_next_packet()
-{
-    std::shared_ptr<packet> p = rx_rm_depth_ahat::get_next_packet();
-    if (profile_z == hl2ss::depth_profile::SAME)
-    {
-    if (profile_ab == hl2ss::video_profile::VIDEO_RAW) { return p; }
-    std::shared_ptr<frame> f = m_codec.decode(p->payload, p->sz_payload);
-    p->free_payload();
-    p->sz_payload = parameters_rm_depth_ahat::PIXELS * 2 * sizeof(uint16_t);
-    uint32_t sz = p->sz_payload / 2;
-    p->init_payload();
-    cv::Mat y = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH, CV_8UC1, f->av_frame->data[0]);
-    cv::Mat depth = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH, CV_16UC1, p->payload);
-    y.convertTo(depth, CV_16UC1, 4);
-    cv::Mat u = cv::Mat(parameters_rm_depth_ahat::HEIGHT / 2, parameters_rm_depth_ahat::WIDTH / 2, CV_8UC1, f->av_frame->data[1]);
-    cv::Mat v = cv::Mat(parameters_rm_depth_ahat::HEIGHT / 2, parameters_rm_depth_ahat::WIDTH / 2, CV_8UC1, f->av_frame->data[2]);
-    std::vector<cv::Mat> uv;
-    uv.push_back(u);
-    uv.push_back(v);
-    cv::Mat ab_4q8 = cv::Mat(parameters_rm_depth_ahat::HEIGHT / 2, parameters_rm_depth_ahat::WIDTH / 2, CV_8UC2);
-    cv::merge(uv, ab_4q8);
-    cv::Mat ab_2q8 = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH / 2, CV_8UC1, ab_4q8.data);
-    cv::Mat ab_2q  = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH / 2, CV_16UC1);
-    ab_2q8.convertTo(ab_2q, CV_16UC1);
-    cv::Mat ab_2 = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH / 2, CV_16UC1);
-    cv::multiply(ab_2q, ab_2q, ab_2);
-    cv::Mat ab = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH, CV_16UC1, p->payload + sz);
-    cv::resize(ab_2, ab, ab.size(), 0, 0, cv::INTER_NEAREST);
-    }
-    else
-    {
-    throw std::runtime_error("hl2ss::rx_decoded_rm_depth_ahat::get_next_packet : ZDEPTH decompression not implemented");
-    }
-
-    return p;
-}
-
-void rx_decoded_rm_depth_ahat::close()
-{
-    rx_rm_depth_ahat::close();
-    if (profile_ab != video_profile::VIDEO_RAW) { m_codec.close(); }
-}
-
-rx_decoded_rm_depth_longthrow::rx_decoded_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter)
-{
-}
-
-void rx_decoded_rm_depth_longthrow::open()
-{
-    rx_rm_depth_longthrow::open();
-}
-
-std::shared_ptr<packet> rx_decoded_rm_depth_longthrow::get_next_packet()
-{
-    std::shared_ptr<packet> p = rx_rm_depth_longthrow::get_next_packet();
-    cv::Mat image = cv::imdecode(cv::Mat(1, p->sz_payload, CV_8UC1, p->payload), cv::IMREAD_UNCHANGED);
-    p->free_payload();
-    p->sz_payload = parameters_rm_depth_longthrow::PIXELS * 2 * sizeof(uint16_t);
-    p->init_payload();
-    memcpy(p->payload, image.data, p->sz_payload);    
-    return p;
-}
-
-void rx_decoded_rm_depth_longthrow::close()
-{
-    rx_rm_depth_longthrow::close();
-}
-
-int const rx_decoded_pv::cv_format[5][4] = 
+int const cv_format[5][4] = 
 {
     {3, CV_8UC3, cv::COLOR_YUV2BGR_I420,  cv::COLOR_YUV2BGR_NV12 },
     {3, CV_8UC3, cv::COLOR_YUV2RGB_I420,  cv::COLOR_YUV2RGB_NV12 },
@@ -854,50 +641,273 @@ int const rx_decoded_pv::cv_format[5][4] =
     {1, CV_8UC1, cv::COLOR_YUV2GRAY_I420, cv::COLOR_YUV2GRAY_NV12},
 };
 
+void decoder_rm_vlc::open(uint8_t profile)
+{
+    m_profile = profile;
+    if (m_profile != video_profile::RAW) { m_codec.open(get_video_codec_id(m_profile)); }
+}
+
+std::unique_ptr<uint8_t[]> decoder_rm_vlc::decode(uint8_t* data, uint32_t size)
+{
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    if (m_profile != video_profile::RAW)
+    {
+    std::shared_ptr<frame> f = m_codec.decode(data, size);
+    memcpy(out.get(), f->av_frame->data[0], parameters_rm_vlc::PIXELS);
+    }
+    else
+    {
+    memcpy(out.get(), data, size);
+    }
+    return out;
+}
+
+void decoder_rm_vlc::close()
+{
+    if (m_profile != video_profile::RAW) { m_codec.close(); }
+}
+
+void decoder_rm_depth_ahat::open(uint8_t profile_z, uint8_t profile_ab)
+{
+    m_profile_z = profile_z;
+    m_profile_ab = profile_ab;
+    if (m_profile_ab != hl2ss::video_profile::RAW) { m_codec.open(get_video_codec_id(profile_ab)); }
+}
+
+std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t size)
+{
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    if (m_profile_z == hl2ss::depth_profile::SAME)
+    {
+    if (m_profile_ab != hl2ss::video_profile::RAW)
+    {
+    std::shared_ptr<frame> f = m_codec.decode(data, size);
+
+    uint32_t sz = decoded_size / 2;
+    
+    cv::Mat depth = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH, CV_16UC1, out.get());
+    cv::Mat ab    = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH, CV_16UC1, out.get() + sz);
+
+    cv::Mat y  = cv::Mat(parameters_rm_depth_ahat::HEIGHT,     parameters_rm_depth_ahat::WIDTH,     CV_8UC1, f->av_frame->data[0]);
+    cv::Mat u  = cv::Mat(parameters_rm_depth_ahat::HEIGHT / 2, parameters_rm_depth_ahat::WIDTH / 2, CV_8UC1, f->av_frame->data[1]);
+    cv::Mat v  = cv::Mat(parameters_rm_depth_ahat::HEIGHT / 2, parameters_rm_depth_ahat::WIDTH / 2, CV_8UC1, f->av_frame->data[2]);
+    cv::Mat uv = cv::Mat(parameters_rm_depth_ahat::HEIGHT / 2, parameters_rm_depth_ahat::WIDTH / 2, CV_8UC2);
+    cv::Mat cc = cv::Mat(parameters_rm_depth_ahat::HEIGHT,     parameters_rm_depth_ahat::WIDTH / 2, CV_8UC1, uv.data);
+    cv::Mat bb = cv::Mat(parameters_rm_depth_ahat::HEIGHT,     parameters_rm_depth_ahat::WIDTH / 2, CV_16UC1);
+    cv::Mat ww = cv::Mat(parameters_rm_depth_ahat::HEIGHT,     parameters_rm_depth_ahat::WIDTH / 2, CV_16UC1);
+    
+    y.convertTo(depth, CV_16UC1, 4);
+    cv::merge(std::vector<cv::Mat>{u, v}, uv);
+    cc.convertTo(bb, CV_16UC1);
+    cv::multiply(bb, bb, ww);
+    cv::resize(ww, ab, ab.size(), 0, 0, cv::INTER_NEAREST);
+    }
+    else
+    {
+    memcpy(out.get(), data, size);
+    }
+    }
+    else
+    {
+    throw std::runtime_error("hl2ss::rx_decoded_rm_depth_ahat::get_next_packet : ZDEPTH decompression not implemented");
+    }
+    return out;
+}
+
+void decoder_rm_depth_ahat::close()
+{
+    if (m_profile_ab != hl2ss::video_profile::RAW) { m_codec.close(); }
+}
+
+void decoder_rm_depth_longthrow::open()
+{
+}
+
+std::unique_ptr<uint8_t[]> decoder_rm_depth_longthrow::decode(uint8_t* data, uint32_t size)
+{
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    cv::Mat output = cv::Mat(parameters_rm_depth_longthrow::HEIGHT, parameters_rm_depth_longthrow::WIDTH, CV_8UC4, out.get());
+    cv::imdecode(cv::Mat(1, size, CV_8UC1, data), cv::IMREAD_UNCHANGED, &output);
+    return out;
+}
+
+void decoder_rm_depth_longthrow::close()
+{
+}
+
+void decoder_pv::open(uint16_t width, uint16_t height, uint8_t profile)
+{
+    m_width = width;
+    m_height = height;
+    m_profile = profile;
+
+    if (m_profile != video_profile::RAW) { m_codec.open(get_video_codec_id(m_profile)); }
+}
+
+uint32_t decoder_pv::decoded_size(uint8_t decoded_format)
+{
+    return m_width * m_height * cv_format[decoded_format][0] + K_SIZE;
+}
+
+std::unique_ptr<uint8_t[]> decoder_pv::decode(uint8_t* data, uint32_t size, uint8_t decoded_format)
+{
+    uint32_t full_size = decoded_size(decoded_format);
+    uint32_t h26x_size = size - K_SIZE;
+
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(full_size);
+
+    cv::Mat input = cv::Mat((m_height * 3) / 2, m_width, CV_8UC1);
+    cv::Mat output;
+    int code;   
+
+    if (m_profile != video_profile::RAW)
+    {
+    std::shared_ptr<frame> f = m_codec.decode(data, h26x_size);
+    collect_I420(input.data, m_width, m_height, f->av_frame->data, f->av_frame->linesize);
+    code = cv_format[decoded_format][2];
+    }
+    else
+    {
+    collect_NV12(input.data, m_width, m_height, data, get_video_stride(m_width));
+    code = cv_format[decoded_format][3];
+    }
+    
+    output = cv::Mat(m_height, m_width, cv_format[decoded_format][1], out.get());
+    cv::cvtColor(input, output, code);
+
+    memcpy(out.get() + full_size - K_SIZE, data + h26x_size, K_SIZE);
+    return out;
+}
+
+void decoder_pv::close()
+{
+    if (m_profile != video_profile::RAW) { m_codec.close(); }
+}
+
+void decoder_microphone::open(uint8_t profile)
+{
+    m_profile = profile;
+    if (m_profile != audio_profile::RAW) { m_codec.open(get_audio_codec_id(m_profile)); }
+}
+
+std::unique_ptr<uint8_t[]> decoder_microphone::decode(uint8_t* data, uint32_t size)
+{
+    std::unique_ptr<uint8_t[]> out;
+    if (m_profile != audio_profile::RAW) { 
+    out = std::make_unique<uint8_t[]>(decoded_size);
+    std::shared_ptr<frame> f = m_codec.decode(data, size);
+    uint32_t offset = f->av_frame->linesize[0] / 2;
+    memcpy(out.get(),          f->av_frame->data[0], offset);
+    memcpy(out.get() + offset, f->av_frame->data[1], offset);
+    }
+    else
+    {
+    out = std::make_unique<uint8_t[]>(raw_size);
+    memcpy(out.get(), data, size);
+    }
+    return out;
+}
+
+void decoder_microphone::close()
+{
+    if (m_profile != audio_profile::RAW) { m_codec.close(); }
+}
+
+//------------------------------------------------------------------------------
+// * Modes 0, 1 Data Acquisition (Decoded)
+//------------------------------------------------------------------------------
+
+rx_decoded_rm_vlc::rx_decoded_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options)
+{
+}
+
+void rx_decoded_rm_vlc::open()
+{
+    m_decoder.open(profile);
+    rx_rm_vlc::open();
+}
+
+std::shared_ptr<packet> rx_decoded_rm_vlc::get_next_packet()
+{
+    std::shared_ptr<packet> p = rx_rm_vlc::get_next_packet();
+    if (profile != video_profile::RAW) { p->swap_payload(decoder_rm_vlc::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload)); }    
+    return p;
+}
+
+void rx_decoded_rm_vlc::close()
+{
+    rx_rm_vlc::close();
+    m_decoder.close();
+}
+
+rx_decoded_rm_depth_ahat::rx_decoded_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_depth_ahat(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options)
+{
+}
+
+void rx_decoded_rm_depth_ahat::open()
+{
+    m_decoder.open(profile_z, profile_ab);
+    rx_rm_depth_ahat::open();
+}
+
+std::shared_ptr<packet> rx_decoded_rm_depth_ahat::get_next_packet()
+{
+    std::shared_ptr<packet> p = rx_rm_depth_ahat::get_next_packet();
+    if ((profile_z != depth_profile::SAME) || (profile_ab != video_profile::RAW)) { p->swap_payload(decoder_rm_depth_ahat::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload)); }
+    return p;
+}
+
+void rx_decoded_rm_depth_ahat::close()
+{
+    rx_rm_depth_ahat::close();
+    m_decoder.close();
+}
+
+rx_decoded_rm_depth_longthrow::rx_decoded_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter)
+{
+}
+
+void rx_decoded_rm_depth_longthrow::open()
+{
+    m_decoder.open();
+    rx_rm_depth_longthrow::open();
+}
+
+std::shared_ptr<packet> rx_decoded_rm_depth_longthrow::get_next_packet()
+{
+    std::shared_ptr<packet> p = rx_rm_depth_longthrow::get_next_packet();
+    p->swap_payload(decoder_rm_depth_longthrow::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload));
+    return p;
+}
+
+void rx_decoded_rm_depth_longthrow::close()
+{
+    rx_rm_depth_longthrow::close();
+    m_decoder.close();
+}
+
 rx_decoded_pv::rx_decoded_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options, uint8_t decoded_format) : rx_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
 {
-    this->decoded_format = decoded_format % (sizeof(cv_format) / (4 * sizeof(int)));
+    this->decoded_format = decoded_format;
 }
 
 void rx_decoded_pv::open()
 {
-    if (profile != video_profile::VIDEO_RAW) { m_codec.open(get_video_codec_id(profile)); }
+    m_decoder.open(width, height, profile);
     rx_pv::open();
 }
 
 std::shared_ptr<packet> rx_decoded_pv::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_pv::get_next_packet();
-    float k[4];
-    memcpy(k, p->payload + p->sz_payload - sizeof(k), sizeof(k));
-    cv::Mat input = cv::Mat((height * 3) / 2, width, CV_8UC1);
-    cv::Mat output;
-    int code;
-    if (profile == video_profile::VIDEO_RAW)
-    {
-    collect_NV12(input.data, width, height, p->payload, get_video_stride(width));
-    code = cv_format[decoded_format][3];
-    }
-    else
-    {
-    std::shared_ptr<frame> f = m_codec.decode(p->payload, p->sz_payload - sizeof(k));
-    collect_I420(input.data, width, height, f->av_frame->data, f->av_frame->linesize);
-    code = cv_format[decoded_format][2];
-    }
-    p->free_payload();
-    p->sz_payload = (height * width * cv_format[decoded_format][0]) + sizeof(k);
-    p->init_payload();
-    output = cv::Mat(height, width, cv_format[decoded_format][1], p->payload);
-    cv::cvtColor(input, output, code);
-    memcpy(p->payload + p->sz_payload - sizeof(k), k, sizeof(k));
-    
+    p->swap_payload(m_decoder.decoded_size(decoded_format), m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format));
     return p;
 }
 
 void rx_decoded_pv::close()
 {
     rx_pv::close();
-    if (profile != video_profile::VIDEO_RAW) { m_codec.close(); }
+    m_decoder.close();
 }
 
 rx_decoded_microphone::rx_decoded_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level) : rx_microphone(host, port, chunk, profile, level)
@@ -906,107 +916,497 @@ rx_decoded_microphone::rx_decoded_microphone(char const* host, uint16_t port, si
 
 void rx_decoded_microphone::open()
 {
-    if (profile != audio_profile::AUDIO_RAW) { m_codec.open(get_audio_codec_id(profile)); }
+    m_decoder.open(profile);
     rx_microphone::open();
 }
 
 std::shared_ptr<packet> rx_decoded_microphone::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_microphone::get_next_packet();
-    if (profile == audio_profile::AUDIO_RAW) { return p; }
-    std::shared_ptr<frame> f = m_codec.decode(p->payload, p->sz_payload);
-    int sz = f->av_frame->linesize[0] / 2;   
-    p->free_payload();
-    p->sz_payload = sz * 2;
-    p->init_payload();        
-    memcpy(p->payload,      f->av_frame->data[0], sz);
-    memcpy(p->payload + sz, f->av_frame->data[1], sz);
+    if (profile != audio_profile::RAW) { p->swap_payload(decoder_microphone::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload)); }
     return p;
 }
 
 void rx_decoded_microphone::close()
 {
     rx_microphone::close();
-    if (profile != audio_profile::AUDIO_RAW) { m_codec.close(); }
+    m_decoder.close();
 }
 
 //------------------------------------------------------------------------------
-// Mode 2 Data Acquisition
+// * Mode 2 Data Acquisition
 //------------------------------------------------------------------------------
-}
 
-
-
-int main()
+std::shared_ptr<calibration_rm_vlc> download_calibration_rm_vlc(char const* host, uint16_t port)
 {
-    std::vector<uint64_t> options;
-    options.push_back(hl2ss::h26x_encoder_property::CODECAPI_AVEncMPVGOPSize);
-    options.push_back(45);
+    std::shared_ptr<calibration_rm_vlc> data = std::make_shared<calibration_rm_vlc>();
+    std::vector<uint8_t> sc;
+    client c;
 
-    //hl2ss::rx_decoded_rm_vlc client("192.168.1.7", 3800, 4096, 1, 1, 3, 0xFF, 1*1024*1024, options);
-    //hl2ss::rx_rm_depth_ahat client("192.168.1.7", 3804, 4096, 1, 1, 0, 3, 0xFF, 8*1024*1024, options);
-    //hl2ss::rx_decoded_rm_depth_longthrow client("192.168.1.7", 3805, 4096, 1, 1, 5);
-    //hl2ss::rx_rm_imu client("192.168.1.7", 3806, 4096, 1);
-    //hl2ss::start_subsystem_pv("192.168.1.7", 3810);
-    //hl2ss::rx_decoded_pv client("192.168.1.7", 3810, 4096, 1, 1920, 1080, 30, 1, 0, 0xFF, 5*1024*1024, options, 0);
-    //hl2ss::rx_microphone client("192.168.1.7", 3811, 4096, 3, 0x29);
-    //hl2ss::rx_si client("192.168.1.7", 3812, 4096);
-    //hl2ss::rx_eet client("192.168.1.7", 3817, 4096, 30);
-    //hl2ss::rx_decoded_microphone client("192.168.1.7", hl2ss::stream_port::MICROPHONE, 4096, hl2ss::audio_profile::AAC_24000, hl2ss::aac_level::L2);
+    create_configuration_for_rm_mode_2(sc, stream_mode::MODE_2);
 
-    hl2ss::rx_decoded_rm_depth_ahat 
-    client(
-        "192.168.1.7",
-        hl2ss::stream_port::RM_DEPTH_AHAT,
-        4096,
-        hl2ss::stream_mode::MODE_1,
-        1, 
-        hl2ss::depth_profile::SAME,
-        hl2ss::video_profile::H265_MAIN,
-        hl2ss::h26x_level::DEFAULT,
-        8*1024*1024,
-        options
-    );
+    c.open(host, port);
+    c.sendall(sc.data(), sc.size());
 
-    try
-    {
-        client.open();
-
-        for (;;)
-        {
-        std::shared_ptr<hl2ss::packet> data = client.get_next_packet();
-
-        cv::Mat depth = cv::Mat(512, 512, CV_16UC1, data->payload);
-        cv::Mat ab = cv::Mat(512, 512, CV_16UC1, data->payload + (512*512*2));
-
-        cv::imshow("depth", depth * 16);
-        cv::imshow("ab", ab);
-        cv::waitKey(1);
-
-        //hl2ss::frame* frame = decoder.decode(data->payload, data->sz_payload);
-
-        //cv::Mat bgr = hl2ss::frame_to_opencv_mat(*(frame->f));
-        //cv::Mat bgr = cv::Mat(480, 640, CV_8UC1, data->payload);
-        //cv::Mat depth = cv::Mat(288, 320, CV_16UC1, data->payload);
-        //cv::Mat ab = cv::Mat(288, 320, CV_16UC1, data->payload + hl2ss::parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t));
-
-        //cv::Mat bgr = cv::Mat(client.height, client.width, CV_8UC3, data->payload);
-        //cv::imshow("TEST BGR", bgr);
-        //cv::imshow("Test DEPTH", depth * 8);
-        //cv::imshow("Test AB", ab);
-        //cv::waitKey(1);
-
-        //frame->Release();
-        //std::cout << "PAYLOAD SIZE: " << data->sz_payload << std::endl;
-        }
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-
-    client.close();
-    //decoder.close();    
+    c.download(data->uv2xy,         sizeof(data->uv2xy),         chunk_size::SINGLE_TRANSFER);
+    c.download(data->extrinsics,    sizeof(data->extrinsics),    chunk_size::SINGLE_TRANSFER);
+    c.download(data->undistort_map, sizeof(data->undistort_map), chunk_size::SINGLE_TRANSFER);
+    c.download(data->intrinsics,    sizeof(data->intrinsics),    chunk_size::SINGLE_TRANSFER);
     
-    return 0;
+    c.close();
+
+    return data;
+}
+
+std::shared_ptr<calibration_rm_depth_ahat> download_calibration_rm_depth_ahat(char const* host, uint16_t port)
+{
+    std::shared_ptr<calibration_rm_depth_ahat> data = std::make_shared<calibration_rm_depth_ahat>();
+    std::vector<uint8_t> sc;
+    client c;
+
+    create_configuration_for_rm_mode_2(sc, stream_mode::MODE_2);
+
+    c.open(host, port);
+    c.sendall(sc.data(), sc.size());
+
+    c.download(data->uv2xy,         sizeof(data->uv2xy),         chunk_size::SINGLE_TRANSFER);
+    c.download(data->extrinsics,    sizeof(data->extrinsics),    chunk_size::SINGLE_TRANSFER);
+    c.download(&data->scale,        sizeof(data->scale),         chunk_size::SINGLE_TRANSFER);
+    c.download(&data->alias,        sizeof(data->alias),         chunk_size::SINGLE_TRANSFER);
+    c.download(data->undistort_map, sizeof(data->undistort_map), chunk_size::SINGLE_TRANSFER);
+    c.download(data->intrinsics,    sizeof(data->intrinsics),    chunk_size::SINGLE_TRANSFER);
+    
+    c.close();
+
+    return data;
+}
+
+std::shared_ptr<calibration_rm_depth_longthrow> download_calibration_rm_depth_longthrow(char const* host, uint16_t port)
+{
+    std::shared_ptr<calibration_rm_depth_longthrow> data = std::make_shared<calibration_rm_depth_longthrow>();
+    std::vector<uint8_t> sc;
+    client c;
+
+    create_configuration_for_rm_mode_2(sc, stream_mode::MODE_2);
+
+    c.open(host, port);
+    c.sendall(sc.data(), sc.size());
+
+    c.download(data->uv2xy,         sizeof(data->uv2xy),         chunk_size::SINGLE_TRANSFER);
+    c.download(data->extrinsics,    sizeof(data->extrinsics),    chunk_size::SINGLE_TRANSFER);
+    c.download(&data->scale,        sizeof(data->scale),         chunk_size::SINGLE_TRANSFER);
+    c.download(data->undistort_map, sizeof(data->undistort_map), chunk_size::SINGLE_TRANSFER);
+    c.download(data->intrinsics,    sizeof(data->intrinsics),    chunk_size::SINGLE_TRANSFER);
+    
+    c.close();
+
+    return data;
+}
+
+std::shared_ptr<calibration_rm_imu> download_calibration_rm_imu(char const* host, uint16_t port)
+{
+    std::shared_ptr<calibration_rm_imu> data = std::make_shared<calibration_rm_imu>();
+    std::vector<uint8_t> sc;
+    client c;
+
+    create_configuration_for_rm_mode_2(sc, stream_mode::MODE_2);
+
+    c.open(host, port);
+    c.sendall(sc.data(), sc.size());
+
+    c.download(data->extrinsics, sizeof(data->extrinsics), chunk_size::SINGLE_TRANSFER);
+
+    c.close();
+
+    return data;
+}
+
+std::shared_ptr<calibration_pv> download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate)
+{
+    std::shared_ptr<calibration_pv> data = std::make_shared<calibration_pv>();
+    std::vector<uint8_t> sc;
+    client c;
+
+    create_configuration_for_pv_mode_2(sc, stream_mode::MODE_2, width, height, framerate);
+
+    c.open(host, port);
+    c.sendall(sc.data(), sc.size());
+
+    c.download(data->focal_length,          sizeof(data->focal_length),          chunk_size::SINGLE_TRANSFER);
+    c.download(data->principal_point,       sizeof(data->principal_point),       chunk_size::SINGLE_TRANSFER);
+    c.download(data->radial_distortion,     sizeof(data->radial_distortion),     chunk_size::SINGLE_TRANSFER);
+    c.download(data->tangential_distortion, sizeof(data->tangential_distortion), chunk_size::SINGLE_TRANSFER);
+    c.download(data->projection,            sizeof(data->projection),            chunk_size::SINGLE_TRANSFER);
+    
+    c.close();
+
+    return data;
+}
+
+//------------------------------------------------------------------------------
+// * Port Information
+//------------------------------------------------------------------------------
+
+char const* const port_name[] = {
+    "rm_vlc_leftfront",
+    "rm_vlc_leftleft",
+    "rm_vlc_rightfront", 
+    "rm_vlc_rightright",
+    "rm_depth_ahat",
+    "rm_depth_longthrow", 
+    "rm_imu_accelerometer", 
+    "rm_imu_gyroscope", 
+    "rm_imu_magnetometer", 
+    "remote_configuration", 
+    "personal_video", 
+    "microphone", 
+    "spatial_input", 
+    "spatial_mapping", 
+    "scene_understanding",
+    "voice_input",
+    "unity_message_queue",
+    "extended_eye_tracker",
+};
+
+uint16_t get_port_index(uint16_t port)
+{
+    return port - stream_port::RM_VLC_LEFTFRONT;
+}
+
+char const* get_port_name(uint16_t port)
+{
+    uint16_t index = get_port_index(port);
+    return (index < (sizeof(port_name) / sizeof(char*))) ? port_name[index] : NULL;
+}
+
+//------------------------------------------------------------------------------
+// IPC
+//------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ipc::ipc(char const* host, uint16_t port)
+{
+    this->host = host;
+    this->port = port;
+}
+
+void ipc::open()
+{
+    m_client.open(host.c_str(), port);
+}
+
+void ipc::send(uint8_t command, std::initializer_list<uint32_t> list)
+{
+    m_sc.clear();
+    push_u8(m_sc, command);
+    for (uint32_t argument : list) { push_u32(m_sc, argument); }
+    m_client.sendall(m_sc.data(), m_sc.size());
+}
+
+void ipc::recv(void* buffer, size_t size)
+{
+    m_client.download(buffer, size, chunk_size::SINGLE_TRANSFER);
+}
+
+void ipc::close()
+{
+    m_client.close();
+}
+
+//------------------------------------------------------------------------------
+// Remote Configuration
+//------------------------------------------------------------------------------
+
+struct cmd_ipc_rc
+{
+    static uint8_t const GET_APPLICATION_VERSION = 0x00;
+    static uint8_t const GET_UTC_OFFSET = 0x01;
+    static uint8_t const SET_HS_MARKER_STATE = 0x02;
+    static uint8_t const GET_PV_SUBSYSTEM_STATUS = 0x03;
+    static uint8_t const SET_PV_FOCUS = 0x04;
+    static uint8_t const SET_PV_VIDEO_TEMPORAL_DENOISING = 0x05;
+    static uint8_t const SET_PV_WHITE_BALANCE_PRESET = 0x06;
+    static uint8_t const SET_PV_WHITE_BALANCE_VALUE = 0x07;
+    static uint8_t const SET_PV_EXPOSURE = 0x08;
+    static uint8_t const SET_PV_EXPOSURE_PRIORITY_VIDEO = 0x09;
+    static uint8_t const SET_PV_ISO_SPEED = 0x0A;
+    static uint8_t const SET_PV_BACKLIGHT_COMPENSATION = 0x0B;
+    static uint8_t const SET_PV_SCENE_MODE = 0x0C;
+};
+
+ipc_rc::ipc_rc(char const* host, uint16_t port) : ipc(host, port)
+{
+}
+
+version ipc_rc::get_application_version()
+{
+    send(cmd_ipc_rc::GET_APPLICATION_VERSION, {});
+    version data;
+    recv(data.field, sizeof(data.field));
+    return data;
+}
+
+uint64_t ipc_rc::get_utc_offset(uint32_t samples)
+{
+    send(cmd_ipc_rc::GET_UTC_OFFSET, {samples});
+    uint64_t data;
+    recv(&data, sizeof(data));
+    return data;
+}
+
+void ipc_rc::set_hs_marker_state(uint32_t state)
+{
+    send(cmd_ipc_rc::SET_HS_MARKER_STATE, {state});
+}
+
+bool ipc_rc::get_pv_subsystem_status()
+{
+    send(cmd_ipc_rc::GET_PV_SUBSYSTEM_STATUS, {});
+    uint8_t status;
+    recv(&status, sizeof(status));
+    return status != 0;
+}
+
+void ipc_rc::wait_for_pv_subsystem(bool status)
+{
+    while (get_pv_subsystem_status() != status);
+}
+
+void ipc_rc::set_pv_focus(uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback)
+{
+    send(cmd_ipc_rc::SET_PV_FOCUS, {mode, range, distance, value, driver_fallback});
+}
+
+void ipc_rc::set_pv_video_temporal_denoising(uint32_t mode)
+{
+    send(cmd_ipc_rc::SET_PV_VIDEO_TEMPORAL_DENOISING, {mode});
+}
+
+void ipc_rc::set_pv_white_balance_preset(uint32_t preset)
+{
+    send(cmd_ipc_rc::SET_PV_WHITE_BALANCE_PRESET, {preset});
+}
+
+void ipc_rc::set_pv_white_balance_value(uint32_t value)
+{
+    send(cmd_ipc_rc::SET_PV_WHITE_BALANCE_VALUE, {value});
+}
+
+void ipc_rc::set_pv_exposure(uint32_t mode, uint32_t value)
+{
+    send(cmd_ipc_rc::SET_PV_EXPOSURE, {mode, value});
+}
+
+void ipc_rc::set_pv_exposure_priority_video(uint32_t enabled)
+{
+    send(cmd_ipc_rc::SET_PV_EXPOSURE_PRIORITY_VIDEO, {enabled});
+}
+
+void ipc_rc::set_pv_iso_speed(uint32_t mode, uint32_t value)
+{
+    send(cmd_ipc_rc::SET_PV_ISO_SPEED, {mode, value});
+}
+
+void ipc_rc::set_pv_backlight_compensation(uint32_t state)
+{
+    send(cmd_ipc_rc::SET_PV_BACKLIGHT_COMPENSATION, {state});
+}
+
+void ipc_rc::set_pv_scene_mode(uint32_t mode)
+{
+    send(cmd_ipc_rc::SET_PV_SCENE_MODE, {mode});
+}
+
+//------------------------------------------------------------------------------
+// Spatial Mapping
+//------------------------------------------------------------------------------
+
+struct guid
+{
+    uint64_t l;
+    uint64_t h;
+};
+
+class sm_bounding_volume
+{
+    friend class ipc_sm;
+
+private:
+    std::vector<uint8_t> m_data;
+    uint32_t m_count;
+
+public:
+    sm_bounding_volume();
+
+    void add_box(float center[3], float extents[3]);
+    void add_frustum(float near[4], float far[4], float right[4], float left[4], float top[4], float bottom[4]);
+    void add_oriented_box(float center[3], float extents[3], float orientation[4]);
+    void add_sphere(float center[3], float radius);
+};
+
+struct sm_surface_info
+{
+    guid id;
+    uint64_t update_time;
+};
+
+class sm_mesh_task
+{
+    friend class ipc_sm;
+
+private:
+    std::vector<uint8_t> m_data;
+    uint32_t m_count;
+    
+public:
+    sm_mesh_task();
+
+    void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds);
+};
+
+
+
+
+sm_bounding_volume::sm_bounding_volume()
+{
+    m_count = 0;
+}
+
+void sm_bounding_volume::add_box(float center[3], float extents[3])
+{
+    m_count++;
+
+    for (int i = 0; i < 3; ++i) { push_float(m_data, center[i]); }
+    for (int i = 0; i < 3; ++i) { push_float(m_data, extents[i]); }
+}
+
+void sm_bounding_volume::add_frustum(float near[4], float far[4], float right[4], float left[4], float top[4], float bottom[4])
+{
+    m_count++;
+
+    for (int i = 0; i < 4; ++i) { push_float(m_data, near[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, far[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, right[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, left[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, top[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, bottom[i]); }
+}
+
+void sm_bounding_volume::add_oriented_box(float center[3], float extents[3], float orientation[4])
+{
+    m_count++;
+
+    for (int i = 0; i < 3; ++i) { push_float(m_data, center[i]); }
+    for (int i = 0; i < 3; ++i) { push_float(m_data, extents[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, orientation[i]); }
+}
+
+void sm_bounding_volume::add_sphere(float center[3], float radius)
+{
+    m_count++;
+
+    for (int i = 0; i < 3; ++i) { push_float(m_data, center[i]); }
+    push_float(m_data, radius);
+}
+
+sm_mesh_task::sm_mesh_task()
+{
+    m_count = 0;
+}
+
+void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds)
+{
+    push_u64(m_data, id.l);
+    push_u64(m_data, id.h);
+    push_double(m_data, max_triangles_per_cubic_meter);
+    push_u32(m_data, vertex_position_format);
+    push_u32(m_data, triangle_index_format);
+    push_u32(m_data, vertex_normal_format);
+    push_u32(m_data, (1*include_vertex_normals) | (2*include_bounds));
+}
+
+
+
+
+
+
+
+
+
+
+struct commmand_ipc_sm
+{
+    static uint8_t const CREATE_OBSERVER = 0x00;
+    static uint8_t const SET_VOLUMES = 0x01;
+    static uint8_t const GET_OBSERVED_SURFACES = 0x02;
+    static uint8_t const GET_MESHES = 0x03;
+};
+
+/*
+class ipc_sm
+{
+public:
+    ipc_sm(char const* host, uint16_t port);
+
+    void create_observer();
+    void set_volumes(sm_bounding_volume volumes);
+    std::shared_ptr<sm_surface_info[]> get_observed_surfaces();
+    void get_meshes(sm_mesh_task tasks, uint32_t threads);
+};
+
+ipc_sm::ipc_sm(char const* host, uint16_t port)// : ipc(host, port)
+{
+}
+
+void ipc_sm::create_observer()
+{
+    send(commmand_ipc_sm::CREATE_OBSERVER, {});
+}
+
+void ipc_sm::set_volumes(sm_bounding_volume volumes)
+{
+    send(commmand_ipc_sm::SET_VOLUMES, {});
+}
+
+std::shared_ptr<sm_surface_info[]> ipc_sm::get_observed_surfaces()
+{
+    send(commmand_ipc_sm::GET_OBSERVED_SURFACES, {});
+    uint64_t count;
+    recv(&count, sizeof(count));
+    //std::shared_ptr<sm_surface_info[]> data = std::make_shared<sm_surface_info[]>(count);
+    //recv(data.get(), count * sizeof(sm_surface_info));
+    //return data;
+}
+
+void ipc_sm::get_meshes(sm_mesh_task tasks, uint32_t threads)
+{
+    send(commmand_ipc_sm::GET_MESHES, {tasks.m_count, threads});
+
+
+
+
+}
+*/
 }
