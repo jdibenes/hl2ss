@@ -19,6 +19,6 @@ bbn/__pycache__/
 bbn/tests/__pycache__/
 calibration
 extensions/pyzdepth/build/
-extensions/.vscode/
+extensions/pyzdepth/.vscode/
 extensions/client_cpp/.vscode/
 

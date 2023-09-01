@@ -206,7 +206,7 @@ void test_eet()
 
 int main()
 {
-
+    
     //hl2ss::rx_decoded_rm_vlc client("192.168.1.7", 3800, 4096, 1, 1, 3, 0xFF, 1*1024*1024, options);
     //hl2ss::rx_rm_depth_ahat client("192.168.1.7", 3804, 4096, 1, 1, 0, 3, 0xFF, 8*1024*1024, options);
     //hl2ss::rx_decoded_rm_depth_longthrow client("192.168.1.7", 3805, 4096, 1, 1, 5);
@@ -237,6 +237,7 @@ int main()
 
     try
     {
+        hl2ss::client::initialize();
         int test_id = 4;
 
         switch (test_id)

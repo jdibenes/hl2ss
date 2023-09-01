@@ -1,7 +1,12 @@
 
+#ifdef WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#endif
 #include <stdexcept>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -18,20 +23,50 @@ namespace hl2ss
 // * Client
 //------------------------------------------------------------------------------
 
+void client::initialize()
+{
+#ifdef WIN32
+    WSADATA wsaData;
+	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) { throw std::runtime_error("hl2ss::client::initialize : WSAStartup failed"); }
+#endif
+}
+
+void client::cleanup()
+{
+#ifdef WIN32
+    WSACleanup();
+#endif
+}
+
 client::client()
 {
+#ifdef WIN32
+    m_socket = INVALID_SOCKET;
+#else
     m_socket = -1;
+#endif
 }
 
 client::~client()
 {
-    if (m_socket >= 0) { close(); }
+#ifdef WIN32
+    if (m_socket != INVALID_SOCKET)
+#else
+    if (m_socket >= 0) 
+#endif
+    { close(); }
 }
 
 void client::open(char const* host, uint16_t port)
 {
     m_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (m_socket < 0) { throw std::runtime_error("hl2ss::client::open : socket failed"); }
+#ifdef WIN32
+    if (m_socket == INVALID_SOCKET)
+#else
+    if (m_socket < 0)
+#endif
+    { throw std::runtime_error("hl2ss::client::open : socket failed"); }
 
     sockaddr_in addr;
 
@@ -47,10 +82,10 @@ void client::open(char const* host, uint16_t port)
 
 void client::sendall(void const* data, size_t count)
 {
-    ssize_t sent = 0;
+    int64_t sent = 0;
     while (count > 0)
     {
-    ssize_t bytes = send(m_socket, (char*)data + sent, count, 0);
+    int64_t bytes = send(m_socket, (char*)data + sent, (int)count, 0);
     if (bytes <= 0) { throw std::runtime_error("hl2ss::client::sendall : send failed"); }
     count -= bytes;
     sent  += bytes;
@@ -59,7 +94,7 @@ void client::sendall(void const* data, size_t count)
 
 size_t client::recv(void* buffer, size_t count)
 {
-    size_t bytes = ::recv(m_socket, buffer, count, 0);
+    size_t bytes = ::recv(m_socket, (char*)buffer, (int)count, 0);
     if ((bytes <= 0) && (count > 0)) { throw std::runtime_error("hl2ss::client::recv : recv failed"); }
     return bytes;
 }
@@ -78,8 +113,13 @@ void client::download(void* buffer, size_t total, size_t chunk)
 
 void client::close()
 {
+#ifdef WIN32
+    closesocket(m_socket);
+    m_socket = INVALID_SOCKET;
+#else
     ::close(m_socket);
     m_socket = -1;
+#endif    
 }
 
 //------------------------------------------------------------------------------
@@ -563,7 +603,7 @@ void codec::open(AVCodecID id)
     m_avpkt = av_packet_alloc();
     if (m_avpkt == NULL) { throw std::runtime_error("hl2ss::codec::codec : av_packet_alloc failed"); }
 
-    AVCodec* decoder = avcodec_find_decoder(id);
+    AVCodec const* decoder = avcodec_find_decoder(id);
     if (decoder == NULL) { throw std::runtime_error("hl2ss::codec::codec : avcodec_find_decoder failed"); }
 
     m_c = avcodec_alloc_context3(decoder);
@@ -1302,12 +1342,12 @@ void sm_bounding_volume::add_box(float center[3], float extents[3])
     for (int i = 0; i < 3; ++i) { push_float(m_data, extents[i]); }
 }
 
-void sm_bounding_volume::add_frustum(float near[4], float far[4], float right[4], float left[4], float top[4], float bottom[4])
+void sm_bounding_volume::add_frustum(float p_near[4], float p_far[4], float right[4], float left[4], float top[4], float bottom[4])
 {
     m_count++;
 
-    for (int i = 0; i < 4; ++i) { push_float(m_data, near[i]); }
-    for (int i = 0; i < 4; ++i) { push_float(m_data, far[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, p_near[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, p_far[i]); }
     for (int i = 0; i < 4; ++i) { push_float(m_data, right[i]); }
     for (int i = 0; i < 4; ++i) { push_float(m_data, left[i]); }
     for (int i = 0; i < 4; ++i) { push_float(m_data, top[i]); }

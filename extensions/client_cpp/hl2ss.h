@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <atomic>
 #include <memory>
 
 extern "C" { 
@@ -243,9 +242,16 @@ uint8_t const SAMPLE_RATE = 30;
 class client
 {
 private:
+#ifdef WIN32
+    uint64_t m_socket;
+#else
     int m_socket;
+#endif
 
 public:
+    static void initialize();
+    static void cleanup();
+
     client();
     ~client();
 
