@@ -146,24 +146,24 @@ uint8_t const ADAPTIVE  = 6;
 
 namespace h26x_encoder_property
 {
-uint64_t const CODECAPI_AVEncCommonRateControlMode = 0;
-uint64_t const CODECAPI_AVEncCommonQuality = 1;
-uint64_t const CODECAPI_AVEncAdaptiveMode = 2;
-uint64_t const CODECAPI_AVEncCommonBufferSize = 3;
-uint64_t const CODECAPI_AVEncCommonMaxBitRate = 4;
-uint64_t const CODECAPI_AVEncCommonMeanBitRate = 5;
-uint64_t const CODECAPI_AVEncCommonQualityVsSpeed = 6;
-uint64_t const CODECAPI_AVEncH264CABACEnable = 7;
-uint64_t const CODECAPI_AVEncH264SPSID = 8;
-uint64_t const CODECAPI_AVEncMPVDefaultBPictureCount = 9;
-uint64_t const CODECAPI_AVEncMPVGOPSize = 10;
-uint64_t const CODECAPI_AVEncNumWorkerThreads = 11;
-uint64_t const CODECAPI_AVEncVideoContentType = 12;
-uint64_t const CODECAPI_AVEncVideoEncodeQP = 13;
-uint64_t const CODECAPI_AVEncVideoForceKeyFrame = 14; 
-uint64_t const CODECAPI_AVEncVideoMinQP = 15;
-uint64_t const CODECAPI_AVLowLatencyMode = 16;
-uint64_t const CODECAPI_AVEncVideoMaxQP = 17;
+uint64_t const CODECAPI_AVEncCommonRateControlMode     =  0;
+uint64_t const CODECAPI_AVEncCommonQuality             =  1;
+uint64_t const CODECAPI_AVEncAdaptiveMode              =  2;
+uint64_t const CODECAPI_AVEncCommonBufferSize          =  3;
+uint64_t const CODECAPI_AVEncCommonMaxBitRate          =  4;
+uint64_t const CODECAPI_AVEncCommonMeanBitRate         =  5;
+uint64_t const CODECAPI_AVEncCommonQualityVsSpeed      =  6;
+uint64_t const CODECAPI_AVEncH264CABACEnable           =  7;
+uint64_t const CODECAPI_AVEncH264SPSID                 =  8;
+uint64_t const CODECAPI_AVEncMPVDefaultBPictureCount   =  9;
+uint64_t const CODECAPI_AVEncMPVGOPSize                = 10;
+uint64_t const CODECAPI_AVEncNumWorkerThreads          = 11;
+uint64_t const CODECAPI_AVEncVideoContentType          = 12;
+uint64_t const CODECAPI_AVEncVideoEncodeQP             = 13;
+uint64_t const CODECAPI_AVEncVideoForceKeyFrame        = 14;
+uint64_t const CODECAPI_AVEncVideoMinQP                = 15;
+uint64_t const CODECAPI_AVLowLatencyMode               = 16;
+uint64_t const CODECAPI_AVEncVideoMaxQP                = 17;
 uint64_t const CODECAPI_VideoEncoderDisplayContentType = 18;
 };
 
@@ -320,6 +320,7 @@ private:
 
 protected:
     virtual void create_configuration(std::vector<uint8_t>& sc) = 0;
+    rx(char const* host, uint16_t port, size_t chunk, uint8_t mode);
 
 public:
     std::string host;
@@ -327,7 +328,6 @@ public:
     size_t chunk;
     uint8_t mode;
 
-    rx(char const* host, uint16_t port, size_t chunk, uint8_t mode);
     virtual ~rx();
 
     virtual void open();
@@ -686,19 +686,11 @@ char const* get_port_name(uint16_t port);
 
 
 
-
-
-
-
 class ipc
 {
 protected:
     client m_client;
-    std::vector<uint8_t> m_sc;
-
-protected:
-    void send(uint8_t command, std::initializer_list<uint32_t> list);
-    void recv(void* buffer, size_t size);
+    //std::vector<uint8_t> m_sc;
 
     ipc(char const* host, uint16_t port);
 
@@ -706,9 +698,17 @@ public:
     std::string host;
     uint16_t port;
 
-    void open();
-    void close();
+    virtual ~ipc();
+
+    virtual void open();
+    virtual void close();
 };
+
+
+
+
+
+
 
 
 
@@ -837,24 +837,121 @@ struct version
     uint16_t field[4];
 };
 
-class ipc_rc : public ipc
+
+
+
+//------------------------------------------------------------------------------
+// Scene Understanding
+//------------------------------------------------------------------------------
+
+namespace su_mesh_lod
+{
+uint32_t const Coarse    =   0;
+uint32_t const Medium    =   1;
+uint32_t const Fine      =   2;
+uint32_t const Unlimited = 255;
+};
+
+namespace su_kind_flag
+{
+uint8_t const Background         =   1;
+uint8_t const Wall               =   2;
+uint8_t const Floor              =   4;
+uint8_t const Ceiling            =   8;
+uint8_t const Platform           =  16;
+uint8_t const Unknown            =  32;
+uint8_t const World              =  64;
+uint8_t const CompletelyInferred = 128;
+};
+
+namespace su_create
+{
+uint8_t const New             = 0;
+uint8_t const NewFromPrevious = 1;
+};
+
+namespace su_kind
+{
+int32_t const Background         =   0;
+int32_t const Wall               =   1;
+int32_t const Floor              =   2;
+int32_t const Ceiling            =   3;
+int32_t const Platform           =   4;
+int32_t const Unknown            = 247;
+int32_t const World              = 248;
+int32_t const CompletelyInferred = 249;
+};
+
+//------------------------------------------------------------------------------
+// * Voice Input
+//------------------------------------------------------------------------------
+
+namespace vi_speech_recognition_confidence
+{
+uint32_t const High     = 0;
+uint32_t const Medium   = 1;
+uint32_t const Low      = 2;
+uint32_t const Rejected = 3;
+};
+
+struct vi_result
+{
+    uint32_t index;
+    uint32_t confidence;
+    uint64_t phrase_duration;
+    uint64_t phrase_start_time;
+    double   raw_confidence;
+};
+
+namespace commmand_ipc_vi
+{
+uint8_t const CREATE_RECOGNIZER = 0x00;
+uint8_t const REGISTER_COMMANDS = 0x01;
+uint8_t const START             = 0x02;
+uint8_t const POP               = 0x03;
+uint8_t const CLEAR             = 0x04;
+uint8_t const STOP              = 0x05;
+};
+
+class ipc_vi : public ipc
 {
 public:
-    ipc_rc(char const* host, uint16_t port);
+    ipc_vi(char const* host, uint16_t port);
 
-    version get_application_version();
-    uint64_t get_utc_offset(uint32_t samples);
-    void set_hs_marker_state(uint32_t state);
-    bool get_pv_subsystem_status();
-    void wait_for_pv_subsystem(bool status);
-    void set_pv_focus(uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback);
-    void set_pv_video_temporal_denoising(uint32_t mode);
-    void set_pv_white_balance_preset(uint32_t preset);
-    void set_pv_white_balance_value(uint32_t value);
-    void set_pv_exposure(uint32_t mode, uint32_t value);
-    void set_pv_exposure_priority_video(uint32_t enabled);
-    void set_pv_iso_speed(uint32_t mode, uint32_t value);
-    void set_pv_backlight_compensation(uint32_t state);
-    void set_pv_scene_mode(uint32_t mode);
+    void create_recognizer();
+    bool register_commands(bool clear, std::vector<std::u16string> const& strings);
+    void start();
+    void pop(std::vector<vi_result>& results);
+    void clear();
+    void stop();
+};
+
+//------------------------------------------------------------------------------
+// * Unity Message Queue
+//------------------------------------------------------------------------------
+
+class umq_command_buffer
+{
+private:
+    std::vector<uint8_t> m_buffer;
+    uint32_t m_count;
+
+public:
+    umq_command_buffer();
+
+    void add(uint32_t id, uint8_t* data, uint32_t size);
+    void clear();
+    uint8_t const* data();
+    uint32_t size();
+    uint32_t count();
+};
+
+class ipc_umq : public ipc
+{
+public:
+    ipc_umq(char const* host, uint16_t port);
+
+    void push(uint8_t const* data, size_t size);
+    void pull(uint32_t* data, uint32_t count);
 };
 }

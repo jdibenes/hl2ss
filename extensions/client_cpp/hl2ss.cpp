@@ -50,12 +50,7 @@ client::client()
 
 client::~client()
 {
-#ifdef WIN32
-    if (m_socket != INVALID_SOCKET)
-#else
-    if (m_socket >= 0) 
-#endif
-    { close(); }
+    close();
 }
 
 void client::open(char const* host, uint16_t port)
@@ -114,12 +109,14 @@ void client::download(void* buffer, size_t total, size_t chunk)
 void client::close()
 {
 #ifdef WIN32
+    if (m_socket == INVALID_SOCKET) { return; }
     closesocket(m_socket);
     m_socket = INVALID_SOCKET;
 #else
+    if (m_socket < 0) { return; }
     ::close(m_socket);
     m_socket = -1;
-#endif    
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -654,14 +651,14 @@ void trim_plane(uint8_t* dst, uint8_t const* src, uint16_t height, uint16_t widt
     }
 }
 
-void collect_I420(uint8_t* dst, int width, int height, uint8_t* data[8], int linesize[8])
+void collect_i420(uint8_t* dst, int width, int height, uint8_t* data[8], int linesize[8])
 {
     trim_plane(dst,                           data[0], height,     width,     linesize[0]);
     trim_plane(dst + (   height * width),     data[1], height / 2, width / 2, linesize[1]);
     trim_plane(dst + (5 *height * width) / 4, data[2], height / 2, width / 2, linesize[2]);
 }
 
-void collect_NV12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* src, uint16_t stride)
+void collect_nv12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* src, uint16_t stride)
 {
     trim_plane(dst,                    src,                     height, width,     stride);
     trim_plane(dst + (height * width), src + (height * stride), height, width / 2, stride / 2);
@@ -803,12 +800,12 @@ std::unique_ptr<uint8_t[]> decoder_pv::decode(uint8_t* data, uint32_t size, uint
     if (m_profile != video_profile::RAW)
     {
     std::shared_ptr<frame> f = m_codec.decode(data, h26x_size);
-    collect_I420(input.data, m_width, m_height, f->av_frame->data, f->av_frame->linesize);
+    collect_i420(input.data, m_width, m_height, f->av_frame->data, f->av_frame->linesize);
     code = cv_format[decoded_format][2];
     }
     else
     {
-    collect_NV12(input.data, m_width, m_height, data, get_video_stride(m_width));
+    collect_nv12(input.data, m_width, m_height, data, get_video_stride(m_width));
     code = cv_format[decoded_format][3];
     }
     
@@ -1123,33 +1120,14 @@ char const* get_port_name(uint16_t port)
 // IPC
 //------------------------------------------------------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ipc::ipc(char const* host, uint16_t port)
 {
     this->host = host;
     this->port = port;
+}
+
+ipc::~ipc()
+{
 }
 
 void ipc::open()
@@ -1157,6 +1135,75 @@ void ipc::open()
     m_client.open(host.c_str(), port);
 }
 
+void ipc::close()
+{
+    m_client.close();
+}
+
+
+
+
+
+
+
+
+
+/*
+protected:
+    void send(uint8_t command, std::initializer_list<uint32_t> list);
+    void recv(void* buffer, size_t size);
+    */
+
+class ipc_rc : public ipc
+{
+public:
+    ipc_rc(char const* host, uint16_t port);
+
+    version get_application_version();
+    uint64_t get_utc_offset(uint32_t samples);
+    void set_hs_marker_state(uint32_t state);
+    bool get_pv_subsystem_status();
+    void wait_for_pv_subsystem(bool status);
+    void set_pv_focus(uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback);
+    void set_pv_video_temporal_denoising(uint32_t mode);
+    void set_pv_white_balance_preset(uint32_t preset);
+    void set_pv_white_balance_value(uint32_t value);
+    void set_pv_exposure(uint32_t mode, uint32_t value);
+    void set_pv_exposure_priority_video(uint32_t enabled);
+    void set_pv_iso_speed(uint32_t mode, uint32_t value);
+    void set_pv_backlight_compensation(uint32_t state);
+    void set_pv_scene_mode(uint32_t mode);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 void ipc::send(uint8_t command, std::initializer_list<uint32_t> list)
 {
     m_sc.clear();
@@ -1169,11 +1216,8 @@ void ipc::recv(void* buffer, size_t size)
 {
     m_client.download(buffer, size, chunk_size::SINGLE_TRANSFER);
 }
+*/
 
-void ipc::close()
-{
-    m_client.close();
-}
 
 //------------------------------------------------------------------------------
 // Remote Configuration
@@ -1195,7 +1239,7 @@ struct cmd_ipc_rc
     static uint8_t const SET_PV_BACKLIGHT_COMPENSATION = 0x0B;
     static uint8_t const SET_PV_SCENE_MODE = 0x0C;
 };
-
+/*
 ipc_rc::ipc_rc(char const* host, uint16_t port) : ipc(host, port)
 {
 }
@@ -1278,7 +1322,7 @@ void ipc_rc::set_pv_scene_mode(uint32_t mode)
 {
     send(cmd_ipc_rc::SET_PV_SCENE_MODE, {mode});
 }
-
+*/
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
@@ -1342,12 +1386,12 @@ void sm_bounding_volume::add_box(float center[3], float extents[3])
     for (int i = 0; i < 3; ++i) { push_float(m_data, extents[i]); }
 }
 
-void sm_bounding_volume::add_frustum(float p_near[4], float p_far[4], float right[4], float left[4], float top[4], float bottom[4])
+void sm_bounding_volume::add_frustum(float near[4], float far[4], float right[4], float left[4], float top[4], float bottom[4])
 {
     m_count++;
 
-    for (int i = 0; i < 4; ++i) { push_float(m_data, p_near[i]); }
-    for (int i = 0; i < 4; ++i) { push_float(m_data, p_far[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, near[i]); }
+    for (int i = 0; i < 4; ++i) { push_float(m_data, far[i]); }
     for (int i = 0; i < 4; ++i) { push_float(m_data, right[i]); }
     for (int i = 0; i < 4; ++i) { push_float(m_data, left[i]); }
     for (int i = 0; i < 4; ++i) { push_float(m_data, top[i]); }
@@ -1449,4 +1493,313 @@ void ipc_sm::get_meshes(sm_mesh_task tasks, uint32_t threads)
 
 }
 */
+
+
+//------------------------------------------------------------------------------
+// Scene Understanding
+//------------------------------------------------------------------------------
+
+class su_task {
+public:
+    bool enable_quads;
+    bool enable_meshes;
+    bool enable_only_observed;
+    bool enable_world_mesh;
+    uint32_t mesh_lod;
+    float query_radius;
+    uint8_t create_mode;
+    uint8_t kind_flags;
+    bool get_orientation;
+    bool get_position;
+    bool get_location_matrix;
+    bool get_quad;
+    bool get_meshes; 
+    bool get_collider_meshes;
+    std::vector<guid> guid_list;
+
+    void pack(std::vector<uint8_t>& sc) const;
+};
+
+void su_task::pack(std::vector<uint8_t>& sc) const
+{
+    push_u8(sc, enable_quads);
+    push_u8(sc, enable_meshes);
+    push_u8(sc, enable_only_observed);
+    push_u8(sc, enable_world_mesh);
+    push_u32(sc, mesh_lod);
+    push_float(sc, query_radius);
+    push_u8(sc, create_mode);
+    push_u8(sc, kind_flags);
+    push_u8(sc, get_orientation);
+    push_u8(sc, get_position);
+    push_u8(sc, get_location_matrix);
+    push_u8(sc, get_quad);
+    push_u8(sc, get_meshes);
+    push_u8(sc, get_collider_meshes);
+    push_u32(sc, (uint32_t)guid_list.size());
+    sc.insert(sc.end(), (uint8_t*)guid_list.data(), (uint8_t*)(guid_list.data() + guid_list.size()));
+}
+
+
+
+
+
+
+
+
+
+struct su_mesh
+{
+    std::shared_ptr<float   []> vertex_positions; // n x 3
+    std::shared_ptr<uint32_t[]> triangle_indices; // n x 3
+    uint32_t vpl;
+    uint32_t til;
+
+    su_mesh(uint32_t vpl, uint32_t til);
+};
+
+struct su_item
+{
+    guid id; // 16
+    int32_t kind; // 4
+    float orientation[4]; // 16
+    float position[3]; // 12
+    float location[4][4]; // 64
+    int32_t alignment; // 4
+    float extents[2]; // 8
+    std::vector<std::shared_ptr<su_mesh>> meshes;
+    std::vector<std::shared_ptr<su_mesh>> collider_meshes;
+};
+
+struct su_result
+{
+    float extrinsics[4][4];
+    float pose[4][4];
+    std::vector<std::shared_ptr<su_item>> items;
+};
+
+
+
+su_mesh::su_mesh(uint32_t vpl, uint32_t til)
+{
+    vertex_positions = std::make_unique<float   []>(vpl);
+    triangle_indices = std::make_unique<uint32_t[]>(til);
+    this->vpl = vpl;
+    this->til = til;
+}
+
+
+
+
+
+
+
+
+
+
+class ipc_su : public ipc
+{
+private:
+    std::shared_ptr<su_mesh> download_mesh();
+    void download_meshes(std::vector<std::shared_ptr<su_mesh>>& meshes);
+    std::shared_ptr<su_item> download_item(su_task const& task);
+
+public:
+    ipc_su(char const* host, uint16_t port);
+
+    std::shared_ptr<su_result> query(su_task const& task);
+};
+
+
+
+std::shared_ptr<su_mesh> ipc_su::download_mesh()
+{
+    uint32_t elements[2];
+    m_client.download(elements, sizeof(elements), chunk_size::SINGLE_TRANSFER);
+    
+    std::shared_ptr<su_mesh> mesh = std::make_shared<su_mesh>(elements[0], elements[1]);
+
+    m_client.download(mesh->vertex_positions.get(), mesh->vpl * sizeof(float),    chunk_size::SINGLE_TRANSFER);
+    m_client.download(mesh->triangle_indices.get(), mesh->til * sizeof(uint32_t), chunk_size::SINGLE_TRANSFER);
+
+    return mesh;
+}
+
+void ipc_su::download_meshes(std::vector<std::shared_ptr<su_mesh>>& meshes)
+{
+    uint32_t count;
+    m_client.download(&count, sizeof(count), chunk_size::SINGLE_TRANSFER);
+    
+    for (uint32_t i = 0; i < count; ++i) { meshes.push_back(download_mesh()); }
+}
+
+std::shared_ptr<su_item> ipc_su::download_item(su_task const& task)
+{
+    std::shared_ptr<su_item> item = std::make_shared<su_item>();
+
+    m_client.download(&item->id,         sizeof(item->id),                                     chunk_size::SINGLE_TRANSFER);
+    m_client.download(&item->kind,       sizeof(item->kind),                                   chunk_size::SINGLE_TRANSFER);
+    m_client.download(item->orientation, sizeof(item->orientation) * task.get_orientation,     chunk_size::SINGLE_TRANSFER);
+    m_client.download(item->position,    sizeof(item->position)    * task.get_position,        chunk_size::SINGLE_TRANSFER);
+    m_client.download(item->location,    sizeof(item->location)    * task.get_location_matrix, chunk_size::SINGLE_TRANSFER);
+    m_client.download(&item->alignment,  sizeof(item->alignment)   * task.get_quad,            chunk_size::SINGLE_TRANSFER);
+    m_client.download(item->extents,     sizeof(item->extents)     * task.get_quad,            chunk_size::SINGLE_TRANSFER);
+
+    if (task.get_meshes)          { download_meshes(item->meshes); }
+    if (task.get_collider_meshes) { download_meshes(item->collider_meshes); }
+
+    return item;
+}
+
+
+
+ipc_su::ipc_su(char const* host, uint16_t port) : ipc(host, port)
+{
+}
+
+std::shared_ptr<su_result> ipc_su::query(su_task const& task)
+{
+    std::vector<uint8_t> sc;
+    task.pack(sc);
+    m_client.sendall(sc.data(), sc.size());
+    
+
+    
+    uint32_t status;
+    uint32_t items;
+
+    m_client.download(&status, sizeof(status), chunk_size::SINGLE_TRANSFER);
+    if (status != 0) { return nullptr; }
+
+    std::shared_ptr<su_result> result = std::make_shared<su_result>();
+
+    m_client.download(result->extrinsics, sizeof(result->extrinsics), chunk_size::SINGLE_TRANSFER);
+    m_client.download(result->pose,       sizeof(result->pose),       chunk_size::SINGLE_TRANSFER);
+    m_client.download(&items,             sizeof(items),              chunk_size::SINGLE_TRANSFER);
+
+    for (uint32_t i = 0; i < items; ++i) { result->items.push_back(download_item(task)); }
+    return result;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// * Voice Input
+//------------------------------------------------------------------------------
+
+ipc_vi::ipc_vi(char const* host, uint16_t port) : ipc(host, port)
+{
+    assert(sizeof(vi_result) == 32UL);
+}
+
+void ipc_vi::create_recognizer()
+{
+    uint8_t c = commmand_ipc_vi::CREATE_RECOGNIZER;
+    m_client.sendall(&c, sizeof(c));
+}
+
+bool ipc_vi::register_commands(bool clear, std::vector<std::u16string> const& strings)
+{
+    std::vector<uint8_t> data;
+    uint8_t response;
+
+    push_u8(data, commmand_ipc_vi::REGISTER_COMMANDS);
+    push_u8(data, clear ? 1: 0);
+    push_u8(data, (uint8_t)strings.size());
+
+    for (std::u16string string : strings)
+    {
+    uint16_t len = (uint16_t)string.length();
+    char16_t const* s = string.c_str();
+    push_u16(data, len);
+    data.insert(data.end(), (uint8_t*)s, (uint8_t*)(s + len));
+    }
+
+    m_client.sendall(data.data(), data.size());
+    m_client.download(&response, sizeof(response), chunk_size::SINGLE_TRANSFER);
+
+    return response != 0;
+}
+
+void ipc_vi::start()
+{
+    uint8_t c = commmand_ipc_vi::START;
+    m_client.sendall(&c, sizeof(c));
+}
+
+void ipc_vi::pop(std::vector<vi_result>& results)
+{
+    uint8_t c = commmand_ipc_vi::POP;
+    uint32_t count;
+
+    m_client.sendall(&c, sizeof(c));
+    m_client.download(&count, sizeof(count), chunk_size::SINGLE_TRANSFER);
+    results.resize(count);
+    m_client.download(results.data(), count * sizeof(vi_result), chunk_size::SINGLE_TRANSFER);
+}
+
+void ipc_vi::clear()
+{
+    uint8_t c = commmand_ipc_vi::CLEAR;
+    m_client.sendall(&c, sizeof(c));
+}
+
+void ipc_vi::stop()
+{
+    uint8_t c = commmand_ipc_vi::STOP;
+    m_client.sendall(&c, sizeof(c));
+}
+
+//------------------------------------------------------------------------------
+// * Unity Message Queue
+//------------------------------------------------------------------------------
+
+umq_command_buffer::umq_command_buffer()
+{
+    m_count = 0;
+}
+
+void umq_command_buffer::add(uint32_t id, uint8_t* data, uint32_t size)
+{
+    push_u32(m_buffer, id);
+    push_u32(m_buffer, size);
+    m_buffer.insert(m_buffer.end(), data, data + size);
+    m_count++;
+}
+
+void umq_command_buffer::clear()
+{
+    m_buffer.clear();
+    m_count = 0;
+}
+
+uint8_t const* umq_command_buffer::data()
+{
+    return m_buffer.data();
+}
+
+uint32_t umq_command_buffer::size()
+{
+    return (uint32_t)m_buffer.size();
+}
+
+uint32_t umq_command_buffer::count()
+{
+    return m_count;
+}
+
+ipc_umq::ipc_umq(char const* host, uint16_t port) : ipc(host, port)
+{
+}
+
+void ipc_umq::push(uint8_t const* data, size_t size)
+{
+    m_client.sendall(data, size);
+}
+
+void ipc_umq::pull(uint32_t* data, uint32_t count)
+{
+    m_client.download(data, count * sizeof(uint32_t), chunk_size::SINGLE_TRANSFER);
+}
 }
