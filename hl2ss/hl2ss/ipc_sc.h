@@ -4,6 +4,7 @@
 #include "server.h"
 #include "custom_media_types.h"
 #include "custom_sink_writers.h"
+#include "custom_video_effect.h"
 
 #include <winrt/Windows.Graphics.Imaging.h>
 
@@ -27,3 +28,4 @@ bool ReceiveH26xFormat_Profile(SOCKET clientsocket, H26xFormat& format);
 bool ReceiveH26xEncoder_Options(SOCKET clientsocket, std::vector<uint64_t>& options);
 bool ReceiveZABFormat_PNGFilter(SOCKET clientsocket, ZABFormat& format);
 bool ReceiveZABFormat_Profile(SOCKET clientsocket, ZABFormat& format);
+bool ReceiveMRCOptions(SOCKET clientsocket, MRCOptions& options);

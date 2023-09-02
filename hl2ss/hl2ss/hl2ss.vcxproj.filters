@@ -217,6 +217,9 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstdmt_compress.c">
       <Filter>Libraries\Zdepth\zstd</Filter>
     </ClCompile>
+    <ClCompile Include="custom_video_effect.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -560,6 +563,9 @@
     </ClInclude>
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\zstd.h">
       <Filter>Libraries\Zdepth\zstd</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_video_effect.h">
+      <Filter>Header Files\sink</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

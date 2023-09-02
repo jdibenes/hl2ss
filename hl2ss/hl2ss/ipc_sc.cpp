@@ -2,6 +2,7 @@
 #include "server.h"
 #include "custom_media_types.h"
 #include "custom_sink_writers.h"
+#include "custom_video_effect.h"
 #include "ipc_sc.h"
 
 #include <winrt/Windows.Graphics.Imaging.h>
@@ -165,6 +166,37 @@ bool ReceiveZABFormat_Profile(SOCKET clientsocket, ZABFormat& format)
 	case ZProfile::ZProfile_Zdepth: break;
 	default: return false;
 	}
+
+	return true;
+}
+
+// OK
+bool ReceiveMRCOptions(SOCKET clientsocket, MRCOptions& options)
+{
+	bool ok;
+
+	ok = recv_u8(clientsocket, *(uint8_t*)&options.enable);
+	if (!ok) { return false; }
+	ok = recv_u8(clientsocket, *(uint8_t*)&options.hologram_composition);
+	if (!ok) { return false; }
+	ok = recv_u8(clientsocket, *(uint8_t*)&options.recording_indicator);
+	if (!ok) { return false; }
+	ok = recv_u8(clientsocket, *(uint8_t*)&options.video_stabilization);
+	if (!ok) { return false; }
+	ok = recv_u8(clientsocket, *(uint8_t*)&options.blank_protected);
+	if (!ok) { return false; }
+	ok = recv_u8(clientsocket, *(uint8_t*)&options.show_mesh);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, *(uint32_t*)&options.global_opacity);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, *(uint32_t*)&options.output_width);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, *(uint32_t*)&options.output_height);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, options.video_stabilization_length);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, options.hologram_perspective);
+	if (!ok) { return false; }
 
 	return true;
 }
