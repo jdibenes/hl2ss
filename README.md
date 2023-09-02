@@ -31,6 +31,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 
 - Download calibration data (e.g., camera intrinsics, extrinsics, undistort maps) for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
 - Optional per-frame pose for the Front Camera and Research Mode sensors.
+- Support for Mixed Reality Capture (Holograms in Front Camera video).
 - Client can configure the bitrate and properties of the [H264](https://learn.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder), [HEVC](https://learn.microsoft.com/en-us/windows/win32/medfound/h-265---hevc-video-encoder), and [AAC](https://learn.microsoft.com/en-us/windows/win32/medfound/aac-encoder) encoded streams.
 - Client can configure the resolution and framerate of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
