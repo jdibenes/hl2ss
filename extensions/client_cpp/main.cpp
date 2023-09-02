@@ -222,56 +222,115 @@ void test_vi()
     client.close();
 }
 
+void test_rc()
+{
+    hl2ss::ipc_rc client("192.168.1.7", hl2ss::ipc_port::REMOTE_CONFIGURATION);
+    client.open();
+    hl2ss::version v = client.get_application_version();
+    std::cout << "VERSION: " << v.field[0] << "." << v.field[1] << "." << v.field[2] << "." << v.field[3] << std::endl;
+    uint64_t offset = client.get_utc_offset(32);
+    std::cout << "UTC OFFSET: " << offset << std::endl;
+    client.close();
+}
 
-//hl2ss::frame* frame = decoder.decode(data->payload, data->sz_payload);
+void test_sm()
+{
+    hl2ss::ipc_sm client("192.168.1.7", hl2ss::ipc_port::SPATIAL_MAPPING);
+    hl2ss::sm_bounding_volume volumes;
+    std::vector<hl2ss::sm_surface_info> surfaces;
+    hl2ss::sm_mesh_task task;
+    std::vector<hl2ss::sm_mesh> meshes;
 
-        //cv::Mat bgr = hl2ss::frame_to_opencv_mat(*(frame->f));
-        //cv::Mat bgr = cv::Mat(480, 640, CV_8UC1, data->payload);
-        
+    volumes.add_box({0.0f, 0.0f, 0.0f}, {5.0f, 5.0f, 5.0f});
+    client.open();
+    client.create_observer();
+    client.set_volumes(volumes);
+    client.get_observed_surfaces(surfaces);
+    for (size_t i = 0; i < surfaces.size(); ++i)
+    {
+    task.add_task(surfaces[i].id, 1000.0, hl2ss::sm_vertex_position_format::R32G32B32A32Float, hl2ss::sm_triangle_index_format::R32Uint, hl2ss::sm_vertex_normal_format::R32G32B32A32Float, true, false);
+    std::cout << "SURFACE " << i << ": " << surfaces[i].update_time << std::endl;
+    }
+    client.get_meshes(task, 2, meshes);
+    client.close();
 
-        //cv::Mat bgr = cv::Mat(client.height, client.width, CV_8UC3, data->payload);
-        //
-        
-        //cv::waitKey(1);
+    std::cout << "Observed surfaces: " << surfaces.size() << std::endl;
+    std::cout << "Meshes: " << meshes.size() << std::endl;
+}
 
-        //frame->Release();
-        //std::cout << "PAYLOAD SIZE: " << data->sz_payload << std::endl;
+void test_su()
+{
+    hl2ss::ipc_su client("192.168.1.7", hl2ss::ipc_port::SCENE_UNDERSTANDING);
+    hl2ss::su_task task;
+    hl2ss::su_result result;
+
+    task.enable_quads = true;
+    task.enable_meshes = true;
+    task.enable_only_observed = true;
+    task.enable_world_mesh = true;
+    task.mesh_lod = hl2ss::su_mesh_lod::Medium;
+    task.query_radius = 5.0f;
+    task.create_mode = hl2ss::su_create::New;
+    task.kind_flags = 0xFF;
+    task.get_orientation = true;
+    task.get_position = true;;
+    task.get_location_matrix = true;;
+    task.get_quad = true;;
+    task.get_meshes = true;; 
+    task.get_collider_meshes = true;;
+
+    std::cout << "SU" << std::endl;
+
+    client.open();
+    client.query(task, result);
+    client.close();
+
+    std::cout << "Status: " << result.status << std::endl;
+    std::cout << "Items: " << result.items.size() << std::endl;
+    std::cout << "Meshes in 0: " << result.items[0].meshes.size() << std::endl;
+}
+
+void test_umq()
+{
+    hl2ss::ipc_umq client("192.168.1.7", hl2ss::ipc_port::UNITY_MESSAGE_QUEUE);
+    hl2ss::umq_command_buffer buffer;
+    
+    uint32_t type = 3;
+    uint32_t mode = 1;
+    uint32_t key = 0;
+    uint32_t active = 1;
+    std::vector<uint8_t> data;
+    hl2ss::vector_3 position{0.0f, 0.0f, 0.0f};
+    hl2ss::quaternion orientation{0.0f, 0.0f, 0.0f, 1.0f};
+    hl2ss::vector_3 scale{0.2f, 0.2f, 0.2f};
+
+    buffer.add( 0, &type, sizeof(type));
+    buffer.add(20, &mode, sizeof(mode));
+    data.clear();
+    data.insert(data.end(), (uint8_t*)&key, ((uint8_t*)&key) + sizeof(key));
+    data.insert(data.end(), (uint8_t*)&position, ((uint8_t*)&position) + sizeof(position));
+    data.insert(data.end(), (uint8_t*)&orientation, ((uint8_t*)&orientation) + sizeof(orientation));
+    data.insert(data.end(), (uint8_t*)&scale, ((uint8_t*)&scale) + sizeof(scale));
+    buffer.add( 2, data.data(), data.size());
+    data.clear();
+    data.insert(data.end(), (uint8_t*)&key, ((uint8_t*)&key) + sizeof(key));
+    data.insert(data.end(), (uint8_t*)&active, ((uint8_t*)&active) + sizeof(active));
+    buffer.add( 1, data.data(), data.size());
+
+    client.open();
+    client.push(buffer.data(), buffer.size());
+    std::vector<uint32_t> response;
+    response.resize(buffer.count());
+    client.pull(response.data(), buffer.count());
+    client.close();
+}
 
 int main()
 {
-    
-    //hl2ss::rx_decoded_rm_vlc client("192.168.1.7", 3800, 4096, 1, 1, 3, 0xFF, 1*1024*1024, options);
-    //hl2ss::rx_rm_depth_ahat client("192.168.1.7", 3804, 4096, 1, 1, 0, 3, 0xFF, 8*1024*1024, options);
-    //hl2ss::rx_decoded_rm_depth_longthrow client("192.168.1.7", 3805, 4096, 1, 1, 5);
-    //hl2ss::rx_rm_imu client("192.168.1.7", 3806, 4096, 1);
-    //hl2ss::start_subsystem_pv("192.168.1.7", 3810);
-    //hl2ss::rx_decoded_pv client("192.168.1.7", 3810, 4096, 1, 1920, 1080, 30, 1, 0, 0xFF, 5*1024*1024, options, 0);
-    //hl2ss::rx_microphone client("192.168.1.7", 3811, 4096, 3, 0x29);
-    //hl2ss::rx_si client("192.168.1.7", 3812, 4096);
-    //hl2ss::rx_eet client("192.168.1.7", 3817, 4096, 30);
-    //hl2ss::rx_decoded_microphone client("192.168.1.7", hl2ss::stream_port::MICROPHONE, 4096, hl2ss::audio_profile::AAC_24000, hl2ss::aac_level::L2);
-
-    /*
-    hl2ss::rx_rm_depth_ahat 
-    client(
-        "192.168.1.7",
-        hl2ss::stream_port::RM_DEPTH_AHAT,
-        4096,
-        hl2ss::stream_mode::MODE_1,
-        1, 
-        hl2ss::depth_profile::SAME,
-        hl2ss::video_profile::H265_MAIN,
-        hl2ss::h26x_level::DEFAULT,
-        8*1024*1024,
-        options
-    );
-    */
-    //
-
     try
     {
         hl2ss::client::initialize();
-        int test_id = 1;
+        int test_id = 12;
 
         switch (test_id)
         {
@@ -283,11 +342,11 @@ int main()
         case 5: test_microphone(); break;
         case 6: test_si(); break;
         case 7: test_eet(); break;
-        case 8: break;
-        case 9: break;
-        case 10: break;
+        case 8: test_rc(); break;
+        case 9: test_sm(); break;
+        case 10: test_su(); break;
         case 11: test_vi(); break;
-        case 12: break;
+        case 12: test_umq(); break;
         }
         /*
         std::shared_ptr<hl2ss::calibration_rm_vlc> data1 = hl2ss::download_calibration_rm_vlc("192.168.1.7", hl2ss::stream_port::RM_VLC_LEFTFRONT);

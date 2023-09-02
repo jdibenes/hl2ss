@@ -1297,7 +1297,7 @@ void ipc_rc::set_pv_scene_mode(uint32_t mode)
 }
 
 //------------------------------------------------------------------------------
-// Spatial Mapping
+// * Spatial Mapping
 //------------------------------------------------------------------------------
 
 namespace commmand_ipc_sm
@@ -1365,6 +1365,7 @@ sm_mesh_task::sm_mesh_task()
 
 void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds)
 {
+    m_count++;
     push_u64(m_data, id.l);
     push_u64(m_data, id.h);
     push_double(m_data, max_triangles_per_cubic_meter);
@@ -1384,7 +1385,7 @@ void ipc_sm::create_observer()
     m_client.sendall(&c, sizeof(c));
 }
 
-void ipc_sm::set_volumes(sm_bounding_volume volumes)
+void ipc_sm::set_volumes(sm_bounding_volume const& volumes)
 {
     std::vector<uint8_t> sc;
     push_u8(sc, commmand_ipc_sm::SET_VOLUMES);
@@ -1403,7 +1404,7 @@ void ipc_sm::get_observed_surfaces(std::vector<sm_surface_info>& surfaces)
     m_client.download(surfaces.data(), count * sizeof(sm_surface_info), chunk_size::SINGLE_TRANSFER);
 }
 
-void ipc_sm::get_meshes(sm_mesh_task tasks, uint32_t threads, std::vector<sm_mesh>& meshes)
+void ipc_sm::get_meshes(sm_mesh_task const& tasks, uint32_t threads, std::vector<sm_mesh>& meshes)
 {
     std::vector<uint8_t> sc;
     push_u8(sc, commmand_ipc_sm::GET_MESHES);
@@ -1451,7 +1452,7 @@ void ipc_sm::get_meshes(sm_mesh_task tasks, uint32_t threads, std::vector<sm_mes
 }
 
 //------------------------------------------------------------------------------
-// Scene Understanding
+// * Scene Understanding
 //------------------------------------------------------------------------------
 
 void su_pack_task(std::vector<uint8_t>& sc, su_task const& task)
@@ -1621,10 +1622,10 @@ umq_command_buffer::umq_command_buffer()
     m_count = 0;
 }
 
-void umq_command_buffer::add(uint32_t id, uint8_t* data, uint32_t size)
+void umq_command_buffer::add(uint32_t id, void const* data, size_t size)
 {
     push_u32(m_buffer, id);
-    push_u32(m_buffer, size);
+    push_u32(m_buffer, (uint32_t)size);
     push(m_buffer, data, size);
     m_count++;
 }
@@ -1640,9 +1641,9 @@ uint8_t const* umq_command_buffer::data()
     return m_buffer.data();
 }
 
-uint32_t umq_command_buffer::size()
+size_t umq_command_buffer::size()
 {
-    return (uint32_t)m_buffer.size();
+    return m_buffer.size();
 }
 
 uint32_t umq_command_buffer::count()

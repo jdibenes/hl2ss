@@ -859,7 +859,7 @@ public:
 };
 
 //------------------------------------------------------------------------------
-// Spatial Mapping
+// * Spatial Mapping
 //------------------------------------------------------------------------------
 
 namespace sm_vertex_position_format
@@ -963,13 +963,13 @@ public:
     ipc_sm(char const* host, uint16_t port);
 
     void create_observer();
-    void set_volumes(sm_bounding_volume volumes);
+    void set_volumes(sm_bounding_volume const& volumes);
     void get_observed_surfaces(std::vector<sm_surface_info>& surfaces);
-    void get_meshes(sm_mesh_task tasks, uint32_t threads, std::vector<sm_mesh>& meshes);
+    void get_meshes(sm_mesh_task const& tasks, uint32_t threads, std::vector<sm_mesh>& meshes);
 };
 
 //------------------------------------------------------------------------------
-// Scene Understanding
+// * Scene Understanding
 //------------------------------------------------------------------------------
 
 namespace su_mesh_lod
@@ -1120,10 +1120,10 @@ private:
 public:
     umq_command_buffer();
 
-    void add(uint32_t id, uint8_t* data, uint32_t size);
+    void add(uint32_t id, void const* data, size_t size);
     void clear();
     uint8_t const* data();
-    uint32_t size();
+    size_t size();
     uint32_t count();
 };
 
