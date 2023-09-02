@@ -9,6 +9,10 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
+#ifdef HL2SS_ENABLE_ZDEPTH
+#include <zdepth.hpp>
+#endif
+
 namespace hl2ss
 {
 //------------------------------------------------------------------------------
@@ -497,6 +501,9 @@ class decoder_rm_depth_ahat
 {
 private:
     codec m_codec;
+#ifdef HL2SS_ENABLE_ZDEPTH
+    zdepth::DepthCompressor m_zdc;
+#endif
     uint8_t m_profile_z;
     uint8_t m_profile_ab;
 
@@ -556,7 +563,7 @@ public:
 
 class rx_decoded_rm_vlc : public rx_rm_vlc
 {
-private:
+protected:
     decoder_rm_vlc m_decoder;
 
 public:
@@ -569,7 +576,7 @@ public:
 
 class rx_decoded_rm_depth_ahat : public rx_rm_depth_ahat
 {
-private:
+protected:
     decoder_rm_depth_ahat m_decoder;
 
 public:
@@ -582,7 +589,7 @@ public:
 
 class rx_decoded_rm_depth_longthrow : public rx_rm_depth_longthrow
 {
-private:
+protected:
     decoder_rm_depth_longthrow m_decoder;
 
 public:
@@ -595,7 +602,7 @@ public:
 
 class rx_decoded_pv : public rx_pv
 {
-private:
+protected:
     decoder_pv m_decoder;
 
 public:
@@ -610,7 +617,7 @@ public:
 
 class rx_decoded_microphone : public rx_microphone
 {
-private:
+protected:
     decoder_microphone m_decoder;
 
 public:
@@ -680,17 +687,13 @@ uint16_t get_port_index(uint16_t port);
 char const* get_port_name(uint16_t port);
 
 //------------------------------------------------------------------------------
-// IPC
+// * IPC
 //------------------------------------------------------------------------------
-
-
-
 
 class ipc
 {
 protected:
     client m_client;
-    //std::vector<uint8_t> m_sc;
 
     ipc(char const* host, uint16_t port);
 
@@ -704,141 +707,266 @@ public:
     virtual void close();
 };
 
+//------------------------------------------------------------------------------
+// * Remote Configuration
+//------------------------------------------------------------------------------
 
-
-
-
-
-
-
-
-
-struct hs_marker_state
+namespace hs_marker_state
 {
-    static uint32_t const Disable = 0;
-    static uint32_t const Enable = 1;
+uint32_t const Disable = 0;
+uint32_t const Enable  = 1;
 };
 
-struct pv_focus_mode
+namespace pv_focus_mode
 {
-    static uint32_t const Auto = 0;
-    static uint32_t const Single = 1;
-    static uint32_t const Continuous = 2;
-    static uint32_t const Manual = 3;
+uint32_t const Auto       = 0;
+uint32_t const Single     = 1;
+uint32_t const Continuous = 2;
+uint32_t const Manual     = 3;
 };
 
-struct pv_auto_focus_range
+namespace pv_auto_focus_range
 {
-    static uint32_t const FullRange = 0;
-    static uint32_t const Macro = 1;
-    static uint32_t const Normal = 2;
+uint32_t const FullRange = 0;
+uint32_t const Macro     = 1;
+uint32_t const Normal    = 2;
 };
 
-struct pv_manual_focus_distance
+namespace pv_manual_focus_distance
 {
-    static uint32_t const Infinity = 0;
-    static uint32_t const Nearest = 2;
+uint32_t const Infinity = 0;
+uint32_t const Nearest  = 2;
 };
 
-struct pv_focus_value
+namespace pv_focus_value
 {
-    static uint32_t const Min = 170;
-    static uint32_t const Max = 10000;
+uint32_t const Min =   170;
+uint32_t const Max = 10000;
 };
 
-struct pv_driver_fallback
+namespace pv_driver_fallback
 {
-    static uint32_t const Enable = 0;
-    static uint32_t const Disable = 1;
+uint32_t const Enable  = 0;
+uint32_t const Disable = 1;
 };
 
-struct pv_video_temporal_denoising_mode
+namespace pv_video_temporal_denoising_mode
 {
-    static uint32_t const Off = 0;
-    static uint32_t const On = 1;
+uint32_t const Off = 0;
+uint32_t const On  = 1;
 };
 
-struct pv_color_temperature_preset
+namespace pv_color_temperature_preset
 {
-    static uint32_t const Auto = 0;
-    static uint32_t const Manual = 1;
-    static uint32_t const Cloudy = 2;
-    static uint32_t const Daylight = 3;
-    static uint32_t const Flash = 4;
-    static uint32_t const Fluorescent = 5;
-    static uint32_t const Tungsten = 6;
-    static uint32_t const Candlelight = 7;
+uint32_t const Auto        = 0;
+uint32_t const Manual      = 1;
+uint32_t const Cloudy      = 2;
+uint32_t const Daylight    = 3;
+uint32_t const Flash       = 4;
+uint32_t const Fluorescent = 5;
+uint32_t const Tungsten    = 6;
+uint32_t const Candlelight = 7;
 };
 
-struct pv_white_balance_value
+namespace pv_white_balance_value
 {
-    static uint32_t const Min = 2300; // 25
-    static uint32_t const Max = 7500; // 25
+uint32_t const Min = 2300; // 25
+uint32_t const Max = 7500; // 25
 };
 
-struct pv_exposure_mode
+namespace pv_exposure_mode
 {
-    static uint32_t const Manual = 0;
-    static uint32_t const Auto = 1;
+uint32_t const Manual = 0;
+uint32_t const Auto   = 1;
 };   
 
-struct pv_exposure_value
+namespace pv_exposure_value
 {
-    static uint32_t const Min = 1000; // 10
-    static uint32_t const Max = 660000; // 10
+uint32_t const Min =   1000;   // 10
+uint32_t const Max = 660000; // 10
 };
 
-struct pv_exposure_priority_video
+namespace pv_exposure_priority_video
 {
-    static uint32_t const Disabled = 0;
-    static uint32_t const Enabled = 1;
+uint32_t const Disabled = 0;
+uint32_t const Enabled  = 1;
 };
 
-struct pv_iso_speed_mode
+namespace pv_iso_speed_mode
 {
-    static uint32_t const Manual = 0;
-    static uint32_t const Auto = 1;
+uint32_t const Manual = 0;
+uint32_t const Auto   = 1;
 };
 
-struct pv_iso_speed_value
+namespace pv_iso_speed_value
 {
-    static uint32_t const Min = 100;
-    static uint32_t const Max = 3200;
+uint32_t const Min =  100;
+uint32_t const Max = 3200;
 };
 
-struct pv_capture_scene_mode
+namespace pv_capture_scene_mode
 {
-    static uint32_t const Auto = 0;
-    static uint32_t const Macro = 2;
-    static uint32_t const Portrait = 3;
-    static uint32_t const Sport = 4;
-    static uint32_t const Snow = 5;
-    static uint32_t const Night = 6;
-    static uint32_t const Beach = 7;
-    static uint32_t const Sunset = 8;
-    static uint32_t const Candlelight = 9;
-    static uint32_t const Landscape = 10;
-    static uint32_t const NightPortrait = 11;
-    static uint32_t const Backlit = 12;
+uint32_t const Auto          =  0;
+uint32_t const Macro         =  2;
+uint32_t const Portrait      =  3;
+uint32_t const Sport         =  4;
+uint32_t const Snow          =  5;
+uint32_t const Night         =  6;
+uint32_t const Beach         =  7;
+uint32_t const Sunset        =  8;
+uint32_t const Candlelight   =  9;
+uint32_t const Landscape     = 10;
+uint32_t const NightPortrait = 11;
+uint32_t const Backlit       = 12;
 };
 
-struct pv_backlight_compensation_state
+namespace pv_backlight_compensation_state
 {
-    static uint32_t const Disable = 0;
-    static uint32_t const Enable = 1;
+uint32_t const Disable = 0;
+uint32_t const Enable  = 1;
 };
-
-
-
-
 
 struct version
 {
     uint16_t field[4];
 };
 
+class ipc_rc : public ipc
+{
+protected:
+    std::vector<uint8_t> m_sc;
 
+    void send(uint8_t command, std::initializer_list<uint32_t> list);
+    void recv(void* buffer, size_t size);
 
+public:
+    ipc_rc(char const* host, uint16_t port);
+
+    version get_application_version();
+    uint64_t get_utc_offset(uint32_t samples);
+    void set_hs_marker_state(uint32_t state);
+    bool get_pv_subsystem_status();
+    void wait_for_pv_subsystem(bool status);
+    void set_pv_focus(uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback);
+    void set_pv_video_temporal_denoising(uint32_t mode);
+    void set_pv_white_balance_preset(uint32_t preset);
+    void set_pv_white_balance_value(uint32_t value);
+    void set_pv_exposure(uint32_t mode, uint32_t value);
+    void set_pv_exposure_priority_video(uint32_t enabled);
+    void set_pv_iso_speed(uint32_t mode, uint32_t value);
+    void set_pv_backlight_compensation(uint32_t state);
+    void set_pv_scene_mode(uint32_t mode);
+};
+
+//------------------------------------------------------------------------------
+// Spatial Mapping
+//------------------------------------------------------------------------------
+
+namespace sm_vertex_position_format
+{
+uint32_t const R32G32B32A32Float         =  2;
+uint32_t const R16G16B16A16IntNormalized = 13;
+};
+
+namespace sm_triangle_index_format
+{
+uint32_t const R16UInt = 57;
+uint32_t const R32Uint = 42;
+};
+
+namespace sm_vertex_normal_format
+{
+uint32_t const R32G32B32A32Float     =  2;
+uint32_t const R8G8B8A8IntNormalized = 31;
+};
+
+struct vector_3
+{
+    float x;
+    float y;
+    float z;
+};
+
+struct vector_4
+{
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
+struct matrix_4x4
+{
+    float m[4][4];
+};
+
+typedef vector_4 quaternion;
+typedef vector_4 plane;
+
+class sm_bounding_volume
+{
+    friend class ipc_sm;
+
+private:
+    std::vector<uint8_t> m_data;
+    uint32_t m_count;
+
+public:
+    sm_bounding_volume();
+
+    void add_box(vector_3 center, vector_3 extents);
+    void add_frustum(plane p_near, plane p_far, plane p_right, plane p_left, plane p_top, plane p_bottom);
+    void add_oriented_box(vector_3 center, vector_3 extents, quaternion orientation);
+    void add_sphere(vector_3 center, float radius);
+};
+
+struct guid
+{
+    uint64_t l;
+    uint64_t h;
+};
+
+struct sm_surface_info
+{
+    guid id;
+    uint64_t update_time;
+};
+
+class sm_mesh_task
+{
+    friend class ipc_sm;
+
+private:
+    std::vector<uint8_t> m_data;
+    uint32_t m_count;
+    
+public:
+    sm_mesh_task();
+
+    void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds);
+};
+
+struct sm_mesh
+{
+    uint32_t status;
+    vector_3 vertex_position_scale;
+    matrix_4x4 pose;
+    std::vector<uint8_t> bounds;
+    std::vector<uint8_t> vertex_positions;
+    std::vector<uint8_t> triangle_indices;
+    std::vector<uint8_t> vertex_normals;
+};
+
+class ipc_sm : public ipc
+{
+public:
+    ipc_sm(char const* host, uint16_t port);
+
+    void create_observer();
+    void set_volumes(sm_bounding_volume volumes);
+    void get_observed_surfaces(std::vector<sm_surface_info>& surfaces);
+    void get_meshes(sm_mesh_task tasks, uint32_t threads, std::vector<sm_mesh>& meshes);
+};
 
 //------------------------------------------------------------------------------
 // Scene Understanding
@@ -882,6 +1010,69 @@ int32_t const World              = 248;
 int32_t const CompletelyInferred = 249;
 };
 
+struct vector_2
+{
+    float x;
+    float y;
+};
+
+struct su_mesh
+{
+    std::vector<uint8_t> vertex_positions;
+    std::vector<uint8_t> triangle_indices;
+};
+
+struct su_item
+{
+    guid id;
+    int32_t kind;
+    quaternion orientation;
+    vector_3 position;
+    matrix_4x4 location;
+    int32_t alignment;
+    vector_2 extents;
+    std::vector<su_mesh> meshes;
+    std::vector<su_mesh> collider_meshes;
+};
+
+struct su_result
+{
+    uint32_t status;
+    matrix_4x4 extrinsics;
+    matrix_4x4 pose;
+    std::vector<su_item> items;
+};
+
+struct su_task 
+{
+    bool enable_quads;
+    bool enable_meshes;
+    bool enable_only_observed;
+    bool enable_world_mesh;
+    uint32_t mesh_lod;
+    float query_radius;
+    uint8_t create_mode;
+    uint8_t kind_flags;
+    bool get_orientation;
+    bool get_position;
+    bool get_location_matrix;
+    bool get_quad;
+    bool get_meshes; 
+    bool get_collider_meshes;
+    std::vector<guid> guid_list;
+};
+
+class ipc_su : public ipc
+{
+protected:
+    void download_meshes(std::vector<su_mesh>& meshes);
+
+public:
+    ipc_su(char const* host, uint16_t port);
+
+    void query(su_task const& task, su_result& result);
+};
+
 //------------------------------------------------------------------------------
 // * Voice Input
 //------------------------------------------------------------------------------
@@ -901,16 +1092,6 @@ struct vi_result
     uint64_t phrase_duration;
     uint64_t phrase_start_time;
     double   raw_confidence;
-};
-
-namespace commmand_ipc_vi
-{
-uint8_t const CREATE_RECOGNIZER = 0x00;
-uint8_t const REGISTER_COMMANDS = 0x01;
-uint8_t const START             = 0x02;
-uint8_t const POP               = 0x03;
-uint8_t const CLEAR             = 0x04;
-uint8_t const STOP              = 0x05;
 };
 
 class ipc_vi : public ipc

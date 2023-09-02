@@ -16,13 +16,13 @@ void test_rm_depth_ahat()
         4096,
         hl2ss::stream_mode::MODE_1,
         1, 
-        hl2ss::depth_profile::SAME,
+        hl2ss::depth_profile::ZDEPTH,
         hl2ss::video_profile::H265_MAIN,
         hl2ss::h26x_level::DEFAULT,
         8*1024*1024,
         options
     );
-
+ 
     client.open();
     for (;;)
     {
@@ -189,6 +189,39 @@ void test_eet()
     client.close();
 }
 
+void test_vi()
+{
+    hl2ss::ipc_vi client("192.168.1.7", hl2ss::ipc_port::VOICE_INPUT);
+    std::vector<std::u16string> commands;
+    std::vector<hl2ss::vi_result> results;
+    bool run = true;
+
+    commands.push_back(u"cat");
+    commands.push_back(u"dog");
+
+    client.open();
+    client.create_recognizer();
+    bool status = client.register_commands(true, commands);
+    std::cout << "REGISTER COMMANDS " << status << std::endl;
+    client.start();
+    while (run)
+    {
+        client.pop(results);
+        for (size_t i = 0; i < results.size(); ++i)
+        {
+            std::cout << "EVENT" << " Index: "      << results[i].index 
+                                 << " Confidence: " << results[i].confidence 
+                                 << " Start: " << results[i].phrase_start_time
+                                 << " Duration: " << results[i].phrase_duration
+                                 << " Confidence: " << results[i].raw_confidence << std::endl;
+            if (results[i].index == 1) { run = false; }
+        }
+    }
+    client.stop();
+    client.clear();
+    client.close();
+}
+
 
 //hl2ss::frame* frame = decoder.decode(data->payload, data->sz_payload);
 
@@ -238,7 +271,7 @@ int main()
     try
     {
         hl2ss::client::initialize();
-        int test_id = 4;
+        int test_id = 1;
 
         switch (test_id)
         {
@@ -249,7 +282,12 @@ int main()
         case 4: test_pv(); break;
         case 5: test_microphone(); break;
         case 6: test_si(); break;
-        case 7: test_eet();
+        case 7: test_eet(); break;
+        case 8: break;
+        case 9: break;
+        case 10: break;
+        case 11: test_vi(); break;
+        case 12: break;
         }
         /*
         std::shared_ptr<hl2ss::calibration_rm_vlc> data1 = hl2ss::download_calibration_rm_vlc("192.168.1.7", hl2ss::stream_port::RM_VLC_LEFTFRONT);
