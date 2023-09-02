@@ -106,7 +106,7 @@ void test_pv()
     options.push_back(hl2ss::h26x_encoder_property::CODECAPI_AVEncMPVGOPSize);
     options.push_back(30);
 
-    hl2ss::start_subsystem_pv("192.168.1.7", hl2ss::stream_port::PERSONAL_VIDEO);
+    hl2ss::start_subsystem_pv("192.168.1.7", hl2ss::stream_port::PERSONAL_VIDEO, true, true, false, false, false, false, 0.9f, 0.0f, 0.0f, 0, hl2ss::hologram_perspective::PV);
 
     hl2ss::rx_decoded_pv client(
         "192.168.1.7",
@@ -330,7 +330,7 @@ int main()
     try
     {
         hl2ss::client::initialize();
-        int test_id = 12;
+        int test_id = 4;
 
         switch (test_id)
         {

@@ -171,6 +171,12 @@ uint64_t const CODECAPI_AVEncVideoMaxQP                = 17;
 uint64_t const CODECAPI_VideoEncoderDisplayContentType = 18;
 };
 
+namespace hologram_perspective
+{
+uint32_t const DISPLAY = 0;
+uint32_t const PV      = 1;
+};
+
 namespace pv_decoded_format
 {
 uint8_t const BGR  = 0;
@@ -309,7 +315,7 @@ public:
 // * PV Control
 //------------------------------------------------------------------------------
 
-void start_subsystem_pv(char const* host, uint16_t port);
+void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective);
 void stop_subsystem_pv(char const* host, uint16_t port);
 
 //------------------------------------------------------------------------------

@@ -295,6 +295,21 @@ void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vecto
     }
 }
 
+void create_configuration_for_mrc(std::vector<uint8_t>& sc, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
+{
+    push_u8(sc, enable_mrc);
+    push_u8(sc, hologram_composition);
+    push_u8(sc, recording_indicator);
+    push_u8(sc, video_stabilization);
+    push_u8(sc, blank_protected);
+    push_u8(sc, show_mesh);
+    push_float(sc, global_opacity);
+    push_float(sc, output_width);
+    push_float(sc, output_height);
+    push_u32(sc, video_stabilization_length);
+    push_u32(sc, hologram_perspective);
+}
+
 //------------------------------------------------------------------------------
 // * Stream Configuration
 //------------------------------------------------------------------------------
@@ -376,27 +391,28 @@ uint8_t const STOP   = 0x08;
 uint8_t const MODE_3 = 0x03;
 };
 
-void start_subsystem_pv(char const* host, uint16_t port)
+void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
 {
-    std::vector<uint8_t> cfg;
+    std::vector<uint8_t> sc;
     client c;
 
-    create_configuration_for_pv_mode_2(cfg, pv_control::START | pv_control::MODE_3, 1920, 1080, 30);
+    create_configuration_for_pv_mode_2(sc, pv_control::START | pv_control::MODE_3, 1920, 1080, 30);
+    create_configuration_for_mrc(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
 
     c.open(host, port);
-    c.sendall(cfg.data(), cfg.size());
+    c.sendall(sc.data(), sc.size());
     c.close();
 }
 
 void stop_subsystem_pv(char const* host, uint16_t port)
 {
-    std::vector<uint8_t> cfg;
+    std::vector<uint8_t> sc;
     client c;
 
-    create_configuration_for_pv_mode_2(cfg, pv_control::STOP | pv_control::MODE_3, 1920, 1080, 30);
+    create_configuration_for_pv_mode_2(sc, pv_control::STOP | pv_control::MODE_3, 1920, 1080, 30);
 
     c.open(host, port);
-    c.sendall(cfg.data(), cfg.size());
+    c.sendall(sc.data(), sc.size());
     c.close();
 }
 
@@ -1568,7 +1584,7 @@ bool ipc_vi::register_commands(bool clear, std::vector<std::u16string> const& st
     uint8_t response;
 
     push_u8(data, commmand_ipc_vi::REGISTER_COMMANDS);
-    push_u8(data, clear ? 1: 0);
+    push_u8(data, clear);
     push_u8(data, (uint8_t)strings.size());
 
     for (std::u16string string : strings)
