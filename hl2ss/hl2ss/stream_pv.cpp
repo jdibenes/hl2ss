@@ -251,11 +251,18 @@ static void PV_Stream(SOCKET clientsocket)
     ok = recv_u8(clientsocket, mode);
     if (!ok) { return; }
 
-    if (!PersonalVideo_Status() && (mode & 4)) { PersonalVideo_Open(); }
-    if (!PersonalVideo_Status()) { return; }
-    
     ok = ReceiveH26xFormat_Video(clientsocket, format);
     if (!ok) { return; }
+
+    if (mode & 4)
+    {
+    MRCOptions options;
+    ok = ReceiveMRCOptions(clientsocket, options);
+    if (!ok) { return; }
+    if (!PersonalVideo_Status()) { PersonalVideo_Open(options); }
+    }
+
+    if (!PersonalVideo_Status()) { return; }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
     if (!ok) { return; }

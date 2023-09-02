@@ -70,8 +70,8 @@ def get_sync_period(rx):
 # Control
 #------------------------------------------------------------------------------
 
-def start_subsystem_pv(host, port):
-    hl2ss.start_subsystem_pv(host, port)
+def start_subsystem_pv(host, port, enable_mrc=False, hologram_composition=True, recording_indicator=False, video_stabilization=False, blank_protected=False, show_mesh=False, global_opacity=0.9, output_width=0.0, output_height=0.0, video_stabilization_length=0, hologram_perspective=hl2ss.HologramPerspective.PV):
+    hl2ss.start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective)
 
 
 def stop_subsystem_pv(host, port):

@@ -161,6 +161,11 @@ class PNGFilterMode:
     ADAPTIVE  = 6
 
 
+class HologramPerspective:
+    DISPLAY = 0
+    PV      = 1
+
+
 # RM VLC Parameters
 class Parameters_RM_VLC:
     WIDTH  = 640
@@ -440,7 +445,11 @@ def _create_configuration_for_h26x_encoding(options):
     for key, value in options.items():
         configuration.extend(struct.pack('<QQ', key, value))
     return bytes(configuration)
-    
+
+
+def _create_configuration_for_mrc(enable, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
+    return struct.pack('<BBBBBBfffII', 1 if (enable) else 0, 1 if (hologram_composition) else 0, 1 if (recording_indicator) else 0, 1 if (video_stabilization) else 0, 1 if (blank_protected) else 0, 1 if (show_mesh) else 0, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective)
+
 
 def _create_configuration_for_rm_vlc(mode, divisor, profile, level, bitrate, options):
     configuration = bytearray()
@@ -567,10 +576,11 @@ class _PVCNT:
     MODE_3 = 0x03
 
 
-def start_subsystem_pv(host, port):
+def start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
     c = _client()
     c.open(host, port)
     c.sendall(_create_configuration_for_pv_mode2(_PVCNT.START | _PVCNT.MODE_3, 1920, 1080, 30))
+    c.sendall(_create_configuration_for_mrc(enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective))
     c.close()
 
 

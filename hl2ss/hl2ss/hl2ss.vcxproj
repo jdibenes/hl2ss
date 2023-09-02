@@ -190,6 +190,7 @@
     <ClInclude Include="custom_sink_writers.h" />
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
+    <ClInclude Include="custom_video_effect.h" />
     <ClInclude Include="display7s.h" />
     <ClInclude Include="extended_eye_tracking.h" />
     <ClInclude Include="holographic_space.h" />
@@ -264,6 +265,7 @@
     <ClCompile Include="custom_sink_writers.cpp" />
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
+    <ClCompile Include="custom_video_effect.cpp" />
     <ClCompile Include="display7s.cpp" />
     <ClCompile Include="extended_eye_tracking.cpp" />
     <ClCompile Include="holographic_space.cpp" />

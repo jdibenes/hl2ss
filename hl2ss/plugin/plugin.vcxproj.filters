@@ -219,6 +219,9 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\src\zdepth.cpp">
       <Filter>Libraries\Zdepth</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_video_effect.cpp">
+      <Filter>Libraries\hl2ss</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2ss\custom_hook_callback.h">
@@ -433,6 +436,9 @@
     </ClInclude>
     <ClInclude Include="..\..\3rdparty\Zdepth\include\zdepth.hpp">
       <Filter>Libraries\Zdepth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_video_effect.h">
+      <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
