@@ -122,7 +122,7 @@ void PersonalVideo_Open(MRCOptions const& options)
 
     g_mediaCapture.InitializeAsync(settings).get();
 
-    if (options.enable) { g_mediaCapture.AddVideoEffectAsync(MRCVideoEffect(options), MediaStreamType::VideoRecord); }
+    if (options.enable) { g_mediaCapture.AddVideoEffectAsync(MRCVideoEffect(options), MediaStreamType::VideoRecord).get(); }
 
     PersonalVideo_FindVideoSource(g_mediaCapture, g_videoSource);
 
