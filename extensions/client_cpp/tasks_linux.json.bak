@@ -9,6 +9,7 @@
                 "-g",
                 "${file}",
                 "hl2ss.cpp",
+                "hl2ss_lnm.cpp",
                 "../../3rdparty/Zdepth/src/*.cpp",
                 "../../3rdparty/Zdepth/zstd/src/*.c",
                 "-o",
