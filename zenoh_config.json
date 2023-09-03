@@ -127,8 +127,8 @@
     // configuration of "storage-manager" plugin:
     storage_manager: {
       backend_search_dirs: [
-        "D:/develop/apps/zenoh_ecosystem/zenoh/target/release", 
-        "D:/develop/apps/zenoh_ecosystem/external/zenoh-backend-filesystem/target/release"],
+        "D:/develop/apps/zenoh/target/release"
+      ],
       volumes: {
         // configuration of a "fs" volume (the "zenoh_backend_fs" backend library will be loaded at startup)
         fs: {},

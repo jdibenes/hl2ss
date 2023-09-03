@@ -221,7 +221,7 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
         return;
     }
 
-    auto context = std::make_shared<HC_Context>();
+    g_zenoh_context = std::make_shared<HC_Context>();
 
     /*
      * Topic prefix consists of the following components
@@ -245,8 +245,8 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
         topic_prefix = default_topic_prefix + host_name;
     }
 
-    context->topic_prefix = topic_prefix;
-    SPDLOG_INFO("Using Topic Prefix: {0}", context->topic_prefix);
+    g_zenoh_context->topic_prefix = topic_prefix;
+    SPDLOG_INFO("Using Topic Prefix: {0}", g_zenoh_context->topic_prefix);
 
     g_zenoh_context->session = z_open(z_move(config));
     if (!z_check(g_zenoh_context->session)) {

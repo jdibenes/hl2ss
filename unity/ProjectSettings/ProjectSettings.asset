@@ -136,7 +136,8 @@ PlayerSettings:
     Others: 1
   bundleVersion: 1.0
   preloadedAssets:
-  - {fileID: -1589633051886188793, guid: e95907da39812154b9c0ecb55fb3b85c, type: 2}
+  - {fileID: 4182312896216738040, guid: e95907da39812154b9c0ecb55fb3b85c, type: 2}
+  - {fileID: -7753753271938609836, guid: accf170d8f483b84e9f06295f6421b11, type: 2}
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   m_HolographicPauseOnTrackingLoss: 1
@@ -622,9 +623,9 @@ PlayerSettings:
   metroPackageVersion: 1.0.21.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
-  metroCertificateSubject: jcds
-  metroCertificateIssuer: jcds
-  metroCertificateNotAfter: 000a0fbe3b98da01
+  metroCertificateSubject: NARVIS
+  metroCertificateIssuer: NARVIS
+  metroCertificateNotAfter: 00659f9e78fdda01
   metroApplicationDescription: hl2ss unity sample
   wsaImages: {}
   metroTileShortName: hl2ss sample

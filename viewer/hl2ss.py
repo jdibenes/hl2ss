@@ -7,10 +7,10 @@ import quaternion
 import time
 import struct
 import asyncio
-import websockets.client
 import cv2
 import av
 import logging
+import numpy_ringbuffer
 
 import zenoh
 from zenoh import config, QueryTarget
@@ -410,7 +410,7 @@ class stream_base(_context_manager):
         self.config_topic = config_topic
         self.desc = None
         self.sub = None
-        self._queue = numpy_ringbuffer.RingBuffer(1024, dtype=np.object)
+        self._queue = numpy_ringbuffer.RingBuffer(1024, dtype=object)
         self._session = None
 
     @property
