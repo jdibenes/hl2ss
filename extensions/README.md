@@ -1,6 +1,6 @@
 # Optional Extensions
 
-## cpp_client
+## client_cpp
 
 C++ client library. Requires OpenCV and FFmpeg. See `main.cpp` for examples.
 
