@@ -107,7 +107,9 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
     }
 
     if (g_zenoh_context != nullptr) {
- 
+        MQ_Quit();
+        MQ_Cleanup();
+        StopManager(g_zenoh_context);
         g_zenoh_context.reset();
     }
 
@@ -174,6 +176,16 @@ static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API 
 RegisterLoggingCallback(LoggingFuncCallBack cb) {
     SetupCallbackLogSink(cb);
+}
+
+extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+RegisterRawZSubscriber(const char* name, const char* keyexpr, ZenohSubscriptionCallBack cb) {
+    return MQ_SetupZenohRawSubscription(name, keyexpr, cb);
+}
+
+extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+ZSendMessage(const char* keyexpr, uint8_t * buffer, std::size_t buffer_len, z_encoding_prefix_t encoding, bool block) {
+    return MQ_SendMessage(keyexpr, buffer, buffer_len, encoding, block);
 }
 
 
@@ -257,7 +269,23 @@ void InitializeStreams(const char* _topic_prefix, const char* zcfg, uint32_t ena
     //if (enable & HL2SS_ENABLE_VI) { VI_Initialize(); }
     //if (enable & HL2SS_ENABLE_MQ) { MQ_Initialize(); }
     //if (enable & HL2SS_ENABLE_EET) { EET_Initialize(); }
+
+
+    StartManager(g_zenoh_context);
+
+    MQ_Initialize(g_zenoh_context);
+
 }
+
+void TeardownStreams() {
+    if (g_zenoh_context != nullptr) {
+        MQ_Quit();
+        MQ_Cleanup();
+        StopManager(g_zenoh_context);
+        g_zenoh_context.reset();
+    }
+}
+
 
 // OK
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
@@ -266,6 +294,13 @@ InitializeStreamsOnUI(const char* cid, const char* zcfg, uint32_t enable)
     call_deferred(InitializeStreams, cid, zcfg, enable);
 }
 
+
+// OK
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+TeardownStreamsOnUI()
+{
+    call_deferred(TeardownStreams);
+}
 
 
 extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
