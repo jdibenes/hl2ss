@@ -1680,4 +1680,62 @@ void ipc_umq::pull(uint32_t* data, uint32_t count)
 {
     m_client.download(data, count * sizeof(uint32_t), chunk_size::SINGLE_TRANSFER);
 }
+
+//------------------------------------------------------------------------------
+// * Unpacking
+//------------------------------------------------------------------------------
+
+void get_pose(float* pose, matrix_4x4** matrix)
+{
+    *matrix = (matrix_4x4*)pose;
+}
+
+void get_rm_vlc(uint8_t* payload, uint8_t** image)
+{
+    *image = payload;
+}
+
+void get_rm_depth_ahat(uint8_t* payload, uint16_t** depth, uint16_t** ab)
+{
+    *depth = (uint16_t*)(payload);
+    *ab    = (uint16_t*)(payload + (hl2ss::parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
+}
+
+void get_rm_depth_longthrow(uint8_t* payload, uint16_t** depth, uint16_t** ab)
+{
+    *depth = (uint16_t*)(payload);
+    *ab    = (uint16_t*)(payload + (hl2ss::parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
+}
+
+void get_rm_imu(uint8_t* payload, rm_imu_sample** samples)
+{
+    *samples = (rm_imu_sample*)payload;
+}
+
+void get_pv(uint8_t* payload, size_t size, uint8_t** image, pv_intrinsics** intrinsics)
+{
+    *image = payload;
+    *intrinsics = (pv_intrinsics*)(payload + size - sizeof(pv_intrinsics));
+}
+
+void get_microphone_raw(uint8_t* payload, int16_t** samples)
+{
+    *samples = (int16_t*)payload;
+}
+
+void get_microphone_aac(uint8_t* payload, float** samples)
+{
+    *samples = (float*)payload;
+}
+
+void get_si(uint8_t* payload, uint8_t** valid, si_frame** si)
+{
+    *valid = payload;
+    *si = (si_frame*)(payload + sizeof(uint8_t));
+}
+
+void get_eet(uint8_t* payload, eet_frame** eet)
+{
+    *eet = (eet_frame*)payload;
+}
 }

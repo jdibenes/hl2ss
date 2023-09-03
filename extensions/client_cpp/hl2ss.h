@@ -1141,4 +1141,128 @@ public:
     void push(uint8_t const* data, size_t size);
     void pull(uint32_t* data, uint32_t count);
 };
+
+//------------------------------------------------------------------------------
+// * Unpacking
+//------------------------------------------------------------------------------
+
+struct ray
+{
+    vector_3 origin;
+    vector_3 direction;
+};
+
+struct rm_imu_sample
+{
+    uint64_t sensor_timestamp;
+    uint64_t timestamp;
+    float x;
+    float y;
+    float z;
+    float temperature;
+};
+
+struct pv_intrinsics
+{
+    float fx;
+    float fy;
+    float cx;
+    float cy;
+};
+
+namespace si_valid
+{
+uint8_t const HEAD  = 0x01;
+uint8_t const EYE   = 0x02;
+uint8_t const LEFT  = 0x04;
+uint8_t const RIGHT = 0x08;
+};
+
+struct si_head_pose
+{
+    vector_3 position;
+    vector_3 forward;
+    vector_3 up;
+};
+
+namespace si_hand_joint_kind
+{
+uint8_t const Palm               =  0;
+uint8_t const Wrist              =  1;
+uint8_t const ThumbMetacarpal    =  2;
+uint8_t const ThumbProximal      =  3;
+uint8_t const ThumbDistal        =  4;
+uint8_t const ThumbTip           =  5;
+uint8_t const IndexMetacarpal    =  6;
+uint8_t const IndexProximal      =  7;
+uint8_t const IndexIntermediate  =  8;
+uint8_t const IndexDistal        =  9;
+uint8_t const IndexTip           = 10;
+uint8_t const MiddleMetacarpal   = 11;
+uint8_t const MiddleProximal     = 12;
+uint8_t const MiddleIntermediate = 13;
+uint8_t const MiddleDistal       = 14;
+uint8_t const MiddleTip          = 15;
+uint8_t const RingMetacarpal     = 16;
+uint8_t const RingProximal       = 17;
+uint8_t const RingIntermediate   = 18;
+uint8_t const RingDistal         = 19;
+uint8_t const RingTip            = 20;
+uint8_t const LittleMetacarpal   = 21;
+uint8_t const LittleProximal     = 22;
+uint8_t const LittleIntermediate = 23;
+uint8_t const LittleDistal       = 24;
+uint8_t const LittleTip          = 25;
+uint8_t const TOTAL              = 26;
+}
+
+struct si_hand_joint
+{
+    quaternion orientation;
+    vector_3 position;
+    float radius;
+    int32_t accuracy;
+};
+
+struct si_frame
+{
+    si_head_pose head_pose;
+    ray eye_ray;
+    si_hand_joint left_hand[26];
+    si_hand_joint right_hand[26];
+};
+
+namespace eet_valid
+{
+uint32_t const CALIBRATION       = 0x01;
+uint32_t const COMBINED_RAY      = 0x02;
+uint32_t const LEFT_RAY          = 0x04;
+uint32_t const RIGHT_RAY         = 0x08;
+uint32_t const LEFT_OPENNESS     = 0x10;
+uint32_t const RIGHT_OPENNESS    = 0x20;
+uint32_t const VERGENCE_DISTANCE = 0x40;
+};
+
+struct eet_frame
+{
+    uint32_t _reserved;
+    ray combined_ray;
+    ray left_ray;
+    ray right_ray;
+    float left_openness;
+    float right_openness;
+    float vergence_distance;
+    uint32_t valid;
+};
+
+void get_pose(float* pose, matrix_4x4** matrix);
+void get_rm_vlc(uint8_t* payload, uint8_t** image);
+void get_rm_depth_ahat(uint8_t* payload, uint16_t** depth, uint16_t** ab);
+void get_rm_depth_longthrow(uint8_t* payload, uint16_t** depth, uint16_t** ab);
+void get_rm_imu(uint8_t* payload, rm_imu_sample** samples);
+void get_pv(uint8_t* payload, size_t size, uint8_t** image, pv_intrinsics** intrinsics);
+void get_microphone_raw(uint8_t* payload, int16_t** samples);
+void get_microphone_aac(uint8_t* payload, float** samples);
+void get_si(uint8_t* payload, uint8_t** valid, si_frame** si);
+void get_eet(uint8_t* payload, eet_frame** eet);
 }
