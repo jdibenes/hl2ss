@@ -34,6 +34,7 @@
                 "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",
                 "${file}",
                 "hl2ss.cpp",
+                "hl2ss_lnm.cpp",
                 "/link",
                 "/NXCOMPAT",
                 "/DYNAMICBASE",
