@@ -20,6 +20,7 @@ import easyocr
 model = easyocr.Reader(['en']) # this needs to run only once to load the model into memory
 
 sys.path.append("./HandMovementTracking/")
+sys.path.append("./HandMovementTracking/utils")#
 #import sys
 #sys.path.append("EAST")
 #from detect import *
@@ -49,11 +50,11 @@ port = hl2ss.StreamPort.PERSONAL_VIDEO
 mode = hl2ss.StreamMode.MODE_0
 
 # Camera parameters
-width     = 1920
-height    = 1080
+width     = 640
+height    = 360
 framerate = 15
 # Video encoding profile
-profile = hl2ss.VideoProfile.H264_MAIN
+profile = hl2ss.VideoProfile.H264_BASE
 #image = 
 # Encoded stream average bits per second
 # Must be > 0
@@ -107,7 +108,7 @@ xmin = 0
 xmax = 0
 ymin = 0
 ymax = 0
-mode_ = 1
+mode_ = 2
 cache_image = None
 release = False
 def check_finger_movement(new, old, count, thresh=10):
@@ -262,7 +263,7 @@ else:
             count_8 = check_finger_movement(idx_to_coordinates[8], old_8, count_8)
             old_4 = idx_to_coordinates[4]
             old_8 = idx_to_coordinates[8]
-            if count_4 >= 5 and count_8 >= 5:
+            if count_4 >= 3 and count_8 >= 3:
                 print('stable')
                 count_4 = 0
                 count_8 = 0
