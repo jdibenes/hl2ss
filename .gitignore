@@ -20,5 +20,6 @@ bbn/tests/__pycache__/
 extensions/pyzdepth/build/
 extensions/pyzdepth/.vscode/
 extensions/client_cpp/.vscode/
+extensions/client_matlab/.vscode/
 calibration/*
 !/calibration/README.md
