@@ -2,6 +2,8 @@
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 #include "hl2ss_lnm.h"
+#include "hl2ss_mt.h"
+
 
 static void default_deleter(void* p)
 {
@@ -15,23 +17,25 @@ private:
     matlab::data::ArrayFactory m_factory;
     uint32_t m_argument_index;
 
-    std::unique_ptr<hl2ss::rx_rm_vlc> rx_rm_vlc_leftfront;
-    std::unique_ptr<hl2ss::rx_rm_vlc> rx_rm_vlc_leftleft;
-    std::unique_ptr<hl2ss::rx_rm_vlc> rx_rm_vlc_rightfront;
-    std::unique_ptr<hl2ss::rx_rm_vlc> rx_rm_vlc_rightright;
-    std::unique_ptr<hl2ss::rx_rm_depth_ahat> rx_rm_depth_ahat;
-    std::unique_ptr<hl2ss::rx_rm_depth_longthrow> rx_rm_depth_longthrow;
-    std::unique_ptr<hl2ss::rx_rm_imu> rx_rm_imu_accelerometer;
-    std::unique_ptr<hl2ss::rx_rm_imu> rx_rm_imu_gyroscope;
-    std::unique_ptr<hl2ss::rx_rm_imu> rx_rm_imu_magnetometer;
-    std::unique_ptr<hl2ss::rx_pv> rx_pv;
-    std::unique_ptr<hl2ss::rx_microphone> rx_microphone;
-    std::unique_ptr<hl2ss::rx_si> rx_si;
-    std::unique_ptr<hl2ss::rx_eet> rx_eet;
+    uint16_t pv_width;
+    uint16_t pv_height;
+    uint8_t  pv_framerate;
+    uint8_t  pv_bpp;
 
+    std::unique_ptr<hl2ss::mt::source> source_rm_vlc_leftfront;
+    std::unique_ptr<hl2ss::mt::source> source_rm_vlc_leftleft;
+    std::unique_ptr<hl2ss::mt::source> source_rm_vlc_rightfront;
+    std::unique_ptr<hl2ss::mt::source> source_rm_vlc_rightright;
+    std::unique_ptr<hl2ss::mt::source> source_rm_depth_ahat;
+    std::unique_ptr<hl2ss::mt::source> source_rm_depth_longthrow;
+    std::unique_ptr<hl2ss::mt::source> source_rm_imu_accelerometer;
+    std::unique_ptr<hl2ss::mt::source> source_rm_imu_gyroscope;
+    std::unique_ptr<hl2ss::mt::source> source_rm_imu_magnetometer;
+    std::unique_ptr<hl2ss::mt::source> source_pv;
+    std::unique_ptr<hl2ss::mt::source> source_microphone;
+    std::unique_ptr<hl2ss::mt::source> source_si;
+    std::unique_ptr<hl2ss::mt::source> source_eet;
 
-
-    
 public:
     MexFunction()
     {
@@ -39,12 +43,12 @@ public:
 
     ~MexFunction()
     {
-
     }
 
     template <typename T>
     T get_argument(matlab::mex::ArgumentList inputs)
     {
+        if (m_argument_index >= inputs.size()) { throw std::runtime_error("Not enough inputs"); }
         matlab::data::TypedArray<T> argument = std::move(inputs[m_argument_index++]);
         return argument[0];
     }
@@ -52,6 +56,7 @@ public:
     template <>
     std::string get_argument(matlab::mex::ArgumentList inputs)
     {
+        if (m_argument_index >= inputs.size()) { throw std::runtime_error("Not enough inputs"); }
         matlab::data::CharArray argument = std::move(inputs[m_argument_index++]);
         return argument.toAscii();
     }
@@ -61,186 +66,157 @@ public:
         m_matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>{ m_factory.createScalar(message) });
     }
 
-
-
-    
-    
-
-
-
-
-
-    
-
-
-
-
-
-    void close_rx_rm_vlc_leftfront()
+    void open_rm_vlc_leftfront(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_vlc_leftfront) { return; }
-        rx_rm_vlc_leftfront->close();
-        rx_rm_vlc_leftfront = nullptr;
+        // PARAMS
+        source_rm_vlc_leftfront = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_vlc(host, port));
+        source_rm_vlc_leftfront->start();
     }
 
-    void close_rx_rm_vlc_leftleft()
+    void open_rm_vlc_leftleft(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_vlc_leftleft) { return; }
-        rx_rm_vlc_leftleft->close();
-        rx_rm_vlc_leftleft = nullptr;
+        // PARAMS
+        source_rm_vlc_leftleft = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_vlc(host, port));
+        source_rm_vlc_leftleft->start();
     }
 
-    void close_rx_rm_vlc_rightfront()
+    void open_rm_vlc_rightfront(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_vlc_rightfront) { return; }
-        rx_rm_vlc_rightfront->close();
-        rx_rm_vlc_rightfront = nullptr;
+        // PARAMS
+        source_rm_vlc_rightfront = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_vlc(host, port));
+        source_rm_vlc_rightfront->start();
     }
 
-    void close_rx_rm_vlc_rightright()
+    void open_rm_vlc_rightright(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_vlc_rightright) { return; }
-        rx_rm_vlc_rightright->close();
-        rx_rm_vlc_rightright = nullptr;
+        // PARAMS
+        source_rm_vlc_rightright = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_vlc(host, port));
+        source_rm_vlc_rightright->start();
     }
 
-    void close_rx_rm_depth_ahat()
+    void open_rm_depth_ahat(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_depth_ahat) { return; }
-        rx_rm_depth_ahat->close();
-        rx_rm_depth_ahat = nullptr;
+        // PARAMS
+        source_rm_depth_ahat = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_depth_ahat(host, port));
+        source_rm_depth_ahat->start();
     }
 
-    void close_rx_rm_depth_longthrow()
+    void open_rm_depth_longthrow(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_depth_longthrow) { return; }
-        rx_rm_depth_longthrow->close();
-        rx_rm_depth_longthrow = nullptr;
+        // PARAMS
+        source_rm_depth_longthrow = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_depth_longthrow(host, port));
+        source_rm_depth_longthrow->start();
     }
 
-    void close_rx_rm_imu_accelerometer()
+    void open_pv(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_imu_accelerometer) { return; }
-        rx_rm_imu_accelerometer->close();
-        rx_rm_imu_accelerometer = nullptr;
+        uint16_t width          = get_argument<uint16_t>(inputs);
+        uint16_t height         = get_argument<uint16_t>(inputs);
+        uint8_t  framerate      = get_argument<uint8_t>(inputs);
+        uint8_t  decoded_format = get_argument<uint8_t>(inputs);
+        // PARAMS
+
+        std::unique_ptr<hl2ss::rx> rx = hl2ss::lnm::rx_pv(host, port, width, height, framerate);
+        static_cast<hl2ss::rx_decoded_pv*>(rx.get())->decoded_format = decoded_format;
+
+        pv_width     = width;
+        pv_height    = height;
+        pv_framerate = framerate;
+        pv_bpp       = hl2ss::decoder_pv::decoded_bpp(decoded_format);
+
+        source_pv = std::make_unique<hl2ss::mt::source>(buffer_size, std::move(rx));
+        source_pv->start();
     }
 
-    void close_rx_rm_imu_gyroscope()
+    void open_microphone(uint64_t buffer_size, char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        if (!rx_rm_imu_gyroscope) { return; }
-        rx_rm_imu_gyroscope->close();
-        rx_rm_imu_gyroscope = nullptr;
+        // PARAMS
+        source_microphone = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_microphone(host, port));
+        source_microphone->start();
     }
-
-    void close_rx_rm_imu_magnetometer()
-    {
-        if (!rx_rm_imu_magnetometer) { return; }
-        rx_rm_imu_magnetometer->close();
-        rx_rm_imu_magnetometer = nullptr;
-    }
-
-    void close_rx_pv()
-    {
-        if (!rx_pv) { return; }
-        rx_pv->close();
-        hl2ss::lnm::stop_subsystem_pv(rx_pv->host.c_str(), rx_pv->port);
-        rx_pv = nullptr;
-    }
-
-    void close_rx_microphone()
-    {
-        if (!rx_microphone) { return; }
-        rx_microphone->close();
-        rx_microphone = nullptr;
-    }
-
-    void close_rx_si()
-    {
-        if (!rx_si) { return; }
-        rx_si->close();
-        rx_si = nullptr;
-    }
-
-    void close_rx_eet()
-    {
-        if (!rx_eet) { return; }
-        rx_eet->close();
-        rx_eet = nullptr;
-    }
-
-
-
-
-    
-
-
-    void get_next_packet_rx_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
-    {
-        std::shared_ptr<hl2ss::packet> packet = rx_pv->get_next_packet();
-
-        outputs[0] = m_factory.createScalar<uint64_t>(packet->timestamp);
-        outputs[1] = m_factory.createArrayFromBuffer<uint8_t>({rx_pv->height, rx_pv->width, 3}, matlab::data::buffer_ptr_t<uint8_t>(packet->payload.release(), default_deleter), matlab::data::MemoryLayout::ROW_MAJOR);
-        outputs[2] = m_factory.createArrayFromBuffer<float>({4, 4}, matlab::data::buffer_ptr_t<float>(packet->pose.release(), default_deleter), matlab::data::MemoryLayout::ROW_MAJOR);
-    }
-
-    void open_pv(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
-    {
-        bool     enable_mrc = get_argument<bool>(inputs);
-        uint16_t width      = get_argument<uint16_t>(inputs);
-        uint16_t height     = get_argument<uint16_t>(inputs);
-        uint8_t  framerate  = get_argument<uint8_t>(inputs);
-
-        hl2ss::lnm::start_subsystem_pv(host, port, enable_mrc);
-        rx_pv = hl2ss::lnm::rx_pv(host, port, width, height, framerate);
-        rx_pv->open();
-    }
-
-
-
-
 
     void open(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::string host = get_argument<std::string>(inputs);
-        uint16_t port    = get_argument<uint16_t>(inputs);
-
+        uint64_t    buffer_size = get_argument<uint64_t>(inputs);
+        std::string host        = get_argument<std::string>(inputs);
+        uint16_t    port        = get_argument<uint16_t>(inputs);
+        // STREAMS
+        
         switch (port)
         {
-        case hl2ss::stream_port::RM_VLC_LEFTFRONT: break;
-        case hl2ss::stream_port::RM_VLC_LEFTLEFT: break;
-        case hl2ss::stream_port::RM_VLC_RIGHTFRONT: break;
-        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT: break;
-        case hl2ss::stream_port::RM_DEPTH_AHAT: break;
-        case hl2ss::stream_port::RM_DEPTH_LONGTHROW: break;
+        case hl2ss::stream_port::RM_VLC_LEFTFRONT:     open_rm_vlc_leftfront(buffer_size, host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::RM_VLC_LEFTLEFT:      open_rm_vlc_leftleft(buffer_size, host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    open_rm_vlc_rightfront(buffer_size, host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    open_rm_vlc_rightright(buffer_size, host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::RM_DEPTH_AHAT:        open_rm_depth_ahat(buffer_size, host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   open_rm_depth_longthrow(buffer_size, host.c_str(), port, inputs); break;
         case hl2ss::stream_port::RM_IMU_ACCELEROMETER: break;
-        case hl2ss::stream_port::RM_IMU_GYROSCOPE: break;
-        case hl2ss::stream_port::RM_IMU_MAGNETOMETER: break;
-        case hl2ss::stream_port::PERSONAL_VIDEO: open_pv(host.c_str(), port, inputs); break;
-        case hl2ss::stream_port::MICROPHONE: break;
-        case hl2ss::stream_port::SPATIAL_INPUT: break;
+        case hl2ss::stream_port::RM_IMU_GYROSCOPE:     break;
+        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  break;
+        case hl2ss::stream_port::PERSONAL_VIDEO:       open_pv(buffer_size, host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::MICROPHONE:           open_microphone(buffer_size, host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::SPATIAL_INPUT:        break;
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: break;
         default:                                       throw std::runtime_error("Unknown port");
         }
     }
 
-    void get_next_packet(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    template <typename T>
+    void get_packet(matlab::mex::ArgumentList outputs, hl2ss::mt::source* source, int64_t frame_stamp, matlab::data::ArrayDimensions dims)
     {
-        uint16_t port = get_argument<uint16_t>(inputs);
+        int32_t state;
+        std::shared_ptr<hl2ss::packet> packet = source->get_packet(frame_stamp, state);
+
+        outputs[0] = m_factory.createScalar<int64_t>(frame_stamp);
+        outputs[1] = m_factory.createScalar<int32_t>(state);
+
+        if (state != 0)
+        {
+        outputs[2] = m_factory.createEmptyArray();
+        outputs[3] = m_factory.createEmptyArray();
+        outputs[4] = m_factory.createEmptyArray();
+        }
+        else
+        {
+        outputs[2] = m_factory.createScalar<uint64_t>(packet->timestamp);
+
+        std::unique_ptr<T[]> payload = std::make_unique<T[]>((packet->sz_payload) / sizeof(T));
+        memcpy(payload.get(), packet->payload.get(), packet->sz_payload);
+        outputs[3] = m_factory.createArrayFromBuffer<T>(dims, matlab::data::buffer_ptr_t<T>(payload.release(), default_deleter), matlab::data::MemoryLayout::ROW_MAJOR);
+
+        if (packet->pose)
+        {
+        std::unique_ptr<float[]> pose = std::make_unique<float[]>(packet->NE_POSE);
+        memcpy(pose.get(), packet->pose.get(), packet->SZ_POSE);
+        outputs[4] = m_factory.createArrayFromBuffer<float>({4, 4}, matlab::data::buffer_ptr_t<float>(pose.release(), default_deleter), matlab::data::MemoryLayout::ROW_MAJOR);
+        }
+        else
+        {
+        outputs[4] = m_factory.createEmptyArray();
+        }
+        }
+    }
+
+    void get_packet(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        uint16_t port        = get_argument<uint16_t>(inputs);
+        int64_t  frame_stamp = get_argument<int64_t>(inputs);
+        // STREAMS
 
         switch (port)
         {
-        case hl2ss::stream_port::RM_VLC_LEFTFRONT: break;
-        case hl2ss::stream_port::RM_VLC_LEFTLEFT: break;
-        case hl2ss::stream_port::RM_VLC_RIGHTFRONT: break;
-        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT: break;
-        case hl2ss::stream_port::RM_DEPTH_AHAT: break;
-        case hl2ss::stream_port::RM_DEPTH_LONGTHROW: break;
+        case hl2ss::stream_port::RM_VLC_LEFTFRONT:     get_packet<uint8_t>( outputs, source_rm_vlc_leftfront.get(),   frame_stamp, {     hl2ss::parameters_rm_vlc::HEIGHT,             hl2ss::parameters_rm_vlc::WIDTH });              break;
+        case hl2ss::stream_port::RM_VLC_LEFTLEFT:      get_packet<uint8_t>( outputs, source_rm_vlc_leftleft.get(),    frame_stamp, {     hl2ss::parameters_rm_vlc::HEIGHT,             hl2ss::parameters_rm_vlc::WIDTH });              break;
+        case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    get_packet<uint8_t>( outputs, source_rm_vlc_rightfront.get(),  frame_stamp, {     hl2ss::parameters_rm_vlc::HEIGHT,             hl2ss::parameters_rm_vlc::WIDTH });              break;
+        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    get_packet<uint8_t>( outputs, source_rm_vlc_rightright.get(),  frame_stamp, {     hl2ss::parameters_rm_vlc::HEIGHT,             hl2ss::parameters_rm_vlc::WIDTH });              break;
+        case hl2ss::stream_port::RM_DEPTH_AHAT:        get_packet<uint16_t>(outputs, source_rm_depth_ahat.get(),      frame_stamp, { 2 * hl2ss::parameters_rm_depth_ahat::HEIGHT,      hl2ss::parameters_rm_depth_ahat::WIDTH });       break;
+        case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   get_packet<uint16_t>(outputs, source_rm_depth_longthrow.get(), frame_stamp, { 2 * hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });  break;
         case hl2ss::stream_port::RM_IMU_ACCELEROMETER: break;
-        case hl2ss::stream_port::RM_IMU_GYROSCOPE: break;
-        case hl2ss::stream_port::RM_IMU_MAGNETOMETER: break;
-        case hl2ss::stream_port::PERSONAL_VIDEO: get_next_packet_rx_pv(outputs, inputs); break;
-        case hl2ss::stream_port::MICROPHONE: break;
-        case hl2ss::stream_port::SPATIAL_INPUT: break;
+        case hl2ss::stream_port::RM_IMU_GYROSCOPE:     break;
+        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  break;
+        case hl2ss::stream_port::PERSONAL_VIDEO:       get_packet<uint8_t>( outputs, source_pv.get(),                 frame_stamp, { pv_height, pv_width, pv_bpp }); break;
+        case hl2ss::stream_port::MICROPHONE:           get_packet<float>(   outputs, source_microphone.get(),         frame_stamp, {     hl2ss::parameters_microphone::CHANNELS,       hl2ss::parameters_microphone::GROUP_SIZE_AAC }); break;
+        case hl2ss::stream_port::SPATIAL_INPUT:        break;
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: break;
         default:                                       throw std::runtime_error("Unknown port");
         }
@@ -252,31 +228,52 @@ public:
 
         switch (port)
         {
-        case hl2ss::stream_port::RM_VLC_LEFTFRONT:     close_rx_rm_vlc_leftfront();     break;
-        case hl2ss::stream_port::RM_VLC_LEFTLEFT:      close_rx_rm_vlc_leftleft();      break;
-        case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    close_rx_rm_vlc_rightfront();    break;
-        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    close_rx_rm_vlc_rightright();    break;
-        case hl2ss::stream_port::RM_DEPTH_AHAT:        close_rx_rm_depth_ahat();        break;
-        case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   close_rx_rm_depth_longthrow();   break;
-        case hl2ss::stream_port::RM_IMU_ACCELEROMETER: close_rx_rm_imu_accelerometer(); break;
-        case hl2ss::stream_port::RM_IMU_GYROSCOPE:     close_rx_rm_imu_gyroscope();     break;
-        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  close_rx_rm_imu_magnetometer();  break;
-        case hl2ss::stream_port::PERSONAL_VIDEO:       close_rx_pv();                   break;
-        case hl2ss::stream_port::MICROPHONE:           close_rx_microphone();           break;
-        case hl2ss::stream_port::SPATIAL_INPUT:        close_rx_si();                   break;
-        case hl2ss::stream_port::EXTENDED_EYE_TRACKER: close_rx_eet();                  break;
+        case hl2ss::stream_port::RM_VLC_LEFTFRONT:     source_rm_vlc_leftfront     = nullptr; break;
+        case hl2ss::stream_port::RM_VLC_LEFTLEFT:      source_rm_vlc_leftleft      = nullptr; break;
+        case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    source_rm_vlc_rightfront    = nullptr; break;
+        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    source_rm_vlc_rightright    = nullptr; break;
+        case hl2ss::stream_port::RM_DEPTH_AHAT:        source_rm_depth_ahat        = nullptr; break;
+        case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   source_rm_depth_longthrow   = nullptr; break;
+        case hl2ss::stream_port::RM_IMU_ACCELEROMETER: source_rm_imu_accelerometer = nullptr; break;
+        case hl2ss::stream_port::RM_IMU_GYROSCOPE:     source_rm_imu_gyroscope     = nullptr; break;
+        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  source_rm_imu_magnetometer  = nullptr; break;
+        case hl2ss::stream_port::PERSONAL_VIDEO:       source_pv                   = nullptr; break;
+        case hl2ss::stream_port::MICROPHONE:           source_microphone           = nullptr; break;
+        case hl2ss::stream_port::SPATIAL_INPUT:        source_si                   = nullptr; break;
+        case hl2ss::stream_port::EXTENDED_EYE_TRACKER: source_eet                  = nullptr; break;
         default:                                       throw std::runtime_error("Unknown port");
         }
+    }
+
+    void start_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::string host       = get_argument<std::string>(inputs);
+        uint16_t    port       = get_argument<uint16_t>(inputs);
+        bool        enable_mrc = get_argument<bool>(inputs);
+        // PARAMS
+
+        hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc);
+    }
+
+    void stop_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::string host = get_argument<std::string>(inputs);
+        uint16_t    port = get_argument<uint16_t>(inputs);
+
+        hl2ss::lnm::stop_subsystem_pv(host.c_str(), port);
     }
 
     void select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         std::string action = get_argument<std::string>(inputs);
 
-        if      (action == "open")            { open(outputs, inputs); }
-        else if (action == "get_next_packet") { get_next_packet(outputs, inputs); }
-        else if (action == "close")           { close(outputs, inputs); }
-        else                                  { throw std::runtime_error("Unknown action"); }
+        if      (action == "get_packet")         { get_packet(outputs, inputs); }
+        else if (action == "open")               { open(outputs, inputs); }
+        else if (action == "close")              { close(outputs, inputs); }
+        else if (action == "start_subsystem_pv") { start_subsystem_pv(outputs, inputs); }
+        else if (action == "stop_subsystem_pv")  { stop_subsystem_pv(outputs, inputs); }
+        // IPC
+        else                                     { throw std::runtime_error("Unknown action"); }
     }
 
     void operator() (matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -285,7 +282,3 @@ public:
         select(outputs, inputs);
     }
 };
-
-      // if (inputs.size() < 1) { m_matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>{ m_factory.createScalar("No action specified") }); }
-      //if (inputs[0].getType() != matlab::data::ArrayType::CHAR) { m_matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>{ m_factory.createScalar("Input 0 must be char") }); }
-      //        if (inputs.size() < 2) { m_matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>{ m_factory.createScalar("No port specified") }); }
