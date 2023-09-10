@@ -141,7 +141,7 @@ void packet::swap_payload(uint32_t size, std::unique_ptr<uint8_t[]> new_payload)
 
 void packet::init_pose()
 {
-    pose = std::make_unique<float[]>(SZ_POSE / sizeof(float));
+    pose = std::make_unique<float[]>(NE_POSE);
 }
 
 //------------------------------------------------------------------------------
@@ -826,6 +826,11 @@ void decoder_rm_depth_longthrow::close()
 {
 }
 
+uint8_t decoder_pv::decoded_bpp(uint8_t decoded_format)
+{
+    return cv_format[decoded_format][0];
+}
+
 void decoder_pv::open(uint16_t width, uint16_t height, uint8_t profile)
 {
     m_width = width;
@@ -837,7 +842,7 @@ void decoder_pv::open(uint16_t width, uint16_t height, uint8_t profile)
 
 uint32_t decoder_pv::decoded_size(uint8_t decoded_format)
 {
-    return m_width * m_height * cv_format[decoded_format][0] + K_SIZE;
+    return m_width * m_height * decoded_bpp(decoded_format) + K_SIZE;
 }
 
 std::unique_ptr<uint8_t[]> decoder_pv::decode(uint8_t* data, uint32_t size, uint8_t decoded_format)

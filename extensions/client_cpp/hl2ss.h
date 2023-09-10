@@ -279,7 +279,8 @@ public:
 class packet
 {
 public:
-    static size_t const SZ_POSE = 4*4*sizeof(float); 
+    static size_t const NE_POSE = 4 * 4;
+    static size_t const SZ_POSE = NE_POSE * sizeof(float); 
 
     uint64_t timestamp;
     uint32_t sz_payload;
@@ -541,6 +542,8 @@ private:
 
 public:
     static uint32_t const K_SIZE = 4 * sizeof(float);
+
+    static uint8_t decoded_bpp(uint8_t decoded_format);
 
     void open(uint16_t width, uint16_t height, uint8_t profile);
     uint32_t decoded_size(uint8_t decoded_format);
