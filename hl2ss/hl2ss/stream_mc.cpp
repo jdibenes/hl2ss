@@ -20,7 +20,7 @@ static winrt::com_ptr<MicrophoneCapture> g_microphoneCapture = nullptr;
 //-----------------------------------------------------------------------------
 
 // OK
-static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
+static void MC_SendSample(IMFSample* pSample, void* param)
 {
 	IMFMediaBuffer* pBuffer; // Release
 	LONGLONG sampletime;
@@ -37,14 +37,9 @@ static void MC_SendSampleToSocket(IMFSample* pSample, void* param)
 
 	pBuffer->Lock(&pBytes, NULL, &cbData);
 
-	wsaBuf[0].buf = (char*)&sampletime;
-	wsaBuf[0].len = sizeof(sampletime);
-
-	wsaBuf[1].buf = (char*)&cbData;
-	wsaBuf[1].len = sizeof(cbData);
-
-	wsaBuf[2].buf = (char*)pBytes;
-	wsaBuf[2].len = cbData;
+	pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+	pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
+	pack_buffer(wsaBuf, 2, pBytes, cbData);
 
 	ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 	if (!ok) { SetEvent(user->clientevent); }
@@ -67,7 +62,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	DWORD dwAudioIndex;
 	bool ok;
 
-	ok = ReceiveAudioFormatAAC(clientsocket, format.profile);
+	ok = ReceiveAACFormat_Profile(clientsocket, format);
 	if (!ok) { return; }
 
 	format.channels   = channels;
@@ -77,13 +72,9 @@ static void MC_Shoutcast(SOCKET clientsocket)
 
 	user.clientsocket = clientsocket;
 	user.clientevent  = event_client;
-	user.data_profile = format.profile;
+	user.format       = &format;
 
-	switch (format.profile)
-	{
-	case AACProfile::AACProfile_None: CreateSinkWriterPCMToPCM(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
-	default:                          CreateSinkWriterPCMToAAC(&pSink, &pSinkWriter, &dwAudioIndex, format, MC_SendSampleToSocket, &user); break;
-	}
+	CreateSinkWriterAudio(&pSink, &pSinkWriter, &dwAudioIndex, AudioSubtype::AudioSubtype_S16, format, MC_SendSample, &user);
 
 	g_microphoneCapture->Start();
 	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(event_client, 0) == WAIT_TIMEOUT);

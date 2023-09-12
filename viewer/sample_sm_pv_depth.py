@@ -7,7 +7,9 @@
 import multiprocessing as mp
 import numpy as np
 import cv2
+import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
 import hl2ss_sa
@@ -29,10 +31,9 @@ pv_focus = 1000 # In mm
 pv_width = 640
 pv_height = 360
 pv_fps = 30
-pv_profile = hl2ss.VideoProfile.H265_MAIN
-pv_bitrate = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_fps, 1/100)
-pv_format = 'bgr24'
-pv_buffer_size = 10 # In seconds
+
+# Buffer length in seconds
+buffer_size = 10 
 
 # SM settings
 sm_tpcm = 1000 # Triangles per cubic meter
@@ -55,10 +56,10 @@ if __name__ == "__main__":
 
     # Start PV stream ---------------------------------------------------------
     # Start PV subsystem
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Fix PV focus
-    rc_client = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    rc_client = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
     rc_client.open()
     rc_client.wait_for_pv_subsystem(True)
     rc_client.set_pv_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Infinity, pv_focus, hl2ss.PV_DriverFallback.Disable)
@@ -84,8 +85,8 @@ if __name__ == "__main__":
 
     # Start PV capture
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, pv_width, pv_height, pv_fps, pv_profile, pv_bitrate, pv_format)
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, pv_buffer_size * pv_fps)
+    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_fps))
+    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, buffer_size * pv_fps)
     producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
 
     consumer = hl2ss_mp.consumer()
@@ -132,7 +133,7 @@ if __name__ == "__main__":
     # Stop PV stream ----------------------------------------------------------
     sink_pv.detach()
     producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Close SM manager --------------------------------------------------------
     sm_manager.close()

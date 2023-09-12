@@ -7,6 +7,7 @@ from pynput import keyboard
 
 import threading
 import hl2ss
+import hl2ss_lnm
 import hl2ss_rus
 import configparser
 
@@ -15,9 +16,6 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 # HoloLens address
 host = config['DEFAULT']['ip']
-
-# Port
-port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 
 # Position in world space (x, y, z) in meters
 position = [0, 0, 1]
@@ -47,7 +45,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-ipc = hl2ss.ipc_umq(host, port)
+ipc = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
 ipc.open()
 
 key = 0

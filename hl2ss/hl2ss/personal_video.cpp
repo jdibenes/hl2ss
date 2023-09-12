@@ -1,5 +1,6 @@
 
 #include "lock.h"
+#include "custom_video_effect.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
@@ -93,7 +94,7 @@ void PersonalVideo_Cleanup()
 }
 
 // OK
-void PersonalVideo_Open()
+void PersonalVideo_Open(MRCOptions const& options)
 {
     uint32_t const width     = 1920;
     uint32_t const height    = 1080;
@@ -120,6 +121,8 @@ void PersonalVideo_Open()
     settings.MediaCategory(MediaCategory::Media);
 
     g_mediaCapture.InitializeAsync(settings).get();
+
+    if (options.enable) { g_mediaCapture.AddVideoEffectAsync(MRCVideoEffect(options), MediaStreamType::VideoRecord).get(); }
 
     PersonalVideo_FindVideoSource(g_mediaCapture, g_videoSource);
 

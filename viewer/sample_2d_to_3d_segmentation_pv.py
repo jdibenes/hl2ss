@@ -14,6 +14,7 @@ import open3d as o3d
 import mmcv
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
 import configparser
@@ -35,8 +36,6 @@ calibration_path = '../calibration/'
 pv_width = 640
 pv_height = 360
 pv_framerate = 15
-pv_profile = hl2ss.VideoProfile.H265_MAIN
-pv_bitrate = hl2ss.get_video_codec_bitrate(pv_width, pv_height, pv_framerate, hl2ss.get_video_codec_default_factor(pv_profile))
 
 # Buffer length in seconds
 buffer_length = 5
@@ -66,7 +65,7 @@ if __name__ == '__main__':
     listener.start()
 
     # Start PV Subsystem ------------------------------------------------------
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
@@ -85,8 +84,8 @@ if __name__ == '__main__':
 
     # Start PV and RM Depth Long Throw streams --------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, pv_width, pv_height, pv_framerate, pv_profile, pv_bitrate, 'bgr24')
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate))
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
     producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, buffer_length * pv_framerate)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, buffer_length * hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
     producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
@@ -189,7 +188,7 @@ if __name__ == '__main__':
     producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     # Stop PV subsystem -------------------------------------------------------
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()

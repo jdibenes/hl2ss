@@ -94,12 +94,9 @@ static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
     bool ok;
 
     SpatialMapping_GetObservedSurfaces(ids, count);
-    
-    wsaBuf[0].buf = (char*)&count;
-    wsaBuf[0].len = sizeof(count);
 
-    wsaBuf[1].buf = (char*)ids;
-    wsaBuf[1].len = (ULONG)(count * sizeof(SpatialMapping_SurfaceInfo));
+    pack_buffer(wsaBuf, 0, &count, sizeof(count));
+    pack_buffer(wsaBuf, 1, ids, (ULONG)(count * sizeof(SpatialMapping_SurfaceInfo)));
 
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
@@ -153,17 +150,10 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
     {
     info = SpatialMapping_GetNextMesh();
 
-    wsaBuf[0].buf = (char*)info;
-    wsaBuf[0].len = SM_MESH_INFO_HEADER_SIZE + info->bsz;
-
-    wsaBuf[1].buf = (char*)info->vpd;
-    wsaBuf[1].len = info->vpl;
-
-    wsaBuf[2].buf = (char*)info->tid;
-    wsaBuf[2].len = info->til;
-
-    wsaBuf[3].buf = (char*)info->vnd;
-    wsaBuf[3].len = info->vnl;
+    pack_buffer(wsaBuf, 0, info, SM_MESH_INFO_HEADER_SIZE + info->bsz);
+    pack_buffer(wsaBuf, 1, info->vpd, info->vpl);
+    pack_buffer(wsaBuf, 2, info->tid, info->til);
+    pack_buffer(wsaBuf, 3, info->vnd, info->vnl);
 
     ok = send_multiple(clientsocket, wsaBuf, (info->status == 0) ? (sizeof(wsaBuf) / sizeof(WSABUF)) : 1);
     if (!ok)

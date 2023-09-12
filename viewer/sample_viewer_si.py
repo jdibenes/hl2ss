@@ -11,6 +11,7 @@ import numpy as np
 import open3d as o3d
 import cv2
 import hl2ss
+import hl2ss_lnm
 import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
@@ -26,11 +27,9 @@ host = config['DEFAULT']['ip']
 calibration_path = '../calibration'
 
 # Camera parameters
-width = 640
-height = 360
-framerate = 30
-profile = hl2ss.VideoProfile.H265_MAIN
-bitrate = hl2ss.get_video_codec_bitrate(width, height, framerate, hl2ss.get_video_codec_default_factor(profile))
+pv_width = 640
+pv_height = 360
+pv_framerate = 30
 
 # Buffer length in seconds
 buffer_length = 10
@@ -63,7 +62,7 @@ if __name__ == '__main__':
     listener.start()
 
     # Start PV Subsystem ------------------------------------------------------
-    hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
@@ -101,9 +100,9 @@ if __name__ == '__main__':
 
     # Start PV and RM Depth Long Throw streams --------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_pv(True, host, hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss.ChunkSize.PERSONAL_VIDEO, hl2ss.StreamMode.MODE_1, width, height, framerate, profile, bitrate, 'rgb24')
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, framerate * buffer_length)
+    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate, decoded_format='rgb24'))
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
+    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, pv_framerate * buffer_length)
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
     producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
     producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
@@ -146,7 +145,7 @@ if __name__ == '__main__':
         pv_uv             = hl2ss_3dcv.project(world_points, world_to_pv_image)
         color             = cv2.remap(color, pv_uv[:, :, 0], pv_uv[:, :, 1], cv2.INTER_LINEAR)
 
-        mask_uv = hl2ss_3dcv.slice_to_block((pv_uv[:, :, 0] < 0) | (pv_uv[:, :, 0] >= width) | (pv_uv[:, :, 1] < 0) | (pv_uv[:, :, 1] >= height))
+        mask_uv = hl2ss_3dcv.slice_to_block((pv_uv[:, :, 0] < 0) | (pv_uv[:, :, 0] >= pv_width) | (pv_uv[:, :, 1] < 0) | (pv_uv[:, :, 1] >= pv_height))
         depth[mask_uv] = 0
 
         color_image = o3d.geometry.Image(color)
@@ -198,7 +197,7 @@ if __name__ == '__main__':
     listener.start()
 
     # Start Spatial Input stream ----------------------------------------------
-    producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.configure(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
     producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
     producer.start(hl2ss.StreamPort.SPATIAL_INPUT)
 
@@ -273,7 +272,7 @@ if __name__ == '__main__':
     producer.stop(hl2ss.StreamPort.SPATIAL_INPUT)
 
     # Stop PV subsystem -------------------------------------------------------
-    hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
     listener.join()

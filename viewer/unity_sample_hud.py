@@ -7,6 +7,7 @@ from pynput import keyboard
 
 import threading
 import hl2ss
+import hl2ss_lnm
 import hl2ss_rus
 import configparser
 
@@ -16,9 +17,6 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 # HoloLens address
 host = config['DEFAULT']['ip']
-
-# Port
-port = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
 
 # Position in camera space (x, y, z)
 position = [0,0, 0.5]
@@ -48,7 +46,7 @@ listener.start()
 with open(texture_file, mode='rb') as file:
     texture = file.read()
 
-ipc = hl2ss.ipc_umq(host, port)
+ipc = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
 ipc.open()
 
 key = 0

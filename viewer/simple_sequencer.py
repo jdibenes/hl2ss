@@ -5,6 +5,7 @@
 #------------------------------------------------------------------------------
 
 import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_io
 
@@ -16,9 +17,9 @@ path = './data'
 #------------------------------------------------------------------------------
 
 # Create readers --------------------------------------------------------------
-rd_pv = hl2ss_io.create_rd(True, f'./data/{hl2ss.get_port_name(hl2ss.StreamPort.PERSONAL_VIDEO)}.bin', hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24')
-rd_lf = hl2ss_io.sequencer(True, f'./data/{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_LEFTFRONT)}.bin', hl2ss.ChunkSize.SINGLE_TRANSFER, None)
-rd_rf = hl2ss_io.sequencer(True, f'./data/{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_RIGHTFRONT)}.bin', hl2ss.ChunkSize.SINGLE_TRANSFER, None)
+rd_pv = hl2ss_io.create_rd(f'./data/{hl2ss.get_port_name(hl2ss.StreamPort.PERSONAL_VIDEO)}.bin', hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24')
+rd_lf = hl2ss_io.sequencer(f'./data/{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_LEFTFRONT)}.bin', hl2ss.ChunkSize.SINGLE_TRANSFER, True)
+rd_rf = hl2ss_io.sequencer(f'./data/{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_RIGHTFRONT)}.bin', hl2ss.ChunkSize.SINGLE_TRANSFER, True)
 
 # Open readers ----------------------------------------------------------------
 rd_pv.open()
@@ -28,13 +29,13 @@ rd_rf.open()
 # Main loop -------------------------------------------------------------------
 while (True):
     # Get PV frame ------------------------------------------------------------
-    data_pv = rd_pv.read()
+    data_pv = rd_pv.get_next_packet()
     if (data_pv is None):
         break
 
     # Find RM VLC frames corresponding to the current PV frame ----------------
-    data_lf = rd_lf.read(data_pv.timestamp) # Get nearest (in time) lf frame
-    data_rf = rd_rf.read(data_pv.timestamp) # Get nearest (in time) rf frame
+    data_lf = rd_lf.get_next_packet(data_pv.timestamp) # Get nearest (in time) lf frame
+    data_rf = rd_rf.get_next_packet(data_pv.timestamp) # Get nearest (in time) rf frame
 
     # Display frames ----------------------------------------------------------
     if (data_lf is not None):

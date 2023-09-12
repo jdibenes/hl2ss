@@ -1,6 +1,6 @@
 # HoloLens 2 Sensor Streaming
 
-HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data to a Linux machine for research purposes but also works on Windows and OS X. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
+HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data in real-time to a Linux machine for research purposes but also works on Windows and OS X. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
 
 **Supported interfaces**
 
@@ -10,8 +10,8 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Right Front
   - Right Right
 - Research Mode Depth
-  - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB as NV12 luma+chroma, H264 or HEVC encoded) 
-  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB, encoded as a single 32-bit PNG)
+  - AHAT (512x512 @ 45 FPS, 16-bit Depth + 16-bit AB, H264 or HEVC encoded or Lossless* Zdepth for Depth)
+  - Long Throw (320x288 @ 5 FPS, 16-bit Depth + 16-bit AB, PNG encoded)
 - Research Mode IMU
   - Accelerometer (m/s^2)
   - Gyroscope (deg/s)
@@ -31,16 +31,20 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 
 - Download calibration data (e.g., camera intrinsics, extrinsics, undistort maps) for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
 - Optional per-frame pose for the Front Camera and Research Mode sensors.
-- Client can configure the bitrate of the H264, HEVC, and AAC encoded streams.
-- Client can configure the resolution and framerate of the Front Camera. See [etc/pv_configurations.txt](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
-- Client can configure the focus, white balance, and exposure of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
-- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py).
+- Support for Mixed Reality Capture (Holograms in Front Camera video).
+- Client can configure the bitrate and properties of the [H264](https://learn.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder), [HEVC](https://learn.microsoft.com/en-us/windows/win32/medfound/h-265---hevc-video-encoder), and [AAC](https://learn.microsoft.com/en-us/windows/win32/medfound/aac-encoder) encoded streams.
+- Client can configure the resolution and framerate of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
+- Client can configure the focus, white balance, and exposure of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
+- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
 - Client can send messages to a Unity application using the plugin.
+- **[Experimental]** [C++ client library](https://github.com/jdibenes/hl2ss/tree/main/extensions/client_cpp).
+- **[Experimental]** [MATLAB client (MEX)](https://github.com/jdibenes/hl2ss/tree/main/extensions/client_matlab).
 
 ## Preparation
 
 Before using the server software configure your HoloLens as follows:
 
+0. Update your HoloLens: Settings -> Update & Security -> Windows Update.
 1. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
 2. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
 3. Enable research mode: Refer to the Enabling Research Mode section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
@@ -49,7 +53,7 @@ Please note that **enabling Research Mode on the HoloLens increases battery usag
 
 ## Installation (sideloading)
 
-The server application is distributed as a single appxbundle file and can be installed using one of the two following methods.
+The server application is distributed as a single appxbundle file and can be installed using one of the three following methods.
 
 **Method 1**
 
@@ -62,6 +66,12 @@ The server application is distributed as a single appxbundle file and can be ins
 1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
 2. Go to the Device Portal (type the IP address of your HoloLens in the address bar of your preferred web browser) and upload the appxbundle to the HoloLens (System -> File explorer -> Downloads).
 3. On your HoloLens, open the File Explorer and locate the appxbundle. Tap the appxbundle file to open the installer and tap Install.
+
+**Method 3**
+
+1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
+2. Go to the Device Portal and navigate to Views -> Apps. Under Deploy apps, select Local Storage, click Browse, and select the appxbundle.
+3. Click Install, wait for the installation to complete, then click Done.
 
 You can find the server application (hl2ss) in the All apps list.
 
@@ -80,26 +90,25 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 **Interfaces**
 
-- RM VLC: [viewer/client_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_vlc.py)
-- RM Depth AHAT: [viewer/client_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_ahat.py)
-- RM Depth Long Throw: [viewer/client_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_depth_longthrow.py)
-- RM IMU: [viewer/client_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rm_imu.py)
-- Front Camera: [viewer/client_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_pv.py)
-- Microphone: [viewer/client_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_microphone.py)
-- Spatial Input: [viewer/client_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_si.py)
-- Remote Configuration: [viewer/client_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_rc.py)
-- Spatial Mapping: [viewer/client_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_sm.py)
-- Scene Understanding: [viewer/client_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_su.py)
-- Voice Input: [viewer/client_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_vi.py)
-- Unity Message Queue: [viewer/client_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_umq.py)
-- Extended Eye Tracking: [viewer/client_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_eet.py)
+- RM VLC: [viewer/client_stream_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_vlc.py)
+- RM Depth AHAT: [viewer/client_stream_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_depth_ahat.py)
+- RM Depth Long Throw: [viewer/client_stream_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_depth_longthrow.py)
+- RM IMU: [viewer/client_stream_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_imu.py)
+- Front Camera: [viewer/client_stream_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_pv.py)
+- Microphone: [viewer/client_stream_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_microphone.py)
+- Spatial Input: [viewer/client_stream_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_si.py)
+- Remote Configuration: [viewer/client_ipc_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py)
+- Spatial Mapping: [viewer/client_ipc_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_sm.py)
+- Scene Understanding: [viewer/client_ipc_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_su.py)
+- Voice Input: [viewer/client_ipc_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_vi.py)
+- Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py)
+- Extended Eye Tracking: [viewer/client_stream_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_eet.py)
 
 **Required packages**
 
 - [OpenCV](https://github.com/opencv/opencv-python) `pip install opencv-python`
 - [PyAV](https://github.com/PyAV-Org/PyAV) `pip install av`
 - [NumPy](https://numpy.org/) `pip install numpy`
-- [Websockets](https://github.com/aaugustin/websockets) `pip install websockets`
 
 **Optional packages**
 
@@ -178,10 +187,10 @@ If you wish to create the server application appxbundle, right click the hl2ss p
 ## Known issues and limitations
 
 - Multiple streams can be active at the same time but only one client per stream is allowed.
-- Ocassionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
-- Currently, it is not possible to access the Front Camera and RM Depth AHAT streams simultaneously without downgrading the HoloLens OS. See https://github.com/microsoft/HoloLens2ForCV/issues/133.
+- Occasionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
 - The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
 
 ## References
 
 This project uses the HoloLens 2 Research Mode API and the Cannon library, both available at the [HoloLens2ForCV](https://github.com/microsoft/HoloLens2ForCV) repository.
+Lossless* depth compression enabled by the [Zdepth](https://github.com/catid/Zdepth) library.

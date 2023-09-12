@@ -12,6 +12,7 @@ import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
@@ -27,12 +28,9 @@ host = config['DEFAULT']['ip']
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
 
-# Video Encoding profiles
-profile = hl2ss.VideoProfile.H265_MAIN
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = 8*1024*1024
+# AHAT Profile
+ht_profile_z = hl2ss.DepthProfile.SAME
+ht_profile_ab = hl2ss.VideoProfile.H265_MAIN
 
 # Marker properties
 radius = 5
@@ -82,8 +80,8 @@ if __name__ == '__main__':
 
     # Start RM Depth AHAT and Spatial Input streams ---------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_depth_ahat(True, host, hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.ChunkSize.RM_DEPTH_AHAT, hl2ss.StreamMode.MODE_1, profile, bitrate)
-    producer.configure_si(host, hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.ChunkSize.SPATIAL_INPUT)
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, profile_z=ht_profile_z, profile_ab=ht_profile_ab))
+    producer.configure(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
     producer.initialize(hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.Parameters_RM_DEPTH_AHAT.FPS * buffer_length)
     producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
     producer.start(hl2ss.StreamPort.RM_DEPTH_AHAT)

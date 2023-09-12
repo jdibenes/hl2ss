@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
 import configparser
@@ -26,10 +27,6 @@ port_right = hl2ss.StreamPort.RM_VLC_RIGHTFRONT
 
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
-
-# Camera parameters
-profile = hl2ss.VideoProfile.H265_MAIN
-bitrate = 1*1024*1024
 
 # Buffer size in seconds
 buffer_size = 10
@@ -80,8 +77,8 @@ if (__name__ == '__main__'):
 
     # Start streams -----------------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port_left, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, profile, bitrate)
-    producer.configure_rm_vlc(True, host, port_right, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_0, profile, bitrate)
+    producer.configure(port_left, hl2ss_lnm.rx_rm_vlc(host, port_left))
+    producer.configure(port_right, hl2ss_lnm.rx_rm_vlc(host, port_right))
     producer.initialize(port_left, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
     producer.initialize(port_right, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
     producer.start(port_left)
