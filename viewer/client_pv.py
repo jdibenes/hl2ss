@@ -33,7 +33,7 @@ mode = hl2ss.StreamMode.MODE_1
 # Camera parameters
 width     = 1920
 height    = 1080
-framerate = 30
+framerate = 15
 
 # Video encoding profile
 profile = hl2ss.VideoProfile.H265_MAIN
