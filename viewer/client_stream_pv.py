@@ -13,11 +13,11 @@ from pynput import keyboard
 import cv2
 import hl2ss_imshow
 import hl2ss
-<<<<<<< HEAD:viewer/client_pv.py
+#<<<<<<< HEAD:viewer/client_pv.py
 import configparser
-=======
+#=======
 import hl2ss_lnm
->>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_pv.py
+#>>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_pv.py
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()

@@ -50,11 +50,11 @@ port = hl2ss.StreamPort.PERSONAL_VIDEO
 mode = hl2ss.StreamMode.MODE_0
 
 # Camera parameters
-width     = 640
-height    = 360
-framerate = 15
+width     = 1920
+height    = 1080
+framerate = 30
 # Video encoding profile
-profile = hl2ss.VideoProfile.H264_BASE
+profile = hl2ss.VideoProfile.RAW
 #image = 
 # Encoded stream average bits per second
 # Must be > 0
