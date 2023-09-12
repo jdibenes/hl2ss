@@ -60,8 +60,7 @@ static void SU_TransferMeshes(SOCKET clientsocket, std::vector<std::shared_ptr<S
     WSABUF wsaBufMesh[4];
     bool ok;
 
-    wsaBufHeader[0].buf = (char*)&count;
-    wsaBufHeader[0].len = sizeof(count);
+    pack_buffer(wsaBufHeader, 0, &count, sizeof(count));
 
     ok = send_multiple(clientsocket, wsaBufHeader, sizeof(wsaBufHeader) / sizeof(WSABUF));
     if (!ok)
@@ -86,17 +85,10 @@ static void SU_TransferMeshes(SOCKET clientsocket, std::vector<std::shared_ptr<S
     mesh->GetVertexPositions(data_vertices, count_vertices);
     mesh->GetTriangleIndices({ data_triangle_indices, count_triangle_indices });
 
-    wsaBufMesh[0].buf = (char*)&count_vertices_fields;
-    wsaBufMesh[0].len = sizeof(count_vertices_fields);
-
-    wsaBufMesh[1].buf = (char*)&count_triangle_indices;
-    wsaBufMesh[1].len = sizeof(count_triangle_indices);
-
-    wsaBufMesh[2].buf = (char*)data_vertices;
-    wsaBufMesh[2].len = count_vertices_fields * sizeof(uint32_t);
-
-    wsaBufMesh[3].buf = (char*)data_triangle_indices;
-    wsaBufMesh[3].len = count_triangle_indices * sizeof(uint32_t);
+    pack_buffer(wsaBufMesh, 0, &count_vertices_fields, sizeof(count_vertices_fields));
+    pack_buffer(wsaBufMesh, 1, &count_triangle_indices, sizeof(count_triangle_indices));
+    pack_buffer(wsaBufMesh, 2, data_vertices, count_vertices_fields * sizeof(uint32_t));
+    pack_buffer(wsaBufMesh, 3, data_triangle_indices, count_triangle_indices * sizeof(uint32_t));
 
     ok = send_multiple(clientsocket, wsaBufMesh, sizeof(wsaBufMesh) / sizeof(WSABUF));
     if (!ok)
@@ -144,8 +136,7 @@ static void SU_Dispatch(SOCKET clientsocket)
     SceneUnderstanding_Query(task.sqs, task.query_radius, task.use_previous, guids.data(), guids.size(), task.kind_flags);
     result = SceneUnderstanding_WaitForResult();
 
-    wsaBuf_header[0].buf = (char*)result;
-    wsaBuf_header[0].len = 136;
+    pack_buffer(wsaBuf_header, 0, result, 136);
 
     ok = send_multiple(clientsocket, wsaBuf_header, sizeof(wsaBuf_header) / sizeof(WSABUF));
     if (!ok)
@@ -154,26 +145,13 @@ static void SU_Dispatch(SOCKET clientsocket)
         return;
     }
 
-    wsaBuf_items[0].buf = (char*)&item_id;
-    wsaBuf_items[0].len = sizeof(item_id);
-
-    wsaBuf_items[1].buf = (char*)&item_kind;
-    wsaBuf_items[1].len = sizeof(item_kind);
-
-    wsaBuf_items[2].buf = (char*)&item_orientation;
-    wsaBuf_items[2].len = sizeof(item_orientation) * task.get_orientation;
-
-    wsaBuf_items[3].buf = (char*)&item_position;
-    wsaBuf_items[3].len = sizeof(item_position) * task.get_position;
-
-    wsaBuf_items[4].buf = (char*)&item_location;
-    wsaBuf_items[4].len = sizeof(item_location) * task.get_location_matrix;
-
-    wsaBuf_items[5].buf = (char*)&item_alignment;
-    wsaBuf_items[5].len = sizeof(item_alignment) * task.get_quad;
-
-    wsaBuf_items[6].buf = (char*)&item_extents;
-    wsaBuf_items[6].len = sizeof(item_extents) * task.get_quad;
+    pack_buffer(wsaBuf_items, 0, &item_id, sizeof(item_id));
+    pack_buffer(wsaBuf_items, 1, &item_kind, sizeof(item_kind));
+    pack_buffer(wsaBuf_items, 2, &item_orientation, sizeof(item_orientation) * task.get_orientation);
+    pack_buffer(wsaBuf_items, 3, &item_position, sizeof(item_position) * task.get_position);
+    pack_buffer(wsaBuf_items, 4, &item_location, sizeof(item_location) * task.get_location_matrix);
+    pack_buffer(wsaBuf_items, 5, &item_alignment, sizeof(item_alignment) * task.get_quad);
+    pack_buffer(wsaBuf_items, 6, &item_extents, sizeof(item_extents) * task.get_quad);
 
     for (int i = 0; i < result->selected.size(); ++i)
     {

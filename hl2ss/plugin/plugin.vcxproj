@@ -216,7 +216,7 @@
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>Default</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)hl2ss\Generated Files;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native;$(SolutionDir)hl2ss\Generated Files;$(SolutionDir)..\3rdparty\HoloLens2ForCV;$(SolutionDir)..\3rdparty\Zdepth\include;$(SolutionDir)..\3rdparty\Zdepth\zstd\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -249,6 +249,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\3rdparty\Zdepth\src\zdepth.cpp" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\debug.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\entropy_common.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\error_private.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\fse_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\fse_decompress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\hist.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\huf_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\huf_decompress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\pool.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\threading.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\xxhash.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstdmt_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_common.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_literals.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_sequences.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ddict.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_block.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_double_fast.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_fast.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c" />
     <ClCompile Include="..\hl2ss\custom_hook_callback.cpp" />
     <ClCompile Include="..\hl2ss\custom_media_buffers.cpp" />
     <ClCompile Include="..\hl2ss\custom_media_sink.cpp" />
@@ -256,6 +281,7 @@
     <ClCompile Include="..\hl2ss\custom_media_type_handler.cpp" />
     <ClCompile Include="..\hl2ss\custom_sink_writers.cpp" />
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
+    <ClCompile Include="..\hl2ss\custom_video_effect.cpp" />
     <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp" />
     <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
@@ -280,7 +306,8 @@
     <ClCompile Include="..\hl2ss\stream_rm.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_zab.cpp" />
+    <ClCompile Include="..\hl2ss\stream_rm_zht.cpp" />
+    <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
     <ClCompile Include="..\hl2ss\timestamps.cpp" />
     <ClCompile Include="..\hl2ss\voice_input.cpp" />
@@ -290,6 +317,34 @@
     <ClCompile Include="ipc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\Zdepth\include\zdepth.hpp" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\fse.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\huf.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\xxhash.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\zstd.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\bitstream.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\compiler.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\cpu.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\debug.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\error_private.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\hist.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\mem.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\pool.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\threading.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstdmt_compress.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_internal.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_literals.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_sequences.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ddict.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_block.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_internal.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_double_fast.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_errors.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_fast.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_internal.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h" />
     <ClInclude Include="..\hl2ss\custom_hook_callback.h" />
     <ClInclude Include="..\hl2ss\custom_media_buffers.h" />
     <ClInclude Include="..\hl2ss\custom_media_sink.h" />
@@ -298,6 +353,7 @@
     <ClInclude Include="..\hl2ss\custom_sink_hook.h" />
     <ClInclude Include="..\hl2ss\custom_sink_writers.h" />
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
+    <ClInclude Include="..\hl2ss\custom_video_effect.h" />
     <ClInclude Include="..\hl2ss\extended_eye_tracking.h" />
     <ClInclude Include="..\hl2ss\ipc_rc.h" />
     <ClInclude Include="..\hl2ss\ipc_sc.h" />
@@ -323,7 +379,8 @@
     <ClInclude Include="..\hl2ss\stream_rm.h" />
     <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_zab.h" />
+    <ClInclude Include="..\hl2ss\stream_rm_zht.h" />
+    <ClInclude Include="..\hl2ss\stream_rm_zlt.h" />
     <ClInclude Include="..\hl2ss\stream_si.h" />
     <ClInclude Include="..\hl2ss\timestamps.h" />
     <ClInclude Include="..\hl2ss\types.h" />

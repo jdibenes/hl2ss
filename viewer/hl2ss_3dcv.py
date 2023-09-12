@@ -3,6 +3,7 @@ import numpy as np
 import os
 import cv2
 import hl2ss
+import hl2ss_lnm
 
 
 #------------------------------------------------------------------------------
@@ -346,21 +347,21 @@ def _load_extrinsics_pv(path):
 
 def _download_calibration_rm(host, port):
     if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
     if (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
     if (port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
     if (port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
     if (port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss.download_calibration_rm_depth_ahat(     host, port)
+        return hl2ss_lnm.download_calibration_rm_depth_ahat(     host, port)
     if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
-        return hl2ss.download_calibration_rm_depth_longthrow(host, port)
+        return hl2ss_lnm.download_calibration_rm_depth_longthrow(host, port)
     if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
-        return hl2ss.download_calibration_rm_imu(            host, port)
+        return hl2ss_lnm.download_calibration_rm_imu(            host, port)
     if (port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
-        return hl2ss.download_calibration_rm_imu(            host, port)
+        return hl2ss_lnm.download_calibration_rm_imu(            host, port)
 
 
 def _save_calibration_rm(port, calibration, path):
@@ -453,7 +454,7 @@ def get_calibration_pv(host, port, path, focus, width, height, framerate, load_e
     try:
         calibration = _load_calibration_pv(base)
     except:
-        calibration = hl2ss.download_calibration_pv(host, port, width, height, framerate)
+        calibration = hl2ss_lnm.download_calibration_pv(host, port, width, height, framerate)
         os.makedirs(base, exist_ok=True)
         _save_calibration_pv(calibration, base)
         

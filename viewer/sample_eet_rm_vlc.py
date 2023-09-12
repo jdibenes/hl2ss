@@ -12,6 +12,7 @@ import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
@@ -28,14 +29,7 @@ host = config['DEFAULT']['ip']
 calibration_path = '../calibration'
 
 # Port
-port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
-
-# Video Encoding profiles
-profile = hl2ss.VideoProfile.H265_MAIN
-
-# Encoded stream average bits per second
-# Must be > 0
-bitrate = 1*1024*1024
+vlc_port = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
 # EET parameters
 eet_fps = 30 # 30, 60, 90
@@ -83,21 +77,21 @@ if __name__ == '__main__':
 
     # Get RM VLC calibration --------------------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
-    rotation_vlc = hl2ss_3dcv.rm_vlc_get_rotation(port)
+    calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, vlc_port, calibration_path)
+    rotation_vlc = hl2ss_3dcv.rm_vlc_get_rotation(vlc_port)
     
     # Start RM VLC and EET streams --------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_vlc(True, host, port, hl2ss.ChunkSize.RM_VLC, hl2ss.StreamMode.MODE_1, profile, bitrate)
-    producer.configure_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, eet_fps)
-    producer.initialize(port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
+    producer.configure(vlc_port, hl2ss_lnm.rx_rm_vlc(host, vlc_port))
+    producer.configure(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss_lnm.rx_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, fps=eet_fps))
+    producer.initialize(vlc_port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
     producer.initialize(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
-    producer.start(port)
+    producer.start(vlc_port)
     producer.start(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)
 
     consumer = hl2ss_mp.consumer()
     manager = mp.Manager()
-    sink_vlc = consumer.create_sink(producer, port, manager, ...)
+    sink_vlc = consumer.create_sink(producer, vlc_port, manager, ...)
     sink_eet = consumer.create_sink(producer, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, manager, None)
     sink_vlc.get_attach_response()
     sink_eet.get_attach_response()
@@ -166,7 +160,7 @@ if __name__ == '__main__':
     # Stop RM VLC and EET streams ---------------------------------------------
     sink_vlc.detach()
     sink_eet.detach()
-    producer.stop(port)
+    producer.stop(vlc_port)
     producer.stop(hl2ss.StreamPort.EXTENDED_EYE_TRACKER)
 
     # Stop keyboard events ----------------------------------------------------

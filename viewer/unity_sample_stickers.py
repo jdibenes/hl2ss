@@ -14,6 +14,7 @@ import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_3dcv
 import hl2ss_rus
 import configparser
@@ -23,10 +24,6 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 # HoloLens address
 host = config['DEFAULT']['ip']
-
-# Ports
-port_mq = hl2ss.IPCPort.UNITY_MESSAGE_QUEUE
-port_lt = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
@@ -70,7 +67,7 @@ listener.start()
 with open(texture_file, mode='rb') as file:
     image = file.read()
 
-ipc = hl2ss.ipc_umq(host, port_mq)
+ipc = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
 ipc.open()
 
 key = 0
@@ -82,13 +79,13 @@ results = ipc.pull(command_buffer)
 
 previous  = False
 
-calibration_lt = hl2ss_3dcv.get_calibration_rm(host, port_lt, calibration_path)
+calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
 xy1, lt_scale = hl2ss_3dcv.rm_depth_compute_rays(calibration_lt.uv2xy, calibration_lt.scale)
 
 u0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  // 2
 v0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT // 2
 
-client = hl2ss.rx_decoded_rm_depth_longthrow(host, port_lt, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+client = hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 client.open()
 
 while (enable):

@@ -82,7 +82,6 @@
   <PropertyGroup Label="UserMacros">
     <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
-    <PackageCertificateKeyFile>hl2ss_TemporaryKey.pfx</PackageCertificateKeyFile>
     <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
     <AppxPackageDir>C:\Users\jcds\Documents\GitHub\hl2ss\release\</AppxPackageDir>
@@ -90,6 +89,7 @@
     <AppxBundle>Always</AppxBundle>
     <AppxBundlePlatforms>arm64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+    <PackageCertificateThumbprint>709C677708481A32A0540EC66BBEF7C9F029FCB8</PackageCertificateThumbprint>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -115,6 +115,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Sync</ExceptionHandling>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(SolutionDir)..\3rdparty\HoloLens2ForCV;$(SolutionDir)..\3rdparty\Zdepth\include;$(SolutionDir)..\3rdparty\Zdepth\zstd\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -137,21 +138,50 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="hl2ss_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="PropertySheet.props" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Cannon\AnimatedVector.h" />
-    <ClInclude Include="Cannon\Common\FileUtilities.h" />
-    <ClInclude Include="Cannon\Common\FilterDoubleExponential.h" />
-    <ClInclude Include="Cannon\Common\Intersectable.h" />
-    <ClInclude Include="Cannon\Common\Timer.h" />
-    <ClInclude Include="Cannon\DrawCall.h" />
-    <ClInclude Include="Cannon\FloatingSlate.h" />
-    <ClInclude Include="Cannon\FloatingText.h" />
-    <ClInclude Include="Cannon\MixedReality.h" />
-    <ClInclude Include="Cannon\RecordedValue.h" />
-    <ClInclude Include="Cannon\TrackedHands.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\AnimatedVector.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\FileUtilities.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\FilterDoubleExponential.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\Intersectable.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Common\Timer.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\DrawCall.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingSlate.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingText.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\MixedReality.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\RecordedValue.h" />
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\Cannon\TrackedHands.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\include\zdepth.hpp" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\fse.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\huf.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\xxhash.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\zstd.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\bitstream.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\compiler.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\cpu.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\debug.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\error_private.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\hist.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\mem.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\pool.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\threading.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstdmt_compress.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_internal.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_literals.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_sequences.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ddict.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_block.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_internal.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_double_fast.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_errors.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_fast.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_internal.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h" />
+    <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h" />
     <ClInclude Include="custom_media_buffers.h" />
     <ClInclude Include="custom_media_sink.h" />
     <ClInclude Include="custom_media_types.h" />
@@ -160,6 +190,7 @@
     <ClInclude Include="custom_sink_writers.h" />
     <ClInclude Include="custom_stream_sink.h" />
     <ClInclude Include="custom_hook_callback.h" />
+    <ClInclude Include="custom_video_effect.h" />
     <ClInclude Include="display7s.h" />
     <ClInclude Include="extended_eye_tracking.h" />
     <ClInclude Include="holographic_space.h" />
@@ -173,7 +204,6 @@
     <ClInclude Include="nfo.h" />
     <ClInclude Include="personal_video.h" />
     <ClInclude Include="ipc_rc.h" />
-    <ClInclude Include="researchmode\ResearchModeApi.h" />
     <ClInclude Include="scene_understanding.h" />
     <ClInclude Include="spatial_input.h" />
     <ClInclude Include="spatial_mapping.h" />
@@ -185,9 +215,10 @@
     <ClInclude Include="research_mode.h" />
     <ClInclude Include="stream_rm.h" />
     <ClInclude Include="server.h" />
-    <ClInclude Include="stream_rm_zab.h" />
+    <ClInclude Include="stream_rm_zht.h" />
     <ClInclude Include="stream_rm_imu.h" />
     <ClInclude Include="stream_rm_vlc.h" />
+    <ClInclude Include="stream_rm_zlt.h" />
     <ClInclude Include="stream_si.h" />
     <ClInclude Include="timestamps.h" />
     <ClInclude Include="types.h" />
@@ -195,13 +226,38 @@
     <ClInclude Include="voice_input.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Cannon\AnimatedVector.cpp" />
-    <ClCompile Include="Cannon\DrawCall.cpp" />
-    <ClCompile Include="Cannon\FloatingSlate.cpp" />
-    <ClCompile Include="Cannon\FloatingText.cpp" />
-    <ClCompile Include="Cannon\MixedReality.cpp" />
-    <ClCompile Include="Cannon\RecordedValue.cpp" />
-    <ClCompile Include="Cannon\TrackedHands.cpp" />
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\AnimatedVector.cpp" />
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\DrawCall.cpp" />
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingSlate.cpp" />
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\FloatingText.cpp" />
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\MixedReality.cpp" />
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\RecordedValue.cpp" />
+    <ClCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\TrackedHands.cpp" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\src\zdepth.cpp" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\debug.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\entropy_common.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\error_private.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\fse_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\fse_decompress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\hist.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\huf_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\huf_decompress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\pool.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\threading.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\xxhash.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstdmt_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_common.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_literals.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_compress_sequences.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ddict.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_decompress_block.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_double_fast.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_fast.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c" />
+    <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c" />
     <ClCompile Include="custom_media_buffers.cpp" />
     <ClCompile Include="custom_media_sink.cpp" />
     <ClCompile Include="custom_media_types.cpp" />
@@ -209,6 +265,7 @@
     <ClCompile Include="custom_sink_writers.cpp" />
     <ClCompile Include="custom_stream_sink.cpp" />
     <ClCompile Include="custom_hook_callback.cpp" />
+    <ClCompile Include="custom_video_effect.cpp" />
     <ClCompile Include="display7s.cpp" />
     <ClCompile Include="extended_eye_tracking.cpp" />
     <ClCompile Include="holographic_space.cpp" />
@@ -230,12 +287,13 @@
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />
+    <ClCompile Include="stream_rm_zlt.cpp" />
     <ClCompile Include="stream_si.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp" />
     <ClCompile Include="stream_rm_imu.cpp" />
-    <ClCompile Include="stream_rm_zab.cpp" />
+    <ClCompile Include="stream_rm_zht.cpp" />
     <ClCompile Include="stream_rm_vlc.cpp" />
     <ClCompile Include="timestamps.cpp" />
     <ClCompile Include="lock.cpp" />
@@ -244,33 +302,37 @@
     <ClCompile Include="voice_input.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\LitTextureColorBlend_PS.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Lit_PS.hlsl">
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\LitTexture_PS.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Lit_VS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Lit_PS.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Lit_VS_SPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="Cannon\Shaders\UnlitTexture_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Unlit_VS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Lit_VS.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
     </FxCompile>
-    <FxCompile Include="Cannon\Shaders\Unlit_VS_SPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Lit_VS_SPS.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\UnlitTexture_PS.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Unlit_VS.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\..\3rdparty\HoloLens2ForCV\Cannon\Shaders\Unlit_VS_SPS.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

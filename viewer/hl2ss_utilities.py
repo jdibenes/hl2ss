@@ -1,4 +1,5 @@
 
+import multiprocessing as mp
 import io
 import fractions
 import tarfile
@@ -8,8 +9,98 @@ import time
 import cv2
 import av
 import hl2ss
+import hl2ss_mp
+import hl2ss_lnm
 import hl2ss_io
 import hl2ss_3dcv
+
+
+#------------------------------------------------------------------------------
+# Background Writers
+#------------------------------------------------------------------------------
+
+class wr_process_rx(mp.Process):
+    def __init__(self, filename, rx, user):
+        super().__init__()
+        self._event_stop = mp.Event()
+        self._wr = hl2ss_io.create_wr_from_rx(filename, rx, user)
+        self._rx = rx
+
+    def stop(self):
+        self._event_stop.set()
+
+    def on_open(self):
+        pass
+
+    def on_receive(self, data):
+        pass
+
+    def on_close(self):
+        pass
+
+    def run(self):
+        self.on_open()
+        self._wr.open()
+        self._rx.open()
+        while (not self._event_stop.is_set()):
+            data = self._rx.get_next_packet()
+            self._wr.write(data)
+            self.on_receive(data)
+        self._rx.close()
+        self._wr.close()
+        self.on_close()
+
+
+class wr_process_producer(mp.Process):
+    def __init__(self, filename, producer, port, user):
+        super().__init__()
+        self._event_stop = mp.Event()
+        self._wr = hl2ss_io.create_wr_from_rx(filename, producer.get_receiver(port), user)
+        self._sink = hl2ss_mp.consumer().create_sink(producer, port, mp.Manager(), ...)
+        self._sync_period = hl2ss_lnm.get_sync_period(self._wr)
+
+    def stop(self):
+        self._event_stop.set()
+        self._sink.release()
+       
+    def on_open(self):
+        pass
+
+    def on_receive(self, data):
+        pass
+
+    def on_fail(self):
+        pass
+
+    def on_close(self):
+        pass
+
+    def run(self):
+        self._frame_stamp = hl2ss_lnm.get_sync_frame_stamp(self._sink.get_attach_response() + 1, self._sync_period)
+        self._stopping = False
+
+        self.on_open()
+        self._wr.open()
+
+        while ((not self._stopping) or (self._frame_stamp < self._stop_stamp)):
+            self._sink.acquire()
+            state, data = self._sink.get_buffered_frame(self._frame_stamp)
+
+            if (state == 0):
+                self._frame_stamp += 1
+                self._wr.write(data)
+                self.on_receive(data)
+            elif (state < 0):
+                self.on_fail()
+                break
+
+            if ((not self._stopping) and self._event_stop.is_set()):
+                self._stopping = True
+                self._stop_stamp = self._sink.get_frame_stamp()
+
+        self._wr.close()
+        self._sink.detach()
+        self.on_close()
 
 
 #------------------------------------------------------------------------------
@@ -401,17 +492,17 @@ def _create_csv_row(port, data):
 
 
 def unpack_to_csv(input_filename, output_filename):    
-    rd = hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
+    rd = hl2ss_io.create_rd(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
     rd.open()
 
-    port = rd.header.port
+    port = rd.port
 
     wr = open(output_filename, 'w', newline='')
     csv_wr = csv.writer(wr)
     csv_wr.writerow(_create_csv_header(port))
 
     while (True):
-        data = rd.read()
+        data = rd.get_next_packet()
         if (data is None):
             break
         csv_wr.writerow(_create_csv_row(port, data))
@@ -457,12 +548,12 @@ def get_av_framerate(port):
 def unpack_to_mp4(input_filenames, output_filename):
     time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
 
-    readers = [hl2ss_io.create_rd(False, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
+    readers = [hl2ss_io.create_rd(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
     [reader.open() for reader in readers]
 
     container = av.open(output_filename, mode='w')
-    streams = [container.add_stream(get_av_codec_name(reader.header.port, reader.header.profile), rate=get_av_framerate(reader.header.port) if (get_av_framerate(reader.header.port) is not None) else reader.header.framerate) for reader in readers]
-    codecs = [av.CodecContext.create(get_av_codec_name(reader.header.port, reader.header.profile), "r") for reader in readers]
+    streams = [container.add_stream(get_av_codec_name(reader.port, reader.profile_ab if (reader.port == hl2ss.StreamPort.RM_DEPTH_AHAT) else reader.profile), rate=get_av_framerate(reader.port) if (get_av_framerate(reader.port) is not None) else reader.framerate) for reader in readers]
+    codecs = [av.CodecContext.create(get_av_codec_name(reader.port, reader.profile_ab if (reader.port == hl2ss.StreamPort.RM_DEPTH_AHAT) else reader.profile), "r") for reader in readers]
 
     for stream in streams:
         stream.time_base = time_base
@@ -472,7 +563,7 @@ def unpack_to_mp4(input_filenames, output_filename):
     base = 0#hl2ss._RANGEOF.U64_MAX
 
     for reader in readers:
-        data = reader.read()
+        data = reader.get_next_packet()
         if ((data is not None) and (data.timestamp > base)):
             base = data.timestamp
 
@@ -481,11 +572,11 @@ def unpack_to_mp4(input_filenames, output_filename):
 
     for reader, codec, stream in zip(readers, codecs, streams):
         while (True):
-            data = reader.read()
+            data = reader.get_next_packet()
             if (data is None):
                 break
 
-            if (reader.header.port == hl2ss.StreamPort.PERSONAL_VIDEO):
+            if (reader.port == hl2ss.StreamPort.PERSONAL_VIDEO):
                 payload = hl2ss.unpack_pv(data.payload).image
             else:
                 payload = data.payload
@@ -506,14 +597,14 @@ def unpack_to_mp4(input_filenames, output_filename):
 
 
 def unpack_to_png(input_filename, output_filename):
-    rd = hl2ss_io.create_rd(True, input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)
+    rd = hl2ss_io.create_rd(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, True)
     rd.open()
 
     tar = tarfile.open(output_filename, 'w')
     idx = 0
 
     while (True):
-        data = rd.read()
+        data = rd.get_next_packet()
         if (data is None):
             break
         depth = cv2.imencode('.png', data.payload.depth)[1].tobytes()

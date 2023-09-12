@@ -12,6 +12,7 @@ import open3d as o3d
 import cv2
 import hl2ss_imshow
 import hl2ss
+import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
 import configparser
@@ -31,12 +32,9 @@ calibration_path = '../calibration'
 # Use AB data to color the pointcloud
 use_ab = False
 
-# Video encoding profile for AHAT
-ht_profile = hl2ss.VideoProfile.H265_MAIN
-
-# Encoded stream average bits per second for AHAT
-# Must be > 0
-ht_bitrate = 8*1024*1024
+# AHAT Profile
+ht_profile_z = hl2ss.DepthProfile.SAME
+ht_profile_ab = hl2ss.VideoProfile.H265_MAIN
 
 # Buffer length in seconds
 buffer_length = 10
@@ -70,8 +68,8 @@ if __name__ == '__main__':
 
     # Start stream ------------------------------------------------------------
     producer = hl2ss_mp.producer()
-    producer.configure_rm_depth_ahat(True, host, hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.ChunkSize.RM_DEPTH_AHAT, hl2ss.StreamMode.MODE_1, ht_profile, ht_bitrate)
-    producer.configure_rm_depth_longthrow(True, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, hl2ss.StreamMode.MODE_1, hl2ss.PngFilterMode.Paeth)
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, profile_z=ht_profile_z, profile_ab=ht_profile_ab))
+    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
     producer.initialize(port, buffer_length * fps)
     producer.start(port)
 

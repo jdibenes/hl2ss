@@ -29,15 +29,14 @@ static void RC_TransferError()
 static void RC_MSG_GetApplicationVersion(SOCKET clientsocket)
 {
     uint16_t data[4];
-    WSABUF wsaBuf;
+    WSABUF wsaBuf[1];
     bool ok;
 
     GetApplicationVersion(data);
 
-    wsaBuf.buf = (char*)data;
-    wsaBuf.len = sizeof(data);
+    pack_buffer(wsaBuf, 0, data, sizeof(data));
 
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
     {
         RC_TransferError();
@@ -51,7 +50,7 @@ static void RC_MSG_GetUTCOffset(SOCKET clientsocket)
     bool ok;
     uint32_t samples;
     UINT64 offset;
-    WSABUF wsaBuf;
+    WSABUF wsaBuf[1];
 
     ok = recv_u32(clientsocket, samples);
     if (!ok)
@@ -62,10 +61,9 @@ static void RC_MSG_GetUTCOffset(SOCKET clientsocket)
 
     offset = GetQPCToUTCOffset(samples);
 
-    wsaBuf.buf = (char*)&offset;
-    wsaBuf.len = sizeof(offset);
+    pack_buffer(wsaBuf, 0, &offset, sizeof(offset));
 
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
     {
         RC_TransferError();
@@ -93,13 +91,12 @@ static void RC_MSG_SetHSMarkerState(SOCKET clientsocket)
 static void RC_MSG_GetPVSubsystemStatus(SOCKET clientsocket)
 {
     bool status = PersonalVideo_Status();
-    WSABUF wsaBuf;
+    WSABUF wsaBuf[1];
     bool ok;
 
-    wsaBuf.len = sizeof(status);
-    wsaBuf.buf = (char*)&status;
+    pack_buffer(wsaBuf, 0, &status, sizeof(status));
 
-    ok = send_multiple(clientsocket, &wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok)
     {
         RC_TransferError();
