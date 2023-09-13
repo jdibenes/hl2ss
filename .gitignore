@@ -1,4 +1,7 @@
-
+ARM64/*
+ARM/*
+hl2comm/hl2comm/ARM/*
+hl2comm/unity_comm/ARM64/*
 hl2comm/.vs/
 hl2comm/ARM64/
 hl2comm/x64/
