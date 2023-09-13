@@ -22,7 +22,7 @@
 #define FASTCDR_STATIC_LINK
 #include "fastcdr/Cdr.h"
 
-
+#include "receive_eet.h"
 
 
 
@@ -272,4 +272,21 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 DebugMessage(char const* str)
 {
     SPDLOG_INFO("{0}", str);
+}
+
+extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+StartEETOnUI(EETSubscriptionCallback cb, const char* topic)
+{
+    if (!g_zenoh_context) { return false; }
+    call_deferred(Receive_EET_Initialize, g_zenoh_context, cb, topic);
+    return true;
+}
+
+extern "C" bool UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
+StopEETOnUI()
+{
+    if (!g_zenoh_context) { return false; }
+    call_deferred(Receive_EET_Quit);
+    call_deferred(Receive_EET_Cleanup);
+    return true;
 }

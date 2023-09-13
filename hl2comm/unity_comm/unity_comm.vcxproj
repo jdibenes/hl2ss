@@ -238,7 +238,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(SolutionDir)unity_comm\Generated Files;$(SolutionDir)3rdparty\zenoh-c\Windows\x86_64\Release\include;$(SolutionDir)3rdparty\Windows\x86_64\Release\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)unity_comm\Generated Files;$(SolutionDir)3rdparty\zenoh-c\Windows\x86_64\Release\include;$(SolutionDir)3rdparty\Windows\x86_64\Release\include;$(SolutionDir)hl2comm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>SPDLOG_FMT_EXTERNAL;SPDLOG_ACTIVE_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -258,6 +258,7 @@
     <ClCompile Include="..\hl2comm\timestamps.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="ipc.cpp" />
+    <ClCompile Include="receive_eet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hl2comm\lock.h" />
@@ -269,6 +270,7 @@
     <ClInclude Include="PlatformBase.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="ipc.h" />
+    <ClInclude Include="receive_eet.h" />
     <ClInclude Include="Unity\IUnityGraphics.h" />
     <ClInclude Include="Unity\IUnityGraphicsD3D11.h" />
     <ClInclude Include="Unity\IUnityGraphicsD3D12.h" />
