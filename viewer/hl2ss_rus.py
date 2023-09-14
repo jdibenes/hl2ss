@@ -57,8 +57,8 @@ class command_buffer(hl2ss.umq_command_buffer):
     def say(self, text):
         self.add(8, text.encode('utf-8'))
 
-    #def load_mesh(self, data):
-    #    self.add(8, data)
+    def load_mesh(self, data):
+        self.add(15, data)
 
     def remove(self, key):
         self.add(16, struct.pack('<I', key))

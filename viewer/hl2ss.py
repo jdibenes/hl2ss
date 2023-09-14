@@ -221,7 +221,7 @@ class Parameters_RM_IMU_MAGNETOMETER:
 
 # Microphone Parameters
 class Parameters_MICROPHONE:
-    SAMPLE_RATE   = 48000
+    SAMPLE_RATE    = 48000
     CHANNELS       = 2
     PERIOD         = 1 / SAMPLE_RATE
     GROUP_SIZE_RAW = 768

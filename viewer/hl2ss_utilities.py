@@ -335,6 +335,10 @@ def _create_csv_header_for_eet():
     return _create_csv_header_for_timestamp() + _create_csv_header_for_eet_payload() + _create_csv_header_for_pose()
 
 
+def _create_csv_header_for_extended_audio():
+    return _create_csv_header_for_timestamp()
+
+
 def _create_csv_row_for_timestamp(timestamp):
     return [str(timestamp)]
 
@@ -427,6 +431,10 @@ def _create_csv_row_for_eet(data):
     return _create_csv_row_for_timestamp(data.timestamp) + _create_csv_row_for_eet_payload(data.payload) + _create_csv_row_for_pose(data.pose)
 
 
+def _create_csv_row_for_extended_audio(data):
+    return _create_csv_row_for_timestamp(data.timestamp)
+
+
 def _create_csv_header(port):
     if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
         return _create_csv_header_for_rm_vlc()
@@ -454,6 +462,8 @@ def _create_csv_header(port):
         return _create_csv_header_for_si()
     if (port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
         return _create_csv_header_for_eet()
+    if (port == hl2ss.StreamPort.EXTENDED_AUDIO):
+        return _create_csv_header_for_extended_audio()
 
 
 def _create_csv_row(port, data):
@@ -489,6 +499,8 @@ def _create_csv_row(port, data):
     if (port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
         data.payload = hl2ss.unpack_eet(data.payload)
         return _create_csv_row_for_eet(data)
+    if (port == hl2ss.StreamPort.EXTENDED_AUDIO):
+        return _create_csv_row_for_extended_audio(data)
 
 
 def unpack_to_csv(input_filename, output_filename):    
@@ -526,6 +538,8 @@ def get_av_codec_name(port, profile):
         return hl2ss.get_video_codec_name(profile)
     if (port == hl2ss.StreamPort.MICROPHONE):
         return hl2ss.get_audio_codec_name(profile)
+    if (port == hl2ss.StreamPort.EXTENDED_AUDIO):
+        return hl2ss.get_audio_codec_name(profile)
 
 
 def get_av_framerate(port):
@@ -542,6 +556,8 @@ def get_av_framerate(port):
     if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
         return hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS
     if (port == hl2ss.StreamPort.MICROPHONE):
+        return hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
+    if (port == hl2ss.StreamPort.EXTENDED_AUDIO):
         return hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 
 
