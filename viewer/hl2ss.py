@@ -1663,15 +1663,12 @@ class _PortName:
         'voice_input',
         'unity_message_queue',
         'extended_eye_tracker',
+        'extended_audio',
     ]
 
 
-def get_port_index(port):
-    return port - StreamPort.RM_VLC_LEFTFRONT
-
-
 def get_port_name(port):
-    return _PortName.OF[get_port_index(port)]
+    return _PortName.OF[port - StreamPort.RM_VLC_LEFTFRONT]
 
 
 #------------------------------------------------------------------------------
