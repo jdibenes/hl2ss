@@ -26,6 +26,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Scene Understanding
 - Voice Input
 - Extended Eye Tracking (30, 60, or 90 FPS)
+- Extended Audio (Microphone + Application audio, 2 channels @ 48000 Hz, 32-bit float, AAC encoded)
   
 **Additional features**
 
@@ -103,6 +104,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Voice Input: [viewer/client_ipc_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_vi.py)
 - Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py)
 - Extended Eye Tracking: [viewer/client_stream_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_eet.py)
+- Extended Audio: [viewer/client_stream_extended_audio.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_audio.py)
 
 **Required packages**
 
