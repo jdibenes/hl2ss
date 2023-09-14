@@ -107,3 +107,25 @@ void Neon_ZLTToBGRA8(u8 const* pSigma, u16 const* pDepth, u16 const* pAb, u32* p
 
 	memcpy(pBGRA8, pAb, RM_ZLT_ABSIZE);
 }
+
+// OK
+void Neon_F32ToS16(float const* in, int32_t elements, s16* out)
+{
+	float32x4_t s = vdupq_n_f32(32767.0f);
+
+	for (int i = 0; i < (elements / 16); ++i)
+	{
+	float32x4x4_t f = vld1q_f32_x4(in);
+	uint16x4x4_t d;
+
+	d.val[0] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[0], s)));
+	d.val[1] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[1], s)));
+	d.val[2] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[2], s)));
+	d.val[3] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[3], s)));
+
+	vst1_u16_x4(out, d);
+
+	in  += 16;
+	out += 16;
+	}
+}
