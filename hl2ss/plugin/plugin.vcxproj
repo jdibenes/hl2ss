@@ -274,6 +274,7 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c" />
+    <ClCompile Include="..\hl2ss\custom_audio_effect.cpp" />
     <ClCompile Include="..\hl2ss\custom_hook_callback.cpp" />
     <ClCompile Include="..\hl2ss\custom_media_buffers.cpp" />
     <ClCompile Include="..\hl2ss\custom_media_sink.cpp" />
@@ -282,6 +283,7 @@
     <ClCompile Include="..\hl2ss\custom_sink_writers.cpp" />
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
     <ClCompile Include="..\hl2ss\custom_video_effect.cpp" />
+    <ClCompile Include="..\hl2ss\extended_audio.cpp" />
     <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp" />
     <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
@@ -300,6 +302,7 @@
     <ClCompile Include="..\hl2ss\server.cpp" />
     <ClCompile Include="..\hl2ss\spatial_input.cpp" />
     <ClCompile Include="..\hl2ss\spatial_mapping.cpp" />
+    <ClCompile Include="..\hl2ss\stream_ea.cpp" />
     <ClCompile Include="..\hl2ss\stream_eet.cpp" />
     <ClCompile Include="..\hl2ss\stream_mc.cpp" />
     <ClCompile Include="..\hl2ss\stream_pv.cpp" />
@@ -345,6 +348,7 @@
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h" />
+    <ClInclude Include="..\hl2ss\custom_audio_effect.h" />
     <ClInclude Include="..\hl2ss\custom_hook_callback.h" />
     <ClInclude Include="..\hl2ss\custom_media_buffers.h" />
     <ClInclude Include="..\hl2ss\custom_media_sink.h" />
@@ -354,6 +358,7 @@
     <ClInclude Include="..\hl2ss\custom_sink_writers.h" />
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
     <ClInclude Include="..\hl2ss\custom_video_effect.h" />
+    <ClInclude Include="..\hl2ss\extended_audio.h" />
     <ClInclude Include="..\hl2ss\extended_eye_tracking.h" />
     <ClInclude Include="..\hl2ss\ipc_rc.h" />
     <ClInclude Include="..\hl2ss\ipc_sc.h" />
@@ -373,6 +378,7 @@
     <ClInclude Include="..\hl2ss\server.h" />
     <ClInclude Include="..\hl2ss\spatial_input.h" />
     <ClInclude Include="..\hl2ss\spatial_mapping.h" />
+    <ClInclude Include="..\hl2ss\stream_ea.h" />
     <ClInclude Include="..\hl2ss\stream_eet.h" />
     <ClInclude Include="..\hl2ss\stream_mc.h" />
     <ClInclude Include="..\hl2ss\stream_pv.h" />
