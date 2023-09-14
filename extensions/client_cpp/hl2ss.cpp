@@ -1721,10 +1721,9 @@ void get_microphone_aac(uint8_t* payload, float** samples)
     *samples = (float*)payload;
 }
 
-void get_si(uint8_t* payload, uint8_t** valid, si_frame** si)
+void get_si(uint8_t* payload, si_frame** si)
 {
-    *valid = payload;
-    *si = (si_frame*)(payload + sizeof(uint8_t));
+    *si = (si_frame*)payload;
 }
 
 void get_eet(uint8_t* payload, eet_frame** eet)

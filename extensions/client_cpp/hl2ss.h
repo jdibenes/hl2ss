@@ -1232,7 +1232,7 @@ struct si_hand_joint
 
 struct si_frame
 {
-    // valid
+    uint32_t valid;
     si_head_pose head_pose;
     ray eye_ray;
     si_hand_joint left_hand[26];
@@ -1269,6 +1269,6 @@ void get_rm_imu(uint8_t* payload, rm_imu_sample** samples);
 void get_pv(uint8_t* payload, size_t size, uint8_t** image, pv_intrinsics** intrinsics);
 void get_microphone_raw(uint8_t* payload, int16_t** samples);
 void get_microphone_aac(uint8_t* payload, float** samples);
-void get_si(uint8_t* payload, uint8_t** valid, si_frame** si);
+void get_si(uint8_t* payload, si_frame** si);
 void get_eet(uint8_t* payload, eet_frame** eet);
 }
