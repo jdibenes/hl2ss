@@ -19,6 +19,7 @@
 #include "voice_input.h"
 #include "ipc_vi.h"
 #include "stream_eet.h"
+#include "stream_ea.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
@@ -87,8 +88,8 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		SM_Initialize();
 		SU_Initialize();
 		VI_Initialize();
-
 		EET_Initialize();
+		EA_Initialize();
 
 		m_init = true;
 	}
