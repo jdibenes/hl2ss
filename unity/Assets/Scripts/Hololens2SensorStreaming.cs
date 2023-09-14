@@ -33,9 +33,12 @@ public class Hololens2SensorStreaming : MonoBehaviour
     [Tooltip("Enable Extended Eye Tracking Interface.")]
     public bool enableEET = true;
 
+    [Tooltip("Enable Extended Audio Interface.")]
+    public bool enableEA = true;
+
     void Start()
     {
         hl2ss.UpdateCoordinateSystem();
-        hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ, enableEET);
+        hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ, enableEET, enableEA);
     }
 }
