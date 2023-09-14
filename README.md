@@ -26,7 +26,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Scene Understanding
 - Voice Input
 - Extended Eye Tracking (30, 60, or 90 FPS)
-- Extended Audio (Microphone + Application audio, 2 channels @ 48000 Hz, 32-bit float, AAC encoded)
+- Extended Audio (Microphone + Application audio, 2 channels @ 48000 Hz, 16-bit PCM, AAC encoded)
   
 **Additional features**
 
