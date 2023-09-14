@@ -32,7 +32,7 @@ static HANDLE g_event_quit = NULL; // CloseHandle
 static void SI_Stream(SOCKET clientsocket)
 {
     int const hand_size = HAND_JOINTS * sizeof(JointPose);
-    int32_t const packet_size = sizeof(uint8_t) + sizeof(SpatialInput_Frame) + sizeof(SpatialInput_Ray) + (2 * hand_size);
+    int32_t const packet_size = sizeof(uint32_t) + sizeof(SpatialInput_Frame) + sizeof(SpatialInput_Ray) + (2 * hand_size);
 
     PerceptionTimestamp ts = nullptr;
     SpatialCoordinateSystem world = nullptr;
