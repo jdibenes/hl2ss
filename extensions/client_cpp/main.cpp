@@ -3,11 +3,11 @@
 #include <opencv2/highgui.hpp>
 #include "hl2ss_lnm.h"
 
-void print_packet_metadata(uint64_t timestamp, float* pose)
+void print_packet_metadata(uint64_t timestamp, hl2ss::matrix_4x4* matrix)
 {
     std::cout << "Pose at time " << timestamp << std::endl;
-    hl2ss::matrix_4x4* matrix;
-    hl2ss::get_pose(pose, &matrix);
+    //hl2ss::matrix_4x4* matrix;
+    //hl2ss::get_pose(pose, &matrix);
     if (matrix)
     {
     std::cout << "[" << std::endl;

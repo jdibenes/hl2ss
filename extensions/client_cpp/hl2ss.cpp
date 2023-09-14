@@ -133,15 +133,15 @@ void packet::init_payload(uint32_t size)
     payload = (size > 0) ? std::make_unique<uint8_t[]>(size) : nullptr;
 }
 
-void packet::swap_payload(uint32_t size, std::unique_ptr<uint8_t[]> new_payload)
+void packet::set_payload(uint32_t size, std::unique_ptr<uint8_t[]> new_payload)
 {
-    payload.swap(new_payload);
+    payload = std::move(new_payload);
     sz_payload = size;
 }
 
 void packet::init_pose()
 {
-    pose = std::make_unique<float[]>(NE_POSE);
+    pose = std::make_unique<matrix_4x4>();
 }
 
 //------------------------------------------------------------------------------
@@ -703,7 +703,7 @@ void decoder_rm_vlc::open(uint8_t profile)
 
 std::unique_ptr<uint8_t[]> decoder_rm_vlc::decode(uint8_t* data, uint32_t size)
 {
-    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(DECODED_SIZE);
     if (m_profile != video_profile::RAW)
     {
     std::shared_ptr<frame> f = m_codec.decode(data, size);
@@ -730,8 +730,8 @@ void decoder_rm_depth_ahat::open(uint8_t profile_z, uint8_t profile_ab)
 
 std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t size)
 {
-    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
-    uint32_t sz = decoded_size / 2;
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(DECODED_SIZE);
+    uint32_t sz = DECODED_SIZE / 2;
     uint8_t* dst_z  = out.get();
     uint8_t* dst_ab = out.get() + sz;
     
@@ -816,7 +816,7 @@ void decoder_rm_depth_longthrow::open()
 
 std::unique_ptr<uint8_t[]> decoder_rm_depth_longthrow::decode(uint8_t* data, uint32_t size)
 {
-    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(DECODED_SIZE);
     cv::Mat output = cv::Mat(parameters_rm_depth_longthrow::HEIGHT, parameters_rm_depth_longthrow::WIDTH, CV_8UC4, out.get());
     cv::imdecode(cv::Mat(1, size, CV_8UC1, data), cv::IMREAD_UNCHANGED, &output);
     return out;
@@ -890,7 +890,7 @@ std::unique_ptr<uint8_t[]> decoder_microphone::decode(uint8_t* data, uint32_t si
 {
     std::unique_ptr<uint8_t[]> out;
     if (m_profile != audio_profile::RAW) { 
-    out = std::make_unique<uint8_t[]>(decoded_size);
+    out = std::make_unique<uint8_t[]>(DECODED_SIZE);
     std::shared_ptr<frame> f = m_codec.decode(data, size);
     uint32_t offset = f->av_frame->linesize[0] / 2;
     memcpy(out.get(),          f->av_frame->data[0], offset);
@@ -898,7 +898,7 @@ std::unique_ptr<uint8_t[]> decoder_microphone::decode(uint8_t* data, uint32_t si
     }
     else
     {
-    out = std::make_unique<uint8_t[]>(raw_size);
+    out = std::make_unique<uint8_t[]>(RAW_SIZE);
     memcpy(out.get(), data, size);
     }
     return out;
@@ -926,7 +926,7 @@ void rx_decoded_rm_vlc::open()
 std::shared_ptr<packet> rx_decoded_rm_vlc::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_rm_vlc::get_next_packet();
-    if (profile != video_profile::RAW) { p->swap_payload(decoder_rm_vlc::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload)); }    
+    if (profile != video_profile::RAW) { p->set_payload(decoder_rm_vlc::DECODED_SIZE, m_decoder.decode(p->payload.get(), p->sz_payload)); }    
     return p;
 }
 
@@ -949,7 +949,7 @@ void rx_decoded_rm_depth_ahat::open()
 std::shared_ptr<packet> rx_decoded_rm_depth_ahat::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_rm_depth_ahat::get_next_packet();
-    if ((profile_z != depth_profile::SAME) || (profile_ab != video_profile::RAW)) { p->swap_payload(decoder_rm_depth_ahat::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload)); }
+    if ((profile_z != depth_profile::SAME) || (profile_ab != video_profile::RAW)) { p->set_payload(decoder_rm_depth_ahat::DECODED_SIZE, m_decoder.decode(p->payload.get(), p->sz_payload)); }
     return p;
 }
 
@@ -972,7 +972,7 @@ void rx_decoded_rm_depth_longthrow::open()
 std::shared_ptr<packet> rx_decoded_rm_depth_longthrow::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_rm_depth_longthrow::get_next_packet();
-    p->swap_payload(decoder_rm_depth_longthrow::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload));
+    p->set_payload(decoder_rm_depth_longthrow::DECODED_SIZE, m_decoder.decode(p->payload.get(), p->sz_payload));
     return p;
 }
 
@@ -996,7 +996,7 @@ void rx_decoded_pv::open()
 std::shared_ptr<packet> rx_decoded_pv::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_pv::get_next_packet();
-    p->swap_payload(m_decoder.decoded_size(decoded_format), m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format));
+    p->set_payload(m_decoder.decoded_size(decoded_format), m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format));
     return p;
 }
 
@@ -1019,7 +1019,7 @@ void rx_decoded_microphone::open()
 std::shared_ptr<packet> rx_decoded_microphone::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_microphone::get_next_packet();
-    if (profile != audio_profile::RAW) { p->swap_payload(decoder_microphone::decoded_size, m_decoder.decode(p->payload.get(), p->sz_payload)); }
+    if (profile != audio_profile::RAW) { p->set_payload(decoder_microphone::DECODED_SIZE, m_decoder.decode(p->payload.get(), p->sz_payload)); }
     return p;
 }
 
@@ -1164,14 +1164,9 @@ char const* const port_name[] = {
     "extended_eye_tracker",
 };
 
-uint16_t get_port_index(uint16_t port)
-{
-    return port - stream_port::RM_VLC_LEFTFRONT;
-}
-
 char const* get_port_name(uint16_t port)
 {
-    uint16_t index = get_port_index(port);
+    uint16_t index = port - stream_port::RM_VLC_LEFTFRONT;
     return (index < (sizeof(port_name) / sizeof(char*))) ? port_name[index] : NULL;
 }
 
@@ -1222,7 +1217,6 @@ uint8_t const SET_PV_SCENE_MODE               = 0x0C;
 
 ipc_rc::ipc_rc(char const* host, uint16_t port) : ipc(host, port)
 {
-    if (sizeof(version) != 8) { throw std::runtime_error("hl2ss::ipc_rc::ipc_rc : sizeof(version) != 8"); }
 }
 
 void ipc_rc::send(uint8_t command, std::initializer_list<uint32_t> list)
@@ -1574,7 +1568,6 @@ uint8_t const STOP              = 0x05;
 
 ipc_vi::ipc_vi(char const* host, uint16_t port) : ipc(host, port)
 {
-    if (sizeof(vi_result) != 32UL) { throw std::runtime_error("hl2ss::ipc_vi::ipc_vi : sizeof(vi_result) != 32"); }
 }
 
 void ipc_vi::create_recognizer()
@@ -1689,11 +1682,6 @@ void ipc_umq::pull(uint32_t* data, uint32_t count)
 //------------------------------------------------------------------------------
 // * Unpacking
 //------------------------------------------------------------------------------
-
-void get_pose(float* pose, matrix_4x4** matrix)
-{
-    *matrix = (matrix_4x4*)pose;
-}
 
 void get_rm_vlc(uint8_t* payload, uint8_t** image)
 {

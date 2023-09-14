@@ -18,6 +18,7 @@ namespace hl2ss
 //------------------------------------------------------------------------------
 // Constants
 //------------------------------------------------------------------------------
+
 namespace stream_port
 {
 uint16_t const RM_VLC_LEFTFRONT     = 3800;
@@ -246,6 +247,53 @@ uint8_t const SAMPLE_RATE = 30;
 };
 
 //------------------------------------------------------------------------------
+// Geometry
+//------------------------------------------------------------------------------
+
+struct vector_2
+{
+    float x;
+    float y;
+};
+
+struct vector_3
+{
+    float x;
+    float y;
+    float z;
+};
+
+struct vector_4
+{
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
+typedef vector_4 quaternion;
+typedef vector_4 plane;
+
+struct matrix_4x4
+{
+    float m[4][4];
+};
+
+struct ray
+{
+    vector_3 origin;
+    vector_3 direction;
+};
+
+struct pv_intrinsics
+{
+    float fx;
+    float fy;
+    float cx;
+    float cy;
+};
+
+//------------------------------------------------------------------------------
 // * Client
 //------------------------------------------------------------------------------
 
@@ -279,18 +327,17 @@ public:
 class packet
 {
 public:
-    static size_t const NE_POSE = 4 * 4;
-    static size_t const SZ_POSE = NE_POSE * sizeof(float); 
+    static size_t const SZ_POSE = sizeof(matrix_4x4); 
 
     uint64_t timestamp;
     uint32_t sz_payload;
     std::unique_ptr<uint8_t[]> payload;
-    std::unique_ptr<float[]> pose;
+    std::unique_ptr<matrix_4x4> pose;
 
     packet();
 
     void init_payload(uint32_t size);
-    void swap_payload(uint32_t size, std::unique_ptr<uint8_t[]> new_payload);
+    void set_payload(uint32_t size, std::unique_ptr<uint8_t[]> new_payload);
     void init_pose();
 };
 
@@ -307,7 +354,7 @@ private:
 
 public:
     void open(char const* host, uint16_t port, size_t chunk, uint8_t mode);
-    void sendall(void const *data, size_t count);
+    void sendall(void const* data, size_t count);
     std::shared_ptr<packet> get_next_packet();
     void close();
 };
@@ -457,7 +504,7 @@ public:
 class frame
 {
 public:
-    AVFrame *av_frame;
+    AVFrame* av_frame;
 
     frame();
     ~frame();
@@ -474,15 +521,15 @@ uint32_t  get_audio_codec_bitrate(uint8_t profile);
 class codec
 {
 private:
-    AVCodecContext *m_c;
-    AVPacket *m_avpkt;
+    AVCodecContext* m_c;
+    AVPacket* m_avpkt;
 
 public:
     codec();
     ~codec();
 
     void open(AVCodecID id);
-    std::shared_ptr<frame> decode(uint8_t *payload, uint32_t size);
+    std::shared_ptr<frame> decode(uint8_t* payload, uint32_t size);
     void close();
 };
 
@@ -497,7 +544,7 @@ private:
     uint8_t m_profile;
     
 public:
-    static uint32_t const decoded_size = parameters_rm_vlc::PIXELS * sizeof(uint8_t);
+    static uint32_t const DECODED_SIZE = parameters_rm_vlc::PIXELS * sizeof(uint8_t);
 
     void open(uint8_t profile);
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -515,7 +562,7 @@ private:
     uint8_t m_profile_ab;
 
 public:
-    static uint32_t const decoded_size = 2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t);
+    static uint32_t const DECODED_SIZE = 2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t);
 
     void open(uint8_t profile_z, uint8_t profile_ab);
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -525,7 +572,7 @@ public:
 class decoder_rm_depth_longthrow
 {
 public:
-    static uint32_t const decoded_size = 2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t);
+    static uint32_t const DECODED_SIZE = 2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t);
 
     void open();
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -541,7 +588,7 @@ private:
     uint8_t m_profile;
 
 public:
-    static uint32_t const K_SIZE = 4 * sizeof(float);
+    static uint32_t const K_SIZE = sizeof(pv_intrinsics);
 
     static uint8_t decoded_bpp(uint8_t decoded_format);
 
@@ -558,8 +605,8 @@ private:
     uint8_t m_profile;
 
 public:
-    static uint32_t const decoded_size = parameters_microphone::GROUP_SIZE_AAC * parameters_microphone::CHANNELS * sizeof(float);
-    static uint32_t const raw_size     = parameters_microphone::GROUP_SIZE_RAW * parameters_microphone::CHANNELS * sizeof(int16_t);
+    static uint32_t const DECODED_SIZE = parameters_microphone::GROUP_SIZE_AAC * parameters_microphone::CHANNELS * sizeof(float);
+    static uint32_t const RAW_SIZE     = parameters_microphone::GROUP_SIZE_RAW * parameters_microphone::CHANNELS * sizeof(int16_t);
 
     void open(uint8_t profile);
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -692,7 +739,6 @@ std::shared_ptr<calibration_pv> download_calibration_pv(char const* host, uint16
 // * Port Information
 //------------------------------------------------------------------------------
 
-uint16_t get_port_index(uint16_t port);
 char const* get_port_name(uint16_t port);
 
 //------------------------------------------------------------------------------
@@ -889,29 +935,6 @@ uint32_t const R32G32B32A32Float     =  2;
 uint32_t const R8G8B8A8IntNormalized = 31;
 };
 
-struct vector_3
-{
-    float x;
-    float y;
-    float z;
-};
-
-struct vector_4
-{
-    float x;
-    float y;
-    float z;
-    float w;
-};
-
-struct matrix_4x4
-{
-    float m[4][4];
-};
-
-typedef vector_4 quaternion;
-typedef vector_4 plane;
-
 class sm_bounding_volume
 {
     friend class ipc_sm;
@@ -1017,12 +1040,6 @@ int32_t const Platform           =   4;
 int32_t const Unknown            = 247;
 int32_t const World              = 248;
 int32_t const CompletelyInferred = 249;
-};
-
-struct vector_2
-{
-    float x;
-    float y;
 };
 
 struct su_mesh
@@ -1149,12 +1166,6 @@ public:
 // * Unpacking
 //------------------------------------------------------------------------------
 
-struct ray
-{
-    vector_3 origin;
-    vector_3 direction;
-};
-
 struct rm_imu_sample
 {
     uint64_t sensor_timestamp;
@@ -1163,14 +1174,6 @@ struct rm_imu_sample
     float y;
     float z;
     float temperature;
-};
-
-struct pv_intrinsics
-{
-    float fx;
-    float fy;
-    float cx;
-    float cy;
 };
 
 namespace si_valid
@@ -1229,6 +1232,7 @@ struct si_hand_joint
 
 struct si_frame
 {
+    // valid
     si_head_pose head_pose;
     ray eye_ray;
     si_hand_joint left_hand[26];
@@ -1258,7 +1262,6 @@ struct eet_frame
     uint32_t valid;
 };
 
-void get_pose(float* pose, matrix_4x4** matrix);
 void get_rm_vlc(uint8_t* payload, uint8_t** image);
 void get_rm_depth_ahat(uint8_t* payload, uint16_t** depth, uint16_t** ab);
 void get_rm_depth_longthrow(uint8_t* payload, uint16_t** depth, uint16_t** ab);
