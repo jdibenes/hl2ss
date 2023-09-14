@@ -41,7 +41,7 @@ void test_rm_vlc(char const* host, uint16_t port)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
-        hl2ss::get_rm_vlc(data->payload.get(), &image);
+        hl2ss::unpack_rm_vlc(data->payload.get(), &image);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -71,7 +71,7 @@ void test_rm_depth_ahat(char const* host)
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint16_t* depth;
         uint16_t* ab;
-        hl2ss::get_rm_depth_ahat(data->payload.get(), &depth, &ab);
+        hl2ss::unpack_rm_depth_ahat(data->payload.get(), &depth, &ab);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -103,7 +103,7 @@ void test_rm_depth_longthrow(char const* host)
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint16_t* depth;
         uint16_t* ab;
-        hl2ss::get_rm_depth_longthrow(data->payload.get(), &depth, &ab);
+        hl2ss::unpack_rm_depth_longthrow(data->payload.get(), &depth, &ab);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -135,7 +135,7 @@ void test_rm_imu(char const* host, uint16_t port)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         hl2ss::rm_imu_sample *samples;
-        hl2ss::get_rm_imu(data->payload.get(), &samples);
+        hl2ss::unpack_rm_imu(data->payload.get(), &samples);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -163,7 +163,7 @@ void test_pv(char const* host, uint16_t width, uint16_t height, uint8_t framerat
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
         hl2ss::pv_intrinsics* intrinsics;
-        hl2ss::get_pv(data->payload.get(), data->sz_payload, &image, &intrinsics);
+        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, &image, &intrinsics);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -192,7 +192,7 @@ void test_microphone(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         float* samples;
-        hl2ss::get_microphone_aac(data->payload.get(), &samples);
+        hl2ss::unpack_microphone_aac(data->payload.get(), &samples);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -213,9 +213,8 @@ void test_si(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        uint8_t* valid;
         hl2ss::si_frame* si;
-        hl2ss::get_si(data->payload.get(), &valid, &si);
+        hl2ss::unpack_si(data->payload.get(), &si);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -238,7 +237,7 @@ void test_eet(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         hl2ss::eet_frame* eet;
-        hl2ss::get_eet(data->payload.get(), &eet);
+        hl2ss::unpack_eet(data->payload.get(), &eet);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
