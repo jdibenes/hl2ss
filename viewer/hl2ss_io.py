@@ -100,6 +100,14 @@ def _create_wr_eet(filename, port, fps, user):
     return w
 
 
+def _create_wr_extended_audio(filename, port, mixer_mode, loopback_gain, microphone_gain, profile, level, user):
+    w = _writer()
+    w.open(filename)
+    w.put(_create_header(port, user))
+    w.put(hl2ss._create_configuration_for_extended_audio(mixer_mode, loopback_gain, microphone_gain, profile, level))
+    return w
+
+
 #------------------------------------------------------------------------------
 # Writer Wrappers
 #------------------------------------------------------------------------------
@@ -261,6 +269,27 @@ class wr_eet(hl2ss._context_manager):
         self._wr.close()
 
 
+class wr_extended_audio(hl2ss._context_manager):
+    def __init__(self, filename, port, mixer_mode, loopback_gain, microphone_gain, profile, level, user):
+        self.filename = filename
+        self.port = port
+        self.mixer_mode = mixer_mode
+        self.loopback_gain = loopback_gain
+        self.microphone_gain = microphone_gain
+        self.profile = profile
+        self.level = level
+        self.user = user
+
+    def open(self):
+        self._wr = _create_wr_extended_audio(self.filename, self.port, self.mixer_mode, self.loopback_gain, self.microphone_gain, self.profile, self.level, self.user)
+
+    def write(self, packet):
+        self._wr.write(packet)
+
+    def close(self):
+        self._wr.close()
+
+
 #------------------------------------------------------------------------------
 # Writer From Receiver
 #------------------------------------------------------------------------------
@@ -297,6 +326,10 @@ def _create_wr_from_rx_eet(filename, rx, user):
     return wr_eet(filename, rx.port, rx.fps, user)
 
 
+def _create_wr_from_rx_extended_audio(filename, rx, user):
+    return wr_extended_audio(filename, rx.port, rx.mixer_mode, rx.loopback_gain, rx.microphone_gain, rx.profile, rx.level, user)
+
+
 def create_wr_from_rx(filename, rx, user):
     if (rx.port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
         return _create_wr_from_rx_rm_vlc(filename, rx, user)
@@ -324,6 +357,8 @@ def create_wr_from_rx(filename, rx, user):
         return _create_wr_from_rx_si(filename, rx, user)
     if (rx.port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
         return _create_wr_from_rx_eet(filename, rx, user)
+    if (rx.port == hl2ss.StreamPort.EXTENDED_AUDIO):
+        return _create_wr_from_rx_extended_audio(filename, rx, user)
 
 
 #------------------------------------------------------------------------------
@@ -367,6 +402,9 @@ class _reader:
         vector = self.get(f'<{2*count}Q')
         return ({ vector[2*i] : vector[2*i+1] for i in range(0, count) },)
     
+    def get_configuration_for_mrc_audio(self):
+        return self.get('<Iff')
+    
     def get_configuration_for_rm_vlc(self):
         return self.get_configuration_for_mode() + self.get_configuration_for_video_divisor() + self.get_configuration_for_video_encoding() + self.get_configuration_for_h26x_encoding()
     
@@ -387,6 +425,9 @@ class _reader:
     
     def get_configuration_for_eet(self):
         return self.get('<B')[0]
+    
+    def get_configuration_for_extended_audio(self):
+        return self.get_configuration_for_mrc_audio() + self.get_configuration_for_audio_encoding()
 
     def begin(self, mode):
         self._unpacker = hl2ss._unpacker()
@@ -452,6 +493,10 @@ class _rd(hl2ss._context_manager):
         self.fps = self._rd.get_configuration_for_eet()
         self._rd.begin(hl2ss.StreamMode.MODE_1)
 
+    def __load_extended_audio(self):
+        self.mixer_mode, self.loopback_gain, self.microphone_gain, self.profile, self.level = self._rd.get_configuration_for_extended_audio()
+        self._rd.begin(hl2ss.StreamMode.MODE_0)
+
     __method_table = {
         hl2ss.StreamPort.RM_VLC_LEFTFRONT     : (__load_rm_vlc,),
         hl2ss.StreamPort.RM_VLC_LEFTLEFT      : (__load_rm_vlc,),
@@ -466,6 +511,7 @@ class _rd(hl2ss._context_manager):
         hl2ss.StreamPort.MICROPHONE           : (__load_microphone,),
         hl2ss.StreamPort.SPATIAL_INPUT        : (__load_si,),
         hl2ss.StreamPort.EXTENDED_EYE_TRACKER : (__load_eet,),
+        hl2ss.StreamPort.EXTENDED_AUDIO       : (__load_extended_audio),
     }
 
     def __build(self):
@@ -584,6 +630,7 @@ class _rd_decoded(_rd):
         hl2ss.StreamPort.MICROPHONE           : (__set_codec_microphone,         __create_codec_microphone,         __decode_microphone),
         hl2ss.StreamPort.SPATIAL_INPUT        : (__set_codec_si,                 __create_codec_si,                 __decode_si),
         hl2ss.StreamPort.EXTENDED_EYE_TRACKER : (__set_codec_eet,                __create_codec_eet,                __decode_eet),
+        hl2ss.StreamPort.EXTENDED_AUDIO       : (__set_codec_microphone,         __create_codec_microphone,         __decode_microphone),
     }
 
     def __build(self):
