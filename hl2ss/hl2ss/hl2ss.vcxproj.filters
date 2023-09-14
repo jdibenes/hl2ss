@@ -220,6 +220,15 @@
     <ClCompile Include="custom_video_effect.cpp">
       <Filter>Source Files\sink</Filter>
     </ClCompile>
+    <ClCompile Include="custom_audio_effect.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="extended_audio.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_ea.cpp">
+      <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -566,6 +575,15 @@
     </ClInclude>
     <ClInclude Include="custom_video_effect.h">
       <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_audio_effect.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="extended_audio.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_ea.h">
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
