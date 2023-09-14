@@ -39,7 +39,7 @@ static void SI_Stream(SOCKET clientsocket)
     UINT64 qpc;
     int status1;
     int status2;
-    uint8_t valid;
+    uint32_t valid;
     std::vector<JointPose> left_poses;
     std::vector<JointPose> right_poses;
     SpatialInput_Frame head_pose;
