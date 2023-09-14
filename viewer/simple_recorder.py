@@ -27,19 +27,20 @@ unpack = True
 
 # Ports to record
 ports = [
-    hl2ss.StreamPort.RM_VLC_LEFTFRONT,
-    hl2ss.StreamPort.RM_VLC_LEFTLEFT,
-    hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
-    hl2ss.StreamPort.RM_VLC_RIGHTRIGHT,
+    #hl2ss.StreamPort.RM_VLC_LEFTFRONT,
+    #hl2ss.StreamPort.RM_VLC_LEFTLEFT,
+    #hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
+    #hl2ss.StreamPort.RM_VLC_RIGHTRIGHT,
     #hl2ss.StreamPort.RM_DEPTH_AHAT,
-    hl2ss.StreamPort.RM_DEPTH_LONGTHROW,
-    hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
-    hl2ss.StreamPort.RM_IMU_GYROSCOPE,
-    hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
+    #hl2ss.StreamPort.RM_DEPTH_LONGTHROW,
+    #hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
+    #hl2ss.StreamPort.RM_IMU_GYROSCOPE,
+    #hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
     hl2ss.StreamPort.PERSONAL_VIDEO,
-    hl2ss.StreamPort.MICROPHONE,
-    hl2ss.StreamPort.SPATIAL_INPUT,
-    hl2ss.StreamPort.EXTENDED_EYE_TRACKER,
+    #hl2ss.StreamPort.MICROPHONE,
+    #hl2ss.StreamPort.SPATIAL_INPUT,
+    #hl2ss.StreamPort.EXTENDED_EYE_TRACKER,
+    hl2ss.StreamPort.EXTENDED_AUDIO,
     ]
 
 # PV parameters
@@ -101,6 +102,7 @@ if __name__ == '__main__':
     producer.configure(hl2ss.StreamPort.MICROPHONE, hl2ss_lnm.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, decoded=False))
     producer.configure(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
     producer.configure(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss_lnm.rx_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, fps=eet_fps))
+    producer.configure(hl2ss.StreamPort.EXTENDED_AUDIO, hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, decoded=False))
 
     for port in ports:
         producer.initialize(port, buffer_elements)
@@ -151,6 +153,7 @@ if __name__ == '__main__':
     ports_to_mp4 = [
         hl2ss.StreamPort.PERSONAL_VIDEO,
         hl2ss.StreamPort.MICROPHONE,
+        hl2ss.StreamPort.EXTENDED_AUDIO,
         hl2ss.StreamPort.RM_VLC_LEFTFRONT,
         hl2ss.StreamPort.RM_VLC_LEFTLEFT,
         hl2ss.StreamPort.RM_VLC_RIGHTFRONT,

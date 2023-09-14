@@ -511,7 +511,7 @@ class _rd(hl2ss._context_manager):
         hl2ss.StreamPort.MICROPHONE           : (__load_microphone,),
         hl2ss.StreamPort.SPATIAL_INPUT        : (__load_si,),
         hl2ss.StreamPort.EXTENDED_EYE_TRACKER : (__load_eet,),
-        hl2ss.StreamPort.EXTENDED_AUDIO       : (__load_extended_audio),
+        hl2ss.StreamPort.EXTENDED_AUDIO       : (__load_extended_audio,),
     }
 
     def __build(self):

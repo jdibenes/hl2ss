@@ -64,6 +64,8 @@ def get_sync_period(rx):
         return 1
     if (rx.port == hl2ss.StreamPort.EXTENDED_EYE_TRACKER):
         return 1
+    if (rx.port == hl2ss.StreamPort.EXTENDED_AUDIO):
+        return 1
 
 
 #------------------------------------------------------------------------------
