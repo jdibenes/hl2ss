@@ -132,6 +132,10 @@ def rx_eet(host, port, chunk=hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps=30):
     return hl2ss.rx_eet(host, port, chunk, fps)
 
 
+def rx_extended_audio(host, port, chunk=hl2ss.ChunkSize.EXTENDED_AUDIO, mixer_mode=hl2ss.MixerMode.BOTH, loopback_gain=1.0, microphone_gain=1.0, profile=hl2ss.AudioProfile.AAC_24000, level=hl2ss.AACLevel.L2, decoded=True):
+    return hl2ss.rx_decoded_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level) if (decoded) else hl2ss.rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
+
+
 #------------------------------------------------------------------------------
 # Mode 2
 #------------------------------------------------------------------------------

@@ -21,6 +21,7 @@ class StreamPort:
     MICROPHONE           = 3811
     SPATIAL_INPUT        = 3812
     EXTENDED_EYE_TRACKER = 3817
+    EXTENDED_AUDIO       = 3818
 
 
 # IPC TCP Ports
@@ -42,6 +43,7 @@ class ChunkSize:
     MICROPHONE           = 512
     SPATIAL_INPUT        = 1024
     EXTENDED_EYE_TRACKER = 256
+    EXTENDED_AUDIO       = 512
     SINGLE_TRANSFER      = 4096
 
 
@@ -164,6 +166,12 @@ class PNGFilterMode:
 class HologramPerspective:
     DISPLAY = 0
     PV      = 1
+
+
+class MixerMode:
+    MICROPHONE = 0
+    SYSTEM     = 1
+    BOTH       = 2
 
 
 # RM VLC Parameters
@@ -447,8 +455,12 @@ def _create_configuration_for_h26x_encoding(options):
     return bytes(configuration)
 
 
-def _create_configuration_for_mrc(enable, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
+def _create_configuration_for_mrc_video(enable, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
     return struct.pack('<BBBBBBfffII', 1 if (enable) else 0, 1 if (hologram_composition) else 0, 1 if (recording_indicator) else 0, 1 if (video_stabilization) else 0, 1 if (blank_protected) else 0, 1 if (show_mesh) else 0, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective)
+
+
+def _create_configuration_for_mrc_audio(mixer_mode, loopback_gain, microphone_gain):
+    return struct.pack('<Iff', mixer_mode, loopback_gain, microphone_gain)
 
 
 def _create_configuration_for_rm_vlc(mode, divisor, profile, level, bitrate, options):
@@ -498,6 +510,13 @@ def _create_configuration_for_microphone(profile, level):
 
 def _create_configuration_for_eet(fps):
     return struct.pack('<B', fps)
+
+
+def _create_configuration_for_extended_audio(mixer_mode, loopback_gain, microphone_gain, profile, level):
+    configuration = bytearray()
+    configuration.extend(_create_configuration_for_mrc_audio(mixer_mode, loopback_gain, microphone_gain))
+    configuration.extend(_create_configuration_for_audio_encoding(profile, level))
+    return bytes(configuration)
 
 
 def _create_configuration_for_rm_mode2(mode):
@@ -570,6 +589,13 @@ def _connect_client_eet(host, port, chunk_size, fps):
     return c
 
 
+def _connect_client_extended_audio(host, port, chunk_size, mixer_mode, loopback_gain, microphone_gain, profile, level):
+    c = _gatherer()
+    c.open(host, port, chunk_size, StreamMode.MODE_0)
+    c.sendall(_create_configuration_for_extended_audio(mixer_mode, loopback_gain, microphone_gain, profile, level))
+    return c
+
+
 class _PVCNT:
     START =  0x04
     STOP   = 0x08
@@ -580,7 +606,7 @@ def start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_i
     c = _client()
     c.open(host, port)
     c.sendall(_create_configuration_for_pv_mode2(_PVCNT.START | _PVCNT.MODE_3, 1920, 1080, 30))
-    c.sendall(_create_configuration_for_mrc(enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective))
+    c.sendall(_create_configuration_for_mrc_video(enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective))
     c.close()
 
 
@@ -757,6 +783,27 @@ class rx_eet(_context_manager):
 
     def open(self):
         self._client = _connect_client_eet(self.host, self.port, self.chunk, self.fps)
+
+    def get_next_packet(self):
+        return self._client.get_next_packet()
+    
+    def close(self):
+        self._client.close()
+
+
+class rx_extended_audio:
+    def __init__(self, host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
+        self.host = host
+        self.port = port
+        self.chunk = chunk
+        self.mixer_mode = mixer_mode
+        self.loopback_gain = loopback_gain
+        self.microphone_gain = microphone_gain
+        self.profile = profile
+        self.level = level
+
+    def open(self):
+        self._client = _connect_client_extended_audio(self.host, self.port, self.chunk, self.mixer_mode, self.loopback_gain, self.microphone_gain, self.profile, self.level)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -1174,7 +1221,7 @@ class _Mode0Layout_SI_Hand:
 
 class _Mode0Layout_SI:
     BEGIN_VALID         = 0
-    END_VALID           = BEGIN_VALID + 1
+    END_VALID           = BEGIN_VALID + 1*_SIZEOF.DWORD
     BEGIN_HEAD_POSITION = END_VALID
     END_HEAD_POSITION   = BEGIN_HEAD_POSITION + 3*_SIZEOF.FLOAT
     BEGIN_HEAD_FORWARD  = END_HEAD_POSITION
@@ -1211,7 +1258,7 @@ class _SI_Hand:
 class unpack_si:
     def __init__(self, payload):
         self._data = payload
-        self._valid = np.frombuffer(payload[_Mode0Layout_SI.BEGIN_VALID : _Mode0Layout_SI.END_VALID], dtype=np.uint8)
+        self._valid = np.frombuffer(payload[_Mode0Layout_SI.BEGIN_VALID : _Mode0Layout_SI.END_VALID], dtype=np.uint32)
 
     def is_valid_head_pose(self):
         return (self._valid & _SI_Field.HEAD) != 0
@@ -1353,6 +1400,24 @@ class rx_decoded_pv(rx_pv):
 class rx_decoded_microphone(rx_microphone):
     def __init__(self, host, port, chunk, profile, level):
         super().__init__(host, port, chunk, profile, level)
+        self._codec = decode_microphone(profile)
+        
+    def open(self):
+        self._codec.create()
+        super().open()
+
+    def get_next_packet(self):
+        data = super().get_next_packet()
+        data.payload = self._codec.decode(data.payload)
+        return data
+
+    def close(self):
+        super().close()
+
+
+class rx_decoded_extended_audio(rx_extended_audio):
+    def __init__(self, host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
+        super().__init__(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
         self._codec = decode_microphone(profile)
         
     def open(self):
@@ -2063,7 +2128,7 @@ class _su_item:
         self.orientation = np.frombuffer(self.orientation, dtype=np.float32)
         self.position = np.frombuffer(self.position, dtype=np.float32)
         self.location = np.frombuffer(self.location, dtype=np.float32).reshape((-1, 4))
-        self.alignment = np.frombuffer(self.alignment, np.int32)
+        self.alignment = np.frombuffer(self.alignment, dtype=np.int32)
         self.extents = np.frombuffer(self.extents, dtype=np.float32)
 
 
