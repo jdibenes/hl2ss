@@ -1,6 +1,7 @@
 //******************************************************************************
 // This class demonstrates how to receive and process messages from a client.
-// For a sample client implementation see client_umq.py in the viewer directory.
+// For a sample client implementation see client_ipc_umq.py in the viewer
+// directory.
 //******************************************************************************
 
 using UnityEngine;
