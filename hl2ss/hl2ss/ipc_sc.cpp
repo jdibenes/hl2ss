@@ -171,7 +171,7 @@ bool ReceiveZABFormat_Profile(SOCKET clientsocket, ZABFormat& format)
 }
 
 // OK
-bool ReceiveMRCOptions(SOCKET clientsocket, MRCOptions& options)
+bool ReceiveMRCVideoOptions(SOCKET clientsocket, MRCVideoOptions& options)
 {
 	bool ok;
 
@@ -196,6 +196,21 @@ bool ReceiveMRCOptions(SOCKET clientsocket, MRCOptions& options)
 	ok = recv_u32(clientsocket, options.video_stabilization_length);
 	if (!ok) { return false; }
 	ok = recv_u32(clientsocket, options.hologram_perspective);
+	if (!ok) { return false; }
+
+	return true;
+}
+
+// OK
+bool ReceiveMRCAudioOptions(SOCKET clientsocket, MRCAudioOptions& options)
+{
+	bool ok;
+
+	ok = recv_u32(clientsocket, options.mixer_mode);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, *(uint32_t*)&options.loopback_gain);
+	if (!ok) { return false; }
+	ok = recv_u32(clientsocket, *(uint32_t*)&options.microphone_gain);
 	if (!ok) { return false; }
 
 	return true;

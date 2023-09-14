@@ -256,8 +256,8 @@ static void PV_Stream(SOCKET clientsocket)
 
     if (mode & 4)
     {
-    MRCOptions options;
-    ok = ReceiveMRCOptions(clientsocket, options);
+    MRCVideoOptions options;
+    ok = ReceiveMRCVideoOptions(clientsocket, options);
     if (!ok) { return; }
     if (!PersonalVideo_Status()) { PersonalVideo_Open(options); }
     }

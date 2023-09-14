@@ -94,7 +94,7 @@ void PersonalVideo_Cleanup()
 }
 
 // OK
-void PersonalVideo_Open(MRCOptions const& options)
+void PersonalVideo_Open(MRCVideoOptions const& options)
 {
     uint32_t const width     = 1920;
     uint32_t const height    = 1080;

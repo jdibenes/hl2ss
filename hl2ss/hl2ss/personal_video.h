@@ -6,7 +6,7 @@
 
 void PersonalVideo_Initialize();
 void PersonalVideo_Cleanup();
-void PersonalVideo_Open(MRCOptions const& options);
+void PersonalVideo_Open(MRCVideoOptions const& options);
 void PersonalVideo_Close();
 bool PersonalVideo_Status();
 bool PersonalVideo_SetFormat(uint32_t width, uint32_t height, uint32_t framerate);

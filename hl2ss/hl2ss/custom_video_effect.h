@@ -5,7 +5,7 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Effects.h>
 
-struct MRCOptions
+struct MRCVideoOptions
 {
     bool enable;
     bool hologram_composition;
@@ -25,7 +25,7 @@ struct MRCVideoEffect : winrt::implements<MRCVideoEffect, winrt::Windows::Media:
 {
     winrt::Windows::Foundation::Collections::PropertySet m_propertySet;
 
-    MRCVideoEffect(MRCOptions const& options);
+    MRCVideoEffect(MRCVideoOptions const& options);
 
     winrt::hstring ActivatableClassId();
     winrt::Windows::Foundation::Collections::IPropertySet Properties();

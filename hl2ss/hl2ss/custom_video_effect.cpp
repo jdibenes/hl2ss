@@ -4,7 +4,7 @@
 using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Media::Effects;
 
-MRCVideoEffect::MRCVideoEffect(MRCOptions const& options)
+MRCVideoEffect::MRCVideoEffect(MRCVideoOptions const& options)
 {
     m_propertySet.Insert(L"StreamType", winrt::box_value<uint32_t>(1));
     m_propertySet.Insert(L"HologramCompositionEnabled", winrt::box_value<bool>(options.hologram_composition));
