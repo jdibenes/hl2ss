@@ -247,6 +247,28 @@ void test_eet(char const* host)
     client->close();
 }
 
+void test_extended_audio(char const* host)
+{
+    uint16_t port = hl2ss::stream_port::EXTENDED_AUDIO;
+    std::unique_ptr<hl2ss::rx_extended_audio> client = hl2ss::lnm::rx_extended_audio(host, port);
+    std::string port_name = hl2ss::get_port_name(port);
+
+    cv::namedWindow(port_name);
+
+    client->open();
+    for (;;)
+    {
+        std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
+        float* samples;
+        hl2ss::unpack_extended_audio_aac(data->payload.get(), &samples);
+
+        print_packet_metadata(data->timestamp, data->pose.get());
+
+        if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+    }
+    client->close();
+}
+
 void test_rc(char const* host)
 {
     std::unique_ptr<hl2ss::ipc_rc> client = hl2ss::lnm::ipc_rc(host, hl2ss::ipc_port::REMOTE_CONFIGURATION);
@@ -386,7 +408,7 @@ void test_umq(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 18;
+    int test_id = 19;
 
     try
     {
@@ -413,6 +435,7 @@ int main()
         case 16: test_su(host); break; // OK
         case 17: test_vi(host); break; // OK
         case 18: test_umq(host); break; // OK
+        case 19: test_extended_audio(host); break;
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }

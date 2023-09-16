@@ -135,12 +135,12 @@ std::unique_ptr<hl2ss::rx_pv> rx_pv(char const* host, uint16_t port, uint16_t wi
     default_options = get_video_codec_default_options(width, height, framerate, divisor, profile);
     options = &default_options;
     }
-    return (decoded_format != hl2ss::video_profile::RAW) ? std::make_unique<rx_decoded_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options, decoded_format) : std::make_unique<hl2ss::rx_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options);
+    return (decoded_format != hl2ss::video_profile::RAW) ? std::make_unique<hl2ss::rx_decoded_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options, decoded_format) : std::make_unique<hl2ss::rx_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options);
 }
 
 std::unique_ptr<hl2ss::rx_microphone> rx_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level, bool decoded)
 {
-    return decoded ? std::make_unique<rx_decoded_microphone>(host, port, chunk, profile, level) : std::make_unique<hl2ss::rx_microphone>(host, port, chunk, profile, level);
+    return decoded ? std::make_unique<hl2ss::rx_decoded_microphone>(host, port, chunk, profile, level) : std::make_unique<hl2ss::rx_microphone>(host, port, chunk, profile, level);
 }
 
 std::unique_ptr<hl2ss::rx_si> rx_si(char const* host, uint16_t port, size_t chunk)
@@ -151,6 +151,11 @@ std::unique_ptr<hl2ss::rx_si> rx_si(char const* host, uint16_t port, size_t chun
 std::unique_ptr<hl2ss::rx_eet> rx_eet(char const* host, uint16_t port, size_t chunk, uint8_t framerate)
 {
     return std::make_unique<hl2ss::rx_eet>(host, port, chunk, framerate);
+}
+
+std::unique_ptr<hl2ss::rx_extended_audio> rx_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level, bool decoded)
+{
+    return decoded ? std::make_unique<hl2ss::rx_decoded_extended_audio>(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level) : std::make_unique<hl2ss::rx_extended_audio>(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level);
 }
 
 //------------------------------------------------------------------------------

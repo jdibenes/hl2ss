@@ -295,7 +295,7 @@ void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vecto
     }
 }
 
-void create_configuration_for_mrc(std::vector<uint8_t>& sc, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
+void create_configuration_for_mrc_video(std::vector<uint8_t>& sc, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
 {
     push_u8(sc, enable_mrc);
     push_u8(sc, hologram_composition);
@@ -308,6 +308,13 @@ void create_configuration_for_mrc(std::vector<uint8_t>& sc, bool enable_mrc, boo
     push_float(sc, output_height);
     push_u32(sc, video_stabilization_length);
     push_u32(sc, hologram_perspective);
+}
+
+void create_configuration_for_mrc_audio(std::vector<uint8_t>& sc, uint32_t mixer_mode, float loopback_gain, float microphone_gain)
+{
+    push_u32(sc, mixer_mode);
+    push_float(sc, loopback_gain);
+    push_float(sc, microphone_gain);
 }
 
 //------------------------------------------------------------------------------
@@ -368,6 +375,12 @@ void create_configuration_for_eet(std::vector<uint8_t>& sc, uint8_t framerate)
     create_configuration_for_framerate(sc, framerate);
 }
 
+void create_configuration_for_extended_audio(std::vector<uint8_t>& sc, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level)
+{
+    create_configuration_for_mrc_audio(sc, mixer_mode, loopback_gain, microphone_gain);
+    create_configuration_for_audio_encoding(sc, profile, level);
+}
+
 void create_configuration_for_rm_mode_2(std::vector<uint8_t>& sc, uint8_t mode)
 {
     create_configuration_for_mode(sc, mode);
@@ -397,7 +410,7 @@ void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool h
     client c;
 
     create_configuration_for_pv_mode_2(sc, pv_control::START | pv_control::MODE_3, 1920, 1080, 30);
-    create_configuration_for_mrc(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
+    create_configuration_for_mrc_video(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
@@ -544,6 +557,20 @@ rx_eet::rx_eet(char const* host, uint16_t port, size_t chunk, uint8_t framerate)
 void rx_eet::create_configuration(std::vector<uint8_t>& sc)
 {
     create_configuration_for_eet(sc, framerate);
+}
+
+rx_extended_audio::rx_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level) : rx(host, port, chunk, stream_mode::MODE_0)
+{
+    this->mixer_mode = mixer_mode;
+    this->loopback_gain = loopback_gain;
+    this->microphone_gain = microphone_gain;
+    this->profile = profile;
+    this->level = level;
+}
+
+void rx_extended_audio::create_configuration(std::vector<uint8_t>& sc)
+{
+    create_configuration_for_extended_audio(sc, mixer_mode, loopback_gain, microphone_gain, profile, level);
 }
 
 //------------------------------------------------------------------------------
@@ -898,7 +925,7 @@ std::unique_ptr<uint8_t[]> decoder_microphone::decode(uint8_t* data, uint32_t si
     }
     else
     {
-    out = std::make_unique<uint8_t[]>(RAW_SIZE);
+    out = std::make_unique<uint8_t[]>(size);
     memcpy(out.get(), data, size);
     }
     return out;
@@ -1026,6 +1053,29 @@ std::shared_ptr<packet> rx_decoded_microphone::get_next_packet()
 void rx_decoded_microphone::close()
 {
     rx_microphone::close();
+    m_decoder.close();
+}
+
+rx_decoded_extended_audio::rx_decoded_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level) : rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
+{
+}
+
+void rx_decoded_extended_audio::open()
+{
+    m_decoder.open(profile);
+    rx_extended_audio::open();
+}
+
+std::shared_ptr<packet> rx_decoded_extended_audio::get_next_packet()
+{
+    std::shared_ptr<packet> p = rx_extended_audio::get_next_packet();
+    if (profile != audio_profile::RAW) { p->set_payload(decoder_microphone::DECODED_SIZE, m_decoder.decode(p->payload.get(), p->sz_payload)); }
+    return p;
+}
+
+void rx_decoded_extended_audio::close()
+{
+    rx_extended_audio::close();
     m_decoder.close();
 }
 
@@ -1162,6 +1212,7 @@ char const* const port_name[] = {
     "voice_input",
     "unity_message_queue",
     "extended_eye_tracker",
+    "extended_audio",
 };
 
 char const* get_port_name(uint16_t port)
@@ -1729,5 +1780,15 @@ void unpack_si(uint8_t* payload, si_frame** si)
 void unpack_eet(uint8_t* payload, eet_frame** eet)
 {
     *eet = (eet_frame*)payload;
+}
+
+void unpack_extended_audio_raw(uint8_t* payload, int16_t** samples)
+{
+    *samples = (int16_t*)payload;
+}
+
+void unpack_extended_audio_aac(uint8_t* payload, float** samples)
+{
+    *samples = (float*)payload;
 }
 }

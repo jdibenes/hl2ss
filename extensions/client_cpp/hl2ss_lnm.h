@@ -41,6 +41,7 @@ std::unique_ptr<hl2ss::rx_pv> rx_pv(char const* host, uint16_t port, uint16_t wi
 std::unique_ptr<hl2ss::rx_microphone> rx_microphone(char const* host, uint16_t port, size_t chunk=hl2ss::chunk_size::MICROPHONE, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, bool decoded=true);
 std::unique_ptr<hl2ss::rx_si> rx_si(char const* host, uint16_t port, size_t chunk=hl2ss::chunk_size::SPATIAL_INPUT);
 std::unique_ptr<hl2ss::rx_eet> rx_eet(char const* host, uint16_t port, size_t chunk=hl2ss::chunk_size::EXTENDED_EYE_TRACKER, uint8_t framerate=hl2ss::eet_framerate::FPS_30);
+std::unique_ptr<hl2ss::rx_extended_audio> rx_extended_audio(char const* host, uint16_t port, size_t chunk=hl2ss::chunk_size::EXTENDED_AUDIO, uint32_t mixer_mode=hl2ss::mixer_mode::BOTH, float loopback_gain=1.0f, float microphone_gain=1.0f, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, bool decoded=true);
 
 //------------------------------------------------------------------------------
 // Mode 2

@@ -34,6 +34,7 @@ uint16_t const PERSONAL_VIDEO       = 3810;
 uint16_t const MICROPHONE           = 3811;
 uint16_t const SPATIAL_INPUT        = 3812;
 uint16_t const EXTENDED_EYE_TRACKER = 3817;
+uint16_t const EXTENDED_AUDIO       = 3818;
 };
 
 namespace ipc_port
@@ -55,6 +56,7 @@ size_t const PERSONAL_VIDEO       = 4096;
 size_t const MICROPHONE           = 512;
 size_t const SPATIAL_INPUT        = 1024;
 size_t const EXTENDED_EYE_TRACKER = 256;
+size_t const EXTENDED_AUDIO       = 512;
 size_t const SINGLE_TRANSFER      = 4096;
 }
 
@@ -178,6 +180,13 @@ uint32_t const DISPLAY = 0;
 uint32_t const PV      = 1;
 };
 
+namespace mixer_mode
+{
+uint32_t const MICROPHONE = 0;
+uint32_t const SYSTEM     = 1;
+uint32_t const BOTH       = 2;
+};
+
 namespace pv_decoded_format
 {
 uint8_t const BGR  = 0;
@@ -246,6 +255,13 @@ namespace parameters_si
 uint8_t const SAMPLE_RATE = 30;
 };
 
+namespace parameters_extended_audio
+{
+uint32_t const SAMPLE_RATE    = 48000;
+uint8_t  const CHANNELS       = 2;
+uint16_t const GROUP_SIZE_AAC = 1024;
+};
+
 //------------------------------------------------------------------------------
 // Geometry
 //------------------------------------------------------------------------------
@@ -283,14 +299,6 @@ struct ray
 {
     vector_3 origin;
     vector_3 direction;
-};
-
-struct pv_intrinsics
-{
-    float fx;
-    float fy;
-    float cx;
-    float cy;
 };
 
 //------------------------------------------------------------------------------
@@ -362,6 +370,14 @@ public:
 //------------------------------------------------------------------------------
 // * PV Control
 //------------------------------------------------------------------------------
+
+struct pv_intrinsics
+{
+    float fx;
+    float fy;
+    float cx;
+    float cy;
+};
 
 void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective);
 void stop_subsystem_pv(char const* host, uint16_t port);
@@ -497,6 +513,21 @@ public:
     rx_eet(char const* host, uint16_t port, size_t chunk, uint8_t framerate);
 };
 
+class rx_extended_audio : public rx
+{
+protected:
+    void create_configuration(std::vector<uint8_t>& sc) override;
+
+public:
+    uint32_t mixer_mode;
+    float loopback_gain;
+    float microphone_gain;
+    uint8_t profile;
+    uint8_t level;
+
+    rx_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
+};
+
 //------------------------------------------------------------------------------
 // * Frame
 //------------------------------------------------------------------------------
@@ -606,7 +637,6 @@ private:
 
 public:
     static uint32_t const DECODED_SIZE = parameters_microphone::GROUP_SIZE_AAC * parameters_microphone::CHANNELS * sizeof(float);
-    static uint32_t const RAW_SIZE     = parameters_microphone::GROUP_SIZE_RAW * parameters_microphone::CHANNELS * sizeof(int16_t);
 
     void open(uint8_t profile);
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -678,6 +708,19 @@ protected:
 
 public:
     rx_decoded_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level);
+
+    void open() override;
+    std::shared_ptr<packet> get_next_packet() override;
+    void close() override;
+};
+
+class rx_decoded_extended_audio : public rx_extended_audio
+{
+protected:
+    decoder_microphone m_decoder;
+
+public:
+    rx_decoded_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
 
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -1271,4 +1314,6 @@ void unpack_microphone_raw(uint8_t* payload, int16_t** samples);
 void unpack_microphone_aac(uint8_t* payload, float** samples);
 void unpack_si(uint8_t* payload, si_frame** si);
 void unpack_eet(uint8_t* payload, eet_frame** eet);
+void unpack_extended_audio_raw(uint8_t* payload, int16_t** samples);
+void unpack_extended_audio_aac(uint8_t* payload, float** samples);
 }
