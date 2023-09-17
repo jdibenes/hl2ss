@@ -11,10 +11,14 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include "hl2ss.h"
-#include "types.h"
 
 namespace hl2ss
 {
+union v8  {                           uint8_t  b; int8_t  c; };
+union v16 { struct { v8  b0, b1; } b; uint16_t w; int16_t s; };
+union v32 { struct { v16 w0, w1; } w; uint32_t d; int32_t i; };
+union v64 { struct { v32 d0, d1; } d; uint64_t q; int64_t l; };
+
 //------------------------------------------------------------------------------
 // * Client
 //------------------------------------------------------------------------------
@@ -715,11 +719,11 @@ uint16_t get_video_stride(uint16_t width)
 
 int const cv_format[5][4] = 
 {
-    {3, CV_8UC3, cv::COLOR_YUV2BGR_I420,  cv::COLOR_YUV2BGR_NV12 },
-    {3, CV_8UC3, cv::COLOR_YUV2RGB_I420,  cv::COLOR_YUV2RGB_NV12 },
-    {4, CV_8UC4, cv::COLOR_YUV2BGRA_I420, cv::COLOR_YUV2BGRA_NV12},
-    {4, CV_8UC4, cv::COLOR_YUV2RGBA_I420, cv::COLOR_YUV2RGBA_NV12},
-    {1, CV_8UC1, cv::COLOR_YUV2GRAY_I420, cv::COLOR_YUV2GRAY_NV12},
+    { 3, CV_8UC3, cv::COLOR_YUV2BGR_I420,  cv::COLOR_YUV2BGR_NV12  },
+    { 3, CV_8UC3, cv::COLOR_YUV2RGB_I420,  cv::COLOR_YUV2RGB_NV12  },
+    { 4, CV_8UC4, cv::COLOR_YUV2BGRA_I420, cv::COLOR_YUV2BGRA_NV12 },
+    { 4, CV_8UC4, cv::COLOR_YUV2RGBA_I420, cv::COLOR_YUV2RGBA_NV12 },
+    { 1, CV_8UC1, cv::COLOR_YUV2GRAY_I420, cv::COLOR_YUV2GRAY_NV12 },
 };
 
 void decoder_rm_vlc::open(uint8_t profile)
