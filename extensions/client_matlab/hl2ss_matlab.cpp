@@ -28,11 +28,11 @@ private:
     std::unique_ptr<hl2ss::mt::source> source_si;
     std::unique_ptr<hl2ss::mt::source> source_eet;
     std::unique_ptr<hl2ss::mt::source> source_extended_audio;
-    std::unique_ptr<hl2ss::ipc_rc>  ipc_rc;
-    std::unique_ptr<hl2ss::ipc_sm>  ipc_sm;
-    std::unique_ptr<hl2ss::ipc_su>  ipc_su;
-    std::unique_ptr<hl2ss::ipc_vi>  ipc_vi;
-    std::unique_ptr<hl2ss::ipc_umq> ipc_umq;
+    std::unique_ptr<hl2ss::ipc_rc>     ipc_rc;
+    std::unique_ptr<hl2ss::ipc_sm>     ipc_sm;
+    std::unique_ptr<hl2ss::ipc_su>     ipc_su;
+    std::unique_ptr<hl2ss::ipc_vi>     ipc_vi;
+    std::unique_ptr<hl2ss::ipc_umq>    ipc_umq;
 
 public:
     MexFunction()
@@ -690,34 +690,42 @@ public:
         case hl2ss::stream_port::RM_VLC_LEFTFRONT:     
         case hl2ss::stream_port::RM_VLC_LEFTLEFT:      
         case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    
-        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    get_packet_rm_vlc(port, outputs, inputs);             break;
-        case hl2ss::stream_port::RM_DEPTH_AHAT:        get_packet_rm_depth_ahat(port, outputs, inputs);      break;
+        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    get_packet_rm_vlc(            port, outputs, inputs); break;
+        case hl2ss::stream_port::RM_DEPTH_AHAT:        get_packet_rm_depth_ahat(     port, outputs, inputs); break;
         case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   get_packet_rm_depth_longthrow(port, outputs, inputs); break;
         case hl2ss::stream_port::RM_IMU_ACCELEROMETER: 
         case hl2ss::stream_port::RM_IMU_GYROSCOPE:      
-        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  get_packet_rm_imu(port, outputs, inputs);             break;
-        case hl2ss::stream_port::PERSONAL_VIDEO:       get_packet_pv(port, outputs, inputs);                 break;               
-        case hl2ss::stream_port::MICROPHONE:           get_packet_microphone(port, outputs, inputs);         break;
-        case hl2ss::stream_port::SPATIAL_INPUT:        get_packet_si(port, outputs, inputs);                 break;
-        case hl2ss::stream_port::EXTENDED_EYE_TRACKER: get_packet_eet(port, outputs, inputs);                break;
-        case hl2ss::stream_port::EXTENDED_AUDIO:       get_packet_extended_audio(port, outputs, inputs);     break;
+        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  get_packet_rm_imu(            port, outputs, inputs); break;
+        case hl2ss::stream_port::PERSONAL_VIDEO:       get_packet_pv(                port, outputs, inputs); break;               
+        case hl2ss::stream_port::MICROPHONE:           get_packet_microphone(        port, outputs, inputs); break;
+        case hl2ss::stream_port::SPATIAL_INPUT:        get_packet_si(                port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_EYE_TRACKER: get_packet_eet(               port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_AUDIO:       get_packet_extended_audio(    port, outputs, inputs); break;
         default:                                       throw std::runtime_error("Unsupported port");
         }
     }
 
-
-
-
-    
+    //------------------------------------------------------------------------------
+    // Control
+    //------------------------------------------------------------------------------
 
     void start_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::string host       = get_argument<std::string>(inputs);
-        uint16_t    port       = get_argument<uint16_t>(inputs);
-        bool        enable_mrc = get_argument<bool>(inputs);
-        // PARAMS
+        std::string host                       = get_argument<std::string>(inputs);
+        uint16_t    port                       = get_argument<uint16_t>(inputs);
+        bool        enable_mrc                 = get_argument<bool>(inputs);
+        bool        hologram_composition       = get_argument<bool>(inputs);
+        bool        recording_indicator        = get_argument<bool>(inputs);
+        bool        video_stabilization        = get_argument<bool>(inputs);
+        bool        blank_protected            = get_argument<bool>(inputs);
+        bool        show_mesh                  = get_argument<bool>(inputs);
+        float       global_opacity             = get_argument<float>(inputs);
+        float       output_width               = get_argument<float>(inputs);
+        float       output_height              = get_argument<float>(inputs);
+        uint32_t    video_stabilization_length = get_argument<uint32_t>(inputs);
+        uint32_t    hologram_perspective       = get_argument<uint32_t>(inputs);
 
-        hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc);
+        hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
     }
 
     void stop_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -727,6 +735,128 @@ public:
 
         hl2ss::lnm::stop_subsystem_pv(host.c_str(), port);
     }
+
+    //------------------------------------------------------------------------------
+    // Calibration
+    //------------------------------------------------------------------------------
+
+    void download_calibration_rm_vlc(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        (void)inputs;
+
+        if (source_rm_vlc[port - hl2ss::stream_port::RM_VLC_LEFTFRONT]) { throw std::runtime_error("Cannot download calibration while streaming"); }
+
+        std::shared_ptr<hl2ss::calibration_rm_vlc> data = hl2ss::lnm::download_calibration_rm_vlc(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "undistort_map", "intrinsics" });
+
+        o[0]["uv2xy"]         = unpack_payload<float>((uint8_t*)&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>((uint8_t*)&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
+        o[0]["undistort_map"] = unpack_payload<float>((uint8_t*)&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["intrinsics"]    = m_factory.createArray<float>({ 4 }, (float*)&data->intrinsics, (float*)((uint8_t*)(&data->intrinsics) + sizeof(data->intrinsics)));
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_calibration_rm_depth_ahat(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        (void)inputs;
+
+        if (source_rm_depth_ahat) { throw std::runtime_error("Cannot download calibration while streaming"); }
+
+        std::shared_ptr<hl2ss::calibration_rm_depth_ahat> data = hl2ss::lnm::download_calibration_rm_depth_ahat(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "scale", "alias", "undistort_map", "intrinsics" });
+
+        o[0]["uv2xy"]         = unpack_payload<float>((uint8_t*)&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>((uint8_t*)&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
+        o[0]["scale"]         = m_factory.createScalar<float>(data->scale);
+        o[0]["alias"]         = m_factory.createScalar<float>(data->alias);
+        o[0]["undistort_map"] = unpack_payload<float>((uint8_t*)&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["intrinsics"]    = m_factory.createArray<float>({ 4 }, (float*)&data->intrinsics, (float*)((uint8_t*)(&data->intrinsics) + sizeof(data->intrinsics)));
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_calibration_rm_depth_longthrow(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        (void)inputs;
+
+        if (source_rm_depth_longthrow) { throw std::runtime_error("Cannot download calibration while streaming"); }
+
+        std::shared_ptr<hl2ss::calibration_rm_depth_longthrow> data = hl2ss::lnm::download_calibration_rm_depth_longthrow(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "scale", "undistort_map", "intrinsics" });
+
+        o[0]["uv2xy"]         = unpack_payload<float>((uint8_t*)&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>((uint8_t*)&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
+        o[0]["scale"]         = m_factory.createScalar<float>(data->scale);
+        o[0]["undistort_map"] = unpack_payload<float>((uint8_t*)&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["intrinsics"]    = m_factory.createArray<float>({ 4 }, (float*)&data->intrinsics, (float*)((uint8_t*)(&data->intrinsics) + sizeof(data->intrinsics)));
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_calibration_rm_imu(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        (void)inputs;
+
+        if (source_rm_imu[port - hl2ss::stream_port::RM_IMU_ACCELEROMETER]) { throw std::runtime_error("Cannot download calibration while streaming"); }
+
+        std::shared_ptr<hl2ss::calibration_rm_imu> data = hl2ss::lnm::download_calibration_rm_imu(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "extrinsics" });
+
+        o[0]["extrinsics"] = unpack_payload<float>((uint8_t*)&data->extrinsics, 0, sizeof(data->extrinsics), { 4, 4 });
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_calibration_pv(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        if (source_pv) { throw std::runtime_error("Cannot download calibration while streaming"); }
+
+        uint16_t width     = get_argument<uint16_t>(inputs);
+        uint16_t height    = get_argument<uint16_t>(inputs);
+        uint8_t  framerate = get_argument<uint8_t>(inputs);
+
+        std::shared_ptr<hl2ss::calibration_pv> data = hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "focal_length", "principal_point", "radial_distortion", "tangential_distortion", "projection" });
+
+        o[0]["focal_length"]          = m_factory.createArray<float>({ 2 }, (float*)&data->focal_length,          (float*)((uint8_t*)(&data->focal_length)          + sizeof(data->focal_length)));
+        o[0]["principal_point"]       = m_factory.createArray<float>({ 2 }, (float*)&data->principal_point,       (float*)((uint8_t*)(&data->principal_point)       + sizeof(data->principal_point)));
+        o[0]["radial_distortion"]     = m_factory.createArray<float>({ 3 }, (float*)&data->radial_distortion,     (float*)((uint8_t*)(&data->radial_distortion)     + sizeof(data->radial_distortion)));
+        o[0]["tangential_distortion"] = m_factory.createArray<float>({ 2 }, (float*)&data->tangential_distortion, (float*)((uint8_t*)(&data->tangential_distortion) + sizeof(data->tangential_distortion)));
+        o[0]["projection"]            = unpack_payload<float>((uint8_t*)&data->projection, 0, sizeof(data->projection), { 4, 4 });
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_calibration(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::string host = get_argument<std::string>(inputs);
+        uint16_t    port = get_argument<uint16_t>(inputs);
+
+        switch (port)
+        {
+        // Stream
+        case hl2ss::stream_port::RM_VLC_LEFTFRONT:     
+        case hl2ss::stream_port::RM_VLC_LEFTLEFT:      
+        case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    
+        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    download_calibration_rm_vlc(            host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::RM_DEPTH_AHAT:        download_calibration_rm_depth_ahat(     host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   download_calibration_rm_depth_longthrow(host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::RM_IMU_ACCELEROMETER: 
+        case hl2ss::stream_port::RM_IMU_GYROSCOPE:     download_calibration_rm_imu(            host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::PERSONAL_VIDEO:       download_calibration_pv(                host.c_str(), port, outputs, inputs); break;               
+        default:                                       throw std::runtime_error("Unsupported port");
+        }
+    }
+
+    //------------------------------------------------------------------------------
+    // IPC
+    //------------------------------------------------------------------------------
 
 
     void ipc_select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -738,14 +868,14 @@ public:
     {
         std::string action = get_argument<std::string>(inputs);
 
-        if      (action == "get_packet")         { get_packet(outputs, inputs); }
-        else if (action == "get_packet_t")       { }
-        else if (action == "ipc_select")         { ipc_select(outputs, inputs); }
-        else if (action == "open")               { open(outputs, inputs); }
-        else if (action == "close")              { close(outputs, inputs); }
-        else if (action == "start_subsystem_pv") { start_subsystem_pv(outputs, inputs); }
-        else if (action == "stop_subsystem_pv")  { stop_subsystem_pv(outputs, inputs); }
-        else                                     { throw std::runtime_error("Unknown action"); }
+        if      (action == "get_packet")           { get_packet(outputs, inputs); }
+        else if (action == "ipc_select")           { ipc_select(outputs, inputs); }
+        else if (action == "open")                 { open(outputs, inputs); }
+        else if (action == "close")                { close(outputs, inputs); }
+        else if (action == "start_subsystem_pv")   { start_subsystem_pv(outputs, inputs); }
+        else if (action == "stop_subsystem_pv")    { stop_subsystem_pv(outputs, inputs); }
+        else if (action == "download_calibration") { download_calibration(outputs, inputs); }
+        else                                       { throw std::runtime_error("Unknown action"); }
     }
 
     void operator() (matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -754,69 +884,3 @@ public:
         try { select(outputs, inputs); } catch(const std::exception& e) { error(e.what()); }
     }
 };
-
-
-
-
-
-            //uint64_t units = size / sizeof(T);
-        //uint64_t elements = 1;
-        //for (size_t i = 0; i < dims.size(); ++i) { elements *= dims[i]; }
-        //uint64_t last_dim = units / elements;
-        //if (last_dim > 1) { dims.push_back(last_dim); }
-
-    /*
-    template <typename T>
-    void get_packet(matlab::mex::ArgumentList outputs, hl2ss::mt::source* source, int64_t frame_stamp, matlab::data::ArrayDimensions base_dims, matlab::data::MemoryLayout payload_layout)
-    {
-        int32_t state;
-        std::shared_ptr<hl2ss::packet> packet = source->get_packet(frame_stamp, state);
-
-        outputs[0] = m_factory.createScalar<int64_t>(frame_stamp);
-        outputs[1] = m_factory.createScalar<int32_t>(state);
-
-        if (state != 0)
-        {
-        outputs[2] = m_factory.createEmptyArray();
-        outputs[3] = m_factory.createEmptyArray();
-        outputs[4] = m_factory.createEmptyArray();
-        //source->get_rx<hl2ss::rx>()->port
-        // PV intrinsics!!
-        // vlc -> image
-        // depth ahat -> depth, ab
-        // depth longthrow -> depth, ab
-        // imu -> batch
-        // pv -> image, intrinsics
-        // microphone -> samples
-        // si -> frame
-        // eet -> frame
-        // extended_audio -> samples
-        }
-        else
-        {
-        outputs[2] = m_factory.createScalar<uint64_t>(packet->timestamp);
-
-        uint64_t units = packet->sz_payload / sizeof(T);
-        uint64_t elements = 1;
-        for (size_t i = 0; i < base_dims.size(); ++i) { elements *= base_dims[i]; }
-        uint64_t last_dim = units / elements;
-        if (last_dim > 1) { base_dims.push_back(last_dim); }
-
-        std::unique_ptr<T[]> payload = std::make_unique<T[]>(units);
-        memcpy(payload.get(), packet->payload.get(), packet->sz_payload);
-        outputs[3] = m_factory.createArrayFromBuffer<T>(base_dims, matlab::data::buffer_ptr_t<T>(payload.release(), default_deleter), payload_layout);
-
-        if (packet->pose)
-        {
-        std::unique_ptr<float[]> pose = std::make_unique<float[]>(packet->SZ_POSE / sizeof(float));
-        memcpy(pose.get(), packet->pose.get(), packet->SZ_POSE);
-        outputs[4] = m_factory.createArrayFromBuffer<float>({4, 4}, matlab::data::buffer_ptr_t<float>(pose.release(), default_deleter), matlab::data::MemoryLayout::ROW_MAJOR);
-        }
-        else
-        {
-        outputs[4] = m_factory.createEmptyArray();
-        }
-        }
-    }
-    */
-    
