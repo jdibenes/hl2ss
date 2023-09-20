@@ -11,7 +11,7 @@ while (true)
         pause(0.1);
     else
         frame_index = int64(response.frame_index + 1);
-        record = [record, response.audio.'];
+        record = [record, response.audio];
         length = length - 1;
         if (length <= 0), break; end
     end

@@ -497,7 +497,7 @@ public:
         }
         else
         {
-        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS, packet->sz_payload / (sizeof(float) * hl2ss::parameters_microphone::CHANNELS) });
+        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS, packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_microphone::CHANNELS) });
         }
         }
         }
@@ -581,7 +581,7 @@ public:
         }
         else
         {
-        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_extended_audio::CHANNELS, packet->sz_payload / (sizeof(float) * hl2ss::parameters_extended_audio::CHANNELS) });
+        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_extended_audio::CHANNELS, packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_extended_audio::CHANNELS) });
         }
         }
         }

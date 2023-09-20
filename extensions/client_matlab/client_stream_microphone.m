@@ -1,7 +1,7 @@
 
 %OK
 
-hl2ss_matlab('open', '192.168.1.7', uint16(3811), uint64(4096), uint8(3), uint8(41), uint64(300));
+hl2ss_matlab('open', '192.168.1.7', uint16(3811), uint64(4096), uint8(0xFF), uint8(41), uint64(300));
 record = [];
 length = 500;
 frame_index = int64(-1);
