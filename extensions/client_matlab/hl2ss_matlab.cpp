@@ -67,8 +67,7 @@ public:
         return get_argument_array<T>(inputs)[0];
     }
 
-    template <>
-    std::string get_argument(matlab::mex::ArgumentList inputs)
+    std::string get_argument_string(matlab::mex::ArgumentList inputs)
     {
         matlab::data::CharArray argument = get_argument_array<CHAR16_T>(inputs);
         return argument.toAscii();
@@ -247,7 +246,7 @@ public:
 
     void open(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::string host = get_argument<std::string>(inputs);
+        std::string host = get_argument_string(inputs);
         uint16_t    port = get_argument<uint16_t>(inputs);
         
         switch (port)
@@ -762,7 +761,7 @@ public:
 
     void start_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::string host                       = get_argument<std::string>(inputs);
+        std::string host                       = get_argument_string(inputs);
         uint16_t    port                       = get_argument<uint16_t>(inputs);
         bool        enable_mrc                 = get_argument<bool>(inputs);
         bool        hologram_composition       = get_argument<bool>(inputs);
@@ -781,7 +780,7 @@ public:
 
     void stop_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::string host = get_argument<std::string>(inputs);
+        std::string host = get_argument_string(inputs);
         uint16_t    port = get_argument<uint16_t>(inputs);
 
         hl2ss::lnm::stop_subsystem_pv(host.c_str(), port);
@@ -886,7 +885,7 @@ public:
 
     void download_calibration(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::string host = get_argument<std::string>(inputs);
+        std::string host = get_argument_string(inputs);
         uint16_t    port = get_argument<uint16_t>(inputs);
 
         switch (port)
@@ -913,7 +912,7 @@ public:
     {
         if (!ipc_rc) { throw std::runtime_error("Port not open"); }
 
-        std::string f = get_argument<std::string>(inputs);
+        std::string f = get_argument_string(inputs);
 
         if (f == "get_application_version")
         {
@@ -995,7 +994,7 @@ public:
     {
         if (!ipc_sm) { throw std::runtime_error("Port not open"); }
 
-        std::string f = get_argument<std::string>(inputs);
+        std::string f = get_argument_string(inputs);
 
         if (f == "create_observer")
         {
@@ -1097,7 +1096,7 @@ public:
     {
         if (!ipc_su) { throw std::runtime_error("Port not open"); }
 
-        std::string f = get_argument<std::string>(inputs);
+        std::string f = get_argument_string(inputs);
 
         if (f == "query")
         {
@@ -1195,7 +1194,7 @@ public:
     {
         if (!ipc_vi) { throw std::runtime_error("Port not open"); }
 
-        std::string f = get_argument<std::string>(inputs);
+        std::string f = get_argument_string(inputs);
 
         if (f == "create_recognizer")
         {
@@ -1256,7 +1255,7 @@ public:
     {
         if (!ipc_umq) { throw std::runtime_error("Port not open"); }
 
-        std::string f = get_argument<std::string>(inputs);
+        std::string f = get_argument_string(inputs);
 
         if (f == "push")
         {
@@ -1305,7 +1304,7 @@ public:
 
     void select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::string action = get_argument<std::string>(inputs);
+        std::string action = get_argument_string(inputs);
 
         if      (action == "get_packet")           { get_packet(outputs, inputs); }
         else if (action == "ipc_call")             { ipc_call(outputs, inputs); }

@@ -1,6 +1,9 @@
 
 #include <shared_mutex>
 #include <vector>
+#include <atomic>
+#include <thread>
+#include <mutex>
 #include "hl2ss.h"
 
 namespace hl2ss
@@ -110,8 +113,8 @@ public:
         return dynamic_cast<T*>(m_rx.get());
     }
 
-    std::shared_ptr<hl2ss::packet> source::get_packet(int64_t& frame_index, int32_t& status);
-    std::shared_ptr<hl2ss::packet> source::get_packet(uint64_t timestamp, int32_t mode, int64_t& frame_index, int32_t& status);
+    std::shared_ptr<hl2ss::packet> get_packet(int64_t& frame_index, int32_t& status);
+    std::shared_ptr<hl2ss::packet> get_packet(uint64_t timestamp, int32_t mode, int64_t& frame_index, int32_t& status);
 };
 }
 }
