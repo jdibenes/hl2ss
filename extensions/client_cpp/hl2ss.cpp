@@ -1378,14 +1378,6 @@ uint8_t const GET_OBSERVED_SURFACES = 0x02;
 uint8_t const GET_MESHES            = 0x03;
 };
 
-namespace sm_volume_type
-{
-uint32_t const Box         = 0;
-uint32_t const Frustum     = 1;
-uint32_t const OrientedBox = 2;
-uint32_t const Sphere      = 3;
-};
-
 sm_bounding_volume::sm_bounding_volume()
 {
     m_count = 0;

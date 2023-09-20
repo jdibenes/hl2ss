@@ -978,6 +978,14 @@ uint32_t const R32G32B32A32Float     =  2;
 uint32_t const R8G8B8A8IntNormalized = 31;
 };
 
+namespace sm_volume_type
+{
+uint32_t const Box         = 0;
+uint32_t const Frustum     = 1;
+uint32_t const OrientedBox = 2;
+uint32_t const Sphere      = 3;
+};
+
 class sm_bounding_volume
 {
     friend class ipc_sm;

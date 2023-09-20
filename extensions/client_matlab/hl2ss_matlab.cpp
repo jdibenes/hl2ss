@@ -4,13 +4,23 @@
 #include "hl2ss_lnm.h"
 #include "hl2ss_mt.h"
 
-
-static void default_deleter(void* p)
+namespace hl2ss
 {
-    delete[] p;
+namespace matlab
+{
+namespace grab_mode
+{
+uint8_t const BY_FRAME_INDEX = 0;
+uint8_t const BY_TIMESTAMP   = 1;
+}
+}
 }
 
 typedef std::vector<uint64_t> options_t;
+
+//------------------------------------------------------------------------------
+// (*) MexFunction
+//------------------------------------------------------------------------------
 
 class MexFunction : public matlab::mex::Function
 {
@@ -35,17 +45,14 @@ private:
     std::unique_ptr<hl2ss::ipc_umq>    ipc_umq;
 
 public:
-    MexFunction()
-    {
-    }
-
-    ~MexFunction()
-    {
-    }
-
     //------------------------------------------------------------------------------
-    // Helpers
+    // (*) Helpers
     //------------------------------------------------------------------------------
+
+    static void default_deleter(void* p)
+    {
+        delete[] p;
+    }
 
     template <typename T>
     matlab::data::TypedArray<T> get_argument_array(matlab::mex::ArgumentList inputs)
@@ -123,7 +130,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    // Open
+    // (*) Open
     //------------------------------------------------------------------------------
 
     void open_rm_vlc(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
@@ -190,7 +197,7 @@ public:
         uint8_t   level          =               get_argument<uint8_t>(inputs);
         uint32_t  bitrate        =               get_argument<uint32_t>(inputs);
         options_t options        = to_std_vector(get_argument_array<uint64_t>(inputs));
-        uint8_t   decoded_format =               get_argument<uint8_t>(inputs);
+        uint8_t   decoded_format =               get_argument<uint8_t>(inputs) % 5;
         uint64_t  buffer_size    =               get_argument<uint64_t>(inputs);
 
         (source_pv = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_pv(host, port, width, height, framerate, chunk, mode, divisor, profile, level, bitrate, &options, decoded_format)))->start();
@@ -271,7 +278,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    // Close
+    // (*) Close
     //------------------------------------------------------------------------------
 
     void close(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -306,7 +313,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    // Grab
+    // (*) Grab
     //------------------------------------------------------------------------------
 
     template <typename T>
@@ -491,7 +498,7 @@ public:
         }
         else
         {
-        o[0]["audio"]       = unpack_payload<int16_t>(packet->payload.get(), 0, packet->sz_payload, { packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_microphone::CHANNELS), hl2ss::parameters_microphone::CHANNELS });
+        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS, packet->sz_payload / (sizeof(float) * hl2ss::parameters_microphone::CHANNELS) });
         }
         }
         }
@@ -515,10 +522,10 @@ public:
         hl2ss::unpack_si(packet->payload.get(), &base);
 
         o[0]["valid"]       = m_factory.createScalar<uint32_t>({ base->valid });
-        o[0]["head_pose"]   = m_factory.createArray<float>({ 3, 3 },  (float*)&base->head_pose,  (float*)((uint8_t*)(&base->head_pose)  + sizeof(base->head_pose)));
-        o[0]["eye_ray"]     = m_factory.createArray<float>({ 6 },     (float*)&base->eye_ray,    (float*)((uint8_t*)(&base->eye_ray)    + sizeof(base->eye_ray)));
-        o[0]["left_hand"]   = m_factory.createArray<float>({ 9, 26 }, (float*)&base->left_hand,  (float*)((uint8_t*)(&base->left_hand)  + sizeof(base->left_hand)));
-        o[0]["right_hand"]  = m_factory.createArray<float>({ 9, 26 }, (float*)&base->right_hand, (float*)((uint8_t*)(&base->right_hand) + sizeof(base->right_hand)));
+        o[0]["head_pose"]   = to_typed_array<float>(&base->head_pose,  sizeof(base->head_pose),  { 3, 3 });
+        o[0]["eye_ray"]     = to_typed_array<float>(&base->eye_ray,    sizeof(base->eye_ray),    { 6 });
+        o[0]["left_hand"]   = to_typed_array<float>(&base->left_hand,  sizeof(base->left_hand),  { 9, 26 });
+        o[0]["right_hand"]  = to_typed_array<float>(&base->right_hand, sizeof(base->right_hand), { 9, 26 });
         } 
         }
 
@@ -540,9 +547,9 @@ public:
         hl2ss::eet_frame* base;
         hl2ss::unpack_eet(packet->payload.get(), &base);
 
-        o[0]["combined_ray"]      = m_factory.createArray<float>({ 6 }, (float*)&base->combined_ray, (float*)((uint8_t*)(&base->combined_ray) + sizeof(base->combined_ray)));
-        o[0]["left_ray"]          = m_factory.createArray<float>({ 6 }, (float*)&base->left_ray,     (float*)((uint8_t*)(&base->left_ray)     + sizeof(base->left_ray)));
-        o[0]["right_ray"]         = m_factory.createArray<float>({ 6 }, (float*)&base->right_ray,    (float*)((uint8_t*)(&base->right_ray)    + sizeof(base->right_ray)));
+        o[0]["combined_ray"]      = to_typed_array<float>(&base->combined_ray, sizeof(base->combined_ray), { 6 });
+        o[0]["left_ray"]          = to_typed_array<float>(&base->left_ray,     sizeof(base->left_ray),     { 6 });
+        o[0]["right_ray"]         = to_typed_array<float>(&base->right_ray,    sizeof(base->right_ray),    { 6 });
         o[0]["left_openness"]     = m_factory.createScalar<float>(base->left_openness);
         o[0]["right_openness"]    = m_factory.createScalar<float>(base->right_openness);
         o[0]["vergence_distance"] = m_factory.createScalar<float>(base->vergence_distance);
@@ -575,7 +582,7 @@ public:
         }
         else
         {
-        o[0]["audio"]       = unpack_payload<int16_t>(packet->payload.get(), 0, packet->sz_payload, { packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_extended_audio::CHANNELS), hl2ss::parameters_extended_audio::CHANNELS });
+        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_extended_audio::CHANNELS, packet->sz_payload / (sizeof(float) * hl2ss::parameters_extended_audio::CHANNELS) });
         }
         }
         }
@@ -591,12 +598,12 @@ public:
         if (!source->status(source_error)) { throw source_error; }
 
         uint8_t type = get_argument<uint8_t>(inputs);
-        if (type == 0)
+        if (type == hl2ss::matlab::grab_mode::BY_FRAME_INDEX)
         {
         frame_index = get_argument<int64_t>(inputs);
         return source->get_packet(frame_index, status);
         }
-        else if (type == 1)
+        else if (type == hl2ss::matlab::grab_mode::BY_TIMESTAMP)
         {
         uint64_t timestamp = get_argument<uint64_t>(inputs);
         int32_t  mode      = get_argument<int32_t>(inputs);
@@ -750,7 +757,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    // Control
+    // (*) Control
     //------------------------------------------------------------------------------
 
     void start_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -781,7 +788,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    // Calibration
+    // (*) Calibration
     //------------------------------------------------------------------------------
 
     void download_calibration_rm_vlc(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -794,10 +801,10 @@ public:
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "undistort_map", "intrinsics" });
 
-        o[0]["uv2xy"]         = unpack_payload<float>((uint8_t*)&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
-        o[0]["extrinsics"]    = unpack_payload<float>((uint8_t*)&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
-        o[0]["undistort_map"] = unpack_payload<float>((uint8_t*)&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
-        o[0]["intrinsics"]    = m_factory.createArray<float>({ 4 }, (float*)&data->intrinsics, (float*)((uint8_t*)(&data->intrinsics) + sizeof(data->intrinsics)));
+        o[0]["uv2xy"]         = unpack_payload<float>(&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>(&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
+        o[0]["undistort_map"] = unpack_payload<float>(&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["intrinsics"]    = to_typed_array<float>(data->intrinsics, { sizeof(data->intrinsics) / sizeof(float) });
 
         outputs[0] = std::move(o);
     }
@@ -812,12 +819,12 @@ public:
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "scale", "alias", "undistort_map", "intrinsics" });
 
-        o[0]["uv2xy"]         = unpack_payload<float>((uint8_t*)&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
-        o[0]["extrinsics"]    = unpack_payload<float>((uint8_t*)&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
+        o[0]["uv2xy"]         = unpack_payload<float>(&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>(&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
         o[0]["scale"]         = m_factory.createScalar<float>(data->scale);
         o[0]["alias"]         = m_factory.createScalar<float>(data->alias);
-        o[0]["undistort_map"] = unpack_payload<float>((uint8_t*)&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
-        o[0]["intrinsics"]    = m_factory.createArray<float>({ 4 }, (float*)&data->intrinsics, (float*)((uint8_t*)(&data->intrinsics) + sizeof(data->intrinsics)));
+        o[0]["undistort_map"] = unpack_payload<float>(&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["intrinsics"]    = to_typed_array<float>(data->intrinsics, { sizeof(data->intrinsics) / sizeof(float) });
 
         outputs[0] = std::move(o);
     }
@@ -832,11 +839,11 @@ public:
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "scale", "undistort_map", "intrinsics" });
 
-        o[0]["uv2xy"]         = unpack_payload<float>((uint8_t*)&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
-        o[0]["extrinsics"]    = unpack_payload<float>((uint8_t*)&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
+        o[0]["uv2xy"]         = unpack_payload<float>(&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>(&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
         o[0]["scale"]         = m_factory.createScalar<float>(data->scale);
-        o[0]["undistort_map"] = unpack_payload<float>((uint8_t*)&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
-        o[0]["intrinsics"]    = m_factory.createArray<float>({ 4 }, (float*)&data->intrinsics, (float*)((uint8_t*)(&data->intrinsics) + sizeof(data->intrinsics)));
+        o[0]["undistort_map"] = unpack_payload<float>(&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["intrinsics"]    = to_typed_array<float>(data->intrinsics, { sizeof(data->intrinsics) / sizeof(float) });
 
         outputs[0] = std::move(o);
     }
@@ -851,7 +858,7 @@ public:
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "extrinsics" });
 
-        o[0]["extrinsics"] = unpack_payload<float>((uint8_t*)&data->extrinsics, 0, sizeof(data->extrinsics), { 4, 4 });
+        o[0]["extrinsics"] = unpack_payload<float>(&data->extrinsics, 0, sizeof(data->extrinsics), { 4, 4 });
 
         outputs[0] = std::move(o);
     }
@@ -868,11 +875,11 @@ public:
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "focal_length", "principal_point", "radial_distortion", "tangential_distortion", "projection" });
 
-        o[0]["focal_length"]          = m_factory.createArray<float>({ 2 }, (float*)&data->focal_length,          (float*)((uint8_t*)(&data->focal_length)          + sizeof(data->focal_length)));
-        o[0]["principal_point"]       = m_factory.createArray<float>({ 2 }, (float*)&data->principal_point,       (float*)((uint8_t*)(&data->principal_point)       + sizeof(data->principal_point)));
-        o[0]["radial_distortion"]     = m_factory.createArray<float>({ 3 }, (float*)&data->radial_distortion,     (float*)((uint8_t*)(&data->radial_distortion)     + sizeof(data->radial_distortion)));
-        o[0]["tangential_distortion"] = m_factory.createArray<float>({ 2 }, (float*)&data->tangential_distortion, (float*)((uint8_t*)(&data->tangential_distortion) + sizeof(data->tangential_distortion)));
-        o[0]["projection"]            = unpack_payload<float>((uint8_t*)&data->projection, 0, sizeof(data->projection), { 4, 4 });
+        o[0]["focal_length"]          = to_typed_array<float>(data->focal_length,          { sizeof(data->focal_length)          / sizeof(float) });
+        o[0]["principal_point"]       = to_typed_array<float>(data->principal_point,       { sizeof(data->principal_point)       / sizeof(float) });
+        o[0]["radial_distortion"]     = to_typed_array<float>(data->radial_distortion,     { sizeof(data->radial_distortion)     / sizeof(float) });
+        o[0]["tangential_distortion"] = to_typed_array<float>(data->tangential_distortion, { sizeof(data->tangential_distortion) / sizeof(float) });
+        o[0]["projection"]            = unpack_payload<float>(&data->projection, 0, sizeof(data->projection), { 4, 4 });
 
         outputs[0] = std::move(o);
     }
@@ -1004,14 +1011,14 @@ public:
         {
         switch (get_field_scalar<uint32_t>(p[i]["type"]))
         {
-        case 0: volumes.add_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"])); break;
-        case 1: volumes.add_frustum(get_field_vector_4(p[i]["near"]), get_field_vector_4(p[i]["far"]), get_field_vector_4(p[i]["right"]), get_field_vector_4(p[i]["left"]), get_field_vector_4(p[i]["top"]), get_field_vector_4(p[i]["bottom"])); break;
-        case 2: volumes.add_oriented_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"]), get_field_vector_4(p[i]["orientation"])); break;
-        case 3: volumes.add_sphere(get_field_vector_3(p[i]["center"]), get_field_scalar<float>(p[i]["radius"])); break;
+        case hl2ss::sm_volume_type::Box:         volumes.add_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"])); break;
+        case hl2ss::sm_volume_type::Frustum:     volumes.add_frustum(get_field_vector_4(p[i]["near"]), get_field_vector_4(p[i]["far"]), get_field_vector_4(p[i]["right"]), get_field_vector_4(p[i]["left"]), get_field_vector_4(p[i]["top"]), get_field_vector_4(p[i]["bottom"])); break;
+        case hl2ss::sm_volume_type::OrientedBox: volumes.add_oriented_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"]), get_field_vector_4(p[i]["orientation"])); break;
+        case hl2ss::sm_volume_type::Sphere:      volumes.add_sphere(get_field_vector_3(p[i]["center"]), get_field_scalar<float>(p[i]["radius"])); break;
         default: break;
         }
         }
-      
+
         ipc_sm->set_volumes(volumes);
         }
         else if (f == "get_observed_surfaces")
@@ -1285,12 +1292,16 @@ public:
     }
 
     //------------------------------------------------------------------------------
+    // (*) Entry
+    //------------------------------------------------------------------------------
 
+    MexFunction()
+    {
+    }
 
-
-
-
-
+    ~MexFunction()
+    {
+    }
 
     void select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {

@@ -10,6 +10,7 @@ commands(2) = 'dog';
 ok = hl2ss_matlab('ipc_call', uint16(3815), 'register_commands', true, commands);
 
 hl2ss_matlab('ipc_call', uint16(3815), 'start');
+hl2ss_matlab('ipc_call', uint16(3815), 'clear');
 
 while (true)
 result = hl2ss_matlab('ipc_call', uint16(3815), 'pop');
