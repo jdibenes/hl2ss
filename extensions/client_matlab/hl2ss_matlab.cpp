@@ -73,6 +73,50 @@ public:
         return std::vector<T>(t.begin(), t.end());
     }
 
+    template <typename T>
+    T* get_pointer(matlab::data::TypedArray<T>& array)
+    {
+        return array.begin().operator->();
+    }
+
+    template <typename T, size_t size>
+    matlab::data::TypedArray<T> to_typed_array(T const (&array)[size], matlab::data::ArrayDimensions dims)
+    {
+        return m_factory.createArray<T>(dims, &array[0], &array[size]);
+    }
+
+    template <typename T>
+    matlab::data::TypedArray<T> to_typed_array(void const* data, size_t size, matlab::data::ArrayDimensions dims)
+    {
+        return m_factory.createArray<T>(dims, (T*)data, (T*)(((uint8_t*)data) + size));
+    }
+
+    template <typename T>
+    T get_field_scalar(matlab::data::TypedArray<T> array)
+    {
+        return array[0];
+    }
+
+    hl2ss::vector_2 get_field_vector_2(matlab::data::TypedArray<float> array)
+    {
+        return { array[0], array[1] };
+    }
+
+    hl2ss::vector_3 get_field_vector_3(matlab::data::TypedArray<float> array)
+    {
+        return { array[0], array[1], array[2] };
+    }
+
+    hl2ss::vector_4 get_field_vector_4(matlab::data::TypedArray<float> array)
+    {
+        return { array[0], array[1], array[2], array[3] };
+    }
+
+    hl2ss::guid get_field_guid(matlab::data::TypedArray<uint64_t> array)
+    {
+        return { array[0], array[1] };
+    }
+
     void error(char const* message)
     {
         m_matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>{ m_factory.createScalar(message) });
@@ -266,10 +310,10 @@ public:
     //------------------------------------------------------------------------------
 
     template <typename T>
-    matlab::data::Array unpack_payload(uint8_t const* payload, uint32_t offset, uint32_t size, matlab::data::ArrayDimensions dims)
+    matlab::data::Array unpack_payload(void const* payload, uint32_t offset, uint32_t size, matlab::data::ArrayDimensions dims)
     {
         std::unique_ptr<T[]> payload_copy = std::make_unique<T[]>(size / sizeof(T));
-        memcpy(payload_copy.get(), payload + offset, size);
+        memcpy(payload_copy.get(), ((uint8_t*)payload) + offset, size);
         return m_factory.createArrayFromBuffer<T>(dims, matlab::data::buffer_ptr_t<T>(payload_copy.release(), default_deleter), matlab::data::MemoryLayout::ROW_MAJOR);
     }
 
@@ -855,21 +899,405 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    // IPC
+    // (*) IPC
+    //------------------------------------------------------------------------------
+
+    void ipc_call_rc(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        if (!ipc_rc) { throw std::runtime_error("Port not open"); }
+
+        std::string f = get_argument<std::string>(inputs);
+
+        if (f == "get_application_version")
+        {
+        outputs[0] = to_typed_array<uint16_t>(ipc_rc->get_application_version().field, { 4 });
+        }
+        else if (f == "get_pv_subsystem_status")
+        {
+        outputs[0] = m_factory.createScalar<bool>(ipc_rc->get_pv_subsystem_status());
+        }
+        else if (f == "get_utc_offset")
+        {
+        uint32_t samples = get_argument<uint32_t>(inputs);
+        outputs[0] = m_factory.createScalar<uint64_t>(ipc_rc->get_utc_offset(samples));
+        }
+        else if (f == "set_hs_marker_state")
+        {
+        uint32_t state = get_argument<uint32_t>(inputs);
+        ipc_rc->set_hs_marker_state(state);
+        }
+        else if (f == "set_pv_backlight_compensation")
+        {
+        uint32_t state = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_backlight_compensation(state);
+        }
+        else if (f == "set_pv_exposure")
+        {
+        uint32_t mode  = get_argument<uint32_t>(inputs);
+        uint32_t value = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_exposure(mode, value);
+        }
+        else if (f == "set_pv_exposure_priority_video")
+        {
+        uint32_t enabled = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_exposure_priority_video(enabled);
+        }
+        else if (f == "set_pv_focus")
+        {
+        uint32_t mode            = get_argument<uint32_t>(inputs);
+        uint32_t range           = get_argument<uint32_t>(inputs);
+        uint32_t distance        = get_argument<uint32_t>(inputs);
+        uint32_t value           = get_argument<uint32_t>(inputs);
+        uint32_t driver_fallback = get_argument<uint32_t>(inputs);
+
+        ipc_rc->set_pv_focus(mode, range, distance, value, driver_fallback);
+        }
+        else if (f == "set_pv_iso_speed")
+        {
+        uint32_t mode  = get_argument<uint32_t>(inputs);
+        uint32_t value = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_iso_speed(mode, value);
+        }
+        else if (f == "set_pv_scene_mode")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_scene_mode(mode);
+        }
+        else if (f == "set_pv_video_temporal_denoising")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_video_temporal_denoising(mode);
+        }
+        else if (f == "set_pv_white_balance_preset")
+        {
+        uint32_t preset = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_white_balance_preset(preset);
+        }
+        else if (f == "set_pv_white_balance_value")
+        {
+        uint32_t value = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_white_balance_value(value);
+        }
+        else
+        {
+        throw std::runtime_error("Unknown method");
+        }
+    }
+
+    void ipc_call_sm(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        if (!ipc_sm) { throw std::runtime_error("Port not open"); }
+
+        std::string f = get_argument<std::string>(inputs);
+
+        if (f == "create_observer")
+        {
+        ipc_sm->create_observer();
+        }
+        else if (f == "set_volumes")
+        {
+        matlab::data::StructArray p = get_argument_array<matlab::data::Struct>(inputs);
+
+        hl2ss::sm_bounding_volume volumes;
+
+        for (size_t i = 0; i < p.getNumberOfElements(); ++i)
+        {
+        switch (get_field_scalar<uint32_t>(p[i]["type"]))
+        {
+        case 0: volumes.add_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"])); break;
+        case 1: volumes.add_frustum(get_field_vector_4(p[i]["near"]), get_field_vector_4(p[i]["far"]), get_field_vector_4(p[i]["right"]), get_field_vector_4(p[i]["left"]), get_field_vector_4(p[i]["top"]), get_field_vector_4(p[i]["bottom"])); break;
+        case 2: volumes.add_oriented_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"]), get_field_vector_4(p[i]["orientation"])); break;
+        case 3: volumes.add_sphere(get_field_vector_3(p[i]["center"]), get_field_scalar<float>(p[i]["radius"])); break;
+        default: break;
+        }
+        }
+      
+        ipc_sm->set_volumes(volumes);
+        }
+        else if (f == "get_observed_surfaces")
+        {
+        std::vector<hl2ss::sm_surface_info> surface_infos;
+
+        ipc_sm->get_observed_surfaces(surface_infos);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ surface_infos.size() }, { "id", "update_time" });
+
+        for (size_t i = 0; i < surface_infos.size(); ++i)
+        {
+        auto& info = surface_infos[i];
+
+        o[i]["id"]          = to_typed_array<uint64_t>(&info.id, sizeof(info.id), { sizeof(info.id) / sizeof(uint64_t) });
+        o[i]["update_time"] = m_factory.createScalar<uint64_t>(info.update_time);
+        }
+
+        outputs[0] = std::move(o);
+        }
+        else if (f == "get_meshes")
+        {
+        matlab::data::StructArray p       = get_argument_array<matlab::data::Struct>(inputs);
+        uint32_t                  threads = get_argument<uint32_t>(inputs);
+
+        hl2ss::sm_mesh_task tasks;
+
+        for (size_t i = 0; i < p.getNumberOfElements(); ++i)
+        {
+        tasks.add_task(get_field_guid(p[i]["id"]), get_field_scalar<double>(p[i]["max_triangles_per_cubic_meter"]), get_field_scalar<uint32_t>(p[i]["vertex_position_format"]), get_field_scalar<uint32_t>(p[i]["triangle_index_format"]), get_field_scalar<uint32_t>(p[i]["vertex_normal_format"]), get_field_scalar<bool>(p[i]["include_vertex_normals"]), get_field_scalar<bool>(p[i]["include_bounds"]));
+        }
+
+        std::vector<hl2ss::sm_mesh> meshes;
+
+        ipc_sm->get_meshes(tasks, threads, meshes);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ meshes.size() }, { "status", "vertex_position_scale", "pose", "bounds", "vertex_positions", "triangle_indices", "vertex_normals" });
+
+        for (size_t i = 0; i < meshes.size(); ++i)
+        {
+        auto& mesh = meshes[i];
+
+        o[i]["status"]                = m_factory.createScalar<uint32_t>(mesh.status);
+        o[i]["vertex_position_scale"] = to_typed_array<float>(&mesh.vertex_position_scale, sizeof(mesh.vertex_position_scale), { sizeof(mesh.vertex_position_scale) / sizeof(float) });
+        o[i]["pose"]                  = unpack_pose(&mesh.pose);
+        o[i]["bounds"]                = to_typed_array<float>(&mesh.bounds,                sizeof(mesh.bounds),                { sizeof(mesh.bounds)                / sizeof(float) });
+
+        switch (get_field_scalar<uint32_t>(p[i]["vertex_position_format"]))
+        {
+        case hl2ss::sm_vertex_position_format::R16G16B16A16IntNormalized: o[i]["vertex_positions"] = to_typed_array<uint16_t>(mesh.vertex_positions.data(), mesh.vertex_positions.size(), { 4, mesh.vertex_positions.size() / (4 * sizeof(uint16_t)) }); break;
+        case hl2ss::sm_vertex_position_format::R32G32B32A32Float:         o[i]["vertex_positions"] = to_typed_array<float>(   mesh.vertex_positions.data(), mesh.vertex_positions.size(), { 4, mesh.vertex_positions.size() / (4 * sizeof(float)) });    break;
+        }
+
+        switch (get_field_scalar<uint32_t>(p[i]["triangle_index_format"]))
+        {
+        case hl2ss::sm_triangle_index_format::R16UInt: o[i]["triangle_indices"] = to_typed_array<uint16_t>(mesh.triangle_indices.data(), mesh.triangle_indices.size(), { 3, mesh.triangle_indices.size() / (3 * sizeof(uint16_t)) }); break;
+        case hl2ss::sm_triangle_index_format::R32Uint: o[i]["triangle_indices"] = to_typed_array<uint32_t>(mesh.triangle_indices.data(), mesh.triangle_indices.size(), { 3, mesh.triangle_indices.size() / (3 * sizeof(uint32_t)) }); break;
+        }
+
+        switch (get_field_scalar<uint32_t>(p[i]["vertex_normal_format"]))
+        {
+        case hl2ss::sm_vertex_normal_format::R8G8B8A8IntNormalized: o[i]["vertex_normals"] = to_typed_array<uint8_t>(mesh.vertex_normals.data(), mesh.vertex_normals.size(), { 4, mesh.vertex_normals.size() / (4 * sizeof(uint8_t))}); break;
+        case hl2ss::sm_vertex_normal_format::R32G32B32A32Float:     o[i]["vertex_normals"] = to_typed_array<float>(  mesh.vertex_normals.data(), mesh.vertex_normals.size(), { 4, mesh.vertex_normals.size() / (4 * sizeof(float))});   break;
+        }
+        }
+
+        outputs[0] = std::move(o);
+        }
+        else
+        {
+        throw std::runtime_error("Unknown method");
+        }
+    }
+
+    void ipc_call_su(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        if (!ipc_su) { throw std::runtime_error("Port not open"); }
+
+        std::string f = get_argument<std::string>(inputs);
+
+        if (f == "query")
+        {
+        matlab::data::StructArray p = get_argument_array<matlab::data::Struct>(inputs);
+
+        hl2ss::su_task task;
+        
+        task.enable_quads         = get_field_scalar<bool>(p[0]["enable_quads"]);
+        task.enable_meshes        = get_field_scalar<bool>(p[0]["enable_meshes"]);
+        task.enable_only_observed = get_field_scalar<bool>(p[0]["enable_only_observed"]);
+        task.enable_world_mesh    = get_field_scalar<bool>(p[0]["enable_world_mesh"]);
+        task.mesh_lod             = get_field_scalar<uint32_t>(p[0]["mesh_lod"]);
+        task.query_radius         = get_field_scalar<float>(p[0]["query_radius"]);
+        task.create_mode          = get_field_scalar<uint8_t>(p[0]["create_mode"]);
+        task.kind_flags           = get_field_scalar<uint8_t>(p[0]["kind_flags"]);
+        task.get_orientation      = get_field_scalar<bool>(p[0]["get_orientation"]);
+        task.get_position         = get_field_scalar<bool>(p[0]["get_position"]);
+        task.get_location_matrix  = get_field_scalar<bool>(p[0]["get_location_matrix"]);
+        task.get_quad             = get_field_scalar<bool>(p[0]["get_quad"]);
+        task.get_meshes           = get_field_scalar<bool>(p[0]["get_meshes"]); 
+        task.get_collider_meshes  = get_field_scalar<bool>(p[0]["get_collider_meshes"]);
+
+        matlab::data::TypedArray<uint64_t> guid_list = p[0]["guid_list"];
+        for (size_t i = 0; i < (guid_list.getNumberOfElements() & ~1ULL); i += 2) { task.guid_list.push_back({ guid_list[i], guid_list[i + 1] }); }
+
+        hl2ss::su_result result;
+
+        ipc_su->query(task, result);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "status", "extrinsics", "pose", "items" });
+
+        o[0]["status"]     = m_factory.createScalar<uint32_t>(result.status);
+        o[0]["extrinsics"] = unpack_payload<float>(&result.extrinsics, 0, sizeof(result.extrinsics), { 4, 4 });
+        o[0]["pose"]       = unpack_payload<float>(&result.pose,       0, sizeof(result.pose),       { 4, 4 });
+
+        if (result.items.size() > 0)
+        {
+        matlab::data::StructArray items = m_factory.createStructArray({ result.items.size() }, { "id", "kind", "orientation", "position", "location", "alignment", "extents", "meshes", "collider_meshes" });
+        
+        for (size_t i = 0; i < result.items.size(); ++i)
+        {
+        auto& item = result.items[i];
+
+        items[i]["id"]          = to_typed_array<uint64_t>(&item.id,          sizeof(item.id),          { sizeof(item.id)          / sizeof(uint64_t) });
+        items[i]["kind"]        = m_factory.createScalar<int32_t>(item.kind);
+        items[i]["orientation"] = to_typed_array<float>(   &item.orientation, sizeof(item.orientation), { sizeof(item.orientation) / sizeof(float) });
+        items[i]["position"]    = to_typed_array<float>(   &item.position,    sizeof(item.position),    { sizeof(item.position)    / sizeof(float) });
+        items[i]["location"]    = unpack_pose(&item.location);
+        items[i]["alignment"]   = m_factory.createScalar<int32_t>(item.alignment);
+        items[i]["extents"]     = to_typed_array<float>(   &item.extents,     sizeof(item.extents),     { sizeof(item.extents)     / sizeof(float) });
+
+        if (item.meshes.size() > 0)
+        {
+        matlab::data::StructArray meshes = m_factory.createStructArray({ item.meshes.size() }, { "vertex_positions", "triangle_indices" });
+
+        for (size_t j = 0; j < item.meshes.size(); ++j)
+        {
+        auto& mesh = item.meshes[j];
+
+        meshes[j]["vertex_positions"] = to_typed_array<float>(   mesh.vertex_positions.data(), mesh.vertex_positions.size(), { 3, mesh.vertex_positions.size() / (3 * sizeof(float)) });
+        meshes[j]["triangle_indices"] = to_typed_array<uint32_t>(mesh.triangle_indices.data(), mesh.triangle_indices.size(), { 3, mesh.triangle_indices.size() / (3 * sizeof(uint32_t)) });
+        }
+
+        items[i]["meshes"] = std::move(meshes);
+        }
+
+        if (item.collider_meshes.size() > 0)
+        {
+        matlab::data::StructArray collider_meshes = m_factory.createStructArray({ item.collider_meshes.size() }, { "vertex_positions", "triangle_indices" });
+
+        for (size_t j = 0; j < item.collider_meshes.size(); ++j)
+        {
+        auto &collider_mesh = item.collider_meshes[j];
+
+        collider_meshes[j]["vertex_positions"] = to_typed_array<float>(   collider_mesh.vertex_positions.data(), collider_mesh.vertex_positions.size(), { 3, collider_mesh.vertex_positions.size() / (3 * sizeof(float)) });
+        collider_meshes[j]["triangle_indices"] = to_typed_array<uint32_t>(collider_mesh.triangle_indices.data(), collider_mesh.triangle_indices.size(), { 3, collider_mesh.triangle_indices.size() / (3 * sizeof(uint32_t)) });
+        }
+
+        items[i]["collider_meshes"] = std::move(collider_meshes);
+        }
+        }
+
+        o[0]["items"] = std::move(items);   
+        }
+
+        outputs[0] = std::move(o);
+        }
+        else
+        {
+        throw std::runtime_error("Unknown method");
+        }
+    }
+
+    void ipc_call_vi(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        if (!ipc_vi) { throw std::runtime_error("Port not open"); }
+
+        std::string f = get_argument<std::string>(inputs);
+
+        if (f == "create_recognizer")
+        {
+        ipc_vi->create_recognizer();
+        }
+        else if (f == "register_commands")
+        {
+        bool                      clear    = get_argument<bool>(inputs);
+        matlab::data::StringArray commands = get_argument_array<matlab::data::MATLABString>(inputs);
+
+        std::vector<std::u16string> strings;
+        for (size_t i = 0; i < commands.getNumberOfElements(); ++i) { if (commands[i].has_value()) { strings.push_back(commands[i]); } }
+
+        bool ok = ipc_vi->register_commands(clear, strings);
+
+        outputs[0] = m_factory.createScalar<bool>(ok);
+        }
+        else if (f == "start")
+        {
+        ipc_vi->start();
+        }
+        else if (f == "clear")
+        {
+        ipc_vi->clear();
+        }
+        else if (f == "pop")
+        {
+        std::vector<hl2ss::vi_result> results;
+
+        ipc_vi->pop(results);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ results.size() }, { "index", "confidence", "phrase_duration", "phrase_start_time", "raw_confidence" });
+
+        for (size_t i = 0; i < results.size(); ++i)
+        {
+        auto& result = results[i];
+
+        o[i]["index"]             = m_factory.createScalar<uint32_t>(result.index);
+        o[i]["confidence"]        = m_factory.createScalar<uint32_t>(result.confidence);
+        o[i]["phrase_duration"]   = m_factory.createScalar<uint64_t>(result.phrase_duration);
+        o[i]["phrase_start_time"] = m_factory.createScalar<uint64_t>(result.phrase_start_time);
+        o[i]["raw_confidence"]    = m_factory.createScalar<double>(  result.raw_confidence);
+        }
+
+        outputs[0] = std::move(o);
+        }
+        else if (f == "stop")
+        {
+        ipc_vi->stop();
+        }
+        else
+        {
+        throw std::runtime_error("Unknown method");
+        }
+    }
+
+    void ipc_call_umq(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        if (!ipc_umq) { throw std::runtime_error("Port not open"); }
+
+        std::string f = get_argument<std::string>(inputs);
+
+        if (f == "push")
+        {
+        matlab::data::TypedArray<uint8_t> data = get_argument_array<uint8_t>(inputs);
+        ipc_umq->push(get_pointer(data), data.getNumberOfElements());
+        }
+        else if (f == "pull")
+        {
+        uint32_t count = get_argument<uint32_t>(inputs);
+        matlab::data::TypedArray<uint32_t> data = m_factory.createArray<uint32_t>({ count });
+        ipc_umq->pull(get_pointer(data), count);
+        outputs[0] = std::move(data);
+        }
+        else
+        {
+        throw std::runtime_error("Unknown method");
+        }
+    }
+
+    void ipc_call(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        uint16_t port = get_argument<uint16_t>(inputs);
+
+        switch (port)
+        {
+        case hl2ss::ipc_port::REMOTE_CONFIGURATION: ipc_call_rc( outputs, inputs); break;
+        case hl2ss::ipc_port::SPATIAL_MAPPING:      ipc_call_sm( outputs, inputs); break;
+        case hl2ss::ipc_port::SCENE_UNDERSTANDING:  ipc_call_su( outputs, inputs); break;
+        case hl2ss::ipc_port::VOICE_INPUT:          ipc_call_vi( outputs, inputs); break;
+        case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:  ipc_call_umq(outputs, inputs); break;
+        default:                                    throw std::runtime_error("Unsupported port");
+        }
+    }
+
     //------------------------------------------------------------------------------
 
 
-    void ipc_select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
-    {
 
-    }
+
+
+
 
     void select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         std::string action = get_argument<std::string>(inputs);
 
         if      (action == "get_packet")           { get_packet(outputs, inputs); }
-        else if (action == "ipc_select")           { ipc_select(outputs, inputs); }
+        else if (action == "ipc_call")             { ipc_call(outputs, inputs); }
         else if (action == "open")                 { open(outputs, inputs); }
         else if (action == "close")                { close(outputs, inputs); }
         else if (action == "start_subsystem_pv")   { start_subsystem_pv(outputs, inputs); }

@@ -292,7 +292,7 @@ void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vecto
 {
     push_u8(sc, (uint8_t)(options.size() / 2));
 
-    for (size_t i = 0; i < options.size(); i += 2)
+    for (size_t i = 0; i < (options.size() & ~1ULL); i += 2)
     {
     push_u64(sc, options[i]);
     push_u64(sc, options[i+1]);
