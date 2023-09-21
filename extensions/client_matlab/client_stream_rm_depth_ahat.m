@@ -11,6 +11,7 @@ host = '192.168.1.7';
 %%
 
 client = hl2ss.mt.sink_rm_depth_ahat(host, hl2ss.stream_port.RM_DEPTH_AHAT);
+calibration = client.download_calibration();
 client.open();
 
 h = []; % figure handle

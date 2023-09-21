@@ -21,6 +21,7 @@ enable_mrc = false;
 client = hl2ss.mt.sink_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, width, height, framerate);
 
 client.start_subsystem(enable_mrc);
+calibration = client.download_calibration();
 client.open();
 
 h = []; % figure handle

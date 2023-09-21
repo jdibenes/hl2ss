@@ -17,6 +17,9 @@ port = hl2ss.stream_port.RM_IMU_ACCELEROMETER;
 %%
 
 client = hl2ss.mt.sink_rm_imu(host, port);
+if (port ~= hl2ss.stream_port.RM_IMU_MAGNETOMETER)
+    calibration = client.download_calibration();
+end
 client.open();
 
 h = figure();

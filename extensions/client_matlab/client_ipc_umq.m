@@ -17,14 +17,11 @@ client.open();
 
 try
 % pack command into byte array
-command = typecast(uint32(8), 'uint8'); % tts command id is 8
-text = uint8(text); % ascii text to uint8
-length = typecast(uint32(numel(text)), 'uint8'); % encode size of text in bytes
+buffer = hl2ss.umq_command_buffer();
+buffer.add(8, uint8(text)); % tts command id is 8
 
-data = [command, length, text]; % message: command, size of parameters, parameters
-
-client.push(data);
-response = client.pull(1);
+client.push(buffer.data);
+response = client.pull(buffer.count);
 catch ME
     disp(ME.message);
 end

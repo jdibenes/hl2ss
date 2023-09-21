@@ -18,12 +18,10 @@ try
 client.create_observer();
 
 % sample sphere region
-volumes = [];
-volumes.type   = hl2ss.sm_volume_type.Sphere;
-volumes.center = single([0, 0, 0]);
-volumes.radius = single(5);
+buffer = hl2ss.sm_bounding_volume();
+buffer.add_sphere([0, 0, 0], 5);
 
-client.set_volumes(volumes);
+client.set_volumes(buffer.volumes);
 
 surface_infos = client.get_observed_surfaces();
 

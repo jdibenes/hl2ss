@@ -19,6 +19,7 @@ port = hl2ss.stream_port.RM_VLC_LEFTFRONT;
 %%
 
 client = hl2ss.mt.sink_rm_vlc(host, port);
+calibration = client.download_calibration();
 client.open();
 
 h = []; % figure handle
