@@ -761,6 +761,8 @@ public:
 
     void start_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
+        if (source_pv) { throw std::runtime_error("Cannot start subsystem while streaming"); }
+
         std::string host                       = get_argument_string(inputs);
         uint16_t    port                       = get_argument<uint16_t>(inputs);
         bool        enable_mrc                 = get_argument<bool>(inputs);
@@ -780,6 +782,8 @@ public:
 
     void stop_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
+        if (source_pv) { throw std::runtime_error("Cannot stop subsystem while streaming"); }
+
         std::string host = get_argument_string(inputs);
         uint16_t    port = get_argument<uint16_t>(inputs);
 
