@@ -22,7 +22,7 @@ import configparser
 from mmdet.apis import inference_detector, init_detector
 from mmdet.registry import VISUALIZERS
 from mmdet.datasets import CocoPanopticDataset
-INSTANCE_OFFSET = 83
+INSTANCE_OFFSET = 81
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -44,8 +44,10 @@ buffer_length = 5
 max_depth = 2
 
 # MMDetection parameters
-config = './mmdetection/configs/mask2former/mask2former_swin-t-p4-w7-224_8xb2-lsj-50e_coco-panoptic.py'
-checkpoint = './mask2former_swin-t-p4-w7-224_8xb2-lsj-50e_coco-panoptic_20220326_224553-3ec9e0ae.pth'
+config = './mmdetection/configs/rtmdet/rtmdet-ins_tiny_8xb32-300e_coco.py'
+#'./mmdetection/configs/mask2former/mask2former_swin-t-p4-w7-224_8xb2-lsj-50e_coco-panoptic.py'
+checkpoint = './rtmdet-ins_tiny_8xb32-300e_coco_20221130_151727-ec670f7e.pth'
+#'./mask2former_swin-t-p4-w7-224_8xb2-lsj-50e_coco-panoptic_20220326_224553-3ec9e0ae.pth'
 device = 'cuda'
 score_thr = 0.3
 wait_time = 1
@@ -104,7 +106,7 @@ if __name__ == '__main__':
 # The dataset_meta is loaded from the checkpoint and
 # then pass to the model in init_detector
     visualizer.dataset_meta = model.dataset_meta
-
+    
     PALETTE = [(220, 20, 60), (119, 11, 32), (0, 0, 142), (0, 0, 230),
                (106, 0, 228), (0, 60, 100), (0, 80, 100), (0, 0, 70),
                (0, 0, 192), (250, 170, 30), (100, 170, 30), (220, 220, 0),
@@ -142,7 +144,7 @@ if __name__ == '__main__':
                (206, 186, 171), (152, 161, 64), (116, 112, 0), (0, 114, 143),
                (102, 102, 156), (250, 141, 255)]
     PALETTE.append((0, 0, 0)) # Add color for unrecognized objects
-
+    
     # Main loop ---------------------------------------------------------------
     while (enable):
         # Get RM Depth Long Throw frame and nearest (in time) PV frame --------
@@ -168,10 +170,11 @@ if __name__ == '__main__':
         # Inference -----------------------------------------------------------
         result = inference_detector(model, frame)
         print(result)
-        mask = result.pred_panoptic_seg.sem_seg.detach().cpu().numpy()
-
+        #mask = result.pred_panoptic_seg.sem_seg.detach().cpu().numpy()
+        mask = result.pred_instances.priors.detach().cpu().numpy()
         # Build pointcloud ----------------------------------------------------
         points = hl2ss_3dcv.rm_depth_to_points(depth, xy1)
+        # TODO: copy this
         depth_to_world = hl2ss_3dcv.camera_to_rignode(calibration_lt.extrinsics) @ hl2ss_3dcv.reference_to_world(data_depth.pose)
         points = hl2ss_3dcv.transform(points, depth_to_world)
 
@@ -183,7 +186,7 @@ if __name__ == '__main__':
         map_v = pixels[:, :, 1]
 
         # Get 3D points labels and colors -------------------------------------
-        labels = cv2.remap(mask, map_u, map_v, cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=model.num_classes)
+        labels = cv2.remap(mask, map_u, map_v, cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=81)
         rgb = cv2.remap(frame, map_u, map_v, cv2.INTER_NEAREST)
 
         points = hl2ss_3dcv.block_to_list(points)
@@ -191,7 +194,8 @@ if __name__ == '__main__':
         rgb = hl2ss_3dcv.block_to_list(rgb)
         
         # Get class colors ----------------------------------------------------
-        kinds = labels % INSTANCE_OFFSET
+        kinds = labels.astype(np.int8) % INSTANCE_OFFSET
+        print(labels, INSTANCE_OFFSET)
         instances = labels // INSTANCE_OFFSET
 
         class_colors = np.array([list(PALETTE[kind]) for kind in kinds], dtype=np.uint8)
@@ -214,8 +218,7 @@ if __name__ == '__main__':
                 data_sample=result,
                 draw_gt=False,
                 show=False)
-            frame = visualizer.get_image()
-    
+            frame = visualizer.get_image()    
             mmcv.imshow(frame, 'Detections', wait_time)
         except:
             print("fail")
