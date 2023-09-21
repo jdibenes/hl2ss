@@ -1,15 +1,48 @@
+%%
+% This script receives video from the HoloLens front RGB camera and plays
+% it.
+% Close the figure to stop.
 
-%OK
+%% Settings
 
-hl2ss_matlab('start_subsystem_pv', '192.168.1.7', uint16(3810), logical(false), logical(true), logical(false), logical(false), logical(false), logical(false), single(0.9), single(0.0), single(0.0), uint32(0), uint32(1));
-calibration = hl2ss_matlab('download_calibration', '192.168.1.7', uint16(3810), uint16(1920), uint16(1080), uint8(30));
-hl2ss_matlab('open', '192.168.1.7', uint16(3810), uint16(1920), uint16(1080), uint8(30), uint64(4096), uint8(1), uint8(1), uint8(3), uint8(255), uint32(0), uint64([10, 30]), uint8(1), uint64(300));
+% HoloLens address
+host = '192.168.1.7';
+
+% Camera parameters
+width     = 1280;
+height    = 720;
+framerate = 30;
+
+% Enable Mixed Reality Capture (Holograms)
+enable_mrc = false;
+
+%%
+
+client = hl2ss.mt.sink_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, width, height, framerate);
+
+client.start_subsystem(enable_mrc);
+client.open();
+
+h = []; % figure handle
+
+try
 while (true)
-    response = hl2ss_matlab('get_packet', uint16(3810), uint8(0), int64(-1));
-    if (response.status == 0)
-        break;
+    data = client.get_packet_by_index(-1); % -1 for most recent frame
+    if (data.status == 0) % got packet
+        frame = data.image;
+        if (isempty(h))
+            h = image(frame);
+        else
+            h.CData = frame;
+        end
+        drawnow
+    else % no data
+        pause(1); % wait for data
     end
-    pause(1);
 end
-hl2ss_matlab('close', uint16(3810));
-hl2ss_matlab('stop_subsystem_pv', '192.168.1.7', uint16(3810));
+catch ME
+    disp(ME.message);
+end
+
+client.close();
+client.stop_subsystem();

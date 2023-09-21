@@ -1,13 +1,43 @@
+%%
+% This script receives video from the HoloLens depth camera in long throw
+% mode and plays it.
+% Close the figure to stop.
 
-%OK
+%% Settings
 
-calibration = hl2ss_matlab('download_calibration', '192.168.1.7', uint16(3805));
-hl2ss_matlab('open', '192.168.1.7', uint16(3805), uint64(4096), uint8(1), uint8(1), uint8(5), uint64(300));
+% HoloLens address
+host = '192.168.1.7';
+
+%%
+
+client = hl2ss.mt.sink_rm_depth_longthrow(host, hl2ss.stream_port.RM_DEPTH_LONGTHROW);
+client.open();
+
+h = []; % figure handle
+
+try
 while (true)
-    response = hl2ss_matlab('get_packet', uint16(3805), uint8(0), int64(-1));
-    if (response.status == 0)
-        break;
+    data = client.get_packet_by_index(-1); % -1 for most recent frame
+    if (data.status == 0) % got packet
+        % normalize for visibility
+        depth = double(data.depth);
+        ab = double(data.ab);
+        depth = depth / max(depth, [], 'all');
+        ab = ab / max(ab, [], 'all');
+        frame = [depth, ab] * 255;
+        if (isempty(h))
+            h = image(frame);
+            colormap gray
+        else
+            h.CData = frame;
+        end
+        drawnow
+    else % no data
+        pause(1); % wait for data
     end
-    pause(1);
 end
-hl2ss_matlab('close', uint16(3805));
+catch ME
+    disp(ME.message);
+end
+
+client.close();

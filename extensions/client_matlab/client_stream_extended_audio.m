@@ -1,19 +1,41 @@
+%%
+% This script records microphone and system audio from the HoloLens and
+% plays it.
 
-%OK
+%% Settings
 
-hl2ss_matlab('open', '192.168.1.7', uint16(3818), uint64(4096), uint32(2), single(1.0), single(1.0), uint8(0xFF), uint8(41), uint64(300));
+% HoloLens address
+host = '192.168.1.7';
+
+% Recording length in seconds
+length = 20;
+
+%%
+
+client = hl2ss.mt.sink_extended_audio(host, hl2ss.stream_port.EXTENDED_AUDIO);
+client.open();
+
+packet_duration = hl2ss.parameters_extended_audio.GROUP_SIZE_AAC / hl2ss.parameters_extended_audio.SAMPLE_RATE;
+packet_count = length / packet_duration;
 record = [];
-length = 500;
-frame_index = int64(-1);
-while (true)
-    response = hl2ss_matlab('get_packet', uint16(3818), uint8(0), frame_index);
-    if (response.status ~= 0)
-        pause(0.1);
-    else
-        frame_index = int64(response.frame_index + 1);
-        record = [record, response.audio];
-        length = length - 1;
-        if (length <= 0), break; end
-    end
+frame_index = -1; % -1 for most recent frame
+
+try
+while (packet_count > 0)
+    data = client.get_packet_by_index(frame_index);
+    if (data.status == 0) % got packet
+        frame_index = data.frame_index + 1;
+        record = [record, data.audio];
+        packet_count = packet_count - 1;
+    else % no data
+        pause(packet_duration * 10); % wait for data
+    end    
 end
-hl2ss_matlab('close', uint16(3818));
+catch ME
+    disp(ME.message);
+end
+
+client.close();
+
+% play recorded sound
+sound(record, hl2ss.parameters_extended_audio.SAMPLE_RATE);

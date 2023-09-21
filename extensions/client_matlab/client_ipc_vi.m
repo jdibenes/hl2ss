@@ -1,25 +1,45 @@
+%%
+% This script registers voice commands on the HoloLens and continously
+% checks if any of the registered commands has been heard.
 
-hl2ss_matlab('open', '192.168.1.7', uint16(3815));
+%% Settings
 
-hl2ss_matlab('ipc_call', uint16(3815), 'create_recognizer');
+% HoloLens address
+host = '192.168.1.7';
 
-commands = string([]);
-commands(1) = 'cat';
-commands(2) = 'dog';
+% Voice commands
+commands = ["cat", "dog", "red", "blue"];
 
-ok = hl2ss_matlab('ipc_call', uint16(3815), 'register_commands', true, commands);
+%%
 
-hl2ss_matlab('ipc_call', uint16(3815), 'start');
-hl2ss_matlab('ipc_call', uint16(3815), 'clear');
+client = hl2ss.mt.ipc_vi(host, hl2ss.ipc_port.VOICE_INPUT);
+client.open();
 
+try
+client.create_recognizer();
+ok = client.register_commands(true, commands);
+if (~ok)
+    error('Failed to register commands');
+end
+
+client.start();
+client.clear();
+
+% run until one of the commands is detected
+disp('Ready. Try saying any of the commands you defined.');
 while (true)
-result = hl2ss_matlab('ipc_call', uint16(3815), 'pop');
-if (numel(result) > 0)
-    break;
-end
-pause(0.1);
+    results = client.pop();
+    if (numel(results) > 0)
+        break;
+    end
 end
 
-hl2ss_matlab('ipc_call', uint16(3815), 'stop');
+client.stop();    
+catch ME
+    disp(ME.message);
+end
 
-hl2ss_matlab('close', uint16(3815));
+client.close();
+
+disp('Received command');
+disp(commands(results(1).index + 1));

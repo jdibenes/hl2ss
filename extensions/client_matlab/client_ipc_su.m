@@ -1,23 +1,38 @@
+%%
+% This script downloads Scene Understanding data from the HoloLens.
 
-hl2ss_matlab('open', '192.168.1.7', uint16(3814));
+%% Settings
 
+% HoloLens address
+host = '192.168.1.7';
+
+% Task parameters
 task = struct();
-task.enable_quads = true;
-task.enable_meshes = true;
+task.enable_quads         = true;
+task.enable_meshes        = true;
 task.enable_only_observed = false;
-task.enable_world_mesh = true;
-task.mesh_lod = uint32(2);
-task.query_radius = single(5);
-task.create_mode = uint8(0);
-task.kind_flags = uint8(255);
-task.get_orientation = true;
-task.get_position = true;
-task.get_location_matrix = true;
-task.get_quad = true;
-task.get_meshes = true;
-task.get_collider_meshes = true;
-task.guid_list = uint64([]);
+task.enable_world_mesh    = true;
+task.mesh_lod             = hl2ss.su_mesh_lod.Fine;
+task.query_radius         = 5;
+task.create_mode          = hl2ss.su_create.New;
+task.kind_flags           = bitor(hl2ss.su_kind_flag.Wall, hl2ss.su_kind_flag.Floor);
+task.get_orientation      = true;
+task.get_position         = true;
+task.get_location_matrix  = true;
+task.get_quad             = true;
+task.get_meshes           = true;
+task.get_collider_meshes  = true;
+task.guid_list            = [];
 
-result = hl2ss_matlab('ipc_call', uint16(3814), 'query', task);
+%%
 
-hl2ss_matlab('close', uint16(3814));
+client = hl2ss.mt.ipc_su(host, hl2ss.ipc_port.SCENE_UNDERSTANDING);
+client.open();
+
+try
+result = client.query(task);
+catch ME
+    disp(ME.message);
+end
+
+client.close();

@@ -1,30 +1,49 @@
+%%
+% This script downloads Spatial Mapping data from the HoloLens.
 
-hl2ss_matlab('open', '192.168.1.7', uint16(3813));
+%% Settings
 
-hl2ss_matlab('ipc_call', uint16(3813), 'create_observer');
+% HoloLens address
+host = '192.168.1.7';
 
+% Maximum number of active threads (on the HoloLens) to compute meshes
+threads = 2;
+
+%%
+
+client = hl2ss.mt.ipc_sm(host, hl2ss.ipc_port.SPATIAL_MAPPING);
+client.open();
+
+try
+client.create_observer();
+
+% sample sphere region
 volumes = [];
-volumes.type = uint32(3);
+volumes.type   = hl2ss.sm_volume_type.Sphere;
 volumes.center = single([0, 0, 0]);
 volumes.radius = single(5);
 
-hl2ss_matlab('ipc_call', uint16(3813), 'set_volumes', volumes);
+client.set_volumes(volumes);
 
-surface_infos = hl2ss_matlab('ipc_call', uint16(3813), 'get_observed_surfaces');
+surface_infos = client.get_observed_surfaces();
 
+% download all observed surfaces
 tasks = struct([]);
 for k = 1:numel(surface_infos)
-    task = [];
-    task.id = surface_infos(k).id;
-    task.max_triangles_per_cubic_meter = double(1000);
-    task.vertex_position_format = uint32(13); %uint32(2); 
-    task.triangle_index_format = uint32(57); %uint32(42);
-    task.vertex_normal_format = uint32(31); %uint32(2);
-    task.include_vertex_normals = logical(true);
-    task.include_bounds = logical(true);
+    task = struct();
+    task.id                            = surface_infos(k).id;
+    task.max_triangles_per_cubic_meter = 1000;
+    task.vertex_position_format        = hl2ss.sm_vertex_position_format.R32G32B32A32Float;
+    task.triangle_index_format         = hl2ss.sm_triangle_index_format.R32Uint;
+    task.vertex_normal_format          = hl2ss.sm_vertex_normal_format.R32G32B32A32Float;
+    task.include_vertex_normals        = true;
+    task.include_bounds                = true;
     tasks = [tasks; task];
 end
 
-meshes = hl2ss_matlab('ipc_call', uint16(3813), 'get_meshes', tasks, uint32(2));
+meshes = client.get_meshes(tasks, threads);
+catch ME
+    disp(ME.message);
+end
 
-hl2ss_matlab('close', uint16(3813));
+client.close();

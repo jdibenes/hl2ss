@@ -1,12 +1,27 @@
+%%
+% This script receives extended eye tracking data from the HoloLens.
 
-%OK
+%% Settings
 
-hl2ss_matlab('open', '192.168.1.7', uint16(3817), uint64(4096), uint8(30), uint64(300));
+% HoloLens address
+host = '192.168.1.7';
+
+%%
+
+client = hl2ss.mt.sink_eet(host, hl2ss.stream_port.EXTENDED_EYE_TRACKER);
+client.open();
+
+try
 while (true)
-    response = hl2ss_matlab('get_packet', uint16(3817), uint8(0), int64(-1));
-    if (response.status == 0)
-        break;
+    data = client.get_packet_by_index(-1);
+    if (data.status == 0) % got packet
+        break
+    else
+        pause(1); % wait for data
     end
-    pause(1);
 end
-hl2ss_matlab('close', uint16(3817));
+catch ME
+    disp(ME.message);
+end
+
+client.close();

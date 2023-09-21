@@ -1,19 +1,34 @@
+%%
+% This script shows the available query and configuration options.
 
-hl2ss_matlab('open', '192.168.1.7', uint16(3809));
+%% Settings
 
-version = hl2ss_matlab('ipc_call', uint16(3809), 'get_application_version');
-pv_status = hl2ss_matlab('ipc_call', uint16(3809), 'get_pv_subsystem_status');
-utc_offset = hl2ss_matlab('ipc_call', uint16(3809), 'get_utc_offset', uint32(32));
+% HoloLens address
+host = '192.168.1.7';
 
-hl2ss_matlab('ipc_call', uint16(3809), 'set_hs_marker_state', uint32(1));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_backlight_compensation', uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_exposure', uint32(0), uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_exposure_priority_video', uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_focus', uint32(0), uint32(0), uint32(0), uint32(0), uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_iso_speed', uint32(0), uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_scene_mode', uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_video_temporal_denoising', uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_white_balance_preset', uint32(0));
-hl2ss_matlab('ipc_call', uint16(3809), 'set_pv_white_balance_value', uint32(0));
+%%
 
-hl2ss_matlab('close', uint16(3809));
+client = hl2ss.mt.ipc_rc(host, hl2ss.ipc_port.REMOTE_CONFIGURATION);
+client.open();
+
+try
+version    = client.get_application_version();
+pv_status  = client.get_pv_subsystem_status();
+utc_offset = client.get_utc_offset(32);
+
+client.set_hs_marker_state(hl2ss.hs_marker_state.Disable);
+client.set_pv_backlight_compensation(hl2ss.pv_backlight_compensation_state.Disable);
+client.set_pv_exposure(hl2ss.pv_exposure_mode.Auto, hl2ss.pv_exposure_value.Min);
+client.set_pv_exposure_priority_video(hl2ss.pv_exposure_priority_video.Disabled);
+client.set_pv_focus(hl2ss.pv_focus_mode.Manual, hl2ss.pv_auto_focus_range.Normal, hl2ss.pv_manual_focus_distance.Infinity, hl2ss.pv_focus_value.Min, hl2ss.pv_driver_fallback.Disable);
+client.set_pv_iso_speed(hl2ss.pv_iso_speed_mode.Auto, hl2ss.pv_iso_speed_value.Min);
+client.set_pv_scene_mode(hl2ss.pv_capture_scene_mode.Auto);
+client.set_pv_video_temporal_denoising(hl2ss.pv_video_temporal_denoising_mode.Off);
+client.set_pv_white_balance_preset(hl2ss.pv_color_temperature_preset.Auto);
+client.set_pv_white_balance_value(hl2ss.pv_white_balance_value.Min);
+
+catch ME
+    disp(ME.message);
+end
+
+client.close();

@@ -1,13 +1,49 @@
+%%
+% This script receives IMU samples from the HoloLens and prints them.
+% Close the figure to stop.
 
-%OK
+%% Settings
 
-calibration = hl2ss_matlab('download_calibration', '192.168.1.7', uint16(3806));
-hl2ss_matlab('open', '192.168.1.7', uint16(3806), uint64(4096), uint8(1), uint64(300));
+% HoloLens address
+host = '192.168.1.7';
+
+% Port
+% Options:
+% hl2ss.stream_port.RM_IMU_ACCELEROMETER
+% hl2ss.stream_port.RM_IMU_GYROSCOPE
+% hl2ss.stream_port.RM_IMU_MAGNETOMETER
+port = hl2ss.stream_port.RM_IMU_ACCELEROMETER;
+
+%%
+
+client = hl2ss.mt.sink_rm_imu(host, port);
+client.open();
+
+h = figure();
+
+try
 while (true)
-    response = hl2ss_matlab('get_packet', uint16(3806), uint8(0), int64(-1));
-    if (response.status == 0)
-        break;
+    data = client.get_packet_by_index(-1); % -1 for most recent frame
+    if (data.status == 0) % got packet
+        subplot(3, 1, 1, 'Parent', h);
+        plot(data.x);
+        title('x');
+        
+        subplot(3, 1, 2, 'Parent', h);        
+        plot(data.y);
+        title('y');
+        
+        subplot(3, 1, 3, 'Parent', h);
+        plot(data.z);
+        title('z');
+        
+        drawnow
+    else % no data
+        pause(1); % wait for data
     end
-    pause(1);
 end
-hl2ss_matlab('close', uint16(3806));
+catch ME
+    disp(ME.message);
+end
+
+client.close();
