@@ -880,7 +880,7 @@ uint32_t const Auto   = 1;
 
 namespace pv_exposure_value
 {
-uint32_t const Min =   1000;   // 10
+uint32_t const Min =   1000; // 10
 uint32_t const Max = 660000; // 10
 };
 
