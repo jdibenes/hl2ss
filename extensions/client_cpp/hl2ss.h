@@ -1229,10 +1229,10 @@ struct rm_imu_sample
 
 namespace si_valid
 {
-uint8_t const HEAD  = 0x01;
-uint8_t const EYE   = 0x02;
-uint8_t const LEFT  = 0x04;
-uint8_t const RIGHT = 0x08;
+uint32_t const HEAD  = 0x01;
+uint32_t const EYE   = 0x02;
+uint32_t const LEFT  = 0x04;
+uint32_t const RIGHT = 0x08;
 };
 
 struct si_head_pose
