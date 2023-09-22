@@ -5,12 +5,13 @@
 #------------------------------------------------------------------------------
 
 import hl2ss
+import configparser
 import hl2ss_lnm
 
 #------------------------------------------------------------------------------
 
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Text to send
 text = 'Hello from python!'

@@ -8,11 +8,13 @@ from pynput import keyboard
 import hl2ss
 import hl2ss_lnm
 import hl2ss_rus
+import configparser
 
 # Settings --------------------------------------------------------------------
-
+config = configparser.ConfigParser()
+config.read('config.ini')
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Initial position in world space (x, y, z) in meters
 position = [0, 0, 0]

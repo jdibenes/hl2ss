@@ -14,11 +14,14 @@ import hl2ss_utilities
 import pyaudio
 import queue
 import threading
+import configparser
 
 # Settings --------------------------------------------------------------------
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 # HoloLens address
-host = "192.168.1.7"
+host = config['DEFAULT']['ip']
 
 # Audio encoding profile
 profile = hl2ss.AudioProfile.AAC_24000

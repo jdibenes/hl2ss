@@ -11,12 +11,17 @@ from pynput import keyboard
 import cv2
 import hl2ss_imshow
 import hl2ss
+<<<<<<< HEAD:viewer/client_rm_vlc.py
+import configparser
+=======
 import hl2ss_lnm
+>>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_rm_vlc.py
 
 # Settings --------------------------------------------------------------------
-
+config = configparser.ConfigParser()
+config.read('config.ini')
 # HoloLens address
-host = "192.168.1.7"
+host = config['DEFAULT']['ip']
 
 # Port
 # Options:

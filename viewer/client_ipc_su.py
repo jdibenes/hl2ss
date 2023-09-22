@@ -8,11 +8,13 @@ import hl2ss
 import hl2ss_lnm
 import hl2ss_3dcv
 import hl2ss_sa
+import configparser
 
 # Settings --------------------------------------------------------------------
-
+config = configparser.ConfigParser()
+config.read('config.ini')
 # HoloLens address
-host = '192.168.1.7'
+host = config['DEFAULT']['ip']
 
 # Query parameters
 enable_scene_object_quads = True

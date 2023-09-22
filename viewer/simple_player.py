@@ -7,9 +7,11 @@ import os
 import hl2ss_imshow
 import hl2ss
 import hl2ss_io
+import configparser
 
 # Settings --------------------------------------------------------------------
-
+config = configparser.ConfigParser()
+config.read('config.ini')
 # Directory containing the recorded data
 path = './data'
 
