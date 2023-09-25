@@ -3,11 +3,13 @@
 #include <opencv2/highgui.hpp>
 #include "hl2ss_lnm.h"
 
+//-----------------------------------------------------------------------------
+// Common
+//-----------------------------------------------------------------------------
+
 void print_packet_metadata(uint64_t timestamp, hl2ss::matrix_4x4* matrix)
 {
     std::cout << "Pose at time " << timestamp << std::endl;
-    //hl2ss::matrix_4x4* matrix;
-    //hl2ss::get_pose(pose, &matrix);
     if (matrix)
     {
     std::cout << "[" << std::endl;
@@ -26,6 +28,10 @@ void print_packet_metadata(uint64_t timestamp, hl2ss::matrix_4x4* matrix)
     std::cout << "None" << std::endl;
     }
 }
+
+//-----------------------------------------------------------------------------
+// RM VLC
+//-----------------------------------------------------------------------------
 
 void test_rm_vlc(char const* host, uint16_t port)
 {
@@ -51,6 +57,10 @@ void test_rm_vlc(char const* host, uint16_t port)
     }
     client->close();
 }
+
+//-----------------------------------------------------------------------------
+// RM Depth AHAT
+//-----------------------------------------------------------------------------
 
 void test_rm_depth_ahat(char const* host)
 {
@@ -84,6 +94,10 @@ void test_rm_depth_ahat(char const* host)
     client->close();
 }
 
+//-----------------------------------------------------------------------------
+// RM Depth Longthrow
+//-----------------------------------------------------------------------------
+
 void test_rm_depth_longthrow(char const* host)
 {
     uint16_t port = hl2ss::stream_port::RM_DEPTH_LONGTHROW;
@@ -116,6 +130,10 @@ void test_rm_depth_longthrow(char const* host)
     client->close();
 }
 
+//-----------------------------------------------------------------------------
+// RM IMU
+//-----------------------------------------------------------------------------
+
 void test_rm_imu(char const* host, uint16_t port)
 {
     std::unique_ptr<hl2ss::rx_rm_imu> client = hl2ss::lnm::rx_rm_imu(host, port);
@@ -144,6 +162,10 @@ void test_rm_imu(char const* host, uint16_t port)
     }
     client->close();
 }
+
+//-----------------------------------------------------------------------------
+// PV
+//-----------------------------------------------------------------------------
 
 void test_pv(char const* host, uint16_t width, uint16_t height, uint8_t framerate, bool enable_mrc)
 {
@@ -179,6 +201,10 @@ void test_pv(char const* host, uint16_t width, uint16_t height, uint8_t framerat
     hl2ss::lnm::stop_subsystem_pv(host, port);
 }
 
+//-----------------------------------------------------------------------------
+// Microphone
+//-----------------------------------------------------------------------------
+
 void test_microphone(char const* host)
 {
     uint16_t port = hl2ss::stream_port::MICROPHONE;
@@ -200,6 +226,10 @@ void test_microphone(char const* host)
     }
     client->close();
 }
+
+//-----------------------------------------------------------------------------
+// Spatial Input
+//-----------------------------------------------------------------------------
 
 void test_si(char const* host)
 {
@@ -224,6 +254,10 @@ void test_si(char const* host)
     client->close();
 }
 
+//-----------------------------------------------------------------------------
+// Extended Eye Tracker
+//-----------------------------------------------------------------------------
+
 void test_eet(char const* host)
 {
     uint16_t port = hl2ss::stream_port::EXTENDED_EYE_TRACKER;
@@ -247,6 +281,10 @@ void test_eet(char const* host)
     client->close();
 }
 
+//-----------------------------------------------------------------------------
+// Extended Audio
+//-----------------------------------------------------------------------------
+
 void test_extended_audio(char const* host)
 {
     uint16_t port = hl2ss::stream_port::EXTENDED_AUDIO;
@@ -269,6 +307,10 @@ void test_extended_audio(char const* host)
     client->close();
 }
 
+//-----------------------------------------------------------------------------
+// Remote Configuration
+//-----------------------------------------------------------------------------
+
 void test_rc(char const* host)
 {
     std::unique_ptr<hl2ss::ipc_rc> client = hl2ss::lnm::ipc_rc(host, hl2ss::ipc_port::REMOTE_CONFIGURATION);
@@ -279,6 +321,10 @@ void test_rc(char const* host)
     std::cout << "UTC offset: " << offset << std::endl;
     client->close();
 }
+
+//-----------------------------------------------------------------------------
+// Spatial Mapping
+//-----------------------------------------------------------------------------
 
 void test_sm(char const* host)
 {
@@ -304,6 +350,10 @@ void test_sm(char const* host)
     std::cout << "Observed surfaces: " << surfaces.size() << std::endl;
     std::cout << "Meshes: " << meshes.size() << std::endl;
 }
+
+//-----------------------------------------------------------------------------
+// Scene Understanding
+//-----------------------------------------------------------------------------
 
 void test_su(char const* host)
 {
@@ -337,6 +387,10 @@ void test_su(char const* host)
     std::cout << "Meshes in 0: " << result.items[0].meshes.size() << std::endl;
 }
 
+//-----------------------------------------------------------------------------
+// Voice Input
+//-----------------------------------------------------------------------------
+
 void test_vi(char const* host)
 {
     std::unique_ptr<hl2ss::ipc_vi> client = hl2ss::lnm::ipc_vi(host, hl2ss::ipc_port::VOICE_INPUT);
@@ -369,6 +423,10 @@ void test_vi(char const* host)
     client->clear();
     client->close();
 }
+
+//-----------------------------------------------------------------------------
+// Unity Message Queue
+//-----------------------------------------------------------------------------
 
 void test_umq(char const* host)
 {
@@ -405,10 +463,14 @@ void test_umq(char const* host)
     client->close();
 }
 
+//-----------------------------------------------------------------------------
+// Main
+//-----------------------------------------------------------------------------
+
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 19;
+    int test_id = 0;
 
     try
     {
