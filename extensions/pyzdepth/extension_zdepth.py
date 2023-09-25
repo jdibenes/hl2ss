@@ -3,8 +3,8 @@ from distutils.core import setup
 from distutils.extension import Extension
 from glob import glob
 
-path_Zdepth = '../3rdparty/Zdepth'
-path_zstd   = '../3rdparty/Zdepth/zstd'
+path_Zdepth = '../../3rdparty/Zdepth'
+path_zstd   = '../../3rdparty/Zdepth/zstd'
 
 Zdepth_cpp = [x for x in glob(f'{path_Zdepth}/src/*.cpp')]
 Zdepth_c   = [x for x in glob(f'{path_Zdepth}/src/*.c')]
