@@ -38,8 +38,8 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
 - Client can send messages to a Unity application using the plugin.
-- **[Experimental]** [C++ client library](https://github.com/jdibenes/hl2ss/tree/main/extensions/client_cpp).
-- **[Experimental]** [MATLAB client (MEX)](https://github.com/jdibenes/hl2ss/tree/main/extensions/client_matlab).
+- [C++ client library](https://github.com/jdibenes/hl2ss/tree/main/extensions).
+- [MATLAB client (MEX)](https://github.com/jdibenes/hl2ss/tree/main/extensions).
 
 ## Preparation
 
@@ -167,6 +167,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Set texture: upload png or jpg file.
 - Create text: creates a TextMeshPro object.
 - Set text: sets the text, font size and color of a TextMeshPro object.
+- Text to speech: upload text.
 - Remove: destroy game object.
 - Remove all: destroy all game objects created by the plugin.
 
