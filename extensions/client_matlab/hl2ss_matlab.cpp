@@ -28,6 +28,7 @@ private:
     std::shared_ptr<matlab::engine::MATLABEngine> m_matlabPtr = getEngine();
     matlab::data::ArrayFactory m_factory;
     uint32_t m_argument_index;
+    bool m_initialized;
 
     std::unique_ptr<hl2ss::mt::source> source_rm_vlc[4];
     std::unique_ptr<hl2ss::mt::source> source_rm_depth_ahat;
@@ -1300,10 +1301,20 @@ public:
 
     MexFunction()
     {
+        try
+        {
+        hl2ss::client::initialize();
+        m_initialized = true;
+        }
+        catch (const std::exception& e)
+        {
+        m_initialized = false;
+        }
     }
 
     ~MexFunction()
     {
+        if (m_initialized) { hl2ss::client::cleanup(); }
     }
 
     void select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -1323,6 +1334,6 @@ public:
     void operator() (matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         m_argument_index = 0;
-        try { select(outputs, inputs); } catch(const std::exception& e) { error(e.what()); }
+        try { select(outputs, inputs); } catch (const std::exception& e) { error(e.what()); }
     }
 };
