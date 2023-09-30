@@ -43,21 +43,28 @@ public class RemoteUnityScene : MonoBehaviour
 
         switch (command)
         {
-        case   0: ret = MSG_CreatePrimitive(data);   break;
-        case   1: ret = MSG_SetActive(data);         break;
-        case   2: ret = MSG_SetWorldTransform(data); break;
-        case   3: ret = MSG_SetLocalTransform(data); break;
-        case   4: ret = MSG_SetColor(data);          break;
-        case   5: ret = MSG_SetTexture(data);        break;
-        case   6: ret = MSG_CreateText(data);        break;
-        case   7: ret = MSG_SetText(data);           break;
+            case   0: ret = MSG_CreatePrimitive(data);   break;
+            case   1: ret = MSG_SetActive(data);         break;
+            case   2: ret = MSG_SetWorldTransform(data); break;
+            case   3: ret = MSG_SetLocalTransform(data); break;
+            case   4: ret = MSG_SetColor(data);          break;
+            case   5: ret = MSG_SetTexture(data);        break;
+            case   6: ret = MSG_CreateText(data);        break;
+            case   7: ret = MSG_SetText(data);           break;
 
-        case  16: ret = MSG_Remove(data);            break;
-        case  17: ret = MSG_RemoveAll(data);         break;
-        case  18: ret = MSG_BeginDisplayList(data);  break;
-        case  19: ret = MSG_EndDisplayList(data);    break;
-        case  20: ret = MSG_SetTargetMode(data);     break;
-        case ~0U: ret = MSG_Disconnect(data);        break;
+            //TODO: function calls 
+
+            case   8: ret = MSG_SetColor(data);          break;
+            case   9: ret = MSG_SetColor(data);          break;
+            case  10: ret = MSG_SetColor(data);          break;
+            case  11: ret = MSG_SetColor(data);          break;
+
+            case  16: ret = MSG_Remove(data);            break;
+            case  17: ret = MSG_RemoveAll(data);         break;
+            case  18: ret = MSG_BeginDisplayList(data);  break;
+            case  19: ret = MSG_EndDisplayList(data);    break;
+            case  20: ret = MSG_SetTargetMode(data);     break;
+            case ~0U: ret = MSG_Disconnect(data);        break;
         }
 
         return ret;
