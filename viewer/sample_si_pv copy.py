@@ -6,6 +6,8 @@
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
+from doctr.models import detection_predictor
+import OCR
 
 import multiprocessing as mp
 import numpy as np
@@ -18,6 +20,7 @@ import hl2ss_mp
 import hl2ss_3dcv
 import hl2ss_sa
 import configparser
+model = detection_predictor('db_resnet50_rotation',pretrained=True, assume_straight_pages=False)
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
@@ -91,7 +94,7 @@ if __name__ == '__main__':
     sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, None)
     sink_pv.get_attach_response()
     sink_si.get_attach_response()
-
+    rh_points = []
     # Main Loop ---------------------------------------------------------------
     while (enable):
         # Download observed surfaces ------------------------------------------
@@ -143,9 +146,8 @@ if __name__ == '__main__':
             right_hand = si.get_hand_right()
             right_joints = hl2ss_utilities.si_unpack_hand(right_hand)
             right_image_points = hl2ss_3dcv.project(right_joints.positions, world_to_image)
-            print(right_joints.positions)
             hl2ss_utilities.draw_points(image, right_image_points.astype(np.int32), radius, right_color, thickness)
-
+            rh_points = right_image_points
         # Draw Gaze Pointer ---------------------------------------------------
         if (si.is_valid_eye_ray()):
             eye_ray = si.get_eye_ray()
@@ -157,6 +159,9 @@ if __name__ == '__main__':
                 hl2ss_utilities.draw_points(image, gaze_image_point.astype(np.int32), radius, gaze_color, thickness)
                 
         # Display frame -------------------------------------------------------
+        #print('helpmecheck')
+        if(si.is_valid_hand_right):
+            OCR.text_detect(rh_points[4], rh_points[10], model, image)   
         cv2.imshow('Video', image)
         cv2.waitKey(1)
         

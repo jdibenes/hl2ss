@@ -9,9 +9,10 @@
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
-import time
-import calendar
-import os
+from doctr.models import detection_predictor
+import torch
+import torchvision.transforms as transforms
+
 import cv2
 import hl2ss_imshow
 import hl2ss
@@ -19,10 +20,11 @@ import hl2ss
 import configparser
 #=======
 import hl2ss_lnm
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 #>>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_pv.py
+model = detection_predictor('db_mobilenet_v3_large',pretrained=True).to(device)
 
-save = True
-save_path = './capture_frames/pv/'
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
@@ -46,7 +48,7 @@ framerate = 15
 
 # Framerate denominator (must be > 0)
 # Effective FPS is framerate / divisor
-divisor = 1 
+divisor = 3 
 
 # Video encoding profile
 profile = hl2ss.VideoProfile.H265_MAIN
@@ -96,12 +98,13 @@ else:
         print(data.pose)
         print(f'Focal length: {data.payload.focal_length}')
         print(f'Principal point: {data.payload.principal_point}')
-
+        try:
+            r=model([transforms.ToTensor()(data.payload.image).to(device)])
+            print(r)
+            #r.show([data.payload.image])
+        except:
+            print('No image')
         cv2.imshow('Video', data.payload.image)
-        if save:
-            gmt = time.gmtime()
-            cv2.imwrite(os.path.join(save_path, str(calendar.timegm(gmt)) + '.png'), data.payload.image)
-   
         cv2.waitKey(1)
 
     client.close()

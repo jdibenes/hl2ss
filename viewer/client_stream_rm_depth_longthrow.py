@@ -8,17 +8,21 @@
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
-
+import os
+import calendar
+import time
 import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
-<<<<<<< HEAD:viewer/client_rm_depth_longthrow.py
+#<<<<<<< HEAD:viewer/client_rm_depth_longthrow.py
 import configparser
-=======
+#=======
 import hl2ss_lnm
->>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_rm_depth_longthrow.py
+#>>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_rm_depth_longthrow.py
 
+save = True
+save_path = './capture_frames/longthrow/'
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -28,7 +32,7 @@ host = config['DEFAULT']['ip']
 # Operating mode
 # 0: video
 # 1: video + rig pose
-# 2: query calibration (single transfer)
+# 2: query calibration (singlse transfer)
 mode = hl2ss.StreamMode.MODE_1
 
 # Framerate denominator (must be > 0)
@@ -72,7 +76,12 @@ while (enable):
     
     cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
     cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
-    cv2.waitKey(1)
+    if save:
+        #calendar.timegm(gmt)
+        gmt = time.gmtime()
+        cv2.imwrite(os.path.join(save_path, str(calendar.timegm(gmt)) + '.png'), data.payload.depth)
 
+    cv2.waitKey(1)
+    #cv2.imwrite(filename, img)
 client.close()
 listener.join()

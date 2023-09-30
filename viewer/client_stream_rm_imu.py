@@ -13,11 +13,11 @@
 from pynput import keyboard
 
 import hl2ss
-<<<<<<< HEAD:viewer/client_rm_imu.py
+#<<<<<<< HEAD:viewer/client_rm_imu.py
 import configparser
-=======
+#=======
 import hl2ss_lnm
->>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_rm_imu.py
+#>>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_rm_imu.py
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()

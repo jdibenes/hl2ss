@@ -7,12 +7,8 @@
 from pynput import keyboard
 
 import hl2ss
-<<<<<<< HEAD:viewer/client_si.py
 import configparser
-=======
 import hl2ss_lnm
->>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_stream_si.py
-
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
 config.read('config.ini')

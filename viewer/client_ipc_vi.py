@@ -7,11 +7,8 @@
 from pynput import keyboard
 
 import hl2ss
-<<<<<<< HEAD:viewer/client_vi.py
 import configparser
-=======
 import hl2ss_lnm
->>>>>>> 5d92301451f23c976ebcf6f65a35728896a2bb09:viewer/client_ipc_vi.py
 
 # Settings --------------------------------------------------------------------
 config = configparser.ConfigParser()
@@ -20,7 +17,7 @@ config.read('config.ini')
 host = config['DEFAULT']['ip']
 
 # Voice commands
-strings = ['cat', 'dog', 'red', 'blue']
+strings = ['cat', 'dog', 'red', 'blue', 'search for mixed reality toolkit']
 
 #------------------------------------------------------------------------------
 

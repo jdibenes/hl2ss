@@ -55,6 +55,8 @@ class command_buffer(hl2ss.umq_command_buffer):
         self.add(7, struct.pack('<Ifffff', key, font_size, rgba[0], rgba[1], rgba[2], rgba[3]) + string.encode('utf-8'))
 
     def load_mesh(self, data):
+        # struct.pack
+        # <If bla bla is format
         self.add(8, data)
 
     def remove(self, key):
@@ -72,3 +74,7 @@ class command_buffer(hl2ss.umq_command_buffer):
     def set_target_mode(self, mode):
         self.add(20, struct.pack('<I', mode))
 
+    # TODO: customize functionality here
+
+   def set_point_clouds(self, key, point_clouds):
+       self.add(15, struckt.pack(''))
