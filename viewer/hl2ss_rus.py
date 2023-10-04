@@ -76,5 +76,5 @@ class command_buffer(hl2ss.umq_command_buffer):
 
     # TODO: customize functionality here
 
-   def set_point_clouds(self, key, point_clouds):
-       self.add(15, struckt.pack(''))
+    def set_point_clouds(self, key, point_clouds):
+        self.add(15, struckt.pack(''))
