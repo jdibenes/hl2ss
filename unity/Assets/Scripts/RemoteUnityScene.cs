@@ -54,10 +54,10 @@ public class RemoteUnityScene : MonoBehaviour
 
             //TODO: function calls 
 
-            case   8: ret = MSG_SetColor(data);          break;
-            case   9: ret = MSG_SetColor(data);          break;
-            case  10: ret = MSG_SetColor(data);          break;
-            case  11: ret = MSG_SetColor(data);          break;
+            //case   8: ret = MSG_SetColor(data);          break;
+            //case   9: ret = MSG_SetColor(data);          break;
+            //case  10: ret = MSG_SetColor(data);          break;
+            //case  11: ret = MSG_SetColor(data);          break;
 
             case  16: ret = MSG_Remove(data);            break;
             case  17: ret = MSG_RemoveAll(data);         break;

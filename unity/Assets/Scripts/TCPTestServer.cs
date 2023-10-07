@@ -100,7 +100,7 @@ public class TCPTestServer : MonoBehaviour
     /// <summary> 	
     /// Send message to client using socket connection. 	
     /// </summary> 	
-    private void SendMessage(string code)
+    public void SendMessage(string code)
     {
         if (connectedTcpClient == null)
         {
