@@ -85,6 +85,28 @@ class Connector:
         for k in self.texture_keys:
             self.remove_texture(key = k)
 
+    def change_panel_content(self, title, content):
+        display_list = hl2ss_rus.command_buffer()
+        display_list.begin_display_list() # Begin command sequence
+        #display_list.remove_all() # Remove all objects that were created remotely
+        #display_list.create_primitive(hl2ss_rus.PrimitiveType.Quad) # Create a quad, server will return its id
+        #display_list.set_target_mode(1) # Set server to use the last created object as target, this avoids waiting for the id of the quad
+        #display_list.set_world_transform(key, position, rotation, scale) # Set the local transform of the cube
+        #display_list.set_texture(key, self.texture) # Set the texture of the quad
+        
+        #display_list.set_active(key, hl2ss_rus.ActiveState.Active) # Make the quad visible
+        display_list.set_panel_content(0, title, content)
+        #display_list.set_target_mode(0) # Restore target mode
+        display_list.end_display_list() # End command sequence
+        self.ipc.push(display_list) # Send commands to server
+        results = self.ipc.pull(display_list) # Get results from server
+        key = results[0] # Get the quad id, created by the 3rd command in the list
+        #self.texture_keys.append(key)
+        
+        print(f'Change the panel content with id {key}')
+
+
+
 if __name__ == "__main__":
     
     # Position in camera space (x, y, z)
