@@ -27,6 +27,20 @@
         "com.unity.textmeshpro": "2.1.4"
       }
     },
+    "com.microsoft.mixedreality.webview.unity": {
+      "version": "file:MixedReality/com.microsoft.mixedreality.webview.unity-0.17.1-pre.5.tgz",
+      "depth": 0,
+      "source": "local-tarball",
+      "dependencies": {
+        "com.unity.inputsystem": "1.4.4"
+      }
+    },
+    "com.unity.2d.sprite": {
+      "version": "1.0.0",
+      "depth": 0,
+      "source": "builtin",
+      "dependencies": {}
+    },
     "com.unity.collab-proxy": {
       "version": "1.17.6",
       "depth": 0,

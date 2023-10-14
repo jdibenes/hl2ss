@@ -19,7 +19,7 @@ public class DictionaryFunctionality : MonoBehaviour
 
     }
 
-    void ChangeText(string title, string description){
+    public void ChangeText(string title, string description){
         this.dictionaryPanel.SetActive(true);
         if (!string.IsNullOrEmpty(title))
         {
@@ -27,6 +27,8 @@ public class DictionaryFunctionality : MonoBehaviour
         }
         if (!string.IsNullOrEmpty(description))
         {
+            this.dictionaryPanel.transform.position = dictionaryPanel.transform.position + Camera.main.transform.forward * 0.1f ;
+
             this.description.GetComponent<TextMeshProUGUI>().text = description;
         }
         return;

@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using System.Data.SqlTypes;
 
 public class RemoteUnityScene : MonoBehaviour
 {
@@ -11,6 +12,9 @@ public class RemoteUnityScene : MonoBehaviour
     private bool m_loop;
     private bool m_mode;
     private int m_last_key;
+
+
+    public GameObject descriptionPanel;
 
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
@@ -55,7 +59,7 @@ public class RemoteUnityScene : MonoBehaviour
             //TODO: function calls 
 
             //case   8: ret = MSG_SetColor(data);          break;
-            //case   9: ret = MSG_SetColor(data);          break;
+            case   9: ret = SetPanelContent(data);          break;
             //case  10: ret = MSG_SetColor(data);          break;
             //case  11: ret = MSG_SetColor(data);          break;
 
@@ -318,5 +322,43 @@ public class RemoteUnityScene : MonoBehaviour
         tmp.text = str;
 
         return 1;
+    }
+
+    // MY FUNCTIONALITIES
+
+    uint SetPanelContent(byte[] data) {
+        if (data.Length < 4) { return 0; }
+
+      
+        if (!m_remote_objects.TryGetValue(GetKey(data), out this.descriptionPanel)) { return 0; }
+        //if (tmp == null) { return 0; }
+
+        //tmp.fontSize = BitConverter.ToSingle(data, 4);
+        //tmp.color = new Color(BitConverter.ToSingle(data, 8), BitConverter.ToSingle(data, 12), BitConverter.ToSingle(data, 16), BitConverter.ToSingle(data, 20));
+
+        string str;
+        if (data.Length > 4)
+        {
+            byte[] str_bytes = new byte[data.Length - 4];
+            Array.Copy(data, 4, str_bytes, 0, str_bytes.Length);
+            try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
+        }
+        else
+        {
+            str = "";
+        }
+
+        int startIndex = str.IndexOf("<CONTENT>");
+        int endIndex = str.IndexOf("<CONTENT>", startIndex);
+        string description = str.Substring(endIndex, str.Length);
+
+        string title = str.Substring(7, startIndex);
+        TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        scrip2.SendMessage(title + description);
+        DictionaryFunctionality script = GameObject.FindObjectOfType(typeof(DictionaryFunctionality)) as DictionaryFunctionality;
+        script.ChangeText(title, description);
+
+        return 1;
+
     }
 }
