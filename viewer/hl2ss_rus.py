@@ -58,6 +58,27 @@ class command_buffer(hl2ss.umq_command_buffer):
         # struct.pack
         # <If bla bla is format
         self.add(8, data)
+    
+    def set_panel_content(self,title, content):
+        string = '<TITLE>' + title + '<CONTENT>' + content
+        self.add(9, string.encode('utf-8'))
+    
+    def highlight_reference(self, xmin, ymin, xmax, ymax):
+        self.add(10, struct.pack('<IIII', xmin, ymin, xmax, ymax))
+
+    def send_item(self, xmin, xmax, ymin, ymax, item_type):
+        #self.add(11, json_string.encode('utf-8'))
+        self.add(11, struct.pack('<IIII', xmin, xmax, ymin, ymax) + item_type.encode('utf-8'))
+
+    def set_mode(self, mode):
+        # mode 0 = nah, 1 = left , 2 = right
+        self.add(12, struct.pack('<I', mode)
+
+
+    def send_page_size(self, width, hieght):
+        #self.add(11, json_string.encode('utf-8'))
+        self.add(11, struct.pack('<II', width, height))
+
 
     def remove(self, key):
         self.add(16, struct.pack('<I', key))

@@ -88,14 +88,7 @@ class Connector:
     def change_panel_content(self, title, content):
         display_list = hl2ss_rus.command_buffer()
         display_list.begin_display_list() # Begin command sequence
-        #display_list.remove_all() # Remove all objects that were created remotely
-        #display_list.create_primitive(hl2ss_rus.PrimitiveType.Quad) # Create a quad, server will return its id
-        #display_list.set_target_mode(1) # Set server to use the last created object as target, this avoids waiting for the id of the quad
-        #display_list.set_world_transform(key, position, rotation, scale) # Set the local transform of the cube
-        #display_list.set_texture(key, self.texture) # Set the texture of the quad
-        
-        #display_list.set_active(key, hl2ss_rus.ActiveState.Active) # Make the quad visible
-        display_list.set_panel_content(0, title, content)
+        display_list.set_panel_content(title, content)
         #display_list.set_target_mode(0) # Restore target mode
         display_list.end_display_list() # End command sequence
         self.ipc.push(display_list) # Send commands to server
@@ -104,7 +97,32 @@ class Connector:
         #self.texture_keys.append(key)
         
         print(f'Change the panel content with id {key}')
+    
+    def set_page_size(self, mode, width, height):
+        display_list = hl2ss_rus.command_buffer()
+        display_list.begin_display_list()
+        display_list.set_mode(mode) 
+        display_list.send_page_size(width, height)
+        display_list.set_mode(-1)
+        display_list.end_display_list()
+        self.ipc,push(display_list)
+        results = self.ipc.pull(display_list)
+        key = results[0]
 
+    def set_item(self, mode, item_list):
+        display_list = hl2ss_rus.command_buffer()
+        display_list.begin_display_list()
+        display_list.set_mode(mode)
+        
+        for item in item_list:
+            display_list.send_item(item.position[0], item.position[1], item.position[2], item.position[3], item.item_type)
+        display_list.set_mode(-1) 
+        display_list.end_display_list()
+        self.ipc,push(display_list)
+        results = self.ipc.pull(display_list)
+        key = results[0]
+
+        print(f'SetItem')
 
 
 if __name__ == "__main__":

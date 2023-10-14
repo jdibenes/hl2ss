@@ -1,6 +1,7 @@
 
 # Import socket module
-import socket            
+import socket
+import json
 from pynput import keyboard
 from page import Book
 from hololens2_connector import Connector
@@ -31,7 +32,8 @@ stop_event = threading.Event()
 enable = True
 
 book = Book('./books/opd/') 
-current_page = 205
+current_page_left = 205
+current_page_right = 206
 
 def on_press(key):
     global enable
@@ -59,7 +61,7 @@ while(enable):
         x, y = code[6:-1].split(',') 
         x = float(x)
         y = float(y)
-        page = book.get_page(current_page)
+        page = book.get_page(current_page_left)
         touched_position = convert_position_to_pixel(x, y, page.height, page.width)
         print(touched_position)
         #book.pages[205].parsing_page_content()
@@ -78,6 +80,40 @@ while(enable):
             pass
         elif item_type == 'img':
             pass
+        
+    elif code[:5] == 'MODE2':
+        x, y = code[6:-1].split(',') 
+        x = float(x)
+        y = float(y)
+        page = book.get_page(current_page_right)
+        touched_position = convert_position_to_pixel(x, y, page.height, page.width)
+        print(touched_position)
+        #book.pages[205].parsing_page_content()
+        item_type, touched_content = page.get_content_at_touch_position(touched_position)
+        
+        if item_type == -1:
+            print('no item')
+
+        elif item_type == 'text':
+            print(item_type)
+            print(touched_content)
+            #title, content = dictionary(touched_content)
+      
+            connector.change_panel_content('Title', touched_content) 
+        elif item_type == 'ref_num':
+            pass
+        elif item_type == 'img':
+            pass
+
+    elif code[:5] == 'MODE3':
+        current_page_left = current_page_right
+        current_page_right = current_page_right + int(code[5:])
+        book.get_page(current_page_left)
+        book.get_page(current_page_right)
+        print(current_page)
+    
+    elif code[:5] == 'MODE4':
+        print("mode 4")
 
 s.close()    
 listener.join()   
