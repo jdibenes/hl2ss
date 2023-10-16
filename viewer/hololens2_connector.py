@@ -99,32 +99,59 @@ class Connector:
         print(f'Change the panel content with id {key}')
     
     def set_page_size(self, mode, width, height):
+        self.set_mode(mode)
+        display_list = hl2ss_rus.command_buffer()
+        display_list.begin_display_list()
+        #display_list.set_mode(mode) 
+        display_list.send_page_size(width, height)
+        #display_list.set_mode(0)
+        display_list.end_display_list()
+        self.ipc.push(display_list)
+        results = self.ipc.pull(display_list)
+        #key = results[0]
+        self.set_mode(0)
+
+    def set_mode(self, mode):
         display_list = hl2ss_rus.command_buffer()
         display_list.begin_display_list()
         display_list.set_mode(mode) 
-        display_list.send_page_size(width, height)
-        display_list.set_mode(-1)
+        #display_list.send_page_size(width, height)
+        #display_list.set_mode(0)
         display_list.end_display_list()
-        self.ipc,push(display_list)
+        self.ipc.push(display_list)
         results = self.ipc.pull(display_list)
-        key = results[0]
+        #key = results[0]
 
-    def set_item(self, mode, item_list):
+
+    def set_item(self, item):
         display_list = hl2ss_rus.command_buffer()
         display_list.begin_display_list()
-        display_list.set_mode(mode)
-        
-        for item in item_list:
-            display_list.send_item(item.position[0], item.position[1], item.position[2], item.position[3], item.item_type)
-        display_list.set_mode(-1) 
+        display_list.send_item(item.position[0], item.position[1], item.position[2], item.position[3], item.item_type)
         display_list.end_display_list()
-        self.ipc,push(display_list)
+        self.ipc.push(display_list)
         results = self.ipc.pull(display_list)
-        key = results[0]
+        #key = results[0]
+
+
+    def set_items(self, mode, item_list):
+        self.set_mode(mode)
+        for item in item_list:
+            self.set_item(item)
+        display_list = hl2ss_rus.command_buffer()
+        display_list.begin_display_list()
+        
+        display_list.visualize()
+        #display_list.set_mode(0) 
+      
+        display_list.end_display_list()
+        self.ipc.push(display_list)
+        results = self.ipc.pull(display_list)
+        self.set_mode(0)
+        #key = results[0]
 
         print(f'SetItem')
-
-
+    
+    
 if __name__ == "__main__":
     
     # Position in camera space (x, y, z)

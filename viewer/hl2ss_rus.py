@@ -72,13 +72,15 @@ class command_buffer(hl2ss.umq_command_buffer):
 
     def set_mode(self, mode):
         # mode 0 = nah, 1 = left , 2 = right
-        self.add(12, struct.pack('<I', mode)
+        self.add(12, struct.pack('<I', mode))
 
 
-    def send_page_size(self, width, hieght):
+    def send_page_size(self, width, height):
         #self.add(11, json_string.encode('utf-8'))
-        self.add(11, struct.pack('<II', width, height))
+        self.add(13, struct.pack('<II', width, height))
 
+    def visualize(self):
+        self.add(14, b'')
 
     def remove(self, key):
         self.add(16, struct.pack('<I', key))
