@@ -61,14 +61,17 @@ while(enable):
     # CODE,X,Y
     #print (s.recv(1024).decode())
     code = s.recv(1024).decode()
+
     print(code)
+    if code.count("MODE") > 1:
+        continue
     #continue
     if code[:5] == 'MODE1':
         
         x, y = code[6:-1].split(',') 
         x = float(x)
         y = float(y)
-        page = book.get_page(current_page_left)
+        page = book.get_page(current_page_left - 1)
         touched_position = convert_position_to_pixel(x, y, page.height, page.width)
         #print(touched_position)
         #book.pages[205].parsing_page_content()
@@ -92,7 +95,7 @@ while(enable):
         x, y = code[6:-1].split(',') 
         x = float(x)
         y = float(y)
-        page = book.get_page(current_page_right)
+        page = book.get_page(current_page_right - 1)
         touched_position = convert_position_to_pixel(x, y, page.height, page.width)
         #print(touched_position)
         #book.pages[205].parsing_page_content()

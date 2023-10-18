@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NosFramework.Extensions.Serialization.Nsj.DI.Unity</name>
+    </assembly>
+    <members>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.Unity.IUnityContainerExtensions">
+            <summary> 为 <see cref="T:Unity.IUnityContainer" /> 类型提供的扩展方法。 </summary>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.Unity.IUnityContainerExtensions.UseNewtonsoftJsonSerializationService(Unity.IUnityContainer)">
+            <summary> 使用 Newtonsoft.Json 序列化服务。 </summary>
+            <param name="container"> 实现了 <see cref="T:Unity.IUnityContainer" /> 类型接口的对象实例。 </param>
+            <returns> 实现了 <see cref="T:Unity.IUnityContainer" /> 类型接口的对象实例。 </returns>
+        </member>
+    </members>
+</doc>

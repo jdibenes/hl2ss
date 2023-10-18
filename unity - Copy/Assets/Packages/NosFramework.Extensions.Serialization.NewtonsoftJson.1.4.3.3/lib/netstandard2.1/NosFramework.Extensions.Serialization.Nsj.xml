@@ -1,0 +1,172 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NosFramework.Extensions.Serialization.Nsj</name>
+    </assembly>
+    <members>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.Converters.EnumFieldNameConverter">
+            <summary>
+            提供了字符串与枚举字段名称转换相关的方法。
+            <para> 密闭的，不可以从此类型派生。 </para>
+            </summary>
+            <seealso cref="T:Newtonsoft.Json.Converters.StringEnumConverter" />
+            <remarks> 密闭的，不可以从此类型派生。 </remarks>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.Converters.EnumFieldNameConverter.#ctor">
+            <summary> 用于初始化一个 <see cref="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.Converters.EnumFieldNameConverter" /> 类型的对象实例。 </summary>
+            <seealso cref="T:Newtonsoft.Json.Serialization.DefaultNamingStrategy" />
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService">
+            <summary> 定义了 Newtonsoft.Json 序列化服务的接口。 </summary>
+            <seealso cref="T:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService.Deserialize``1(System.String)">
+            <summary> 反序列化 Json 字符串为 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="json"> Json 字符串。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService.DeserializeAsync``1(System.String)">
+            <summary> 反序列化 Json 字符串为 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="json"> Json 字符串。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService.SerializeToJson``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的数据。 </param>
+            <returns> Json 字符串。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService.SerializeToJsonAsync``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的数据。 </param>
+            <returns> Json 字符串。 </returns>
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService.SetJsonSerializerSettings(Newtonsoft.Json.JsonSerializerSettings)">
+            <summary>
+            设置当前使用序列化使用的 <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。
+            <para> 仅当前序列化线程使用，临时的。 </para>
+            </summary>
+            <param name="settings"> <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。 </param>
+            <returns> 实现了 <see cref="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService" /> 类型接口的对象实例。 </returns>
+            <seealso cref="T:Newtonsoft.Json.JsonSerializerSettings" />
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.ISdkIntegrationInterfaceExtensions">
+            <summary> 为 <see cref="T:NetowlsStudio.Sdk.ISdkIntegrationInterface" /> 类型提供的扩展方法。 </summary>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.ISdkIntegrationInterfaceExtensions.SetDefaultJsonSerializerSettings(NetowlsStudio.Sdk.ISdkIntegrationInterface,Newtonsoft.Json.JsonSerializerSettings)">
+            <summary> 设置 Newtonsoft.Json 序列化默认设置。 </summary>
+            <param name="slot"> 实现了 <see cref="T:NetowlsStudio.Sdk.ISdkIntegrationInterface" /> 类型接口的对象实例。 </param>
+            <param name="default"> <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。 </param>
+            <returns> 实现了 <see cref="T:NetowlsStudio.Sdk.ISdkIntegrationInterface" /> 类型接口的对象实例。 </returns>
+            <seealso cref="T:Newtonsoft.Json.JsonSerializerSettings" />
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider">
+            <summary> 提供了 Newtonsoft.Json 序列化服务相关的方法。 </summary>
+            <seealso cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider" />
+            <seealso cref="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.#ctor">
+            <summary> 用于初始化一个 <see cref="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider" /> 类型的对象实例。 </summary>
+        </member>
+        <member name="P:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.CurrentThreadingSettings">
+            <summary>
+            当前线程使用的 Json 序列化设置。
+            <para> <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。 </para>
+            </summary>
+            <value> 设置或获取 <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例，用于表示当前线程使用的 Json 序列化设置。 </value>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.Deserialize``1(System.String)">
+            <summary> 反序列化 Json 字符串为 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="json"> Json 字符串。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.DeserializeAsync``1(System.String)">
+            <summary> 反序列化 Json 字符串为 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="json"> Json 字符串。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.SerializeToJson``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的数据。 </param>
+            <returns> Json 字符串。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.SerializeToJsonAsync``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的数据。 </param>
+            <returns> Json 字符串。 </returns>
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.SetJsonSerializerSettings(Newtonsoft.Json.JsonSerializerSettings)">
+            <summary>
+            设置当前使用序列化使用的 <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。
+            <para> 仅当前序列化线程使用，临时的。 </para>
+            </summary>
+            <param name="settings"> <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。 </param>
+            <returns> 实现了 <see cref="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.IJsonSerialiationExtendedService" /> 类型接口的对象实例。 </returns>
+            <seealso cref="T:Newtonsoft.Json.JsonSerializerSettings" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.InternalDeserialize``1(System.IO.Stream)">
+            <summary> 从 <paramref name="deserializationStream" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="deserializationStream">
+            反序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+            <exception cref="T:System.OutOfMemoryException"> </exception>
+            <exception cref="T:System.IO.IOException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.InternalSerialize``1(System.IO.Stream,``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例到 <paramref name="serializationStream" /> 中。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="serializationStream">
+            序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+            <seealso cref="T:System.IO.Stream" />
+            <exception cref="T:System.IO.IOException"> </exception>
+            <exception cref="T:System.ObjectDisposedException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializationServiceProvider.ResetCurrentThreadingSettings">
+            <summary> 重置当前线程使用的 Json 序列化配置。 </summary>
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializerSettingsDefaults">
+            <summary> 提供了 Newtonsoft.Json 序列化默认配置相关的方法。 </summary>
+        </member>
+        <member name="F:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializerSettingsDefaults.DefaultSettings">
+            <summary>
+            Newtonsoft.Json 序列化默认设置。
+            <para> <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。 </para>
+            </summary>
+            <seealso cref="T:Newtonsoft.Json.JsonSerializerSettings" />
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializerSettingsStorage">
+            <summary> 提供了用于存储 Newtonsoft.Json 设置相关的方法。 </summary>
+        </member>
+        <member name="F:NetowlsStudio.Sdk.Runtime.Serialization.Json.JsonSerializerSettingsStorage.DefaultSettings">
+            <summary> 默认使用的 <see cref="T:Newtonsoft.Json.JsonSerializerSettings" /> 类型的对象实例。 </summary>
+            <seealso cref="T:Newtonsoft.Json.JsonSerializerSettings" />
+        </member>
+    </members>
+</doc>

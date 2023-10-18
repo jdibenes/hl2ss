@@ -86,16 +86,18 @@ namespace QRTracking
                 Debug.Log("Id= " + qrCode.Id + "NodeId= " + qrCode.SpatialGraphNodeId + " PhysicalSize = " + PhysicalSize + " TimeStamp = " + qrCode.SystemRelativeLastDetectedTime.Ticks + " Time = " + qrCode.LastDetectedTime.ToString("MM/dd/yyyy HH:mm:ss.fff"));
 
                 // if right
-                if (QRText.text == "QR1"){
+                if (QRText.text == "QR2"){
                     qrRightPlane.SetActive(true);
+                    qrRightPlane.tag = "RightPlane";
                     qrRightPlane.transform.localPosition = new Vector3(PhysicalSize - (PhysicalSize * 3.6f) / 2.0f, PhysicalSize + (PhysicalSize * 4.65f) / 2.0f, PhysicalSize*0.05f);
                     qrRightPlane.transform.localScale = new Vector3(PhysicalSize * 3.6f, PhysicalSize * 4.65f, 0.005f);
                     // script.SendMessage("WORLD QR1" + qrRightPlane.transform.position.ToString("F8"));
 
                 }
-                else if (QRText.text == "QR2")
+                else if (QRText.text == "QR1")
                 {
                     qrLeftPlane.SetActive(true);
+                    qrLeftPlane.tag = "LeftPlane";
                     qrLeftPlane.transform.localPosition = new Vector3((PhysicalSize * 3.6f) / 2.0f, PhysicalSize + (PhysicalSize * 4.65f) / 2.0f, PhysicalSize*0.1f);
                     qrLeftPlane.transform.localScale = new Vector3(PhysicalSize * 3.6f, PhysicalSize * 4.65f, 0.005f);
                     // script.SendMessage("WORLD QR2" + qrLeftPlane.transform.position.ToString("F8"));

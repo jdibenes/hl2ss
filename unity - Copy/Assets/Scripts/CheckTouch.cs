@@ -19,8 +19,9 @@ public class CheckTouch : MonoBehaviour, IMixedRealityTouchHandler
         Vector3 tmp = (relative + localScale);
         check = new Vector2(tmp.x, -tmp.y).ToString("F8");
 
-
-        script.SendMessage("MODE1" + check);
+        if (this.thisObject.tag == "RightPlane")
+            script.SendMessage("MODE2" + check);
+        else script.SendMessage("MODE1" + check);
 
         //string ptrName = eventData.Pointer.PointerName;
         Debug.Log($"Touch started from ");

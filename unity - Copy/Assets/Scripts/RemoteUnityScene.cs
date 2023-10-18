@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using System.Data.SqlTypes;
+using Microsoft.MixedReality.Toolkit.Input;
 
 public class RemoteUnityScene : MonoBehaviour
 {
@@ -12,20 +13,25 @@ public class RemoteUnityScene : MonoBehaviour
     private bool m_loop;
     private bool m_mode;
     private int m_last_key;
-
-    public string json_holder_right;
-    public string json_holder_left;
+    public PageInformationHolder page_information_holder_left;
+    public PageInformationHolder page_information_holder_right;
 
     public GameObject descriptionPanel;
+
+    public int set_page_item_mode = 0; // 1 = left, 2 = right, 0 = nah
 
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
 
+    
     void Start()
     {
+
         m_remote_objects = new Dictionary<int, GameObject>();
         m_loop = false;
         m_mode = false;
+        page_information_holder_left = GameObject.Find("PageInformationHolderLeft").GetComponent<PageInformationHolder>();
+        page_information_holder_right = GameObject.Find("PageInformationHolderRight").GetComponent<PageInformationHolder>();
     }
 
     void Update()
@@ -63,9 +69,13 @@ public class RemoteUnityScene : MonoBehaviour
             //case   8: ret = MSG_SetColor(data);          break;
             case   9: ret = SetPanelContent(data);          break;
             //case  10: ret = MSG_SetColor(data);          break;
-            //case  11: ret = MSG_SetColor(data);          break;
+            case  11: ret = GetASingleItem(data);          break;
+            
+            case 12: ret = SetPageItemMode(data);         break;
+            case 13: ret = SetPageSize(data); break;
+            case 14: ret = Visualize(data); break;
 
-            case  16: ret = MSG_Remove(data);            break;
+            case 16: ret = MSG_Remove(data);            break;
             case  17: ret = MSG_RemoveAll(data);         break;
             case  18: ret = MSG_BeginDisplayList(data);  break;
             case  19: ret = MSG_EndDisplayList(data);    break;
@@ -331,33 +341,19 @@ public class RemoteUnityScene : MonoBehaviour
     // NOT SURE IF IT IS OK
     uint SetPanelContent(byte[] data) {
         if (data.Length < 4) { return 0; }
-
-      
-        if (!m_remote_objects.TryGetValue(GetKey(data), out this.descriptionPanel)) { return 0; }
-        //if (tmp == null) { return 0; }
-
-        //tmp.fontSize = BitConverter.ToSingle(data, 4);
-        //tmp.color = new Color(BitConverter.ToSingle(data, 8), BitConverter.ToSingle(data, 12), BitConverter.ToSingle(data, 16), BitConverter.ToSingle(data, 20));
+        //TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        //scrip2.SendMessage("OK1");
 
         string str;
-        if (data.Length > 4)
-        {
-            byte[] str_bytes = new byte[data.Length - 4];
-            Array.Copy(data, 4, str_bytes, 0, str_bytes.Length);
-            try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
-        }
-        else
-        {
-            str = "";
-        }
+        str = System.Text.Encoding.UTF8.GetString(data);
+        //scrip2.SendMessage("ok2");
 
         int startIndex = str.IndexOf("<CONTENT>");
         int endIndex = str.IndexOf("<CONTENT>", startIndex);
         string description = str.Substring(endIndex + 9);
 
         string title = str.Substring(7, startIndex - 7);
-        TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
-        scrip2.SendMessage(title + description);
+        //scrip2.SendMessage(title + description);
         DictionaryFunctionality script = GameObject.FindObjectOfType(typeof(DictionaryFunctionality)) as DictionaryFunctionality;
         script.ChangeText(title, description);
 
@@ -365,38 +361,105 @@ public class RemoteUnityScene : MonoBehaviour
 
     }
 
-    uint GetJsonLeft(byte[] data) {
-        if (data.Length < 4) { return 0; }
+    int GetInt(byte[] data)
+    {
+        return BitConverter.ToInt32(data, 0);
+    }
 
-        string str;
-        if (data.Length > 4)
+
+    uint GetASingleItem(byte[] data) {
+        
+        if (this.set_page_item_mode == 0) {
+            return 0;
+        } 
+        if (data.Length < 4) { return 0; }
+        string item_type;
+;
+        int xmin, xmax, ymin, ymax;
+       
+        byte[] tmp = new byte[4];
+        Array.Copy(data, 0, tmp, 0, 4);
+        xmin = GetInt(tmp);
+        Array.Copy(data, 4, tmp, 0, 4);
+        xmax = GetInt(tmp);
+        Array.Copy(data, 8, tmp, 0, 4);
+        ymin = GetInt(tmp);
+        Array.Copy(data, 12, tmp, 0, 4);
+        ymax = GetInt(tmp);
+        //TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        //scrip2.SendMessage("REHECK HERE"  + xmax.ToString() + ", " + ymax.ToString() + ", " + xmin.ToString() + ", " + ymin.ToString());
+        
+        if (data.Length > 16)
         {
-            byte[] str_bytes = new byte[data.Length - 4];
-            Array.Copy(data, 4, str_bytes, 0, str_bytes.Length);
-            try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
+            byte[] str_bytes = new byte[data.Length - 16];
+            Array.Copy(data, 16, str_bytes, 0, str_bytes.Length);
+            try { item_type = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
+            
         }
         else
         {
-            str = "";
+            item_type = "";
         }
-        json_holder_left = str;
+        
+        item_type = "";
+        //scrip2.SendMessage("REHECK HERE" + " " + item_type + " " + xmax.ToString() + ", " + ymax.ToString() + ", " + xmin.ToString() + ", " + ymin.ToString());
+
+        if (this.set_page_item_mode == 1)
+        {
+            this.page_information_holder_left.AddItem(item_type, xmin, xmax, ymin, ymax);
+        }
+        else if (this.set_page_item_mode == 2)
+        {
+            this.page_information_holder_right.AddItem(item_type, xmin, xmax, ymin, ymax);
+        }
+      
+
         return 1;
     }
-    uint GetJsonRight(byte[] data) {
-        if (data.Length < 4) { return 0; }
+    uint SetPageItemMode(byte[] data) {
+        TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        scrip2.SendMessage("REHECK HERE");
 
-        string str;
-        if (data.Length > 4)
+        if (data.Length < 4) { return 0; }
+        this.set_page_item_mode = GetInt(data);
+        scrip2.SendMessage("REHECK HERE" + this.set_page_item_mode.ToString());
+
+
+        return 1;
+    }
+
+    uint SetPageSize(byte[] data)
+    {
+        byte[] tmp = new byte[4];
+
+        if (this.set_page_item_mode == 1)
         {
-            byte[] str_bytes = new byte[data.Length - 4];
-            Array.Copy(data, 4, str_bytes, 0, str_bytes.Length);
-            try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
+            Array.Copy(data, 0, tmp, 0, 4);
+            this.page_information_holder_left.width_page = GetInt(tmp);
+            Array.Copy(data, 4, tmp, 0, 4);
+            this.page_information_holder_left.height_page = GetInt(tmp);
         }
-        else
+        else if (this.set_page_item_mode == 2)
         {
-            str = "";
+            Array.Copy(data, 0, tmp, 0, 4);
+            this.page_information_holder_right.width_page = GetInt(tmp);
+            Array.Copy(data, 4, tmp, 0, 4);
+            this.page_information_holder_right.height_page = GetInt(tmp);
         }
-        json_holder_right = str;
+        return 1;
+    }
+
+    uint Visualize(byte[] data) {
+        if (this.set_page_item_mode == 1)
+        {
+           
+            this.page_information_holder_left.VisualizeAll();
+        }
+        else if (this.set_page_item_mode == 2)
+        {
+         
+            this.page_information_holder_right.VisualizeAll();
+        }
         return 1;
     }
 }

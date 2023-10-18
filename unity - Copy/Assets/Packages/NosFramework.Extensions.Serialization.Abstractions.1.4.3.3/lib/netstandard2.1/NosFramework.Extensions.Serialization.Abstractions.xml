@@ -1,0 +1,216 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NosFramework.Extensions.Serialization.Abstractions</name>
+    </assembly>
+    <members>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService">
+            <summary> 定义了序列化的接口。 </summary>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.Deserialize``1(System.IO.Stream)">
+            <summary> 从 <paramref name="deserializationStream" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="deserializationStream">
+            反序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.Deserialize``1(System.Byte[])">
+            <summary> 从字节数据 <paramref name="data" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 字节数组。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.DeserializeAsync``1(System.Byte[])">
+            <summary> 从字节数据 <paramref name="data" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 字节数组。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.DeserializeAsync``1(System.IO.Stream)">
+            <summary> 从 <paramref name="deserializationStream" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="deserializationStream">
+            反序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.Serialize``1(System.IO.Stream,``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例到 <paramref name="serializationStream" /> 中。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="serializationStream">
+            序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+            <seealso cref="T:System.IO.Stream" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.Serialize``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例，并返回字节数组。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.SerializeAsync``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例，并返回字节数组。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService.SerializeAsync``1(System.IO.Stream,``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例到 <paramref name="serializationStream" /> 中。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="serializationStream">
+            序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <returns> 派生自 <see cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult" /> 类型的对象实例。 </returns>
+            <seealso cref="T:System.IO.Stream" />
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult" />
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException">
+            <summary>
+            当调用序列化服务时，可能引发此类型的异常。
+            <para> 密闭的，不可以从此类型派生。 </para>
+            </summary>
+            <seealso cref="T:System.Exception" />
+            <remarks> 密闭的，不可以从此类型派生。 </remarks>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException.#ctor(System.Type)">
+            <summary> 用于初始化一个 <see cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException" /> 类型的对象实例。 </summary>
+            <param name="serializationType"> 需要序列化的类型。 </param>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException.#ctor(System.Type,System.Exception)">
+            <summary> 用于初始化一个 <see cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException" /> 类型的对象实例。 </summary>
+            <param name="serializationType"> 需要序列化的类型。 </param>
+            <param name="innerException"> 序列化或反序列化过程中引发的异常。 </param>
+        </member>
+        <member name="P:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException.SerializationType">
+            <summary> 序列化的引用类型。 </summary>
+            <value> 获取 <see cref="T:System.Type" /> 类型的对象实例，用于表示序列化的引用类型。 </value>
+            <seealso cref="T:System.Type" />
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider">
+            <summary> 提供了序列化服务相关的基本方法。 </summary>
+            <seealso cref="T:NetowlsStudio.Sdk.Runtime.Serialization.ISerializationService" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.Deserialize``1(System.Byte[])">
+            <summary> 从字节数据 <paramref name="data" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 字节数组。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.Deserialize``1(System.IO.Stream)">
+            <summary> 从 <paramref name="deserializationStream" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="deserializationStream">
+            反序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.DeserializeAsync``1(System.Byte[])">
+            <summary> 从字节数据 <paramref name="data" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 字节数组。 </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.DeserializeAsync``1(System.IO.Stream)">
+            <summary> 从 <paramref name="deserializationStream" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="deserializationStream">
+            反序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.Serialize``1(System.IO.Stream,``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例到 <paramref name="serializationStream" /> 中。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="serializationStream">
+            序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+            <seealso cref="T:System.IO.Stream" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.Serialize``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例，并返回字节数组。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.SerializeAsync``1(System.IO.Stream,``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例到 <paramref name="serializationStream" /> 中。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="serializationStream">
+            序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <returns> 派生自 <see cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult" /> 类型的对象实例。 </returns>
+            <seealso cref="T:System.IO.Stream" />
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.SerializeAsync``1(``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例，并返回字节数组。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <seealso cref="T:System.Threading.Tasks.Task`1" />
+            <seealso cref="T:NetowlsStudio.Sdk.Threading.Tasks.AsyncTaskResult`1" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.InternalDeserialize``1(System.IO.Stream)">
+            <summary> 从 <paramref name="deserializationStream" /> 中反序列化得到 <typeparamref name="T" /> 类型的对象实例。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="deserializationStream">
+            反序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <returns> <typeparamref name="T" /> 类型的对象实例。 </returns>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.InternalSerialize``1(System.IO.Stream,``0)">
+            <summary> 序列化 <typeparamref name="T" /> 类型的对象实例到 <paramref name="serializationStream" /> 中。 </summary>
+            <typeparam name="T"> 引用类型。 </typeparam>
+            <param name="serializationStream">
+            序列化流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <param name="data"> 需要序列化的 <typeparamref name="T" /> 类型的对象实例。 </param>
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+            <seealso cref="T:System.IO.Stream" />
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceProvider.StreamNotSupport``1(System.IO.Stream)">
+            <summary>
+            当 <paramref name="stream" /> 等于 <c> null </c> 时，将引发一个 <see cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException" /> 类型的异常。
+            </summary>
+            <typeparam name="T"> 需要序列化的引用类型。 </typeparam>
+            <param name="stream">
+            需要校验的流。
+            <para> 派生自 <see cref="T:System.IO.Stream" /> 类型的对象实例。 </para>
+            </param>
+            <seealso cref="T:System.IO.Stream" />
+            <exception cref="T:NetowlsStudio.Sdk.Runtime.Serialization.SerializationServiceException"> </exception>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NosFramework.Core.DI.Unity</name>
+    </assembly>
+    <members>
+        <member name="T:NetowlsStudio.Sdk.Unity.IUnityContainerExtensions">
+            <summary> 为 <see cref="T:Unity.IUnityContainer" /> 类型提供的扩展方法。 </summary>
+        </member>
+        <member name="M:NetowlsStudio.Sdk.Unity.IUnityContainerExtensions.RegisterServices(Unity.IUnityContainer,System.Action{Unity.IUnityContainer})">
+            <summary> 注册服务到 Unity IoC 容器中。 </summary>
+            <param name="container"> 实现了 <see cref="T:Unity.IUnityContainer" /> 类型接口的对象实例。 </param>
+            <param name="config">
+            配置服务的方法。
+            <para> 包含了 <see cref="T:Unity.IUnityContainer" /> 类型的对象实例为参数的方法。 </para>
+            </param>
+            <returns> 实现了 <see cref="T:Unity.IUnityContainer" /> 类型接口的对象实例。 </returns>
+            <seealso cref="T:Unity.IUnityContainer" />
+            <seealso cref="T:System.Action`1" />
+        </member>
+        <member name="T:NetowlsStudio.Sdk.Unity.UnityContainerFactory">
+            <summary> 提供了构建默认的 <see cref="T:Unity.IUnityContainer" /> 类型的对象实例相关的方法。 </summary>
+        </member>
+        <member name="F:NetowlsStudio.Sdk.Unity.UnityContainerFactory.DefaultContainer">
+            <summary> 默认的 Unity IoC 容器。 </summary>
+            <seealso cref="T:Unity.IUnityContainer" />
+            <seealso cref="T:System.Lazy`1" />
+        </member>
+    </members>
+</doc>
