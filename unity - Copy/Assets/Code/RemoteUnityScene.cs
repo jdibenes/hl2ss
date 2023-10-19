@@ -361,6 +361,29 @@ public class RemoteUnityScene : MonoBehaviour
 
     }
 
+    uint SetWebViewContent(byte[] data)
+    {
+        if (data.Length < 4) { return 0; }
+        //TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        //scrip2.SendMessage("OK1");
+
+        string str;
+        str = System.Text.Encoding.UTF8.GetString(data);
+        //scrip2.SendMessage("ok2");
+
+        int startIndex = str.IndexOf("<CONTENT>");
+        int endIndex = str.IndexOf("<CONTENT>", startIndex);
+        string description = str.Substring(endIndex + 9);
+
+        string title = str.Substring(7, startIndex - 7);
+        //scrip2.SendMessage(title + description);
+        WebViewPanelController script = GameObject.FindObjectOfType(typeof(WebViewPanelController)) as WebViewPanelController;
+        script.ChangeWeb(script.CreateUrl(0, description));
+        return 1;
+
+    }
+
+
     int GetInt(byte[] data)
     {
         return BitConverter.ToInt32(data, 0);

@@ -3,32 +3,33 @@ using UnityEngine.UI;
 using UnityEngine;
 using TMPro;
 using System;
+using Microsoft.MixedReality.Toolkit.UI;
 
 public class WebviewBrowser : MonoBehaviour
 {
     // Declare UI elements: Back button, Go button, and URL input field
-    public Button BackButton;
-    public Button GoButton;
+    public PressableButtonHoloLens2 BackButton;
+    public PressableButtonHoloLens2 GoButton;
     public TMP_InputField URLField;
-
+    public WebView webViewComponent;
     private void Start()
     {
         // Get the WebView component attached to the game object
-        var webViewComponent = gameObject.GetComponent<WebView>();
+        this.webViewComponent = gameObject.GetComponent<WebView>();
         webViewComponent.GetWebViewWhenReady((IWebView webView) =>
         {
             // If the WebView supports browser history, enable the Back button
             if (webView is IWithBrowserHistory history)
             {
                 // Add an event listener for the Back button to navigate back in history
-                BackButton.onClick.AddListener(() => history.GoBack());
+                BackButton.ButtonReleased.AddListener(() => history.GoBack());
 
                 // Update the Back button's enabled state based on whether there's any history to go back to
                 history.CanGoBackUpdated += CanGoBack;
             }
 
             // Add an event listener for the Go button to load the URL that was entered in the input field
-            GoButton.onClick.AddListener(() => webView.Load(new Uri(URLField.text)));
+            GoButton.ButtonReleased.AddListener(() => webView.Load(new Uri(URLField.text)));
 
             // Subscribe to the Navigated event to update the URL input field whenever a navigation occurs
             webView.Navigated += OnNavigated;
@@ -51,5 +52,15 @@ public class WebviewBrowser : MonoBehaviour
     private void CanGoBack(bool value)
     {
         BackButton.enabled = value;
+    }
+
+    public void Navigate() {
+        webViewComponent.GetWebViewWhenReady((IWebView webView) =>
+        {
+            webView.Load(new Uri(URLField.text));
+            webView.Navigated += OnNavigated;
+
+        });
+
     }
 }
