@@ -7,6 +7,7 @@ using static System.Net.WebRequestMethods;
 public class WebViewPanelController : MonoBehaviour
 {
     public WebviewBrowser webViewBrowser;
+    public GameObject thisPanel;
 
     public string CreateUrl(int web, string content)
     {
@@ -27,6 +28,9 @@ public class WebViewPanelController : MonoBehaviour
 
     public void ChangeWeb(string url)
     {
+        this.thisPanel.SetActive(true);
+        this.thisPanel.transform.position = Camera.main.transform.forward * 0.15f;
+
         webViewBrowser.URLField.text = url;
         webViewBrowser.Navigate();
     }

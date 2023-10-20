@@ -19,7 +19,7 @@ public class RemoteUnityScene : MonoBehaviour
     public GameObject descriptionPanel;
 
     public int set_page_item_mode = 0; // 1 = left, 2 = right, 0 = nah
-
+    public int content_mode = 1; // 0 = offline content, 1 = webview
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
 
@@ -339,7 +339,15 @@ public class RemoteUnityScene : MonoBehaviour
     // MY FUNCTIONALITIES
 
     // NOT SURE IF IT IS OK
+
     uint SetPanelContent(byte[] data) {
+        switch (content_mode) {
+            case 0: return this.SetOfflinePanelContent(data);
+            case 1: return this.SetWebViewPanelContent(data);
+        }
+        return 1;
+    }
+    uint SetOfflinePanelContent(byte[] data) {
         if (data.Length < 4) { return 0; }
         //TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
         //scrip2.SendMessage("OK1");
@@ -361,7 +369,7 @@ public class RemoteUnityScene : MonoBehaviour
 
     }
 
-    uint SetWebViewContent(byte[] data)
+    uint SetWebViewPanelContent(byte[] data)
     {
         if (data.Length < 4) { return 0; }
         //TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;

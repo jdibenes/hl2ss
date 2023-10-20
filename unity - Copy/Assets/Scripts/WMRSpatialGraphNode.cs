@@ -8,19 +8,21 @@ namespace QRTracking.WindowsMR
     {
         public System.Guid Id { get; private set; }
 #if !MIXED_REALITY_OPENXR
-            private Windows.Perception.Spatial.SpatialCoordinateSystem CoordinateSystem = null;
-#endif
+                
+            private Microsoft.Windows.Perception.Spatial.SpatialCoordinateSystem CoordinateSystem = null;
 
+#endif
         public static SpatialGraphNode FromStaticNodeId(System.Guid id)
         {
 #if !MIXED_REALITY_OPENXR
-            var coordinateSystem = Windows.Perception.Spatial.Preview.SpatialGraphInteropPreview.CreateCoordinateSystemForNode(id);
+            var coordinateSystem = Microsoft.Windows.Perception.Spatial.Preview.SpatialGraphInteropPreview.CreateCoordinateSystemForNode(id);
             return coordinateSystem == null ? null :
                 new SpatialGraphNode()
                 {
                     Id = id,
                     CoordinateSystem = coordinateSystem
                 };
+
 #else
             return null;
 #endif
@@ -36,8 +38,8 @@ namespace QRTracking.WindowsMR
             Vector3 translation = new Vector3(0.0f, 0.0f, 0.0f);
                     
             System.IntPtr rootCoordnateSystemPtr = UnityEngine.XR.WindowsMR.WindowsMREnvironment.OriginSpatialCoordinateSystem;
-            Windows.Perception.Spatial.SpatialCoordinateSystem rootSpatialCoordinateSystem = 
-                (Windows.Perception.Spatial.SpatialCoordinateSystem)System.Runtime.InteropServices.Marshal.GetObjectForIUnknown(rootCoordnateSystemPtr);
+            Microsoft.Windows.Perception.Spatial.SpatialCoordinateSystem rootSpatialCoordinateSystem = 
+                (Microsoft.Windows.Perception.Spatial.SpatialCoordinateSystem)System.Runtime.InteropServices.Marshal.GetObjectForIUnknown(rootCoordnateSystemPtr);
 
             // Get the relative transform from the unity origin
             System.Numerics.Matrix4x4? relativePose = CoordinateSystem.TryGetTransformTo(rootSpatialCoordinateSystem);
