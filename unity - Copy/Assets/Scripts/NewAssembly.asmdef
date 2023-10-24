@@ -1,0 +1,31 @@
+{
+    "name": "NewAssembly",
+    "rootNamespace": "",
+    "references": [
+        "Unity.TextMeshPro",
+        "Microsoft.MixedReality.OpenXR",
+        "Microsoft.MixedReality.WebView",
+        "Microsoft.MixedReality.Toolkit.Tools",
+        "Microsoft.MixedReality.Toolkit",
+        "Microsoft.MixedReality.Toolkit.SDK",
+        "Microsoft.MixedReality.Toolkit.Providers.XRSDK.WindowsMixedReality",
+        "Unity.XR.WindowsMixedReality",
+        "Microsoft.MixedReality.Toolkit.Tools.Runtime",
+        "Microsoft.MixedReality.Toolkit.SDK.Experimental.Interactive"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.microsoft.mixedreality.openxr",
+            "expression": "0.0.1",
+            "define": "MIXED_REALITY_OPENXR"
+        }
+    ],
+    "noEngineReferences": false
+}

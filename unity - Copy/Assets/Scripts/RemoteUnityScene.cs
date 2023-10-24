@@ -386,7 +386,7 @@ public class RemoteUnityScene : MonoBehaviour
         string title = str.Substring(7, startIndex - 7);
         //scrip2.SendMessage(title + description);
         WebViewPanelController script = GameObject.FindObjectOfType(typeof(WebViewPanelController)) as WebViewPanelController;
-        script.ChangeWeb(script.CreateUrl(0, description));
+        script.ChangeWeb(script.CreateUrl(description));
         return 1;
 
     }

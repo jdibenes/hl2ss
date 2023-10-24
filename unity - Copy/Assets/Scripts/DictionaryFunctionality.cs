@@ -27,7 +27,7 @@ public class DictionaryFunctionality : MonoBehaviour
         }
         if (!string.IsNullOrEmpty(description))
         {
-            this.dictionaryPanel.transform.position = Camera.main.transform.forward * 0.15f ;
+            this.dictionaryPanel.transform.position = Camera.main.transform.forward * 0.25f ;
 
             this.description.GetComponent<TextMeshProUGUI>().text = description;
         }

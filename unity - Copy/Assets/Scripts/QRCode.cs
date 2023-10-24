@@ -11,6 +11,7 @@ namespace QRTracking
         public Microsoft.MixedReality.QR.QRCode qrCode;
         public GameObject qrRightPlane;
         public GameObject qrLeftPlane;
+        
         public TCPTestServer script;
 
         public float PhysicalSize { get; private set; }
@@ -100,7 +101,17 @@ namespace QRTracking
                     qrLeftPlane.tag = "LeftPlane";
                     qrLeftPlane.transform.localPosition = new Vector3((PhysicalSize * 3.6f) / 2.0f, PhysicalSize + (PhysicalSize * 4.65f) / 2.0f, PhysicalSize*0.1f);
                     qrLeftPlane.transform.localScale = new Vector3(PhysicalSize * 3.6f, PhysicalSize * 4.65f, 0.005f);
+                    
+
                     // script.SendMessage("WORLD QR2" + qrLeftPlane.transform.position.ToString("F8"));
+
+                }
+                else if (QRText.text == "QR3")
+                {
+                    GameObject gameObject = GameObject.Find("NearMenu4x2");
+                    gameObject.transform.position = this.transform.position;
+                    gameObject.transform.rotation = new Quaternion(QRText.transform.rotation.x, QRText.transform.rotation.y, QRText.transform.rotation.z, QRText.transform.rotation.w);
+                        // script.SendMessage("WORLD QR2" + qrLeftPlane.transform.position.ToString("F8"));
 
                 }
 

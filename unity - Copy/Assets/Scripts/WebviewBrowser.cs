@@ -8,12 +8,13 @@ using Microsoft.MixedReality.Toolkit.UI;
 public class WebviewBrowser : MonoBehaviour
 {
     // Declare UI elements: Back button, Go button, and URL input field
-    public PressableButtonHoloLens2 BackButton;
+    public PressableButtonHoloLens2 BackButton;   
     public PressableButtonHoloLens2 GoButton;
     public TMP_InputField URLField;
     public WebView webViewComponent;
     private void Start()
     {
+        
         // Get the WebView component attached to the game object
         this.webViewComponent = gameObject.GetComponent<WebView>();
         webViewComponent.GetWebViewWhenReady((IWebView webView) =>
@@ -40,6 +41,7 @@ public class WebviewBrowser : MonoBehaviour
                 URLField.text = webView.Page.AbsoluteUri;
             }
         });
+       
     }
 
     // Update the URL input field with the new path after navigation
@@ -55,12 +57,24 @@ public class WebviewBrowser : MonoBehaviour
     }
 
     public void Navigate() {
+        // Get the WebView component attached to the game object
+        this.webViewComponent = gameObject.GetComponent<WebView>();
         webViewComponent.GetWebViewWhenReady((IWebView webView) =>
         {
+            // If the WebView supports browser history, enable the Back button
+     
+
+            // Add an event listener for the Go button to load the URL that was entered in the input field
             webView.Load(new Uri(URLField.text));
+
+            // Subscribe to the Navigated event to update the URL input field whenever a navigation occurs
             webView.Navigated += OnNavigated;
 
+            // Set the initial value of the URL input field to the current URL of the WebView
+            if (webView.Page != null)
+            {
+                URLField.text = webView.Page.AbsoluteUri;
+            }
         });
-
     }
 }

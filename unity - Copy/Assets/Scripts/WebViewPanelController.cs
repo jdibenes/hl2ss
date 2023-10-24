@@ -7,16 +7,24 @@ using static System.Net.WebRequestMethods;
 public class WebViewPanelController : MonoBehaviour
 {
     public WebviewBrowser webViewBrowser;
-    public GameObject thisPanel;
+    public GameObject webviewPanel;
+    public int web = 0;
+    public DictionarySelectionToggle dictionarySelectionToggle;
+    private void Start()
+    {
+        //ChangeWeb(CreateGoogleTranslationUrl("that is ver nice"));
+    }
+    public string CreateUrl( string content)
 
-    public string CreateUrl(int web, string content)
     {
 
-        switch (web) {
+        switch (dictionarySelectionToggle.GetToggleIndex()) {
             case 0: return this.CreateGoogleTranslationUrl(content);
-            default: return string.Empty;
+            case 1: return this.CreateOxfordLearnerDictionaryUrl(content);
+
+            default: return this.CreateGoogleTranslationUrl(content);
         }
-       
+
     }
 
     private string CreateGoogleTranslationUrl(string content) {
@@ -26,10 +34,17 @@ public class WebViewPanelController : MonoBehaviour
         return url;
     }
 
+    private string CreateOxfordLearnerDictionaryUrl(string content) {
+        string url = string.Empty;
+        const string HEAD = "https://www.oxfordlearnersdictionaries.com/definition/english/wtf?q=";
+        url = HEAD + content.Replace(" ", "+");
+        return url;
+    }
+
     public void ChangeWeb(string url)
     {
-        this.thisPanel.SetActive(true);
-        this.thisPanel.transform.position = Camera.main.transform.forward * 0.15f;
+        this.webviewPanel.SetActive(true);
+        this.webviewPanel.transform.position = Camera.main.transform.forward * 0.25f;
 
         webViewBrowser.URLField.text = url;
         webViewBrowser.Navigate();
