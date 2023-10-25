@@ -22,7 +22,7 @@ public class DictionarySelectionToggle : MonoBehaviour
     {
         foreach (GameObject go in toggles)
         {
-            if (go.active) return toggles.IndexOf(go);
+            if (go.GetComponent<Interactable>().IsToggled) return toggles.IndexOf(go);
         }
         return -1;
     }

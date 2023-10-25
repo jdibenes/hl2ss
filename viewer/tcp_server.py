@@ -87,10 +87,11 @@ while(enable):
       
             connector.change_panel_content('Title', touched_content) 
         elif item_type == 'ref_num':
-            pass
+            connector.sent_ref_content('Title', touched_content)
         elif item_type == 'img':
-            pass
-        
+            connector.sent_img_content('Title', touched_content)
+
+   
     elif code[:5] == 'MODE2':
         x, y = code[6:-1].split(',') 
         x = float(x)
@@ -111,9 +112,9 @@ while(enable):
       
             connector.change_panel_content('Title', touched_content) 
         elif item_type == 'ref_num':
-            pass
+            connector.sent_ref_content('Title', touched_content)
         elif item_type == 'img':
-            pass
+            connector.sent_img_content('Title', touched_content)
 
     elif code[:5] == 'MODE3':
         if int(code[5:]) > 0:

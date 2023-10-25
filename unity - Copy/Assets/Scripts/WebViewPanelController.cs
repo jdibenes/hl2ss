@@ -36,15 +36,16 @@ public class WebViewPanelController : MonoBehaviour
 
     private string CreateOxfordLearnerDictionaryUrl(string content) {
         string url = string.Empty;
-        const string HEAD = "https://www.oxfordlearnersdictionaries.com/definition/english/wtf?q=";
+        const string HEAD = "https://www.oxfordlearnersdictionaries.com/definition/english/?q=";
         url = HEAD + content.Replace(" ", "+");
         return url;
     }
-
+   
     public void ChangeWeb(string url)
     {
         this.webviewPanel.SetActive(true);
-        this.webviewPanel.transform.position = Camera.main.transform.forward * 0.25f;
+        this.webviewPanel.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 0.35f;
+        this.webviewPanel.transform.rotation = new Quaternion(0.0f, Camera.main.transform.rotation.y, 0.0f, Camera.main.transform.rotation.w);
 
         webViewBrowser.URLField.text = url;
         webViewBrowser.Navigate();

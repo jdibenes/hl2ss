@@ -68,8 +68,11 @@ public class RemoteUnityScene : MonoBehaviour
 
             //case   8: ret = MSG_SetColor(data);          break;
             case   9: ret = SetPanelContent(data);          break;
+            case 21: ret = SetImageContent(data); break;
+            case 22: ret = SetRefContent(data); break;
+
             //case  10: ret = MSG_SetColor(data);          break;
-            case  11: ret = GetASingleItem(data);          break;
+            case 11: ret = GetASingleItem(data);          break;
             
             case 12: ret = SetPageItemMode(data);         break;
             case 13: ret = SetPageSize(data); break;
@@ -345,6 +348,54 @@ public class RemoteUnityScene : MonoBehaviour
             case 0: return this.SetOfflinePanelContent(data);
             case 1: return this.SetWebViewPanelContent(data);
         }
+        return 1;
+    }
+
+    uint SetImageContent(byte[] data)
+    {
+        if (data.Length < 4) { return 0; }
+        //TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        //scrip2.SendMessage("OK1");
+
+        string str;
+        str = System.Text.Encoding.UTF8.GetString(data);
+        //scrip2.SendMessage("ok2");
+
+        int startIndex = str.IndexOf("<CONTENT>");
+        int endIndex = str.IndexOf("<CONTENT>", startIndex);
+        string description = str.Substring(endIndex + 9);
+
+        string title = str.Substring(7, startIndex - 7);
+        //scrip2.SendMessage(title + description);
+        //DictionaryFunctionality script = GameObject.FindObjectOfType(typeof(DictionaryFunctionality)) as DictionaryFunctionality;
+        //script.ChangeText(title, description);
+        //TODO: do something
+        WebViewPanelController script = GameObject.FindObjectOfType(typeof(WebViewPanelController)) as WebViewPanelController;
+        script.ChangeWeb(description);
+        return 1;
+    }
+
+    uint SetRefContent(byte[] data)
+    {
+        if (data.Length < 4) { return 0; }
+        //TCPTestServer scrip2 = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        //scrip2.SendMessage("OK1");
+
+        string str;
+        str = System.Text.Encoding.UTF8.GetString(data);
+        //scrip2.SendMessage("ok2");
+
+        int startIndex = str.IndexOf("<CONTENT>");
+        int endIndex = str.IndexOf("<CONTENT>", startIndex);
+        string description = str.Substring(endIndex + 9);
+
+        string title = str.Substring(7, startIndex - 7);
+        //scrip2.SendMessage(title + description);
+        //DictionaryFunctionality script = GameObject.FindObjectOfType(typeof(DictionaryFunctionality)) as DictionaryFunctionality;
+        //script.ChangeText(title, description);
+        WebViewPanelController script = GameObject.FindObjectOfType(typeof(WebViewPanelController)) as WebViewPanelController;
+        script.ChangeWeb(description);
+
         return 1;
     }
     uint SetOfflinePanelContent(byte[] data) {
