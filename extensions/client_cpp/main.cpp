@@ -2,6 +2,7 @@
 #include <iostream>
 #include <opencv2/highgui.hpp>
 #include "hl2ss_lnm.h"
+#include "hl2ss_mt.h"
 
 //-----------------------------------------------------------------------------
 // Common
@@ -464,13 +465,140 @@ void test_umq(char const* host)
 }
 
 //-----------------------------------------------------------------------------
+// Multithreading Example
+//-----------------------------------------------------------------------------
+
+void test_mt(char const* host)
+{
+    // PV camera configuration
+    uint16_t pv_width = 640;
+    uint16_t pv_height = 360;
+    uint8_t pv_fps = 30;
+
+    // Buffer size in seconds
+    uint64_t buffer_size = 10;
+
+    // Initialize PV camera
+    hl2ss::lnm::start_subsystem_pv(host, hl2ss::stream_port::PERSONAL_VIDEO);
+
+    // Create OpenCV windows for visualization
+    std::string pv_name = hl2ss::get_port_name(hl2ss::stream_port::PERSONAL_VIDEO);
+    std::string lt_name = hl2ss::get_port_name(hl2ss::stream_port::RM_DEPTH_LONGTHROW);
+    std::string lt_depth_name = lt_name + "-depth";
+    std::string lt_ab_name = lt_name + "-ab";
+
+    cv::namedWindow(pv_name);
+    cv::namedWindow(lt_depth_name);
+    cv::namedWindow(lt_ab_name);
+
+    // Create PV and Depth clients
+    std::unique_ptr<hl2ss::rx_pv> client_pv = hl2ss::lnm::rx_pv(host, hl2ss::stream_port::PERSONAL_VIDEO, pv_width, pv_height, pv_fps);
+    std::unique_ptr<hl2ss::rx_rm_depth_longthrow> client_lt = hl2ss::lnm::rx_rm_depth_longthrow(host, hl2ss::stream_port::RM_DEPTH_LONGTHROW);
+
+    // Give PV and Depth client ownership to multithreaded handler
+    // This allows to receive data in a non-blocking manner and associate data from different streams
+    // Client must be in closed state
+    std::unique_ptr<hl2ss::mt::source> source_pv = std::make_unique<hl2ss::mt::source>(buffer_size*pv_fps, std::move(client_pv));
+    std::unique_ptr<hl2ss::mt::source> source_lt = std::make_unique<hl2ss::mt::source>(buffer_size*hl2ss::parameters_rm_depth_longthrow::FPS, std::move(client_lt));
+
+    // Start capture
+    source_pv->start();
+    source_lt->start();
+
+    // Initialize PV frame index for sequential capture
+    int64_t pv_frame_index = 0; 
+
+    // Capture data until stopped (ESC pressed)
+    for (;;)
+    {
+        // Check for errors (e.g, network error, decoding error, etc.)
+        // In this example we just re-throw the internal exception
+        std::exception error;
+        if (!source_pv->status(error)) { throw error; }
+        if (!source_lt->status(error)) { throw error; }
+
+        // Get PV frame by index
+        // Return value: 0 if frame retrieved successfully
+        int32_t pv_status; 
+        // Alternatively pass index -1 for most recent frame, -2 for second most recent frame, etc., will repeat/drop frames if necessary
+        std::shared_ptr<hl2ss::packet> data_pv = source_pv->get_packet(pv_frame_index, pv_status);
+
+        // wait value for cv::waitKey
+        int wait_key_ms = 1;
+
+        if (pv_status < 0) 
+        {
+            // Requested frame is too old and has been dropped from the buffer (data_pv is null)
+            // Advance to next frame
+            pv_frame_index++;
+        }
+        else if (pv_status == 0)
+        { 
+            // Frame succesfully retrieved (data_pv is not null)
+            // Advance to next frame
+            pv_frame_index++;
+
+            // Unpack PV image and show
+            uint8_t* pv_image;
+            hl2ss::pv_intrinsics* pv_intrinsics;
+            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, &pv_image, &pv_intrinsics);
+            cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
+            cv::imshow(pv_name, pv_mat);
+
+            // Get depth frame closest (in time) to the PV frame
+            // Search mode:
+            // NEAREST: return closest
+            // PAST: return closest with timestamp <= data_pv->timestamp
+            // FUTURE: return closest with timestamp >= data_pv->timestamp
+            int32_t search_mode = hl2ss::mt::search_mode::PREFER_NEAREST; 
+            // Return value: frame_index of the returned depth frame
+            int64_t lt_frame_index;
+            // Return value: status is 0 if depth frame was retrieved successfully, < 0 if too old, > 0 if not received yet
+            int32_t lt_status;
+            // Get depth frame
+            std::shared_ptr<hl2ss::packet> data_lt = source_lt->get_packet(data_pv->timestamp, search_mode, lt_frame_index, lt_status);
+
+            // Check if depth frame was retrieved successfully
+            if (data_lt)
+            {
+                // Unpack depth image and show
+                uint16_t* lt_depth;
+                uint16_t* lt_ab;
+                hl2ss::unpack_rm_depth_longthrow(data_lt->payload.get(), &lt_depth, &lt_ab);                
+                cv::Mat lt_depth_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_depth);
+                cv::Mat lt_ab_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_ab);
+                cv::imshow(lt_depth_name, lt_depth_mat * 8); // Scaled for visibility otherwise image will be too dark
+                cv::imshow(lt_ab_name, lt_ab_mat * 4); // Scaled for visibility, might overflow
+            }
+        }
+        else // pv_status > 0 
+        {
+            // Requested frame has not been received from the server yet (data_pv is null)
+            // Do not advance to next frame
+            // Wait 1 frame in ms
+            wait_key_ms = 1000 / pv_fps;
+        }
+
+        // Stop when ESC is pressed
+        if ((cv::waitKey(wait_key_ms) & 0xFF) == 27) { break; }
+    }
+
+    // Stop capture
+    source_pv->stop();
+    source_lt->stop();
+
+    // Stop PV camera
+    hl2ss::lnm::stop_subsystem_pv(host, hl2ss::stream_port::PERSONAL_VIDEO);
+}
+
+//-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
 
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 0;
+    int test_id = 20;
 
     try
     {
@@ -498,6 +626,7 @@ int main()
         case 17: test_vi(host); break; // OK
         case 18: test_umq(host); break; // OK
         case 19: test_extended_audio(host); break;
+        case 20: test_mt(host); break;
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }
