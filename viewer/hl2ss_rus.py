@@ -62,7 +62,17 @@ class command_buffer(hl2ss.umq_command_buffer):
     def set_panel_content(self,title, content):
         string = '<TITLE>' + title + '<CONTENT>' + content
         self.add(9, string.encode('utf-8'))
+
     
+    def sent_img_content(self,title, content):
+        string = '<TITLE>' + title + '<CONTENT>' + content
+        self.add(21, string.encode('utf-8'))
+    
+    def sent_ref_content(self,title, content):
+        string = '<TITLE>' + title + '<CONTENT>' + content
+        self.add(22, string.encode('utf-8'))
+ 
+
     def highlight_reference(self, xmin, ymin, xmax, ymax):
         self.add(10, struct.pack('<IIII', xmin, ymin, xmax, ymax))
 

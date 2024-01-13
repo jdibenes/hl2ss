@@ -97,7 +97,33 @@ class Connector:
         #self.texture_keys.append(key)
         
         print(f'Change the panel content with id {key}')
-    
+
+    def sent_img_content(self, title, content):
+        display_list = hl2ss_rus.command_buffer()
+        display_list.begin_display_list() # Begin command sequence
+        display_list.sent_img_content(title, content)
+        #display_list.set_target_mode(0) # Restore target mode
+        display_list.end_display_list() # End command sequence
+        self.ipc.push(display_list) # Send commands to server
+        results = self.ipc.pull(display_list) # Get results from server
+        key = results[0] # Get the quad id, created by the 3rd command in the list
+        #self.texture_keys.append(key)
+        
+        print(f'Change the panel content with id {key}')
+ 
+    def sent_ref_content(self, title, content):
+        display_list = hl2ss_rus.command_buffer()
+        display_list.begin_display_list() # Begin command sequence
+        display_list.sent_ref_content(title, content)
+        #display_list.set_target_mode(0) # Restore target mode
+        display_list.end_display_list() # End command sequence
+        self.ipc.push(display_list) # Send commands to server
+        results = self.ipc.pull(display_list) # Get results from server
+        key = results[0] # Get the quad id, created by the 3rd command in the list
+        #self.texture_keys.append(key)
+        
+        print(f'Change the panel content with id {key}')
+ 
     def set_page_size(self, mode, width, height):
         self.set_mode(mode)
         display_list = hl2ss_rus.command_buffer()
