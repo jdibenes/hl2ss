@@ -20,6 +20,7 @@ public class RemoteUnityScene : MonoBehaviour
 
     public int set_page_item_mode = 0; // 1 = left, 2 = right, 0 = nah
     public int content_mode = 1; // 0 = offline content, 1 = webview
+    public GameObject  controlPanelManager;
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
 

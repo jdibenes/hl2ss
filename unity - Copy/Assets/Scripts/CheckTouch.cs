@@ -3,11 +3,16 @@ using Microsoft.MixedReality.Toolkit.Utilities;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
+
 public class CheckTouch : MonoBehaviour, IMixedRealityTouchHandler
 {
     public AudioSource sound;
     public TCPTestServer script;
     public GameObject thisObject;
+    public GameObject MainController;
+    public MainControlPanelToggleManagement mainControlPanelToggleManagement;
+    public int mode = 0;
     void IMixedRealityTouchHandler.OnTouchCompleted(HandTrackingInputEventData eventData)
     {
         sound.Play();
@@ -18,11 +23,27 @@ public class CheckTouch : MonoBehaviour, IMixedRealityTouchHandler
         string check = "";
         Vector3 tmp = (relative + localScale);
         check = new Vector2(tmp.x, -tmp.y).ToString("F8");
+        if (mainControlPanelToggleManagement.GetToggleIndex() == 0)
+        {
+            if (this.thisObject.tag == "RightPlane")
 
-        if (this.thisObject.tag == "RightPlane")
-            script.SendMessage("MODE2" + check);
-        else script.SendMessage("MODE1" + check);
+                script.SendMessage("MODE2" + check);
+            else script.SendMessage("MODE1" + check);
+        }
+        else if (mainControlPanelToggleManagement.GetToggleIndex() == 1)
+        {
+            if (this.thisObject.tag == "RightPlane")
 
+                script.SendMessage("MODE7" + check);
+            else script.SendMessage("MODE6" + check);
+        } else if(mainControlPanelToggleManagement.GetToggleIndex() == 2)
+        {
+            if (this.thisObject.tag == "RightPlane")
+
+                script.SendMessage("MODE5" + check);
+            else script.SendMessage("MODE4" + check);
+        }
+      
         //string ptrName = eventData.Pointer.PointerName;
         Debug.Log($"Touch started from ");
     }
@@ -47,6 +68,8 @@ public class CheckTouch : MonoBehaviour, IMixedRealityTouchHandler
     */
     void Awake() {
         script = GameObject.FindObjectOfType(typeof(TCPTestServer)) as TCPTestServer;
+        mainControlPanelToggleManagement = GameObject.FindObjectOfType(typeof(MainControlPanelToggleManagement)) as MainControlPanelToggleManagement;
+
     }
     // Start is called before the first frame update
     void Start()

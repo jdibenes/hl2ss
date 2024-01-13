@@ -126,4 +126,10 @@ public class TCPTestServer : MonoBehaviour
             Debug.Log("Socket exception: " + socketException);
         }
     }
+    void OnDestroy()
+    {
+        Debug.Log("OnDestroy1");
+        tcpListener.Stop();
+
+    }
 }
