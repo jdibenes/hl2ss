@@ -149,7 +149,7 @@ A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.
     - Microphone    
     - Spatial Perception
     - Gaze Input
-5. The plugin also requires the perceptionSensorsExperimental and backgroundSpatialPerception capabilities, which are not available in the Publishing Settings capabilities list. You can extract the Editor folder (plugin zip file) into the Assets folder (in your Unity project) which contains a script (BuildPostProcessor.cs) that adds the capabilities automatically after building the project. Alternatively, you can manually edit the Package.appxmanifest after building. See [here](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) for an example.
+5. The plugin also requires the perceptionSensorsExperimental and backgroundSpatialPerception capabilities, which are not available in the Publishing Settings capabilities list. The Editor folder in the plugin zip file contains a script (BuildPostProcessor.cs) that adds the capabilities automatically after building the project. Just extract the Editor folder into the Assets folder of your Unity project. Alternatively, you can manually edit the Package.appxmanifest after building. See [here](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) for an example.
 
 **Remote Unity Scene**
 
