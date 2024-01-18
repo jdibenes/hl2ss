@@ -50,7 +50,7 @@ Before using the server software configure your HoloLens as follows:
 3. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
 4. Enable research mode: Refer to the Enabling Research Mode section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
 
-Please note that **enabling Research Mode on the HoloLens increases battery usage**.
+Please note that enabling Research Mode on the HoloLens increases battery usage.
 
 ## Installation (sideloading)
 
@@ -96,7 +96,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Spatial Mapping: [viewer/client_ipc_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_sm.py)
 - Scene Understanding: [viewer/client_ipc_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_su.py)
 - Voice Input: [viewer/client_ipc_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_vi.py)
-- Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py)
+- Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py) (Plugin Only)
 - Extended Eye Tracking: [viewer/client_stream_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_eet.py)
 - Extended Audio: [viewer/client_stream_extended_audio.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_audio.py)
 
