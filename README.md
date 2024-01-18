@@ -43,16 +43,13 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 
 **Technical Report** 
 
-Our [[Paper](https://arxiv.org/abs/2211.02648)] provides an overview of the code, features, and examples for the first released version of the application (1.0.11.0). For newer versions, please refer to the examples in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory.
-
+Our [paper](https://arxiv.org/abs/2211.02648) provides an overview of the code, features, and examples for the first released version of the application (1.0.11.0). For newer versions, please refer to the examples in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory. If hl2ss is useful for your research, please cite our report:
 ```
-@misc{dibene2022hololens,
-      title={HoloLens 2 Sensor Streaming}, 
-      author={Juan C. Dibene and Enrique Dunn},
-      year={2022},
-      eprint={2211.02648},
-      archivePrefix={arXiv},
-      primaryClass={cs.MM}
+@article{dibene2022hololens,
+  title={HoloLens 2 Sensor Streaming},
+  author={Dibene, Juan C and Dunn, Enrique},
+  journal={arXiv preprint arXiv:2211.02648},
+  year={2022}
 }
 ```
 
