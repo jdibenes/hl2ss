@@ -41,9 +41,10 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - [C++ client library](https://github.com/jdibenes/hl2ss/tree/main/extensions).
 - [MATLAB client (MEX)](https://github.com/jdibenes/hl2ss/tree/main/extensions).
 
-**Technical Report**
+**Technical Report** 
 
-[Paper](https://arxiv.org/abs/2211.02648)
+Our [[Paper](https://arxiv.org/abs/2211.02648)] provides an overview of the code, features, and examples for the first released version of the application (1.0.11.0). For newer versions, please refer to the examples in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory.
+
 ```
 @misc{dibene2022hololens,
       title={HoloLens 2 Sensor Streaming}, 
@@ -54,7 +55,6 @@ HoloLens 2 server software and Python client library for streaming sensor data v
       primaryClass={cs.MM}
 }
 ```
-
 
 ## Preparation
 
