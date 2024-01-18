@@ -45,30 +45,24 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 
 Before using the server software configure your HoloLens as follows:
 
-0. Update your HoloLens: Settings -> Update & Security -> Windows Update.
-1. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
-2. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
-3. Enable research mode: Refer to the Enabling Research Mode section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
+1. Update your HoloLens: Settings -> Update & Security -> Windows Update.
+2. Enable developer mode: Settings -> Update & Security -> For developers -> Use developer features.
+3. Enable device portal: Settings -> Update & Security -> For developers -> Device Portal.
+4. Enable research mode: Refer to the Enabling Research Mode section in [HoloLens Research Mode](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/research-mode).
 
 Please note that **enabling Research Mode on the HoloLens increases battery usage**.
 
 ## Installation (sideloading)
 
-The server application is distributed as a single appxbundle file and can be installed using one of the three following methods.
+The server application is distributed as a single appxbundle file and can be installed using one of the two following methods.
 
-**Method 1**
+**Method 1 (local)**
 
 1. On your HoloLens, open Microsoft Edge and navigate to this repository.
 2. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
 3. Open the appxbundle and tap Install.
 
-**Method 2**
-
-1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
-2. Go to the Device Portal (type the IP address of your HoloLens in the address bar of your preferred web browser) and upload the appxbundle to the HoloLens (System -> File explorer -> Downloads).
-3. On your HoloLens, open the File Explorer and locate the appxbundle. Tap the appxbundle file to open the installer and tap Install.
-
-**Method 3**
+**Method 2 (remote)**
 
 1. Download the [latest appxbundle](https://github.com/jdibenes/hl2ss/releases).
 2. Go to the Device Portal and navigate to Views -> Apps. Under Deploy apps, select Local Storage, click Browse, and select the appxbundle.
