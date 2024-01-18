@@ -1,6 +1,6 @@
 # HoloLens 2 Sensor Streaming
 
-HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data in real-time to a Linux machine for research purposes but also works on Windows and OS X. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
+HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data in real time over WiFi to a Linux machine for research purposes but also works on Windows and OS X. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
 
 **Supported interfaces**
 
@@ -22,8 +22,8 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Head Tracking
   - Eye Tracking
   - Hand Tracking
-- Spatial Mapping
-- Scene Understanding
+- Spatial Mapping (3D Meshes)
+- Scene Understanding (3D Meshes + Semantic labels for planar surfaces)
 - Voice Input
 - Extended Eye Tracking (30, 60, or 90 FPS)
 - Extended Audio (Microphone + Application audio, 2 channels @ 48000 Hz, 16-bit PCM, AAC encoded)
