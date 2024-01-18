@@ -112,6 +112,8 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 - [MMDetection](https://github.com/open-mmlab/mmdetection)
+- [scipy](https://scipy.org/) `pip install scipy`
+- [tqdm](https://github.com/tqdm/tqdm) `pip install tqdm`
 
 ## Unity plugin
 
