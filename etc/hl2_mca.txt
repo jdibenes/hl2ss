@@ -1,0 +1,12 @@
+# Microphone RAW (11 channels)
+#  0 ok (top left?)
+#  1 ok (top center?)
+#  2 ok (top right?)
+#  3 ok (bottom left?)
+#  4 ok (bottom right?)
+#  5 silent?
+#  6 silent?
+#  7 noise
+#  8 noise
+#  9 noise
+# 10 noise
