@@ -6,15 +6,19 @@
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.ExtendedExecution.h>
 #include <winrt/Windows.ApplicationModel.ExtendedExecution.Foreground.h>
+#include <winrt/Windows.Storage.h>
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::ApplicationModel;
 using namespace winrt::Windows::ApplicationModel::ExtendedExecution;
 using namespace winrt::Windows::ApplicationModel::ExtendedExecution::Foreground;
+using namespace winrt::Windows::Storage;
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
+
+static wchar_t const* g_flat_name = L"flat_mode.cfg";
 
 static ExtendedExecutionForegroundSession g_eefs = nullptr;
 static bool g_status = false;
@@ -48,4 +52,45 @@ void ExtendedExecution_Request()
 bool ExtendedExecution_Status()
 {
 	return g_status;
+}
+
+// OK
+void ExtendedExecution_SetFlatMode(bool flat)
+{
+	StorageFolder folder = ApplicationData::Current().LocalFolder();
+	winrt::hstring name{ g_flat_name };
+
+	try
+	{
+		if (flat)
+		{
+			folder.CreateFileAsync(name).get();
+		}
+		else
+		{
+			StorageFile file = folder.GetFileAsync(name).get();
+			file.DeleteAsync().get();
+		}
+	}
+	catch (...)
+	{
+	}
+}
+
+// OK
+bool ExtendedExecution_GetFlatMode()
+{
+	StorageFolder folder = ApplicationData::Current().LocalFolder();
+	winrt::hstring name{ g_flat_name };
+
+	try
+	{
+		folder.GetFileAsync(name).get();
+		return true;
+	}
+	catch (...)
+	{
+	}
+
+	return false;
 }
