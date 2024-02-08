@@ -26,6 +26,7 @@ client.set_pv_scene_mode(hl2ss.pv_capture_scene_mode.Auto);
 client.set_pv_video_temporal_denoising(hl2ss.pv_video_temporal_denoising_mode.Off);
 client.set_pv_white_balance_preset(hl2ss.pv_color_temperature_preset.Auto);
 client.set_pv_white_balance_value(hl2ss.pv_white_balance_value.Min);
+client.set_flat_mode(0)
 
 catch ME
     disp(ME.message);
