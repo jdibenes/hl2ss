@@ -34,6 +34,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 {
 	bool m_windowClosed = false;
 	bool m_init = false;
+	bool m_flat = false;
 
 	IFrameworkView CreateView()
 	{
@@ -56,6 +57,8 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 		InitializeSockets();
 		MFStartup(MF_VERSION);
+
+		m_flat = ExtendedExecution_GetFlatMode();
 	}
 
 	void Load(winrt::hstring const&)
@@ -72,9 +75,11 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 		if (m_init) { return; }
 
-#ifndef HL2SS_FLAT 
+		if (!m_flat)
+		{
 		HolographicSpace_Initialize();
-#endif
+		}
+
 		Locator_Initialize();
 		ResearchMode_Initialize();
 		SpatialInput_Initialize();
@@ -108,12 +113,13 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		{
 		window.Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
-#ifndef HL2SS_FLAT
+		if (!m_flat)
+		{
 		HolographicSpace_Update();
 		HolographicSpace_Clear();
 		// Draw
 		HolographicSpace_Present();
-#endif
+		}
 		}
 
 		CoreApplication::Exit();
