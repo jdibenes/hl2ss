@@ -1268,6 +1268,7 @@ uint8_t const SET_PV_EXPOSURE_PRIORITY_VIDEO  = 0x09;
 uint8_t const SET_PV_ISO_SPEED                = 0x0A;
 uint8_t const SET_PV_BACKLIGHT_COMPENSATION   = 0x0B;
 uint8_t const SET_PV_SCENE_MODE               = 0x0C;
+uint8_t const SET_FLAT_MODE                   = 0x0D;
 };
 
 ipc_rc::ipc_rc(char const* host, uint16_t port) : ipc(host, port)
@@ -1364,6 +1365,11 @@ void ipc_rc::set_pv_backlight_compensation(uint32_t state)
 void ipc_rc::set_pv_scene_mode(uint32_t mode)
 {
     send(cmd_ipc_rc::SET_PV_SCENE_MODE, {mode});
+}
+
+void ipc_rc::set_flat_mode(uint32_t mode)
+{
+    send(cmd_ipc_rc::SET_FLAT_MODE, {mode});
 }
 
 //------------------------------------------------------------------------------
