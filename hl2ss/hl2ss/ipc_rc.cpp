@@ -4,6 +4,7 @@
 #include "log.h"
 #include "holographic_space.h"
 #include "personal_video.h"
+#include "extended_execution.h"
 #include "timestamps.h"
 #include "nfo.h"
 
@@ -291,6 +292,22 @@ static void RC_MSG_SetPVSceneMode(SOCKET clientsocket)
 }
 
 // OK
+static void RC_MSG_SetFlatMode(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ExtendedExecution_SetFlatMode(mode != 0);
+}
+
+// OK
 static void RC_Dispatch(SOCKET clientsocket)
 {
     uint8_t state;
@@ -318,6 +335,7 @@ static void RC_Dispatch(SOCKET clientsocket)
     case 0x0A: RC_MSG_SetPVIsoSpeed(clientsocket);               break;
     case 0x0B: RC_MSG_SetPVBacklightCompensation(clientsocket);  break;
     case 0x0C: RC_MSG_SetPVSceneMode(clientsocket);              break;
+    case 0x0D: RC_MSG_SetFlatMode(clientsocket);                 break;
     default:
         RC_TransferError();
         return;
