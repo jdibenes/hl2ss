@@ -11,7 +11,6 @@ from pynput import keyboard
 import numpy as np
 import hl2ss
 import hl2ss_lnm
-import hl2ss_utilities
 import pyaudio
 import queue
 import threading
@@ -21,13 +20,14 @@ import threading
 # HoloLens address
 host = "192.168.1.7"
 
-# Channel (0-4)
-# 0 top left?
-# 1 top center?
-# 2 top right?
-# 3 bottom left?
-# 4 bottom right?
-channel = 4
+# Channel
+# Options:
+# hl2ss.Parameters_MICROPHONE.ARRAY_TOP_LEFT
+# hl2ss.Parameters_MICROPHONE.ARRAY_TOP_CENTER
+# hl2ss.Parameters_MICROPHONE.ARRAY_TOP_RIGHT
+# hl2ss.Parameters_MICROPHONE.ARRAY_BOTTOM_LEFT
+# hl2ss.Parameters_MICROPHONE.ARRAY_BOTTOM_RIGHT
+channel = hl2ss.Parameters_MICROPHONE.ARRAY_TOP_LEFT
 
 #------------------------------------------------------------------------------
 
