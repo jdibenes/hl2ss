@@ -6,6 +6,12 @@
 #include "ipc_sc.h"
 #include "log.h"
 
+#include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.ApplicationModel.Core.h>
+
+using namespace winrt::Windows::UI::Core;
+using namespace winrt::Windows::ApplicationModel::Core;
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -51,12 +57,14 @@ static void MC_SendSample(IMFSample* pSample, void* param)
 // OK
 static void MC_Shoutcast(SOCKET clientsocket)
 {
-	uint32_t const channels   = 2;
 	uint32_t const samplerate = 48000;
 	
 	CustomMediaSink* pSink; // Release
 	IMFSinkWriter* pSinkWriter; // Release
 	HANDLE event_client; // CloseHandle
+	bool raw;
+	uint8_t channels;
+	AudioSubtype subtype;
 	AACFormat format;
 	HookCallbackSocket user;
 	DWORD dwAudioIndex;
@@ -65,8 +73,21 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	ok = ReceiveAACFormat_Profile(clientsocket, format);
 	if (!ok) { return; }
 
-	format.channels   = channels;
+	raw = (format.profile == AACProfile::AACProfile_None) && (format.level == AACLevel::AACLevel_L5);
+
+	if (raw) { channels = 5; subtype = AudioSubtype::AudioSubtype_F32; }
+	else     { channels = 2; subtype = AudioSubtype::AudioSubtype_S16; }
+
+	format.channels = channels;
 	format.samplerate = samplerate;
+
+	g_microphoneCapture = winrt::make_self<MicrophoneCapture>();
+	g_microphoneCapture->Initialize(raw);
+
+	CoreApplication::Views().GetAt(0).Dispatcher().RunAsync(CoreDispatcherPriority::High, [=]() { g_microphoneCapture->Activate(); }).get();
+	
+	g_microphoneCapture->WaitActivate(INFINITE);
+	if (!g_microphoneCapture->Status()) { return; }
 
 	event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
 
@@ -74,7 +95,7 @@ static void MC_Shoutcast(SOCKET clientsocket)
 	user.clientevent  = event_client;
 	user.format       = &format;
 
-	CreateSinkWriterAudio(&pSink, &pSinkWriter, &dwAudioIndex, AudioSubtype::AudioSubtype_S16, format, MC_SendSample, &user);
+	CreateSinkWriterAudio(&pSink, &pSinkWriter, &dwAudioIndex, subtype, format, MC_SendSample, &user);
 
 	g_microphoneCapture->Start();
 	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(event_client, 0) == WAIT_TIMEOUT);
@@ -93,8 +114,6 @@ static DWORD WINAPI MC_EntryPoint(void*)
 {
 	SOCKET listensocket; // closesocket
 	SOCKET clientsocket; // closesocket
-
-	g_microphoneCapture->WaitActivate(INFINITE);
 
 	listensocket = CreateSocket(PORT_NAME_MC);
 
@@ -127,9 +146,6 @@ static DWORD WINAPI MC_EntryPoint(void*)
 // OK
 void MC_Initialize()
 {
-	g_microphoneCapture = winrt::make_self<MicrophoneCapture>();
-	g_microphoneCapture->Initialize();
-
 	g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
 	g_thread = CreateThread(NULL, 0, MC_EntryPoint, NULL, 0, NULL);
 }

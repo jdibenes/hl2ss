@@ -480,7 +480,7 @@ public:
         outputs[0] = std::move(o);
     }
 
-    void pack_microphone(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint8_t profile, matlab::mex::ArgumentList outputs)
+    void pack_microphone(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint8_t profile, uint8_t level, matlab::mex::ArgumentList outputs)
     {
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "audio" });
 
@@ -494,11 +494,15 @@ public:
         {
         if (profile != hl2ss::audio_profile::RAW)
         {
-        o[0]["audio"]       = unpack_payload<float>(  packet->payload.get(), 0, packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS, packet->sz_payload / (sizeof(float) * hl2ss::parameters_microphone::CHANNELS) });
+        o[0]["audio"]       = unpack_payload<float>(  packet->payload.get(), 0, packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS,       packet->sz_payload / (sizeof(float)   * hl2ss::parameters_microphone::CHANNELS) });
+        }
+        else if (level == hl2ss::aac_level::L5)
+        {
+        o[0]["audio"]       = to_typed_array<float>(  packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::ARRAY_CHANNELS, packet->sz_payload / (sizeof(float)   * hl2ss::parameters_microphone::ARRAY_CHANNELS) });
         }
         else
         {
-        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS, packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_microphone::CHANNELS) });
+        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS,       packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_microphone::CHANNELS) });
         }
         }
         }
@@ -688,7 +692,7 @@ public:
         std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
         hl2ss::rx_microphone const* p_rx = source->get_rx<hl2ss::rx_microphone>();
 
-        pack_microphone(frame_index, status, packet.get(), p_rx->profile, outputs);        
+        pack_microphone(frame_index, status, packet.get(), p_rx->profile, p_rx->level, outputs);
     }
 
     void get_packet_si(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -988,6 +992,11 @@ public:
         {
         uint32_t value = get_argument<uint32_t>(inputs);
         ipc_rc->set_pv_white_balance_value(value);
+        }
+        else if (f == "set_flat_mode")
+        {
+        uint32_t value = get_argument<uint32_t>(inputs);
+        ipc_rc->set_flat_mode(value);
         }
         else
         {

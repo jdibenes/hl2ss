@@ -17,7 +17,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Gyroscope (deg/s)
   - Magnetometer
 - Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
-- Microphone (2 channels @ 48000 Hz, 16-bit PCM, AAC encoded)
+- Microphone (2 channels @ 48000 Hz, 16-bit PCM, AAC encoded or 5 channels @ 48000 Hz, 32-bit Float)
 - Spatial Input (30 Hz)
   - Head Tracking
   - Eye Tracking
@@ -38,6 +38,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Client can configure the focus, white balance, and exposure of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
 - Client can send messages to a Unity application using the plugin.
+- Server application can run in background (alongside other applications) when running in flat mode.
 - [C++ client library](https://github.com/jdibenes/hl2ss/tree/main/extensions).
 - [MATLAB client (MEX)](https://github.com/jdibenes/hl2ss/tree/main/extensions).
 
@@ -200,6 +201,7 @@ If you wish to create the server application appxbundle, right click the hl2ss p
 - Multiple streams can be active at the same time but only one client per stream is allowed.
 - Occasionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
 - The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
+- Spatial Input is not supported in flat mode.
 
 ## References
 

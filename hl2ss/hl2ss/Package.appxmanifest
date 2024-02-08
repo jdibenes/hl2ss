@@ -9,7 +9,7 @@
   <Identity
     Name="eaaf3af3-1402-4e5b-b6a1-5d0fbb7c1ba8"
     Publisher="CN=jcds"
-    Version="1.0.26.0" />
+    Version="1.0.27.0" />
   <mp:PhoneIdentity PhoneProductId="eaaf3af3-1402-4e5b-b6a1-5d0fbb7c1ba8" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
   <Properties>
     <DisplayName>hl2ss</DisplayName>

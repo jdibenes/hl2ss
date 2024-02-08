@@ -221,6 +221,13 @@ class Parameters_RM_IMU_MAGNETOMETER:
 
 # Microphone Parameters
 class Parameters_MICROPHONE:
+    ARRAY_CHANNELS     = 5
+    ARRAY_TOP_LEFT     = 0
+    ARRAY_TOP_CENTER   = 1
+    ARRAY_TOP_RIGHT    = 2
+    ARRAY_BOTTOM_LEFT  = 3
+    ARRAY_BOTTOM_RIGHT = 4
+
     SAMPLE_RATE    = 48000
     CHANNELS       = 2
     PERIOD         = 1 / SAMPLE_RATE
@@ -1788,6 +1795,7 @@ class ipc_rc(_context_manager):
     _CMD_SET_PV_ISO_SPEED = 0x0A
     _CMD_SET_PV_BACKLIGHT_COMPENSATION = 0x0B
     _CMD_SET_PV_SCENE_MODE = 0x0C
+    _CMD_SET_FLAT_MODE = 0x0D
 
     def __init__(self, host, port):
         self.host = host
@@ -1861,6 +1869,10 @@ class ipc_rc(_context_manager):
 
     def set_pv_scene_mode(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_SCENE_MODE, mode)
+        self._client.sendall(command)
+
+    def set_flat_mode(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_FLAT_MODE, mode)
         self._client.sendall(command)
 
 

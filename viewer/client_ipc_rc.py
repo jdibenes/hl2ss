@@ -13,6 +13,12 @@ import hl2ss_lnm
 # HoloLens address
 host = '192.168.1.7'
 
+# Run hl2ss in flat mode
+# Allows running hl2ss alongside other applications (including holographics)
+# Requires restarting hl2ss on the HoloLens
+# Spatial Input not supported in flat mode
+flat_mode = False
+
 # Display marker state
 # Marks the FOV of the PV camera in the display
 marker_state = hl2ss.HS_MarkerState.Disable
@@ -87,5 +93,6 @@ client.set_pv_exposure_priority_video(exposure_priority_video)
 client.set_pv_iso_speed(iso_speed_mode, iso_speed_value)
 client.set_pv_backlight_compensation(backlight_compensation_state)
 client.set_pv_scene_mode(scene_mode)
+client.set_flat_mode(flat_mode)
 
 client.close()

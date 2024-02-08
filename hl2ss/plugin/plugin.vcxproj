@@ -284,6 +284,7 @@
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
     <ClCompile Include="..\hl2ss\custom_video_effect.cpp" />
     <ClCompile Include="..\hl2ss\extended_audio.cpp" />
+    <ClCompile Include="..\hl2ss\extended_execution.cpp" />
     <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp" />
     <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
@@ -359,6 +360,7 @@
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
     <ClInclude Include="..\hl2ss\custom_video_effect.h" />
     <ClInclude Include="..\hl2ss\extended_audio.h" />
+    <ClInclude Include="..\hl2ss\extended_execution.h" />
     <ClInclude Include="..\hl2ss\extended_eye_tracking.h" />
     <ClInclude Include="..\hl2ss\ipc_rc.h" />
     <ClInclude Include="..\hl2ss\ipc_sc.h" />

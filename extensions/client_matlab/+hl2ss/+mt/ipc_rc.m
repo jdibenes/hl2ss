@@ -78,5 +78,9 @@ methods
     function set_pv_white_balance_value(self, value)
         self.module('ipc_call', self.port, 'set_pv_white_balance_value', uint32(value));
     end
+
+    function set_flat_mode(self, value)
+        self.module('ipc_call', self.port, 'set_flat_mode', uint32(value));
+    end
 end
 end

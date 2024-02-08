@@ -1,6 +1,7 @@
 
 #include <mfapi.h>
 #include "microphone_capture.h"
+#include "neon.h"
 #include "timestamps.h"
 #include "types.h"
 
@@ -16,7 +17,9 @@ MicrophoneCapture::MicrophoneCapture() :
 	m_audioCaptureClient(nullptr),
 	m_wfx(nullptr),
 	m_eventActivate(NULL),
-	m_eventData(NULL)
+	m_eventData(NULL),
+	m_raw(false),
+	m_status(false)
 {
 }
 
@@ -31,26 +34,27 @@ MicrophoneCapture::~MicrophoneCapture()
 }
 
 // OK
-bool MicrophoneCapture::Initialize()
+bool MicrophoneCapture::Initialize(bool raw)
+{
+	m_raw = raw;
+
+	m_eventActivate = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+	return m_eventActivate;
+}
+
+// OK
+void MicrophoneCapture::Activate()
 {
 	winrt::com_ptr<IActivateAudioInterfaceAsyncOperation> asyncOp;
 	HRESULT hr;
 
-	m_eventActivate = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-	if (!m_eventActivate) { return false; }
-
 	hr = ActivateAudioInterfaceAsync(MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default).c_str(), __uuidof(IAudioClient3), nullptr, this, asyncOp.put());
-	if (FAILED(hr)) { return false; }
-
-	return true;
+	if (FAILED(hr)) { SetEvent(m_eventActivate); }	
 }
 
 // OK
-HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperation* operation)
+HRESULT MicrophoneCapture::Configure(IActivateAudioInterfaceAsyncOperation* operation)
 {
-	WORD const bitspersample = 16;
-	DWORD const samplerate = 48000;
-	WORD const channels = 2;
 	INT64 const buffer_length = 8 * HNS_BASE;
 	UINT32 defaultPeriodInFrames;
 	UINT32 fundamentalPeriodInFrames;
@@ -58,10 +62,10 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 	UINT32 maxPeriodInFrames;
 
 	winrt::com_ptr<IUnknown> punkAudioInterface;
+	AudioClientProperties acp;
 	HRESULT activateStatus;
 	HRESULT hr;
 	WAVEFORMATEXTENSIBLE* wfe;
-	BOOL ok;
 
 	hr = operation->GetActivateResult(&activateStatus, punkAudioInterface.put());
 	if (FAILED(hr)) { return hr; }
@@ -69,19 +73,30 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 
 	m_audioClient = punkAudioInterface.as<IAudioClient3>();
 
+	if (m_raw)
+	{
+	acp.cbSize = sizeof(AudioClientProperties);
+	acp.eCategory = AudioCategory_Media;
+	acp.Options = AUDCLNT_STREAMOPTIONS_RAW;
+	acp.bIsOffload = FALSE;
+	hr = m_audioClient->SetClientProperties(&acp);
+	if (FAILED(hr)) { return hr; }
+	}
+
 	hr = m_audioClient->GetMixFormat(&m_wfx);
 	if (FAILED(hr)) { return hr; }
 
 	wfe = reinterpret_cast<WAVEFORMATEXTENSIBLE*>(m_wfx);
 
+	if (!m_raw)
+	{
 	wfe->SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
-	wfe->Format.wBitsPerSample = bitspersample;
-	wfe->Format.nSamplesPerSec = samplerate;
-	wfe->Format.nChannels = channels;
+	wfe->Format.wBitsPerSample = 16;
 	wfe->Format.nBlockAlign = wfe->Format.nChannels * (wfe->Format.wBitsPerSample / 8);
 	wfe->Format.nAvgBytesPerSec = wfe->Format.nBlockAlign * wfe->Format.nSamplesPerSec;
 	wfe->Samples.wValidBitsPerSample = wfe->Format.wBitsPerSample;
-	
+	}
+
 	hr = m_audioClient->GetSharedModeEnginePeriod(m_wfx, &defaultPeriodInFrames, &fundamentalPeriodInFrames, &minPeriodInFrames, &maxPeriodInFrames);
 	if (FAILED(hr)) { return hr; }
 
@@ -96,9 +111,15 @@ HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperati
 
 	m_audioCaptureClient.capture(m_audioClient, &IAudioClient::GetService);
 
-	ok = SetEvent(m_eventActivate);
-	if (!ok) { return E_FAIL; }
+	return S_OK;
+}
 
+// OK
+HRESULT MicrophoneCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperation* operation)
+{
+	HRESULT hr = Configure(operation);
+	if (SUCCEEDED(hr)) { m_status = true; }
+	SetEvent(m_eventActivate);
 	return S_OK;
 }
 
@@ -112,6 +133,12 @@ bool MicrophoneCapture::WaitActivate(DWORD milliseconds)
 void MicrophoneCapture::Start()
 {
 	m_audioClient->Start();
+}
+
+// OK
+bool MicrophoneCapture::Status()
+{
+	return m_status;
 }
 
 // OK
@@ -132,6 +159,7 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 	UINT32 framesAvailable; // ReleaseBuffer
 	BYTE* data;
 	DWORD dwCaptureFlags;
+	int data_size;
 	int bytes;
 	BYTE* pDst;
 	UINT64 dps;
@@ -141,12 +169,13 @@ void MicrophoneCapture::WriteSample(IMFSinkWriter* pSinkWriter, DWORD dwAudioInd
 
 	while (m_audioCaptureClient->GetBuffer(&data, &framesAvailable, &dwCaptureFlags, &dps, &qpc) == S_OK)
 	{
-	bytes = framesAvailable * m_wfx->nBlockAlign;
+	data_size = framesAvailable * m_wfx->nBlockAlign;
+	bytes = m_raw ? (framesAvailable * 5 * sizeof(float)) : data_size;
 
 	MFCreateMemoryBuffer(bytes, &pBuffer);
 
 	pBuffer->Lock(&pDst, NULL, NULL);
-	if (dwCaptureFlags & AUDCLNT_BUFFERFLAGS_SILENT) { memset(pDst, 0, bytes); } else { memcpy(pDst, data, bytes); }
+	if (dwCaptureFlags & AUDCLNT_BUFFERFLAGS_SILENT) { memset(pDst, 0, bytes); } else if (m_raw) { Neon_F32CropAudio11to5((float*)data, data_size / sizeof(float), (float*)pDst); } else { memcpy(pDst, data, bytes); }
 	pBuffer->Unlock();
 	pBuffer->SetCurrentLength(bytes);
 

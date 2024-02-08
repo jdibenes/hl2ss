@@ -129,3 +129,66 @@ void Neon_F32ToS16(float const* in, int32_t elements, s16* out)
 	out += 16;
 	}
 }
+
+// OK
+void Neon_F32CropAudio11to5(float const* in, int32_t elements, float *out)
+{
+	for (int i = 0; i < (elements / 4); ++i)
+	{
+	float32x4_t f = vld1q_f32(in);
+	switch (i % 11)
+	{
+	case 0:
+		out[0] = f.n128_f32[0];
+		out[1] = f.n128_f32[1];
+		out[2] = f.n128_f32[2];
+		out[3] = f.n128_f32[3];
+		out += 4;
+		break;
+	case 1:
+		out[0] = f.n128_f32[0];
+		out += 1;
+		break;
+	case 2:
+		out[0] = f.n128_f32[3];
+		out += 1;
+		break;
+	case 3:
+		out[0] = f.n128_f32[0];
+		out[1] = f.n128_f32[1];
+		out[2] = f.n128_f32[2];
+		out[3] = f.n128_f32[3];
+		out += 4;
+		break;
+	case 4:
+		break;
+	case 5:
+		out[0] = f.n128_f32[2];
+		out[1] = f.n128_f32[3];
+		out += 2;
+		break;
+	case 6:
+		out[0] = f.n128_f32[0];
+		out[1] = f.n128_f32[1];
+		out[2] = f.n128_f32[2];
+		out += 3;
+		break;
+	case 7:
+		break;
+	case 8:
+		out[0] = f.n128_f32[1];
+		out[1] = f.n128_f32[2];
+		out[2] = f.n128_f32[3];
+		out += 3;
+		break;
+	case 9:
+		out[0] = f.n128_f32[0];
+		out[1] = f.n128_f32[1];
+		out += 2;
+		break;
+	case 10:
+		break;
+	}
+	in += 4;
+	}
+}
