@@ -244,6 +244,13 @@ uint16_t const BATCH_SIZE = 11;
 
 namespace parameters_microphone
 {
+uint8_t const ARRAY_CHANNELS     = 5;
+uint8_t const ARRAY_TOP_LEFT     = 0;
+uint8_t const ARRAY_TOP_CENTER   = 1;
+uint8_t const ARRAY_TOP_RIGHT    = 2;
+uint8_t const ARRAY_BOTTOM_LEFT  = 3;
+uint8_t const ARRAY_BOTTOM_RIGHT = 4;
+
 uint32_t const SAMPLE_RATE    = 48000;
 uint8_t  const CHANNELS       = 2;
 uint16_t const GROUP_SIZE_RAW = 768;
@@ -954,6 +961,7 @@ public:
     void set_pv_iso_speed(uint32_t mode, uint32_t value);
     void set_pv_backlight_compensation(uint32_t state);
     void set_pv_scene_mode(uint32_t mode);
+    void set_flat_mode(uint32_t mode);
 };
 
 //------------------------------------------------------------------------------
