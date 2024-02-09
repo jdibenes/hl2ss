@@ -61,8 +61,7 @@ client.open()
 
 while (enable): 
     data = client.get_next_packet()
-    samples = np.frombuffer(data.payload, dtype=np.float32)
-    audio = samples[channel::5].copy()
+    audio = data.payload[0, channel::hl2ss.Parameters_MICROPHONE.ARRAY_CHANNELS]
     pcmqueue.put(audio.tobytes())
 
 client.close()
