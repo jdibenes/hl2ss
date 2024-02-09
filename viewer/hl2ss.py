@@ -1141,15 +1141,18 @@ class _decode_microphone:
 
 
 class _unpack_microphone:
+    def __init__(self, level):
+        self.level = level
+
     def create(self):
-        pass
+        self.dtype = np.float32 if (self.level == AACLevel.L5) else np.int16
 
     def decode(self, payload):
-        return np.frombuffer(payload, dtype=np.int16).reshape((1, -1))
+        return np.frombuffer(payload, dtype=self.dtype).reshape((1, -1))
 
 
-def decode_microphone(profile):
-    return _unpack_microphone() if (profile == AudioProfile.RAW) else _decode_microphone(profile)
+def decode_microphone(profile, level):
+    return _unpack_microphone(level) if (profile == AudioProfile.RAW) else _decode_microphone(profile)
 
 
 #------------------------------------------------------------------------------
@@ -1407,7 +1410,7 @@ class rx_decoded_pv(rx_pv):
 class rx_decoded_microphone(rx_microphone):
     def __init__(self, host, port, chunk, profile, level):
         super().__init__(host, port, chunk, profile, level)
-        self._codec = decode_microphone(profile)
+        self._codec = decode_microphone(profile, level)
         
     def open(self):
         self._codec.create()
@@ -1425,7 +1428,7 @@ class rx_decoded_microphone(rx_microphone):
 class rx_decoded_extended_audio(rx_extended_audio):
     def __init__(self, host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
         super().__init__(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
-        self._codec = decode_microphone(profile)
+        self._codec = decode_microphone(profile, None)
         
     def open(self):
         self._codec.create()
