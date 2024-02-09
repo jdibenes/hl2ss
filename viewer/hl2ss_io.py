@@ -555,13 +555,16 @@ class _rd_decoded(_rd):
         self._codec = hl2ss.decode_pv(self.profile)
 
     def __set_codec_microphone(self):
-        self._codec = hl2ss.decode_microphone(self.profile)
+        self._codec = hl2ss.decode_microphone(self.profile, self.level)
 
     def __set_codec_si(self):
         pass
 
     def __set_codec_eet(self):
         pass
+
+    def __set_codec_extended_audio(self):
+        self._codec = hl2ss.decode_microphone(self.profile, None)
 
     def __create_codec_rm_vlc(self):
         self._codec.create()
@@ -630,7 +633,7 @@ class _rd_decoded(_rd):
         hl2ss.StreamPort.MICROPHONE           : (__set_codec_microphone,         __create_codec_microphone,         __decode_microphone),
         hl2ss.StreamPort.SPATIAL_INPUT        : (__set_codec_si,                 __create_codec_si,                 __decode_si),
         hl2ss.StreamPort.EXTENDED_EYE_TRACKER : (__set_codec_eet,                __create_codec_eet,                __decode_eet),
-        hl2ss.StreamPort.EXTENDED_AUDIO       : (__set_codec_microphone,         __create_codec_microphone,         __decode_microphone),
+        hl2ss.StreamPort.EXTENDED_AUDIO       : (__set_codec_extended_audio,     __create_codec_microphone,         __decode_microphone),
     }
 
     def __build(self):
