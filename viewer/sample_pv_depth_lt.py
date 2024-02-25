@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # Calibration data will be downloaded if it's not in the calibration folder
     calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
     
-    uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
+    uv2xy = calibration_lt.uv2xy #hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
 
     xy1_o = xy1[:-1, :-1, :]
@@ -106,7 +106,7 @@ if __name__ == '__main__':
             continue
         
         # Preprocess frames ---------------------------------------------------
-        depth = hl2ss_3dcv.rm_depth_undistort(data_lt.payload.depth, calibration_lt.undistort_map)
+        depth = data_lt.payload.depth #hl2ss_3dcv.rm_depth_undistort(data_lt.payload.depth, calibration_lt.undistort_map)
         z     = hl2ss_3dcv.rm_depth_normalize(depth, scale)
         color = data_pv.payload.image
 
