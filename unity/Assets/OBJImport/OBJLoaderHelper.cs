@@ -80,6 +80,11 @@ namespace Dummiesman
             return new Material(Shader.Find("Standard (Specular setup)"));
         }
 
+        public static Material CreateVertexColorMaterial()
+        {
+            return new Material(Shader.Find("Custom/VertexColor"));
+        }
+
         public static Vector3 VectorFromStrArray(string[] cmps)
         {
             float x = FastFloatParse(cmps[1]);

@@ -41,6 +41,9 @@ namespace Dummiesman
         internal List<Vector3> Vertices = new List<Vector3>();
         internal List<Vector3> Normals = new List<Vector3>();
         internal List<Vector2> UVs = new List<Vector2>();
+        internal List<Color> Colors = new List<Color>();
+
+        public bool EnableColors = false;
 
         //materials, accessed by objobjectbuilder
         internal Dictionary<string, Material> Materials;
@@ -156,6 +159,15 @@ namespace Dummiesman
 				
 				if (buffer.Is("v")) {
 					Vertices.Add(buffer.ReadVector());
+                    Vector3 color;
+                    if (buffer.ReadVectorIfAvailable(out color))
+                    {
+                        Colors.Add(new Color(Mathf.Clamp(color.x, 16.0f/255.0f, 235.0f/255.0f), Mathf.Clamp(color.y, 16.0f/255.0f, 235.0f/255.0f), Mathf.Clamp(color.z, 16.0f/255.0f, 235.0f/255.0f)));
+                    }
+                    else
+                    {
+                        Colors.Add(Color.white);
+                    }
 					continue;
 				}
 

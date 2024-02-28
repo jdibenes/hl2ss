@@ -103,6 +103,22 @@ namespace Dummiesman {
 			return new Vector3(x, y, z);
 		}
 
+		public bool ReadVectorIfAvailable(out Vector3 v)
+		{
+			v = new Vector3();
+			bool newLinePassed;
+			this.SkipWhitespaces(out newLinePassed);
+			if (newLinePassed) { return false; }
+			v.x = this.ReadFloat();
+			this.SkipWhitespaces(out newLinePassed);
+			if (newLinePassed) { return false; }
+			v.y = this.ReadFloat();
+			this.SkipWhitespaces(out newLinePassed);
+			if (newLinePassed) { return false; }
+			v.z = this.ReadFloat();
+			return true;
+		}
+
 		public int ReadInt() {
 			int result = 0;
 			bool isNegative = this.currentChar == '-';

@@ -331,7 +331,9 @@ public class RemoteUnityScene : MonoBehaviour
     uint MSG_LoadObj(byte[] data)
     {
         var stream = new MemoryStream(data);
-        var go = new OBJLoader().Load(stream);
+        var loader = new OBJLoader();
+        loader.EnableColors = true;
+        var go = loader.Load(stream);
 
         return AddGameObject(go);
     }
