@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using Microsoft.MixedReality.Toolkit.Audio;
+using Dummiesman;
 
 public class RemoteUnityScene : MonoBehaviour
 {
@@ -54,8 +55,8 @@ public class RemoteUnityScene : MonoBehaviour
         case   5: ret = MSG_SetTexture(data);        break;
         case   6: ret = MSG_CreateText(data);        break;
         case   7: ret = MSG_SetText(data);           break;
-        case   8: ret = MSG_Say(data);               break; 
-
+        case   8: ret = MSG_Say(data);               break;
+        case  15: ret = MSG_LoadObj(data);           break;
         case  16: ret = MSG_Remove(data);            break;
         case  17: ret = MSG_RemoveAll(data);         break;
         case  18: ret = MSG_BeginDisplayList(data);  break;
@@ -324,5 +325,14 @@ public class RemoteUnityScene : MonoBehaviour
         try { str = System.Text.Encoding.UTF8.GetString(data); } catch { return 0; }
         m_tts.GetComponent<TextToSpeech>().StartSpeaking(str);
         return 1;
+    }
+
+    // OK
+    uint MSG_LoadObj(byte[] data)
+    {
+        var stream = new MemoryStream(data);
+        var go = new OBJLoader().Load(stream);
+
+        return AddGameObject(go);
     }
 }
