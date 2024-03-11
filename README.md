@@ -177,6 +177,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Create text: creates a TextMeshPro object.
 - Set text: sets the text, font size and color of a TextMeshPro object.
 - Text to speech: upload text.
+- Load OBJ: upload mesh in OBJ format.
 - Remove: destroy game object.
 - Remove all: destroy all game objects created by the plugin.
 
