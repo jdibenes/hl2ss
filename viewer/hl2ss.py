@@ -1107,13 +1107,27 @@ class _unpack_pv:
         'nv12'  : None
     }
 
+    _resolution = {
+        get_video_stride(1952)*1100 : (1952, 1100, get_video_stride(1952)),
+        get_video_stride(1504)*846  : (1504,  846, get_video_stride(1504)),
+        get_video_stride(1920)*1080 : (1920, 1080, get_video_stride(1920)),
+        get_video_stride(1280)*720  : (1280,  720, get_video_stride(1280)),
+        get_video_stride(640)*360   : ( 640,  360, get_video_stride( 640)),
+        get_video_stride(760)*428   : ( 760,  428, get_video_stride( 760)),
+        get_video_stride(960)*540   : ( 960,  540, get_video_stride( 960)),
+        get_video_stride(1128)*636  : (1128,  636, get_video_stride(1128)),
+        get_video_stride(424)*240   : ( 424,  240, get_video_stride( 424)),
+        get_video_stride(500)*282   : ( 500,  282, get_video_stride( 500))
+    }
+
     def create(self, width, height):
         self.width = width
         self.height = height
         self.stride = get_video_stride(width)
 
     def decode(self, payload, format):
-        image = np.frombuffer(payload, dtype=np.uint8).reshape((int(self.height*3/2), self.stride))[:, :self.width]
+        self.width, self.height, self.stride = _unpack_pv._resolution[(len(payload) * 2) // 3]
+        image = np.frombuffer(payload, dtype=np.uint8).reshape(((self.height*3) //2, self.stride))[:, :self.width]
         sf = _unpack_pv._cv2_nv12_format[format]
         return image if (sf is None) else cv2.cvtColor(image, sf)
 
