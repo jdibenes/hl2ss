@@ -299,7 +299,7 @@ void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vecto
     }
 }
 
-void create_configuration_for_mrc_video(std::vector<uint8_t>& sc, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
+void create_configuration_for_mrc_video(std::vector<uint8_t>& sc, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, bool shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
 {
     push_u8(sc, enable_mrc);
     push_u8(sc, hologram_composition);
@@ -307,6 +307,7 @@ void create_configuration_for_mrc_video(std::vector<uint8_t>& sc, bool enable_mr
     push_u8(sc, video_stabilization);
     push_u8(sc, blank_protected);
     push_u8(sc, show_mesh);
+    push_u8(sc, shared);
     push_float(sc, global_opacity);
     push_float(sc, output_width);
     push_float(sc, output_height);
@@ -408,13 +409,13 @@ uint8_t const STOP   = 0x08;
 uint8_t const MODE_3 = 0x03;
 };
 
-void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
+void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, bool shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
 {
     std::vector<uint8_t> sc;
     client c;
 
     create_configuration_for_pv_mode_2(sc, pv_control::START | pv_control::MODE_3, 1920, 1080, 30);
-    create_configuration_for_mrc_video(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
+    create_configuration_for_mrc_video(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
@@ -1187,6 +1188,7 @@ std::shared_ptr<calibration_pv> download_calibration_pv(char const* host, uint16
     c.download(data->radial_distortion,     sizeof(data->radial_distortion),     chunk_size::SINGLE_TRANSFER);
     c.download(data->tangential_distortion, sizeof(data->tangential_distortion), chunk_size::SINGLE_TRANSFER);
     c.download(data->projection,            sizeof(data->projection),            chunk_size::SINGLE_TRANSFER);
+    c.download(data->extrinsics,            sizeof(data->extrinsics),            chunk_size::SINGLE_TRANSFER);
     
     c.close();
 
