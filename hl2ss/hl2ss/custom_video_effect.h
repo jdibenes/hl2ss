@@ -13,7 +13,8 @@ struct MRCVideoOptions
     bool video_stabilization;
     bool blank_protected;
     bool show_mesh;
-    uint8_t _reserved[2];
+    bool shared;
+    uint8_t _reserved[1];
     float global_opacity;
     float output_width;
     float output_height;

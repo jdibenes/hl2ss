@@ -19,6 +19,7 @@ using namespace winrt::Windows::Media::Capture::Frames;
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
 
 static bool g_ready = false;
+static bool g_shared = false;
 static MediaCapture g_mediaCapture = nullptr;
 static MediaFrameSource g_videoSource = nullptr;
 
@@ -111,12 +112,20 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
 
     PersonalVideo_FindMediaSourceGroup(width, height, framerate, sourceGroup, profile, description);
 
+    if (!options.shared)
+    {
     settings.VideoProfile(profile);
     settings.RecordMediaDescription(description);
+    settings.SharingMode(MediaCaptureSharingMode::ExclusiveControl);
+    }
+    else
+    {
+    settings.SharingMode(MediaCaptureSharingMode::SharedReadOnly);
+    }
+
     settings.VideoDeviceId(sourceGroup.Id());
     settings.StreamingCaptureMode(StreamingCaptureMode::Video);
     settings.MemoryPreference(MediaCaptureMemoryPreference::Cpu);
-    settings.SharingMode(MediaCaptureSharingMode::ExclusiveControl);
     settings.SourceGroup(sourceGroup);
     settings.MediaCategory(MediaCategory::Media);
 
@@ -126,7 +135,8 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
 
     PersonalVideo_FindVideoSource(g_mediaCapture, g_videoSource);
 
-    g_ready = true;
+    g_shared = options.shared;
+    g_ready  = true;
 }
 
 // OK
@@ -148,10 +158,18 @@ bool PersonalVideo_Status()
 }
 
 // OK
-bool PersonalVideo_SetFormat(uint32_t width, uint32_t height, uint32_t framerate)
+bool PersonalVideo_SetFormat(uint16_t& width, uint16_t& height, uint8_t& framerate)
 {
     MediaFrameFormat selectedFormat = nullptr;
     bool ok;
+
+    if (g_shared)
+    {
+    width     = (uint16_t)g_videoSource.CurrentFormat().VideoFormat().Width();
+    height    = (uint16_t)g_videoSource.CurrentFormat().VideoFormat().Height();
+    framerate = (uint8_t) g_videoSource.CurrentFormat().FrameRate().Numerator();
+    return true;
+    }
 
     ok = PersonalVideo_FindVideoFormat(g_videoSource, width, height, framerate, selectedFormat);
     if (!ok) { return false; }
@@ -175,7 +193,7 @@ void PersonalVideo_SetFocus(uint32_t focusmode, uint32_t autofocusrange, uint32_
     FocusSettings fs;
 
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
 
     switch (focusmode)
     {
@@ -219,7 +237,7 @@ void PersonalVideo_SetVideoTemporalDenoising(uint32_t mode)
     VideoTemporalDenoisingMode vtdm;
 
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
 
     switch (mode)
     {
@@ -237,7 +255,7 @@ void PersonalVideo_SetWhiteBalance_Preset(uint32_t preset)
     ColorTemperaturePreset ctp;
 
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
 
     switch (preset)
     {
@@ -261,7 +279,7 @@ void PersonalVideo_SetWhiteBalance_Value(uint32_t value)
     uint32_t temperature;
 
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
 
     temperature = value * 25;
     if ((temperature >= 2300) && (temperature <= 7500)) { g_mediaCapture.VideoDeviceController().WhiteBalanceControl().SetValueAsync(temperature).get(); }    
@@ -274,7 +292,7 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
     bool mode;
 
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
     
     mode = setauto != 0;
     g_mediaCapture.VideoDeviceController().ExposureControl().SetAutoAsync(mode).get();
@@ -287,7 +305,7 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
 void PersonalVideo_SetExposurePriorityVideo(uint32_t enabled)
 {
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
     g_mediaCapture.VideoDeviceController().ExposurePriorityVideoControl().Enabled(enabled != 0);
 }
 
@@ -297,7 +315,7 @@ void PersonalVideo_SetSceneMode(uint32_t mode)
     CaptureSceneMode value;
 
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
 
     switch (mode)
     {
@@ -323,7 +341,7 @@ void PersonalVideo_SetSceneMode(uint32_t mode)
 void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value)
 {
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
     if (setauto != 0) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetAutoAsync().get(); } else if ((value >= 100) && (value <= 3200)) { g_mediaCapture.VideoDeviceController().IsoSpeedControl().SetValueAsync(value).get(); }
 }
 
@@ -331,6 +349,6 @@ void PersonalVideo_SetIsoSpeed(uint32_t setauto, uint32_t value)
 void PersonalVideo_SetBacklightCompensation(bool enable)
 {
     CriticalSection cs(&g_lock);
-    if (!g_ready) { return; }
+    if (!g_ready || g_shared) { return; }
     g_mediaCapture.VideoDeviceController().BacklightCompensation().TrySetValue(enable ? 1.0 : 0.0);
 }

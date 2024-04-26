@@ -187,6 +187,8 @@ bool ReceiveMRCVideoOptions(SOCKET clientsocket, MRCVideoOptions& options)
 	if (!ok) { return false; }
 	ok = recv_u8(clientsocket, *(uint8_t*)&options.show_mesh);
 	if (!ok) { return false; }
+	ok = recv_u8(clientsocket, *(uint8_t*)&options.shared);
+	if (!ok) { return false; }
 	ok = recv_u32(clientsocket, *(uint32_t*)&options.global_opacity);
 	if (!ok) { return false; }
 	ok = recv_u32(clientsocket, *(uint32_t*)&options.output_width);
