@@ -8,6 +8,7 @@
 #include "ports.h"
 #include "timestamps.h"
 #include "ipc_sc.h"
+#include "research_mode.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.h>
@@ -46,6 +47,7 @@ static uint32_t g_divisor = 1;
 // Mode: 2
 static HANDLE g_event_intrinsic = NULL; // alias
 static float g_intrinsics[2 + 2 + 3 + 2 + 16];
+static float4x4 g_extrinsics;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -134,6 +136,8 @@ static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, Me
     memcpy(&g_intrinsics[4], &r, sizeof(r));
     memcpy(&g_intrinsics[7], &t, sizeof(t));
     memcpy(&g_intrinsics[9], &p, sizeof(p));
+
+    g_extrinsics = Locator_Locate(QPCTimestampToPerceptionTimestamp(frame.SystemRelativeTime().Value().count()), ResearchMode_GetLocator(), frame.CoordinateSystem());
 
     SetEvent(g_event_intrinsic);
 }
@@ -224,7 +228,7 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 // OK
 static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader)
 {
-    WSABUF wsaBuf[1];
+    WSABUF wsaBuf[2];
 
     g_event_intrinsic = clientevent;
 
@@ -234,7 +238,8 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
     WaitForSingleObject(g_event_intrinsic, INFINITE);
     reader.StopAsync().get();
 
-    pack_buffer(wsaBuf, 0, g_intrinsics, sizeof(g_intrinsics));
+    pack_buffer(wsaBuf, 0,  g_intrinsics, sizeof(g_intrinsics));
+    pack_buffer(wsaBuf, 1, &g_extrinsics, sizeof(g_extrinsics));
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
