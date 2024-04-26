@@ -65,6 +65,8 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.projection)
     print('Intrinsics')
     print(data.intrinsics)
+    print('RigNode Extrinsics')
+    print(data.extrinsics)
 else:
     enable = True
 
