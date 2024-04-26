@@ -71,7 +71,7 @@ if (__name__ == '__main__'):
     port_left  = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
     calibration_lf = hl2ss_3dcv.get_calibration_rm(host, port_left, calibration_path)
-    calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_framerate, True)
+    calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_framerate)
 
     rotation_lf = hl2ss_3dcv.rm_vlc_get_rotation(port_left)
 

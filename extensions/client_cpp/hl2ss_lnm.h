@@ -26,7 +26,7 @@ uint64_t get_sync_period(hl2ss::rx* rx);
 // Control
 //------------------------------------------------------------------------------
 
-void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc=false, bool hologram_composition=true, bool recording_indicator=false, bool video_stabilization=false, bool blank_protected=false, bool show_mesh=false, float global_opacity=0.9f, float output_width=0.0f, float output_height=0.0f, uint32_t video_stabilization_length=0, uint32_t hologram_perspective=hl2ss::hologram_perspective::PV);
+void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc=false, bool hologram_composition=true, bool recording_indicator=false, bool video_stabilization=false, bool blank_protected=false, bool show_mesh=false, bool shared=false, float global_opacity=0.9f, float output_width=0.0f, float output_height=0.0f, uint32_t video_stabilization_length=0, uint32_t hologram_perspective=hl2ss::hologram_perspective::PV);
 void stop_subsystem_pv(char const* host, uint16_t port);
 
 //------------------------------------------------------------------------------

@@ -455,7 +455,7 @@ public:
         outputs[0] = std::move(o);
     }
 
-    void pack_pv(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint16_t width, uint16_t height, matlab::mex::ArgumentList outputs)
+    void pack_pv(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint16_t width, uint16_t height, uint8_t channels, matlab::mex::ArgumentList outputs)
     {
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "intrinsics", "pose" });
 
@@ -468,7 +468,7 @@ public:
         if (packet->payload)
         {
         uint32_t image_size = packet->sz_payload - hl2ss::decoder_pv::K_SIZE;
-        o[0]["image"]       = unpack_payload<uint8_t>(packet->payload.get(), 0,                         image_size, { height,  width, image_size / (sizeof(uint8_t) *  height *  width) });
+        o[0]["image"]       = unpack_payload<uint8_t>(packet->payload.get(), 0,                         image_size, { height, width, channels });
         o[0]["intrinsics"]  = unpack_payload<float>(  packet->payload.get(), image_size, hl2ss::decoder_pv::K_SIZE, { 4 });
         }
         if (packet->pose)
@@ -676,9 +676,22 @@ public:
         int64_t frame_index;
         int32_t status;
         std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-        hl2ss::rx_pv const* p_rx = source->get_rx<hl2ss::rx_pv>();
 
-        pack_pv(frame_index, status, packet.get(), p_rx->width, p_rx->height, outputs);       
+        uint16_t width;
+        uint16_t height;
+        uint8_t channels;
+
+        if (packet)
+        {
+        hl2ss::rx_decoded_pv const* p_rx = source->get_rx<hl2ss::rx_decoded_pv>();
+        hl2ss::decoder_pv::resolution_decoded(packet->sz_payload, p_rx->decoded_format, width, height, channels);
+        }
+        else
+        {
+        width = height = channels = 0;
+        }
+
+        pack_pv(frame_index, status, packet.get(), width, height, channels, outputs);
     }
 
     void get_packet_microphone(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -776,13 +789,14 @@ public:
         bool        video_stabilization        = get_argument<bool>(inputs);
         bool        blank_protected            = get_argument<bool>(inputs);
         bool        show_mesh                  = get_argument<bool>(inputs);
+        bool        shared                     = get_argument<bool>(inputs);
         float       global_opacity             = get_argument<float>(inputs);
         float       output_width               = get_argument<float>(inputs);
         float       output_height              = get_argument<float>(inputs);
         uint32_t    video_stabilization_length = get_argument<uint32_t>(inputs);
         uint32_t    hologram_perspective       = get_argument<uint32_t>(inputs);
 
-        hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
+        hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
     }
 
     void stop_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -881,13 +895,14 @@ public:
 
         std::shared_ptr<hl2ss::calibration_pv> data = hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
 
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "focal_length", "principal_point", "radial_distortion", "tangential_distortion", "projection" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "focal_length", "principal_point", "radial_distortion", "tangential_distortion", "projection", "extrinsics" });
 
         o[0]["focal_length"]          = to_typed_array<float>(data->focal_length,          { sizeof(data->focal_length)          / sizeof(float) });
         o[0]["principal_point"]       = to_typed_array<float>(data->principal_point,       { sizeof(data->principal_point)       / sizeof(float) });
         o[0]["radial_distortion"]     = to_typed_array<float>(data->radial_distortion,     { sizeof(data->radial_distortion)     / sizeof(float) });
         o[0]["tangential_distortion"] = to_typed_array<float>(data->tangential_distortion, { sizeof(data->tangential_distortion) / sizeof(float) });
         o[0]["projection"]            = unpack_payload<float>(&data->projection, 0, sizeof(data->projection), { 4, 4 });
+        o[0]["extrinsics"]            = unpack_payload<float>(&data->extrinsics, 0, sizeof(data->extrinsics), { 4, 4 });
 
         outputs[0] = std::move(o);
     }

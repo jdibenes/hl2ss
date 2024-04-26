@@ -69,7 +69,6 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     SOCKET clientsocket; // closesocket
     IResearchModeSensor* sensor;
     ResearchModeSensorType type;
-    GUID nodeId;
     char const* port;
     bool ok;
 
@@ -81,9 +80,7 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     ok = ResearchMode_WaitForConsent(sensor);
     if (!ok) { return false; }
 
-    nodeId = ResearchMode_GetRigNodeId();
-    locator = SpatialGraphInteropPreview::CreateLocatorForNode(nodeId);
-
+    locator = ResearchMode_GetLocator();
     port = g_research_sensor_port[type];
     listensocket = CreateSocket(port);
 

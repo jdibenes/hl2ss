@@ -386,7 +386,7 @@ struct pv_intrinsics
     float cy;
 };
 
-void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective);
+void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, bool shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective);
 void stop_subsystem_pv(char const* host, uint16_t port);
 
 //------------------------------------------------------------------------------
@@ -629,10 +629,11 @@ public:
     static uint32_t const K_SIZE = sizeof(pv_intrinsics);
 
     static uint8_t decoded_bpp(uint8_t decoded_format);
+    static void resolution(uint32_t bytes, uint16_t& width, uint16_t& height, uint16_t& stride);
+    static void resolution_decoded(uint32_t payload_size, uint8_t decoded_format, uint16_t& width, uint16_t& height, uint8_t& channels);
 
     void open(uint16_t width, uint16_t height, uint8_t profile);
-    uint32_t decoded_size(uint8_t decoded_format);
-    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format);
+    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size);
     void close();
 };
 
@@ -777,6 +778,7 @@ struct calibration_pv
     float radial_distortion[3];
     float tangential_distortion[2];
     float projection[4][4];
+    float extrinsics[4][4];
 };
 
 std::shared_ptr<calibration_rm_vlc> download_calibration_rm_vlc(char const* host, uint16_t port);

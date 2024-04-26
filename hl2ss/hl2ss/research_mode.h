@@ -4,6 +4,8 @@
 #include <vector>
 #include <researchmode/ResearchModeApi.h>
 
+#include <winrt/Windows.Perception.Spatial.h>
+
 int const RM_VLC_WIDTH  = 640;
 int const RM_VLC_HEIGHT = 480;
 int const RM_VLC_FPS    = 30;
@@ -28,8 +30,6 @@ int const RM_ZLT_ABSIZE = RM_ZLT_PIXELS * sizeof(uint16_t);
 
 uint8_t const NV12_ZERO_CHROMA = 0x80;
 
-bool ResearchMode_WaitForCameraConsent();
-bool ResearchMode_WaitForIMUConsent();
 bool ResearchMode_WaitForConsent(IResearchModeSensor* sensor);
 
 bool ResearchMode_Initialize();
@@ -42,4 +42,4 @@ int ResearchMode_GetSensorTypeCount();
 bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y, std::vector<float>& mapx, std::vector<float>& mapy, float K[4]);
 bool ResearchMode_GetExtrinsics(IResearchModeSensor* sensor, DirectX::XMFLOAT4X4& extrinsics);
 
-GUID ResearchMode_GetRigNodeId();
+winrt::Windows::Perception::Spatial::SpatialLocator ResearchMode_GetLocator();

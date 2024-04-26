@@ -8,11 +8,8 @@
 // Common
 //-----------------------------------------------------------------------------
 
-void print_packet_metadata(uint64_t timestamp, hl2ss::matrix_4x4* matrix)
+void print_matrix(hl2ss::matrix_4x4* matrix)
 {
-    std::cout << "Pose at time " << timestamp << std::endl;
-    if (matrix)
-    {
     std::cout << "[" << std::endl;
     for (int row = 0; row < 4; ++row)
     {
@@ -23,6 +20,14 @@ void print_packet_metadata(uint64_t timestamp, hl2ss::matrix_4x4* matrix)
     std::cout << std::endl;
     }
     std::cout << "]" << std::endl;
+}
+
+void print_packet_metadata(uint64_t timestamp, hl2ss::matrix_4x4* matrix)
+{
+    std::cout << "Pose at time " << timestamp << std::endl;
+    if (matrix)
+    {
+    print_matrix(matrix);
     }
     else
     {

@@ -64,7 +64,7 @@ if __name__ == "__main__":
     rc_client.close()
 
     # Get calibration (focus is fixed so intrinsics don't change between frames)
-    pv_calibration = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_fps, False)
+    pv_calibration = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_fps)
     pv_calibration.intrinsics, pv_calibration.extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_calibration.intrinsics, np.eye(4, 4, dtype=np.float32))
 
     # Get PV rays in camera coordinates

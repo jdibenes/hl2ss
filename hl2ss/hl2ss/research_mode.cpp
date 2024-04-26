@@ -1,6 +1,12 @@
 
 #include "research_mode.h"
 
+#include <winrt/Windows.Perception.Spatial.h>
+#include <winrt/Windows.Perception.Spatial.Preview.h>
+
+using namespace winrt::Windows::Perception::Spatial;
+using namespace winrt::Windows::Perception::Spatial::Preview;
+
 extern "C" { HMODULE LoadLibraryA(LPCSTR lpLibFileName); }
 
 typedef HRESULT(__cdecl* PFN_CREATEPROVIDER)(IResearchModeSensorDevice**);
@@ -30,7 +36,7 @@ static HANDLE g_imu_consent_event = NULL; // CloseHandle
 static ResearchModeSensorConsent g_camera_consent_value = ResearchModeSensorConsent::UserPromptRequired;
 static ResearchModeSensorConsent g_imu_consent_value = ResearchModeSensorConsent::UserPromptRequired;
 static std::vector<IResearchModeSensor*> g_sensors; // Release
-static GUID g_rigNodeId;
+static SpatialLocator g_locator = nullptr;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -51,14 +57,14 @@ static void ResearchMode_IMUAccessCallback(ResearchModeSensorConsent consent)
 }
 
 // OK
-bool ResearchMode_WaitForCameraConsent()
+static bool ResearchMode_WaitForCameraConsent()
 {
 	WaitForSingleObject(g_camera_consent_event, INFINITE);
 	return g_camera_consent_value == ResearchModeSensorConsent::Allowed;
 }
 
 // OK
-bool ResearchMode_WaitForIMUConsent()
+static bool ResearchMode_WaitForIMUConsent()
 {
 	WaitForSingleObject(g_imu_consent_event, INFINITE);
 	return g_imu_consent_value == ResearchModeSensorConsent::Allowed;
@@ -92,6 +98,7 @@ bool ResearchMode_Initialize()
 	PFN_CREATEPROVIDER pfnCreate;
 	size_t sensorcount;
 	size_t sensorsloaded;
+	GUID rigNodeId;
 	
 	g_hrResearchMode = LoadLibraryA("ResearchModeAPI");
 	if (!g_hrResearchMode) { return false; }
@@ -139,10 +146,12 @@ bool ResearchMode_Initialize()
 	hr = g_pSensorDevice->QueryInterface(IID_PPV_ARGS(&pSensorDevicePerception));
 	if (FAILED(hr)) { return false; }
 
-	hr = pSensorDevicePerception->GetRigNodeId(&g_rigNodeId);
+	hr = pSensorDevicePerception->GetRigNodeId(&rigNodeId);
 	if (FAILED(hr)) { return false; }
 
 	pSensorDevicePerception->Release();
+
+	g_locator = SpatialGraphInteropPreview::CreateLocatorForNode(rigNodeId);
 
 	return true;
 }
@@ -168,7 +177,7 @@ void ResearchMode_Cleanup()
 	g_camera_consent_value = ResearchModeSensorConsent::UserPromptRequired;
 	g_imu_consent_value = ResearchModeSensorConsent::UserPromptRequired;	
 	g_sensors.clear();
-	memset(&g_rigNodeId, 0, sizeof(g_rigNodeId));
+	g_locator = nullptr;
 }
 
 // OK
@@ -323,7 +332,7 @@ bool ResearchMode_GetExtrinsics(IResearchModeSensor* sensor, DirectX::XMFLOAT4X4
 }
 
 // OK
-GUID ResearchMode_GetRigNodeId()
+SpatialLocator ResearchMode_GetLocator()
 {
-	return g_rigNodeId;
+	return g_locator;
 }

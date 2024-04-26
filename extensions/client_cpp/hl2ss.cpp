@@ -299,7 +299,7 @@ void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vecto
     }
 }
 
-void create_configuration_for_mrc_video(std::vector<uint8_t>& sc, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
+void create_configuration_for_mrc_video(std::vector<uint8_t>& sc, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, bool shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
 {
     push_u8(sc, enable_mrc);
     push_u8(sc, hologram_composition);
@@ -307,6 +307,7 @@ void create_configuration_for_mrc_video(std::vector<uint8_t>& sc, bool enable_mr
     push_u8(sc, video_stabilization);
     push_u8(sc, blank_protected);
     push_u8(sc, show_mesh);
+    push_u8(sc, shared);
     push_float(sc, global_opacity);
     push_float(sc, output_width);
     push_float(sc, output_height);
@@ -408,13 +409,13 @@ uint8_t const STOP   = 0x08;
 uint8_t const MODE_3 = 0x03;
 };
 
-void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
+void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, bool shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
 {
     std::vector<uint8_t> sc;
     client c;
 
     create_configuration_for_pv_mode_2(sc, pv_control::START | pv_control::MODE_3, 1920, 1080, 30);
-    create_configuration_for_mrc_video(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
+    create_configuration_for_mrc_video(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
@@ -708,11 +709,11 @@ void collect_i420(uint8_t* dst, int width, int height, uint8_t* data[8], int lin
 
 void collect_nv12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* src, uint16_t stride)
 {
-    trim_plane(dst,                    src,                     height, width,     stride);
-    trim_plane(dst + (height * width), src + (height * stride), height, width / 2, stride / 2);
+    trim_plane(dst,                    src,                     height,     width, stride);
+    trim_plane(dst + (height * width), src + (height * stride), height / 2, width, stride);
 }
 
-uint16_t get_video_stride(uint16_t width)
+constexpr uint16_t get_video_stride(uint16_t width)
 {
     return width + ((64 - (width & 63)) & 63);
 }
@@ -862,6 +863,37 @@ uint8_t decoder_pv::decoded_bpp(uint8_t decoded_format)
     return cv_format[decoded_format][0];
 }
 
+void decoder_pv::resolution(uint32_t bytes, uint16_t& width, uint16_t& height, uint16_t& stride)
+{
+    switch (bytes)
+    {
+    case get_video_stride(1952)*1100: width = 1952; height = 1100; stride = get_video_stride(1952); break;
+    case get_video_stride(1504)* 846: width = 1504; height =  846; stride = get_video_stride(1504); break;
+    case get_video_stride(1920)*1080: width = 1920; height = 1080; stride = get_video_stride(1920); break;
+    case get_video_stride(1280)* 720: width = 1280; height =  720; stride = get_video_stride(1280); break;
+    case get_video_stride( 640)* 360: width =  640; height =  360; stride = get_video_stride( 640); break;
+    case get_video_stride( 760)* 428: width =  760; height =  428; stride = get_video_stride( 760); break;
+    case get_video_stride( 960)* 540: width =  960; height =  540; stride = get_video_stride( 960); break;
+    case get_video_stride(1128)* 636: width = 1128; height =  636; stride = get_video_stride(1128); break;
+    case get_video_stride( 424)* 240: width =  424; height =  240; stride = get_video_stride( 424); break;
+    case get_video_stride( 500)* 282: width =  500; height =  282; stride = get_video_stride( 500); break;    
+    case 1952*1100: width = 1952; height = 1100; stride = 1952; break;
+    case 1504* 846: width = 1504; height =  846; stride = 1504; break;
+    case  760* 428: width =  760; height =  428; stride =  760; break;
+    case 1128* 636: width = 1128; height =  636; stride = 1128; break;
+    case  424* 240: width =  424; height =  240; stride =  424; break;
+    case  500* 282: width =  500; height =  282; stride =  500; break;
+    default: throw std::runtime_error("hl2ss::decoder_pv::resolution : unknown resolution");
+    }
+}
+
+void decoder_pv::resolution_decoded(uint32_t payload_size, uint8_t decoded_format, uint16_t& width, uint16_t& height, uint8_t& channels)
+{
+    uint16_t stride;
+    channels = decoded_bpp(decoded_format);
+    resolution((payload_size - K_SIZE) / channels, width, height, stride);
+}
+
 void decoder_pv::open(uint16_t width, uint16_t height, uint8_t profile)
 {
     m_width = width;
@@ -871,38 +903,38 @@ void decoder_pv::open(uint16_t width, uint16_t height, uint8_t profile)
     if (m_profile != video_profile::RAW) { m_codec.open(get_video_codec_id(m_profile)); }
 }
 
-uint32_t decoder_pv::decoded_size(uint8_t decoded_format)
+std::unique_ptr<uint8_t[]> decoder_pv::decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size)
 {
-    return m_width * m_height * decoded_bpp(decoded_format) + K_SIZE;
-}
-
-std::unique_ptr<uint8_t[]> decoder_pv::decode(uint8_t* data, uint32_t size, uint8_t decoded_format)
-{
-    uint32_t full_size = decoded_size(decoded_format);
     uint32_t h26x_size = size - K_SIZE;
-
-    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(full_size);
-
-    cv::Mat input = cv::Mat((m_height * 3) / 2, m_width, CV_8UC1);
-    cv::Mat output;
-    int code;   
+    uint16_t width;
+    uint16_t height;
+    uint16_t stride;
+    cv::Mat input; 
+    int code;
 
     if (m_profile != video_profile::RAW)
     {
     std::shared_ptr<frame> f = m_codec.decode(data, h26x_size);
-    collect_i420(input.data, m_width, m_height, f->av_frame->data, f->av_frame->linesize);
+    width = f->av_frame->width;
+    height = f->av_frame->height;
+    input = cv::Mat((height * 3) / 2, width, CV_8UC1);
+    collect_i420(input.data, width, height, f->av_frame->data, f->av_frame->linesize);
     code = cv_format[decoded_format][2];
     }
     else
     {
-    collect_nv12(input.data, m_width, m_height, data, get_video_stride(m_width));
+    resolution((h26x_size * 2) / 3, width, height, stride);
+    input = cv::Mat((height * 3) / 2, width, CV_8UC1);
+    collect_nv12(input.data, width, height, data, stride);
     code = cv_format[decoded_format][3];
     }
-    
-    output = cv::Mat(m_height, m_width, cv_format[decoded_format][1], out.get());
-    cv::cvtColor(input, output, code);
 
-    memcpy(out.get() + full_size - K_SIZE, data + h26x_size, K_SIZE);
+    decoded_size = width * height * decoded_bpp(decoded_format) + K_SIZE;
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    cv::Mat output = cv::Mat(height, width, cv_format[decoded_format][1], out.get());
+    cv::cvtColor(input, output, code);
+    memcpy(out.get() + decoded_size - K_SIZE, data + h26x_size, K_SIZE);
+
     return out;
 }
 
@@ -1027,7 +1059,9 @@ void rx_decoded_pv::open()
 std::shared_ptr<packet> rx_decoded_pv::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_pv::get_next_packet();
-    p->set_payload(m_decoder.decoded_size(decoded_format), m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format));
+    uint32_t size;
+    std::unique_ptr<uint8_t[]> payload = m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format, size);
+    p->set_payload(size, std::move(payload));
     return p;
 }
 
@@ -1187,6 +1221,7 @@ std::shared_ptr<calibration_pv> download_calibration_pv(char const* host, uint16
     c.download(data->radial_distortion,     sizeof(data->radial_distortion),     chunk_size::SINGLE_TRANSFER);
     c.download(data->tangential_distortion, sizeof(data->tangential_distortion), chunk_size::SINGLE_TRANSFER);
     c.download(data->projection,            sizeof(data->projection),            chunk_size::SINGLE_TRANSFER);
+    c.download(data->extrinsics,            sizeof(data->extrinsics),            chunk_size::SINGLE_TRANSFER);
     
     c.close();
 
