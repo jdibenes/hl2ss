@@ -629,10 +629,11 @@ public:
     static uint32_t const K_SIZE = sizeof(pv_intrinsics);
 
     static uint8_t decoded_bpp(uint8_t decoded_format);
+    static void resolution(uint32_t bytes, uint16_t& width, uint16_t& height, uint16_t& stride);
+    static void resolution_decoded(uint32_t payload_size, uint8_t decoded_format, uint16_t& width, uint16_t& height, uint8_t& channels);
 
     void open(uint16_t width, uint16_t height, uint8_t profile);
-    uint32_t decoded_size(uint8_t decoded_format);
-    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format);
+    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size);
     void close();
 };
 
