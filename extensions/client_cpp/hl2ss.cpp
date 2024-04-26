@@ -709,8 +709,8 @@ void collect_i420(uint8_t* dst, int width, int height, uint8_t* data[8], int lin
 
 void collect_nv12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* src, uint16_t stride)
 {
-    trim_plane(dst,                    src,                     height, width,     stride);
-    trim_plane(dst + (height * width), src + (height * stride), height, width / 2, stride / 2);
+    trim_plane(dst,                    src,                     height,     width, stride);
+    trim_plane(dst + (height * width), src + (height * stride), height / 2, width, stride);
 }
 
 uint16_t get_video_stride(uint16_t width)
