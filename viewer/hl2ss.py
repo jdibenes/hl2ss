@@ -1126,8 +1126,8 @@ class _unpack_pv:
         self.stride = get_video_stride(width)
 
     def decode(self, payload, format):
-        self.width, self.height, self.stride = _unpack_pv._resolution[(len(payload) * 2) // 3]
-        image = np.frombuffer(payload, dtype=np.uint8).reshape(((self.height*3) //2, self.stride))[:, :self.width]
+        width, height, stride = _unpack_pv._resolution[(len(payload) * 2) // 3]
+        image = np.frombuffer(payload, dtype=np.uint8).reshape(((height*3) //2, stride))[:, :width]
         sf = _unpack_pv._cv2_nv12_format[format]
         return image if (sf is None) else cv2.cvtColor(image, sf)
 
