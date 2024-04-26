@@ -75,7 +75,7 @@ methods
         response = self.module('download_calibration', self.host, self.port, self.width, self.height, self.framerate);
     end
     
-    function start_subsystem(self, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective)
+    function start_subsystem(self, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective)
         arguments
             self
             enable_mrc                 = false
@@ -84,6 +84,7 @@ methods
             video_stabilization        = false
             blank_protected            = false
             show_mesh                  = false
+            shared                     = false
             global_opacity             = 0.9
             output_width               = 0.0
             output_height              = 0.0
@@ -91,7 +92,7 @@ methods
             hologram_perspective       = 1
         end
     
-        self.module('start_subsystem_pv', self.host, self.port, logical(enable_mrc), logical(hologram_composition), logical(recording_indicator), logical(video_stabilization), logical(blank_protected), logical(show_mesh), single(global_opacity), single(output_width), single(output_height), uint32(video_stabilization_length), uint32(hologram_perspective));
+        self.module('start_subsystem_pv', self.host, self.port, logical(enable_mrc), logical(hologram_composition), logical(recording_indicator), logical(video_stabilization), logical(blank_protected), logical(show_mesh), logical(shared), single(global_opacity), single(output_width), single(output_height), uint32(video_stabilization_length), uint32(hologram_perspective));
     end
 
     function stop_subsystem(self)
