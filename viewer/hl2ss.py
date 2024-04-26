@@ -462,8 +462,8 @@ def _create_configuration_for_h26x_encoding(options):
     return bytes(configuration)
 
 
-def _create_configuration_for_mrc_video(enable, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
-    return struct.pack('<BBBBBBfffII', 1 if (enable) else 0, 1 if (hologram_composition) else 0, 1 if (recording_indicator) else 0, 1 if (video_stabilization) else 0, 1 if (blank_protected) else 0, 1 if (show_mesh) else 0, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective)
+def _create_configuration_for_mrc_video(enable, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
+    return struct.pack('<BBBBBBBfffII', 1 if (enable) else 0, 1 if (hologram_composition) else 0, 1 if (recording_indicator) else 0, 1 if (video_stabilization) else 0, 1 if (blank_protected) else 0, 1 if (show_mesh) else 0, 1 if (shared) else 0, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective)
 
 
 def _create_configuration_for_mrc_audio(mixer_mode, loopback_gain, microphone_gain):
@@ -609,11 +609,11 @@ class _PVCNT:
     MODE_3 = 0x03
 
 
-def start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
+def start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
     c = _client()
     c.open(host, port)
     c.sendall(_create_configuration_for_pv_mode2(_PVCNT.START | _PVCNT.MODE_3, 1920, 1080, 30))
-    c.sendall(_create_configuration_for_mrc_video(enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective))
+    c.sendall(_create_configuration_for_mrc_video(enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective))
     c.close()
 
 
@@ -1518,7 +1518,9 @@ class _Mode2Layout_PV:
     END_TANGENTIALDISTORTION   = BEGIN_TANGENTIALDISTORTION + 2
     BEGIN_PROJECTION           = END_TANGENTIALDISTORTION
     END_PROJECTION             = BEGIN_PROJECTION + 16
-    FLOAT_COUNT                = 2 + 2 + 3 + 2 + 16
+    BEGIN_EXTRINSICS           = END_PROJECTION
+    END_EXTRINSICS             = BEGIN_EXTRINSICS + 16
+    FLOAT_COUNT                = 2 + 2 + 3 + 2 + 16 + 16
 
 
 class _Mode2_RM_VLC:
@@ -1554,13 +1556,14 @@ class _Mode2_RM_IMU:
 
 
 class _Mode2_PV:
-    def __init__(self, focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics):
+    def __init__(self, focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics):
         self.focal_length          = focal_length
         self.principal_point       = principal_point
         self.radial_distortion     = radial_distortion
         self.tangential_distortion = tangential_distortion
         self.projection            = projection
         self.intrinsics            = intrinsics
+        self.extrinsics            = extrinsics
 
 
 def _download_mode2_data(host, port, configuration, bytes):
@@ -1643,10 +1646,11 @@ def download_calibration_pv(host, port, width, height, framerate):
     radial_distortion     = floats[_Mode2Layout_PV.BEGIN_RADIALDISTORTION     : _Mode2Layout_PV.END_RADIALDISTORTION    ]
     tangential_distortion = floats[_Mode2Layout_PV.BEGIN_TANGENTIALDISTORTION : _Mode2Layout_PV.END_TANGENTIALDISTORTION]
     projection            = floats[_Mode2Layout_PV.BEGIN_PROJECTION           : _Mode2Layout_PV.END_PROJECTION          ].reshape((4, 4))
+    extrinsics            = floats[_Mode2Layout_PV.BEGIN_EXTRINSICS           : _Mode2Layout_PV.END_EXTRINSICS          ].reshape((4, 4))
 
     intrinsics = np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
-    return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics)
+    return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics)
 
 
 #------------------------------------------------------------------------------
