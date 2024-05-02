@@ -7,6 +7,9 @@
 #define UNITY_IMPORT extern "C" __declspec(dllimport)
 
 UNITY_IMPORT
+void InitializeStreams(uint32_t enable);
+
+UNITY_IMPORT
 void InitializeStreamsOnUI(uint32_t enable);
 
 UNITY_IMPORT

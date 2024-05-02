@@ -39,6 +39,7 @@ using namespace winrt::Windows::ApplicationModel::Core;
 //-----------------------------------------------------------------------------
 
 // OK
+UNITY_EXPORT
 void InitializeStreams(uint32_t enable)
 {
     InitializeSockets();
