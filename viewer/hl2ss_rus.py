@@ -21,7 +21,7 @@ class TargetMode:
 
 # Object Active State
 class ActiveState:
-    Inactive = 0,
+    Inactive = 0
     Active = 1
 
 
