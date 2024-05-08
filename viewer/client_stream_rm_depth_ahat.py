@@ -33,9 +33,21 @@ mode = hl2ss.StreamMode.MODE_1
 divisor = 1 
 
 # Depth encoding profile
+# SAME: use same compression as AB
+#     AB RAW: 
+#         - data streamed as-is (most accurate)
+#         - very low framerate (uncompressed)
+#     AB H264/H265:
+#         - reduced depth resolution (from 1mm to 4mm)
+#         - noisy due to lossy video compression
+#         - full framerate
+# ZDEPTH: use ZDepth lossless* compression
+#     - increased minimum range (objects close to the camera get truncated)
+#     - full framerate
+#     - requires building the pyzdepth extension (one time only)
 profile_z = hl2ss.DepthProfile.SAME
 
-# Video encoding profile
+# AB encoding profile
 profile_ab = hl2ss.VideoProfile.H265_MAIN
 
 #------------------------------------------------------------------------------
