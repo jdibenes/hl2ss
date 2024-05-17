@@ -1,11 +1,10 @@
 
 #include <mfapi.h>
 #include "microphone_capture.h"
+#include "nfo.h"
 #include "neon.h"
 #include "timestamps.h"
 #include "types.h"
-
-using namespace winrt::Windows::Media::Devices;
 
 //-----------------------------------------------------------------------------
 // MicrophoneCapture Methods
@@ -48,7 +47,7 @@ void MicrophoneCapture::Activate()
 	winrt::com_ptr<IActivateAudioInterfaceAsyncOperation> asyncOp;
 	HRESULT hr;
 
-	hr = ActivateAudioInterfaceAsync(MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default).c_str(), __uuidof(IAudioClient3), nullptr, this, asyncOp.put());
+	hr = ActivateAudioInterfaceAsync(GetBuiltInAudioCaptureId().c_str(), __uuidof(IAudioClient3), nullptr, this, asyncOp.put());
 	if (FAILED(hr)) { SetEvent(m_eventActivate); }	
 }
 
