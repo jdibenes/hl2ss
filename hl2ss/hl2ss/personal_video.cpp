@@ -1,6 +1,7 @@
 
 #include "lock.h"
 #include "custom_video_effect.h"
+#include "nfo.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
@@ -30,10 +31,8 @@ static MediaFrameSource g_videoSource = nullptr;
 // OK
 static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, double framerate, MediaFrameSourceGroup &sourceGroup, MediaCaptureVideoProfile &profile, MediaCaptureVideoProfileMediaDescription &description)
 {
-    auto mediaFrameSourceGroups = MediaFrameSourceGroup::FindAllAsync().get();
+    auto mediaFrameSourceGroup = MediaFrameSourceGroup::FromIdAsync(GetBuiltInVideoCaptureId()).get();
 
-    for (auto const& mediaFrameSourceGroup : mediaFrameSourceGroups)
-    {
     for (auto const& knownVideoProfile : MediaCapture::FindKnownVideoProfiles(mediaFrameSourceGroup.Id(), KnownVideoProfile::VideoConferencing))
     {
     for (auto const& supportedRecordMediaDescription : knownVideoProfile.SupportedRecordMediaDescription())
@@ -46,7 +45,6 @@ static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, 
     profile = knownVideoProfile;
     description = supportedRecordMediaDescription;
     return true;
-    }
     }
     }
 
