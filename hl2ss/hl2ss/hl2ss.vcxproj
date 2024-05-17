@@ -196,6 +196,7 @@
     <ClInclude Include="extended_audio.h" />
     <ClInclude Include="extended_execution.h" />
     <ClInclude Include="extended_eye_tracking.h" />
+    <ClInclude Include="extended_video.h" />
     <ClInclude Include="holographic_space.h" />
     <ClInclude Include="ipc_sc.h" />
     <ClInclude Include="ipc_sm.h" />
@@ -212,6 +213,7 @@
     <ClInclude Include="spatial_mapping.h" />
     <ClInclude Include="stream_ea.h" />
     <ClInclude Include="stream_eet.h" />
+    <ClInclude Include="stream_ev.h" />
     <ClInclude Include="stream_mc.h" />
     <ClInclude Include="microphone_capture.h" />
     <ClInclude Include="ports.h" />
@@ -274,6 +276,7 @@
     <ClCompile Include="display7s.cpp" />
     <ClCompile Include="extended_audio.cpp" />
     <ClCompile Include="extended_eye_tracking.cpp" />
+    <ClCompile Include="extended_video.cpp" />
     <ClCompile Include="holographic_space.cpp" />
     <ClCompile Include="ipc_sc.cpp" />
     <ClCompile Include="ipc_sm.cpp" />
@@ -291,6 +294,7 @@
     <ClCompile Include="spatial_mapping.cpp" />
     <ClCompile Include="stream_ea.cpp" />
     <ClCompile Include="stream_eet.cpp" />
+    <ClCompile Include="stream_ev.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />
