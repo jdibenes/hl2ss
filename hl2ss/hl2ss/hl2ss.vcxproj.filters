@@ -232,6 +232,12 @@
     <ClCompile Include="extended_execution.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
+    <ClCompile Include="extended_video.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_ev.cpp">
+      <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -590,6 +596,12 @@
     </ClInclude>
     <ClInclude Include="extended_execution.h">
       <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="extended_video.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_ev.h">
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
