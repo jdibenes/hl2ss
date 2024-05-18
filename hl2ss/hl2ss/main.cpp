@@ -21,6 +21,7 @@
 #include "stream_eet.h"
 #include "stream_ea.h"
 #include "extended_execution.h"
+#include "stream_ev.h"
 
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
@@ -98,6 +99,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 		VI_Initialize();
 		EET_Initialize();
 		EA_Initialize();
+		EV_Initialize();
 
 		ExtendedExecution_Request();
 		
