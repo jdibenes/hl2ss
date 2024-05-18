@@ -162,6 +162,10 @@ def download_calibration_pv(host, port, width, height, framerate):
     return hl2ss.download_calibration_pv(host, port, width, height, framerate)
 
 
+def download_devicelist_extended_video(host, port):
+    return hl2ss.download_devicelist_extended_video(host, port)
+
+
 #------------------------------------------------------------------------------
 # IPC
 #------------------------------------------------------------------------------

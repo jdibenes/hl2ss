@@ -22,6 +22,7 @@ class StreamPort:
     SPATIAL_INPUT        = 3812
     EXTENDED_EYE_TRACKER = 3817
     EXTENDED_AUDIO       = 3818
+    EXTENDED_VIDEO       = 3819
 
 
 # IPC TCP Ports
@@ -1665,6 +1666,16 @@ def download_calibration_pv(host, port, width, height, framerate):
     intrinsics = np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
     return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics)
+
+
+def download_devicelist_extended_video(host, port):
+    c = _client()
+    c.open(host, port)
+    c.sendall(_create_configuration_for_pv_mode2(StreamMode.MODE_2, 1920, 1080, 30))
+    size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
+    query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
+    c.close()
+    return query
 
 
 #------------------------------------------------------------------------------
