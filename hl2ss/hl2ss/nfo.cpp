@@ -158,13 +158,15 @@ void PrintVideoCaptureList()
 // OK
 winrt::hstring GetBuiltInId(DeviceClass dc)
 {
+    winrt::hstring const key = L"System.Devices.ContainerId";
+
     auto list = DeviceInformation::FindAllAsync(dc).get();
     for (auto item : list)
     {
     auto p = item.Properties();
     if (!p) { continue; }
-    if (!p.HasKey(L"System.Devices.ContainerId")) { continue; }
-    auto v = p.Lookup(L"System.Devices.ContainerId");
+    if (!p.HasKey(key)) { continue; }
+    auto v = p.Lookup(key);
     auto g = v.try_as<winrt::guid>();
     if (!g) { continue; }
     auto d = g.value();
@@ -185,4 +187,43 @@ winrt::hstring GetBuiltInVideoCaptureId()
 winrt::hstring GetBuiltInAudioCaptureId()
 {
     return GetBuiltInId(DeviceClass::AudioCapture);
+}
+
+// OK
+void GetDeviceIds(DeviceClass dc, std::vector<winrt::hstring>& ids)
+{
+    auto list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto item : list)
+    {
+    ids.push_back(item.Id());
+    }
+}
+
+// OK
+void GetDeviceIdsAndNames(DeviceClass dc, std::vector<winrt::hstring>& ids, std::vector<winrt::hstring>& names)
+{
+    auto list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto item : list)
+    {
+    ids.push_back(item.Id());
+    names.push_back(item.Name());
+    }
+}
+
+// OK
+void GetVideoCaptureIds(std::vector<winrt::hstring>& ids)
+{
+    GetDeviceIds(DeviceClass::VideoCapture, ids);
+}
+
+// OK
+void GetAudioCaptureIds(std::vector<winrt::hstring>& ids)
+{
+    GetDeviceIds(DeviceClass::AudioCapture, ids);
+}
+
+// OK
+void GetAudioCaptureIdsAndNames(std::vector<winrt::hstring>& ids, std::vector<winrt::hstring>& names)
+{
+    GetDeviceIdsAndNames(DeviceClass::AudioCapture, ids, names);
 }
