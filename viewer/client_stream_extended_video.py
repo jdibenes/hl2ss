@@ -23,7 +23,7 @@ host = "192.168.1.7"
 mode = hl2ss.StreamMode.MODE_2
 
 # Camera selection
-# 1. Connect your external USB-C camera to the Hololens 
+# 1. Connect your external USB-C camera to the HoloLens 
 # 2. Call hl2ss_lnm.download_devicelist_extended_video to obtain a dictionary
 #    (see media_groups below) describing all video capture devices
 # 3. Find the values of group_index, source_index, and profile_index for your
