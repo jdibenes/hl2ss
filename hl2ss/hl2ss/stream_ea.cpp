@@ -11,6 +11,7 @@
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.h>
+#include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 #include <winrt/Windows.Media.Devices.Core.h>
@@ -38,6 +39,23 @@ static DWORD g_dwAudioIndex = 0;
 //-----------------------------------------------------------------------------
 
 // OK
+static void EA_DeviceQuery(SOCKET clientsocket)
+{
+    winrt::hstring query;
+    uint32_t bytes;
+    WSABUF wsaBuf[2];
+
+    ExtendedAudio_QueryDevices(query);
+
+    bytes = query.size() * sizeof(wchar_t);
+
+    pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
+    pack_buffer(wsaBuf, 1, query.c_str(), bytes);
+
+    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
+// OK
 static void EA_OnAudioFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
 {
     (void)args;
@@ -59,15 +77,36 @@ static void EA_OnAudioFrameArrived(MediaFrameReader const& sender, MediaFrameArr
     AudioBuffer     buffer    = audio.LockBuffer(AudioBufferAccessMode::Read);
     auto            reference = buffer.CreateReference();
 
-    uint32_t samples   = reference.Capacity() / sizeof(float);
-    uint32_t s16_bytes = samples * sizeof(uint16_t);
+    auto aep = amf.AudioEncodingProperties();
 
-    MFCreateMemoryBuffer(s16_bytes, &pBuffer);
+    uint32_t bytes_per_sample = aep.BitsPerSample() / 8;
+    uint32_t channels         = aep.ChannelCount();
+
+    uint32_t input_bytes   = reference.Capacity();
+    uint32_t input_samples = input_bytes / bytes_per_sample;
+    uint32_t output_bytes  = input_samples * sizeof(int16_t);
+    uint32_t fill_bytes    = (channels == 1) ? output_bytes : 0;
+    uint32_t buffer_bytes  = output_bytes + fill_bytes;
+
+    MFCreateMemoryBuffer(buffer_bytes, &pBuffer);
 
     pBuffer->Lock(&pDst, NULL, NULL);
-    Neon_F32ToS16((float*)reference.data(), samples, (int16_t*)pDst);
+
+    float*   src_addr  = (float*)reference.data();
+    int16_t* base_addr = (int16_t*)pDst;
+    int16_t* high_addr = (int16_t*)(pDst + fill_bytes);
+
+    switch (bytes_per_sample)
+    {
+    case 4:  Neon_F32ToS16(src_addr, input_samples, high_addr); break;
+    case 2:  memcpy(high_addr, src_addr, output_bytes);         break;
+    default: memset(high_addr, 0,        output_bytes);
+    }
+
+    if (channels == 1) { Neon_S16MonoToStereo(high_addr, input_samples, base_addr); }
+
     pBuffer->Unlock();
-    pBuffer->SetCurrentLength(s16_bytes);
+    pBuffer->SetCurrentLength(buffer_bytes);
 
     reference.Close();
     buffer.Close();
@@ -120,6 +159,7 @@ static void EA_Shoutcast(SOCKET clientsocket)
     uint32_t const channels   = 2;
     uint32_t const samplerate = 48000;
 
+    MediaFrameReader reader = nullptr;
     CustomMediaSink* pSink; // Release
     HANDLE event_client; // CloseHandle
     MRCAudioOptions options;
@@ -132,8 +172,17 @@ static void EA_Shoutcast(SOCKET clientsocket)
 
     ok = ReceiveAACFormat_Profile(clientsocket, format);
     if (!ok) { return; }
+
+    if ((options.mixer_mode & 0x80000000) != 0)
+    {
+    EA_DeviceQuery(clientsocket);
+    return;
+    }
+
+    ok = ExtendedAudio_Open(options);
+    if (!ok) { return; }
     
-    format.channels = channels;
+    format.channels   = channels;
     format.samplerate = samplerate;
 
     event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -144,9 +193,7 @@ static void EA_Shoutcast(SOCKET clientsocket)
 
     CreateSinkWriterAudio(&pSink, &g_pSinkWriter, &g_dwAudioIndex, AudioSubtype::AudioSubtype_S16, format, EA_SendSample, &user);
 
-    ExtendedAudio_Open(options);
-
-    MediaFrameReader reader = ExtendedAudio_CreateFrameReader(); 
+    reader = ExtendedAudio_CreateFrameReader(); 
 
     reader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
     reader.FrameArrived(EA_OnAudioFrameArrived);
