@@ -131,6 +131,29 @@ void Neon_F32ToS16(float const* in, int32_t elements, s16* out)
 }
 
 // OK
+void Neon_S16MonoToStereo(int16_t const* in, int32_t elements, int16_t* out)
+{
+	for (int i = 0; i < (elements / 32); ++i)
+	{
+	int16x8x4_t f = vld1q_s16_x4(in);
+
+	for (int j = 0; j < 4; ++j)
+	{
+	int16x8x2_t d;
+
+	d.val[0] = f.val[j];
+	d.val[1] = f.val[j];
+
+	vst2q_s16(out, d);
+
+	out += 16;
+	}
+
+	in  += 32;
+	}
+}
+
+// OK
 void Neon_F32CropAudio11to5(float const* in, int32_t elements, float *out)
 {
 	for (int i = 0; i < (elements / 4); ++i)
