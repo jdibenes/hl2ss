@@ -286,6 +286,7 @@
     <ClCompile Include="..\hl2ss\extended_audio.cpp" />
     <ClCompile Include="..\hl2ss\extended_execution.cpp" />
     <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp" />
+    <ClCompile Include="..\hl2ss\extended_video.cpp" />
     <ClCompile Include="..\hl2ss\ipc_rc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sc.cpp" />
     <ClCompile Include="..\hl2ss\ipc_sm.cpp" />
@@ -305,6 +306,7 @@
     <ClCompile Include="..\hl2ss\spatial_mapping.cpp" />
     <ClCompile Include="..\hl2ss\stream_ea.cpp" />
     <ClCompile Include="..\hl2ss\stream_eet.cpp" />
+    <ClCompile Include="..\hl2ss\stream_ev.cpp" />
     <ClCompile Include="..\hl2ss\stream_mc.cpp" />
     <ClCompile Include="..\hl2ss\stream_pv.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm.cpp" />
@@ -362,6 +364,7 @@
     <ClInclude Include="..\hl2ss\extended_audio.h" />
     <ClInclude Include="..\hl2ss\extended_execution.h" />
     <ClInclude Include="..\hl2ss\extended_eye_tracking.h" />
+    <ClInclude Include="..\hl2ss\extended_video.h" />
     <ClInclude Include="..\hl2ss\ipc_rc.h" />
     <ClInclude Include="..\hl2ss\ipc_sc.h" />
     <ClInclude Include="..\hl2ss\ipc_sm.h" />
@@ -382,6 +385,7 @@
     <ClInclude Include="..\hl2ss\spatial_mapping.h" />
     <ClInclude Include="..\hl2ss\stream_ea.h" />
     <ClInclude Include="..\hl2ss\stream_eet.h" />
+    <ClInclude Include="..\hl2ss\stream_ev.h" />
     <ClInclude Include="..\hl2ss\stream_mc.h" />
     <ClInclude Include="..\hl2ss\stream_pv.h" />
     <ClInclude Include="..\hl2ss\stream_rm.h" />

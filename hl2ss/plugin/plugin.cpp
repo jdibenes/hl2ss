@@ -26,6 +26,7 @@
 #include "../hl2ss/ipc_vi.h"
 #include "../hl2ss/stream_eet.h"
 #include "../hl2ss/stream_ea.h"
+#include "../hl2ss/stream_ev.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.UI.Core.h>
@@ -65,6 +66,7 @@ void InitializeStreams(uint32_t enable)
     if (enable & HL2SS_ENABLE_MQ) { MQ_Initialize(); }
     if (enable & HL2SS_ENABLE_EET) { EET_Initialize(); }
     if (enable & HL2SS_ENABLE_EA) { EA_Initialize(); }
+    if (enable & HL2SS_ENABLE_EV) { EV_Initialize(); }
 }
 
 // OK
