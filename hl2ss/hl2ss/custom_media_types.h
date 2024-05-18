@@ -51,7 +51,9 @@ enum VideoSubtype : uint8_t
     VideoSubtype_L16,
     VideoSubtype_NV12,
     VideoSubtype_ARGB,
-    VideoSubtype_YUY2
+    VideoSubtype_YUY2,
+    VideoSubtype_IYUV,
+    VideoSubtype_YV12
 };
 
 HRESULT CreateTypeAudio(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AudioSubtype subtype, AACProfile profile, AACLevel level);
