@@ -193,6 +193,7 @@ static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
 
     clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
+    ExtendedVideo_RegisterEvent(clientevent);
     videoFrameReader = ExtendedVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
@@ -203,6 +204,7 @@ static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
     }
 
     videoFrameReader.Close();
+    ExtendedVideo_RegisterEvent(NULL);
 
     CloseHandle(clientevent);
 }
@@ -231,7 +233,8 @@ static void EV_Stream(SOCKET clientsocket)
     MRCVideoOptions options;
     ok = ReceiveMRCVideoOptions(clientsocket, options);
     if (!ok) { return; }
-    if (!ExtendedVideo_Status()) { ExtendedVideo_Open(options); }
+    if (ExtendedVideo_Status()) { ExtendedVideo_Close(); }
+    ExtendedVideo_Open(options);
     }
 
     if (!ExtendedVideo_Status()) { return; }
