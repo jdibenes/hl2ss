@@ -187,6 +187,8 @@ static void EA_Shoutcast(SOCKET clientsocket)
 
     event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
 
+    ExtendedAudio_RegisterEvent(event_client);
+
     user.clientsocket = clientsocket;
     user.clientevent  = event_client;
     user.format       = &format;
@@ -208,6 +210,8 @@ static void EA_Shoutcast(SOCKET clientsocket)
     g_pSinkWriter->Release();
     pSink->Shutdown();
     pSink->Release();
+
+    ExtendedAudio_RegisterEvent(NULL);
 
     CloseHandle(event_client);
 
