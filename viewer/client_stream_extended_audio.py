@@ -34,7 +34,7 @@ mixer_mode = hl2ss.MixerMode.BOTH
 # 2. Call hl2ss_lnm.download_devicelist_extended_audio to obtain a dictionary
 #    (see audio_devices below) describing all audio capture devices
 # 3. Find the value of source_index for your microphone in the dictionary
-#      devices[source_index]
+#      audio_devices[source_index]
 #    The built-in microphone is included in the dictionary and can be selected
 #    Only microphones that support the following configurations can be used:
 #      1 or 2 channels, 48000 Hz sample rate, 16-bit PCM or 32-bit Float
