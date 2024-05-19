@@ -264,7 +264,8 @@ static void PV_Stream(SOCKET clientsocket)
     MRCVideoOptions options;
     ok = ReceiveMRCVideoOptions(clientsocket, options);
     if (!ok) { return; }
-    if (!PersonalVideo_Status()) { PersonalVideo_Open(options); }
+    if (PersonalVideo_Status()) { PersonalVideo_Close(); }
+    PersonalVideo_Open(options);
     }
 
     if (!PersonalVideo_Status()) { return; }
@@ -274,6 +275,7 @@ static void PV_Stream(SOCKET clientsocket)
     
     clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
+    PersonalVideo_RegisterEvent(clientevent);
     videoFrameReader = PersonalVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
@@ -285,6 +287,7 @@ static void PV_Stream(SOCKET clientsocket)
     }
 
     videoFrameReader.Close();
+    PersonalVideo_RegisterEvent(NULL);
 
     CloseHandle(clientevent);
 
