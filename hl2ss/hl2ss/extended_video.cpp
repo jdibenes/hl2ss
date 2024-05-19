@@ -21,6 +21,8 @@ using namespace winrt::Windows::Data::Json;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static HANDLE g_event = NULL;
+
 static bool g_ready = false;
 static bool g_shared = false;
 static MediaCapture g_mediaCapture = nullptr;
@@ -29,6 +31,13 @@ static MediaFrameSource g_videoSource = nullptr;
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
+
+// OK
+static void ExtendedVideo_OnFailed(MediaCapture const&, MediaCaptureFailedEventArgs const& b)
+{
+    ShowMessage(L"ExtendedVideo_OnFailed - 0x%X : '%s'", b.Code(), b.Message().c_str());
+    if (g_event != NULL) { SetEvent(g_event); }
+}
 
 // OK
 void ExtendedVideo_QueryDevices(winrt::hstring& out)
@@ -192,6 +201,12 @@ static bool ExtendedVideo_FindVideoFormat(MediaFrameSource const& videoSource, u
 }
 
 // OK
+void ExtendedVideo_RegisterEvent(HANDLE h)
+{
+    g_event = h;
+}
+
+// OK
 void ExtendedVideo_Open(MRCVideoOptions const& options)
 {
     MediaFrameSourceGroup sourceGroup = nullptr;
@@ -224,6 +239,7 @@ void ExtendedVideo_Open(MRCVideoOptions const& options)
     g_mediaCapture = MediaCapture();
     g_mediaCapture.InitializeAsync(settings).get();
 
+    g_mediaCapture.Failed({ ExtendedVideo_OnFailed });
     ok = ExtendedVideo_FindVideoSource(g_mediaCapture, sourceId, g_videoSource);
     if (!ok)
     {

@@ -6,6 +6,7 @@
 #include <winrt/Windows.Media.Capture.Frames.h>
 
 void ExtendedVideo_QueryDevices(winrt::hstring& out);
+void ExtendedVideo_RegisterEvent(HANDLE h);
 void ExtendedVideo_Open(MRCVideoOptions const& options);
 void ExtendedVideo_Close();
 bool ExtendedVideo_Status();
