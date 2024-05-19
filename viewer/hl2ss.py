@@ -541,7 +541,7 @@ def _create_configuration_for_pv_mode2(mode, width, height, framerate):
 
 def extended_audio_device_mixer_mode(mixer_mode, device):
     DEVICE_BASE = 0x00000004
-    return mixer_mode | (DEVICE_BASE * device)
+    return mixer_mode | (DEVICE_BASE * (device + 1))
 
 
 #------------------------------------------------------------------------------
