@@ -29,7 +29,13 @@ mode = hl2ss.StreamMode.MODE_1
 # Enable Mixed Reality Capture (Holograms)
 enable_mrc = False
 
+# Enable Shared Capture
+# If another program is already using the PV camera, you can still stream it by
+# enabling shared mode, however you cannot change the resolution and framerate
+shared = False
+
 # Camera parameters
+# Ignored in shared mode
 width     = 1920
 height    = 1080
 framerate = 30
@@ -52,7 +58,7 @@ decoded_format = 'bgr24'
 
 #------------------------------------------------------------------------------
 
-hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, enable_mrc=enable_mrc)
+hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, enable_mrc=enable_mrc, shared=shared)
 
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss_lnm.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate)
