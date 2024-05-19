@@ -1,6 +1,8 @@
 
 #include "lock.h"
 #include "custom_video_effect.h"
+#include "nfo.h"
+#include "log.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.MediaProperties.h>
@@ -17,6 +19,7 @@ using namespace winrt::Windows::Media::Capture::Frames;
 //-----------------------------------------------------------------------------
 
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
+static HANDLE g_event = NULL;
 
 static bool g_ready = false;
 static bool g_shared = false;
@@ -28,12 +31,17 @@ static MediaFrameSource g_videoSource = nullptr;
 //-----------------------------------------------------------------------------
 
 // OK
+static void PersonalVideo_OnFailed(MediaCapture const&, MediaCaptureFailedEventArgs const& b)
+{
+    ShowMessage(L"PersonalVideo_OnFailed - 0x%X : '%s'", b.Code(), b.Message().c_str());
+    if (g_event != NULL) { SetEvent(g_event); }
+}
+
+// OK
 static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, double framerate, MediaFrameSourceGroup &sourceGroup, MediaCaptureVideoProfile &profile, MediaCaptureVideoProfileMediaDescription &description)
 {
-    auto mediaFrameSourceGroups = MediaFrameSourceGroup::FindAllAsync().get();
+    auto mediaFrameSourceGroup = MediaFrameSourceGroup::FromIdAsync(GetBuiltInVideoCaptureId()).get();
 
-    for (auto const& mediaFrameSourceGroup : mediaFrameSourceGroups)
-    {
     for (auto const& knownVideoProfile : MediaCapture::FindKnownVideoProfiles(mediaFrameSourceGroup.Id(), KnownVideoProfile::VideoConferencing))
     {
     for (auto const& supportedRecordMediaDescription : knownVideoProfile.SupportedRecordMediaDescription())
@@ -46,7 +54,6 @@ static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, 
     profile = knownVideoProfile;
     description = supportedRecordMediaDescription;
     return true;
-    }
     }
     }
 
@@ -95,6 +102,12 @@ void PersonalVideo_Cleanup()
 }
 
 // OK
+void PersonalVideo_RegisterEvent(HANDLE h)
+{
+    g_event = h;
+}
+
+// OK
 void PersonalVideo_Open(MRCVideoOptions const& options)
 {
     uint32_t const width     = 1920;
@@ -131,6 +144,7 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
 
     g_mediaCapture.InitializeAsync(settings).get();
 
+    g_mediaCapture.Failed({ PersonalVideo_OnFailed });
     if (options.enable) { g_mediaCapture.AddVideoEffectAsync(MRCVideoEffect(options), MediaStreamType::VideoRecord).get(); }
 
     PersonalVideo_FindVideoSource(g_mediaCapture, g_videoSource);

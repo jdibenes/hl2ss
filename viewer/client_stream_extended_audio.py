@@ -14,6 +14,7 @@ import hl2ss_utilities
 import pyaudio
 import queue
 import threading
+import json
 
 # Settings --------------------------------------------------------------------
 
@@ -25,12 +26,31 @@ host = "192.168.1.7"
 # hl2ss.MixerMode.MICROPHONE (microphone audio only)
 # hl2ss.MixerMode.SYSTEM     (application audio only)
 # hl2ss.MixerMode.BOTH       (microphone and application audio)
+# hl2ss.MixerMode.QUERY      (get list of microphones)
 mixer_mode = hl2ss.MixerMode.BOTH
+
+# Microphone selection
+# 1. Connect your external USB-C microphone to the HoloLens
+# 2. Call hl2ss_lnm.download_devicelist_extended_audio to obtain a dictionary
+#    (see audio_devices below) describing all audio capture devices
+# 3. Find the value of source_index for your microphone in the dictionary
+#      devices[source_index]
+#    The built-in microphone is included in the dictionary and can be selected
+#    Only microphones that support the following configurations can be used:
+#      1 or 2 channels, 48000 Hz sample rate, 16-bit PCM or 32-bit Float
+#    Default device (as set in Settings > System > Sound) has source_index = -1
+source_index = 0
 
 # Audio encoding profile
 profile = hl2ss.AudioProfile.AAC_24000
 
 #------------------------------------------------------------------------------
+
+if ((mixer_mode & hl2ss.MixerMode.QUERY) != 0):
+    audio_devices = json.loads(hl2ss_lnm.download_devicelist_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO))
+    print(json.dumps(audio_devices, indent=2))
+    quit()
+
 
 # RAW format is s16 packed, AAC decoded format is f32 planar
 audio_format = pyaudio.paInt16 if (profile == hl2ss.AudioProfile.RAW) else pyaudio.paFloat32
@@ -58,7 +78,7 @@ listener = keyboard.Listener(on_press=on_press)
 thread.start()
 listener.start()
 
-client = hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, mixer_mode=mixer_mode, profile=profile)
+client = hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, mixer_mode=hl2ss.extended_audio_device_mixer_mode(mixer_mode, source_index), profile=profile)
 client.open()
 
 while (enable): 

@@ -1,0 +1,9 @@
+PV
+g_index = 1
+s_index = 2
+p_index = 4
+
+RealSense RGB
+g_index = 2
+s_index = 0
+p_index = 0

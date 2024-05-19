@@ -22,6 +22,7 @@ class StreamPort:
     SPATIAL_INPUT        = 3812
     EXTENDED_EYE_TRACKER = 3817
     EXTENDED_AUDIO       = 3818
+    EXTENDED_VIDEO       = 3819
 
 
 # IPC TCP Ports
@@ -172,6 +173,7 @@ class MixerMode:
     MICROPHONE = 0
     SYSTEM     = 1
     BOTH       = 2
+    QUERY      = 0x80000000
 
 
 # RM VLC Parameters
@@ -535,6 +537,11 @@ def _create_configuration_for_pv_mode2(mode, width, height, framerate):
     configuration.extend(_create_configuration_for_mode(mode))
     configuration.extend(_create_configuration_for_video_format(width, height, framerate))
     return bytes(configuration)
+
+
+def extended_audio_device_mixer_mode(mixer_mode, device):
+    DEVICE_BASE = 0x00000004
+    return mixer_mode | (DEVICE_BASE * (device + 1))
 
 
 #------------------------------------------------------------------------------
@@ -1665,6 +1672,26 @@ def download_calibration_pv(host, port, width, height, framerate):
     intrinsics = np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
     return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics)
+
+
+def download_devicelist_extended_audio(host, port):
+    c = _client()
+    c.open(host, port)
+    c.sendall(_create_configuration_for_extended_audio(MixerMode.QUERY, 1.0, 1.0, AudioProfile.AAC_24000, AACLevel.L2))
+    size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
+    query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
+    c.close()
+    return query
+
+
+def download_devicelist_extended_video(host, port):
+    c = _client()
+    c.open(host, port)
+    c.sendall(_create_configuration_for_pv_mode2(StreamMode.MODE_2, 1920, 1080, 30))
+    size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
+    query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
+    c.close()
+    return query
 
 
 #------------------------------------------------------------------------------

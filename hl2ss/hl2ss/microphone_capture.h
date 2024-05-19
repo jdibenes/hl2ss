@@ -6,7 +6,7 @@
 #include <mfidl.h>
 #include <mfreadwrite.h>
 
-#include <winrt/Windows.Media.Devices.Core.h>
+#include <winrt/Windows.Foundation.h>
 
 // OK
 class MicrophoneCapture : public winrt::implements<MicrophoneCapture, IActivateAudioInterfaceCompletionHandler>

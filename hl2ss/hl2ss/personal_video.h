@@ -6,6 +6,7 @@
 
 void PersonalVideo_Initialize();
 void PersonalVideo_Cleanup();
+void PersonalVideo_RegisterEvent(HANDLE h);
 void PersonalVideo_Open(MRCVideoOptions const& options);
 void PersonalVideo_Close();
 bool PersonalVideo_Status();

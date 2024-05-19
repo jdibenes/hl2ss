@@ -2,26 +2,22 @@
 #include <mfapi.h>
 #include "custom_media_sink.h"
 #include "custom_media_buffers.h"
-#include "personal_video.h"
-#include "locator.h"
+#include "extended_video.h"
 #include "log.h"
 #include "ports.h"
 #include "timestamps.h"
 #include "ipc_sc.h"
-#include "research_mode.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 #include <winrt/Windows.Media.Devices.Core.h>
 #include <winrt/Windows.Foundation.Numerics.h>
-#include <winrt/Windows.Perception.Spatial.h>
 
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
 using namespace winrt::Windows::Media::Devices::Core;
 using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Perception::Spatial;
 
 struct PV_Projection
 {
@@ -44,18 +40,12 @@ static DWORD g_dwVideoIndex = 0;
 static uint32_t g_counter = 0;
 static uint32_t g_divisor = 1;
 
-// Mode: 2
-static HANDLE g_event_intrinsic = NULL; // alias
-static float g_intrinsics[2 + 2 + 3 + 2 + 16];
-static float4x4 g_extrinsics;
-
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-template<bool ENABLE_LOCATION>
-void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
+void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
 {
     (void)args;
     
@@ -63,7 +53,6 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     MediaFrameReference frame = nullptr;
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
-    PV_Projection pj;
     int64_t timestamp;
 
     if (!g_reader_status) { return; }
@@ -82,18 +71,6 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pSample->SetSampleDuration(frame.Duration().count());
     pSample->SetSampleTime(timestamp);
 
-    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
-
-    pj.f = intrinsics.FocalLength();
-    pj.c = intrinsics.PrincipalPoint();
-
-    if constexpr (ENABLE_LOCATION)
-    {
-    pj.pose = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
-    }
-
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj));
-
     g_pSinkWriter->WriteSample(g_dwVideoIndex, pSample);
 
     pSample->Release();
@@ -104,47 +81,8 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 }
 
 // OK
-static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
-{
-    (void)args;
-
-    CameraIntrinsics intrinsics = nullptr;
-    MediaFrameReference frame = nullptr;
-    float2 f;
-    float2 c;
-    float3 r;
-    float2 t;
-    float4x4 p;
-    DWORD status;
-
-    frame = sender.TryAcquireLatestFrame();
-    if (!frame) { return; }
-
-    status = WaitForSingleObject(g_event_intrinsic, 0);
-    if (status != WAIT_TIMEOUT) { return; }
-
-    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
-
-    f = intrinsics.FocalLength();
-    c = intrinsics.PrincipalPoint();
-    r = intrinsics.RadialDistortion();
-    t = intrinsics.TangentialDistortion();
-    p = intrinsics.UndistortedProjectionTransform();
-
-    memcpy(&g_intrinsics[0], &f, sizeof(f));
-    memcpy(&g_intrinsics[2], &c, sizeof(c));
-    memcpy(&g_intrinsics[4], &r, sizeof(r));
-    memcpy(&g_intrinsics[7], &t, sizeof(t));
-    memcpy(&g_intrinsics[9], &p, sizeof(p));
-
-    g_extrinsics = Locator_Locate(QPCTimestampToPerceptionTimestamp(frame.SystemRelativeTime().Value().count()), ResearchMode_GetLocator(), frame.CoordinateSystem());
-
-    SetEvent(g_event_intrinsic);
-}
-
-// OK
 template<bool ENABLE_LOCATION>
-void PV_SendSample(IMFSample* pSample, void* param)
+void EV_SendSample(IMFSample* pSample, void* param)
 {
     IMFMediaBuffer* pBuffer; // Release
     LONGLONG sampletime;
@@ -160,7 +98,7 @@ void PV_SendSample(IMFSample* pSample, void* param)
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
-    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj), NULL);
+    memset(&pj, 0, sizeof(pj));
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
@@ -172,11 +110,11 @@ void PV_SendSample(IMFSample* pSample, void* param)
     pack_buffer(wsaBuf, 3, &pj.f, sizeof(pj.f));
     pack_buffer(wsaBuf, 4, &pj.c, sizeof(pj.c));
 
-    if constexpr(ENABLE_LOCATION)
+    if constexpr (ENABLE_LOCATION)
     {
     pack_buffer(wsaBuf, 5, &pj.pose, sizeof(pj.pose));
     }
-    
+
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 
@@ -186,7 +124,7 @@ void PV_SendSample(IMFSample* pSample, void* param)
 
 // OK
 template<bool ENABLE_LOCATION>
-void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format)
+void EV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format, VideoSubtype subtype)
 {
     CustomMediaSink* pSink; // Release
     std::vector<uint64_t> options;
@@ -206,9 +144,9 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     user.clientevent  = clientevent;
     user.format       = &format;
 
-    CreateSinkWriterVideo(&pSink, &g_pSinkWriter, &g_dwVideoIndex, VideoSubtype::VideoSubtype_NV12, format, options, PV_SendSample<ENABLE_LOCATION>, &user);
+    CreateSinkWriterVideo(&pSink, &g_pSinkWriter, &g_dwVideoIndex, subtype, format, options, EV_SendSample<ENABLE_LOCATION>, &user);
 
-    reader.FrameArrived(PV_OnVideoFrameArrived<ENABLE_LOCATION>);
+    reader.FrameArrived(EV_OnVideoFrameArrived);
 
     g_counter = 0;
     g_divisor = format.divisor;
@@ -226,29 +164,54 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 }
 
 // OK
-static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader)
+static void EV_DeviceQuery(SOCKET clientsocket)
 {
+    winrt::hstring query;
+    uint32_t bytes;
     WSABUF wsaBuf[2];
 
-    g_event_intrinsic = clientevent;
+    ExtendedVideo_QueryDevices(query);
 
-    reader.FrameArrived(PV_OnVideoFrameArrived_Intrinsics);
+    bytes = query.size() * sizeof(wchar_t);
 
-    reader.StartAsync().get();
-    WaitForSingleObject(g_event_intrinsic, INFINITE);
-    reader.StopAsync().get();
-
-    pack_buffer(wsaBuf, 0,  g_intrinsics, sizeof(g_intrinsics));
-    pack_buffer(wsaBuf, 1, &g_extrinsics, sizeof(g_extrinsics));
+    pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
+    pack_buffer(wsaBuf, 1, query.c_str(), bytes);
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
-static void PV_Stream(SOCKET clientsocket)
+static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
 {
     MediaFrameReader videoFrameReader = nullptr;
     HANDLE clientevent; // CloseHandle
+    VideoSubtype subtype;
+    bool ok;
+
+    ok = ExtendedVideo_SetFormat(format.width, format.height, format.framerate, subtype);
+    if (!ok) { return; }
+
+    clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    ExtendedVideo_RegisterEvent(clientevent);
+    videoFrameReader = ExtendedVideo_CreateFrameReader();
+    videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
+
+    switch (mode & 3)
+    {
+    case 0: EV_Stream<false>(clientsocket, clientevent, videoFrameReader, format, subtype); break;
+    case 1: EV_Stream<true>( clientsocket, clientevent, videoFrameReader, format, subtype); break;
+    }
+
+    videoFrameReader.Close();
+    ExtendedVideo_RegisterEvent(NULL);
+
+    CloseHandle(clientevent);
+}
+
+// OK
+static void EV_Stream(SOCKET clientsocket)
+{
     H26xFormat format;
     uint8_t mode;    
     bool ok;
@@ -259,92 +222,79 @@ static void PV_Stream(SOCKET clientsocket)
     ok = ReceiveH26xFormat_Video(clientsocket, format);
     if (!ok) { return; }
 
+    if ((mode & 3) == 2)
+    {
+    EV_DeviceQuery(clientsocket);
+    return;
+    }
+
     if (mode & 4)
     {
     MRCVideoOptions options;
     ok = ReceiveMRCVideoOptions(clientsocket, options);
     if (!ok) { return; }
-    if (PersonalVideo_Status()) { PersonalVideo_Close(); }
-    PersonalVideo_Open(options);
+    if (ExtendedVideo_Status()) { ExtendedVideo_Close(); }
+    ExtendedVideo_Open(options);
     }
 
-    if (!PersonalVideo_Status()) { return; }
+    if (!ExtendedVideo_Status()) { return; }
 
-    ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
-    if (!ok) { return; }
-    
-    clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if ((mode & 3) != 3) { EV_Stream(clientsocket, mode, format); }
 
-    PersonalVideo_RegisterEvent(clientevent);
-    videoFrameReader = PersonalVideo_CreateFrameReader();
-    videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
-
-    switch (mode & 3)
-    {
-    case 0: PV_Stream<false>(clientsocket, clientevent, videoFrameReader, format); break;
-    case 1: PV_Stream<true>( clientsocket, clientevent, videoFrameReader, format); break;
-    case 2: PV_Intrinsics(   clientsocket, clientevent, videoFrameReader);         break;
-    }
-
-    videoFrameReader.Close();
-    PersonalVideo_RegisterEvent(NULL);
-
-    CloseHandle(clientevent);
-
-    if (mode & 8) { PersonalVideo_Close(); }
+    if (mode & 8) { ExtendedVideo_Close(); }
 }
 
 // OK
-static DWORD WINAPI PV_EntryPoint(void *param)
+static DWORD WINAPI EV_EntryPoint(void *param)
 {
     (void)param;
 
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
 
-    listensocket = CreateSocket(PORT_NAME_PV);
+    listensocket = CreateSocket(PORT_NAME_EV);
 
-    ShowMessage("PV: Listening at port %s", PORT_NAME_PV);
+    ShowMessage("EV: Listening at port %s", PORT_NAME_EV);
 
     do
     {
-    ShowMessage("PV: Waiting for client");
+    ShowMessage("EV: Waiting for client");
 
     clientsocket = accept(listensocket, NULL, NULL); // block
     if (clientsocket == INVALID_SOCKET) { break; }
 
-    ShowMessage("PV: Client connected");
+    ShowMessage("EV: Client connected");
 
-    PV_Stream(clientsocket);
+    EV_Stream(clientsocket);
 
     closesocket(clientsocket);
 
-    ShowMessage("PV: Client disconnected");
+    ShowMessage("EV: Client disconnected");
     } 
     while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
 
     closesocket(listensocket);
 
-    ShowMessage("PV: Closed");
+    ShowMessage("EV: Closed");
 
     return 0;
 }
 
 // OK
-void PV_Initialize()
+void EV_Initialize()
 {
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_thread = CreateThread(NULL, 0, PV_EntryPoint, NULL, 0, NULL);
+    g_thread = CreateThread(NULL, 0, EV_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
-void PV_Quit()
+void EV_Quit()
 {
     SetEvent(g_event_quit);
 }
 
 // OK
-void PV_Cleanup()
+void EV_Cleanup()
 {
     WaitForSingleObject(g_thread, INFINITE);
 

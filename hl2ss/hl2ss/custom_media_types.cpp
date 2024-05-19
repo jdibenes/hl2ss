@@ -196,6 +196,78 @@ static HRESULT CreateTypeARGB(IMFMediaType** ppType, uint32_t width, uint32_t he
     return S_OK;
 }
 
+// https://learn.microsoft.com/en-us/windows/win32/medfound/video-subtype-guids
+// OK
+static HRESULT CreateTypeYUY2(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den)
+{
+    IMFMediaType* pType;
+
+    MFCreateMediaType(&pType);
+
+    pType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+    pType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_YUY2);
+    pType->SetUINT32(MF_MT_DEFAULT_STRIDE, stride);
+    MFSetAttributeRatio(pType, MF_MT_FRAME_RATE, fps_num, fps_den);
+    MFSetAttributeSize(pType, MF_MT_FRAME_SIZE, width, height);
+    pType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlaceMode::MFVideoInterlace_Progressive);
+    pType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+    MFSetAttributeRatio(pType, MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
+    pType->SetUINT32(MF_MT_SAMPLE_SIZE, 2UL * width * height);
+    pType->SetUINT32(MF_MT_FIXED_SIZE_SAMPLES, TRUE);
+
+    *ppType = pType;
+
+    return S_OK;
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/medfound/video-subtype-guids
+// OK
+static HRESULT CreateTypeIYUV(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den)
+{
+    IMFMediaType* pType;
+
+    MFCreateMediaType(&pType);
+
+    pType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+    pType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_IYUV);
+    pType->SetUINT32(MF_MT_DEFAULT_STRIDE, stride);
+    MFSetAttributeRatio(pType, MF_MT_FRAME_RATE, fps_num, fps_den);
+    MFSetAttributeSize(pType, MF_MT_FRAME_SIZE, width, height);
+    pType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlaceMode::MFVideoInterlace_Progressive);
+    pType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+    MFSetAttributeRatio(pType, MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
+    pType->SetUINT32(MF_MT_SAMPLE_SIZE, (3UL * width * height) / 2UL);
+    pType->SetUINT32(MF_MT_FIXED_SIZE_SAMPLES, TRUE);
+
+    *ppType = pType;
+
+    return S_OK;
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/medfound/video-subtype-guids
+// OK
+static HRESULT CreateTypeYV12(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den)
+{
+    IMFMediaType* pType;
+
+    MFCreateMediaType(&pType);
+
+    pType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+    pType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_YV12);
+    pType->SetUINT32(MF_MT_DEFAULT_STRIDE, stride);
+    MFSetAttributeRatio(pType, MF_MT_FRAME_RATE, fps_num, fps_den);
+    MFSetAttributeSize(pType, MF_MT_FRAME_SIZE, width, height);
+    pType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlaceMode::MFVideoInterlace_Progressive);
+    pType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+    MFSetAttributeRatio(pType, MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
+    pType->SetUINT32(MF_MT_SAMPLE_SIZE, (3UL * width * height) / 2UL);
+    pType->SetUINT32(MF_MT_FIXED_SIZE_SAMPLES, TRUE);
+
+    *ppType = pType;
+
+    return S_OK;
+}
+
 // https://docs.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder
 // OK
 static HRESULT CreateTypeH264(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t fps_num, uint32_t fps_den, eAVEncH264VProfile profile, int32_t level, uint32_t bitrate)
@@ -255,6 +327,9 @@ HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, 
     if (subtype == VideoSubtype::VideoSubtype_L16)  { return CreateTypeL16( ppType, width, height, stride, fps_num, fps_den); }
     if (subtype == VideoSubtype::VideoSubtype_NV12) { return CreateTypeNV12(ppType, width, height, stride, fps_num, fps_den); }
     if (subtype == VideoSubtype::VideoSubtype_ARGB) { return CreateTypeARGB(ppType, width, height, stride, fps_num, fps_den); }
+    if (subtype == VideoSubtype::VideoSubtype_YUY2) { return CreateTypeYUY2(ppType, width, height, stride, fps_num, fps_den); }
+    if (subtype == VideoSubtype::VideoSubtype_IYUV) { return CreateTypeIYUV(ppType, width, height, stride, fps_num, fps_den); }
+    if (subtype == VideoSubtype::VideoSubtype_YV12) { return CreateTypeYV12(ppType, width, height, stride, fps_num, fps_den); }
 
     *ppType = NULL;
 
