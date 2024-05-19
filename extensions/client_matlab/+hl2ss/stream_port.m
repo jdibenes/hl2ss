@@ -15,5 +15,6 @@ properties (Constant)
     SPATIAL_INPUT        = uint16(3812);
     EXTENDED_EYE_TRACKER = uint16(3817);
     EXTENDED_AUDIO       = uint16(3818);
+    EXTENDED_VIDEO       = uint16(3819);
 end
 end
