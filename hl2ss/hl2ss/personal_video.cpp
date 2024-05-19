@@ -19,7 +19,7 @@ using namespace winrt::Windows::Media::Capture::Frames;
 //-----------------------------------------------------------------------------
 
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
-static HANDLE g_event;
+static HANDLE g_event = NULL;
 
 static bool g_ready = false;
 static bool g_shared = false;
