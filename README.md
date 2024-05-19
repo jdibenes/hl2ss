@@ -117,6 +117,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py) (Plugin Only)
 - Extended Eye Tracking: [viewer/client_stream_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_eet.py)
 - Extended Audio: [viewer/client_stream_extended_audio.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_audio.py)
+- Extended Video: [viewer/client_stream_extended_video.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_video.py)
 
 **Required packages**
 
