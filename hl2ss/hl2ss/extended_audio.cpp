@@ -4,6 +4,7 @@
 #include "custom_media_types.h"
 #include "custom_audio_effect.h"
 #include "nfo.h"
+#include "log.h"
 
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Collections.h>
@@ -30,12 +31,21 @@ struct source_format
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static HANDLE g_event = NULL;
+
 static MediaCapture g_mediaCapture = nullptr;
 static MediaFrameSource g_audioSource = nullptr;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
+
+// OK
+static void ExtendedAudio_OnFailed(MediaCapture const&, MediaCaptureFailedEventArgs const& b)
+{
+    ShowMessage(L"ExtendedAudio_OnFailed - 0x%X : '%s'", b.Code(), b.Message().c_str());
+    if (g_event != NULL) { SetEvent(g_event); }
+}
 
 // OK
 static bool ExtendedAudio_ParseSubtype(winrt::hstring const& s, AudioSubtype& v)
@@ -104,16 +114,31 @@ void ExtendedAudio_QueryDevices(winrt::hstring& out)
 }
 
 // OK
+void ExtendedAudio_RegisterEvent(HANDLE h)
+{
+    g_event = h;
+}
+
+// OK
 bool ExtendedAudio_Open(MRCAudioOptions const& options)
 {
     uint32_t index = (options.mixer_mode & 0x7FFFFFFC) >> 2;
     MediaCaptureInitializationSettings settings;
     std::vector<winrt::hstring> ids;
+    winrt::hstring id;
     bool ok;
 
+    if (index <= 0)
+    {
+    id = MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default);
+    }
+    else
+    {
+    index--;
     GetAudioCaptureIds(ids);
     if (index >= ids.size()) { return false; }
-    winrt::hstring id = ids[index];
+    id = ids[index];
+    }
 
     settings.AudioDeviceId(id);
     settings.StreamingCaptureMode(StreamingCaptureMode::Audio);
@@ -124,6 +149,7 @@ bool ExtendedAudio_Open(MRCAudioOptions const& options)
     g_mediaCapture.InitializeAsync(settings).get();
     g_mediaCapture.AddAudioEffectAsync(MRCAudioEffect(options)).get();
 
+    g_mediaCapture.Failed({ ExtendedAudio_OnFailed });
     ok = ExtendedAudio_FindAudioSource(g_mediaCapture, g_audioSource);
     if (!ok)
     {
