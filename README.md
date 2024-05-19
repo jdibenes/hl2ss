@@ -117,6 +117,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py) (Plugin Only)
 - Extended Eye Tracking: [viewer/client_stream_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_eet.py)
 - Extended Audio: [viewer/client_stream_extended_audio.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_audio.py)
+- Extended Video: [viewer/client_stream_extended_video.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_video.py)
 
 **Required packages**
 
@@ -129,7 +130,6 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [pynput](https://github.com/moses-palmer/pynput) `pip install pynput`
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
-- [MMDetection](https://github.com/open-mmlab/mmdetection)
 
 ## Unity plugin
 
