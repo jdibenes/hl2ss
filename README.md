@@ -130,7 +130,6 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 - [pynput](https://github.com/moses-palmer/pynput) `pip install pynput`
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
-- [MMDetection](https://github.com/open-mmlab/mmdetection)
 
 ## Unity plugin
 
