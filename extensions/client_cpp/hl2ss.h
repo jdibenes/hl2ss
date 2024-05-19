@@ -35,6 +35,7 @@ uint16_t const MICROPHONE           = 3811;
 uint16_t const SPATIAL_INPUT        = 3812;
 uint16_t const EXTENDED_EYE_TRACKER = 3817;
 uint16_t const EXTENDED_AUDIO       = 3818;
+uint16_t const EXTENDED_VIDEO       = 3819;
 };
 
 namespace ipc_port
@@ -185,6 +186,7 @@ namespace mixer_mode
 uint32_t const MICROPHONE = 0;
 uint32_t const SYSTEM     = 1;
 uint32_t const BOTH       = 2;
+uint32_t const QUERY      = 0x80000000;
 };
 
 namespace pv_decoded_format
@@ -373,6 +375,12 @@ public:
     std::shared_ptr<packet> get_next_packet();
     void close();
 };
+
+//------------------------------------------------------------------------------
+// * Stream Configuration
+//------------------------------------------------------------------------------
+
+uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device);
 
 //------------------------------------------------------------------------------
 // * PV Control

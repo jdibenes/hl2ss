@@ -398,6 +398,12 @@ void create_configuration_for_pv_mode_2(std::vector<uint8_t>& sc, uint8_t mode, 
     create_configuration_for_framerate(sc, framerate);
 }
 
+uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device)
+{
+    uint32_t const DEVICE_BASE = 0x00000004;
+    return mixer_mode | (DEVICE_BASE * (device + 1));
+}
+
 //------------------------------------------------------------------------------
 // * PV Control
 //------------------------------------------------------------------------------
