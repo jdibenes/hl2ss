@@ -38,6 +38,7 @@ mixer_mode = hl2ss.MixerMode.BOTH
 #    The built-in microphone is included in the dictionary and can be selected
 #    Only microphones that support the following configurations can be used:
 #      1 or 2 channels, 48000 Hz sample rate, 16-bit PCM or 32-bit Float
+#    Default device (as set in Settings > System > Sound) has source_index = -1
 source_index = 0
 
 # Audio encoding profile
