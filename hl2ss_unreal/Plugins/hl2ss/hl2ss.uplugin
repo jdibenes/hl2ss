@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "hl2ss",
+	"Description": "hl2ss server plugin",
+	"Category": "Other",
+	"CreatedBy": "jcds",
+	"CreatedByURL": "https://github.com/jdibenes/hl2ss",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "hl2ss",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
