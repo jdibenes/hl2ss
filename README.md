@@ -134,8 +134,7 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 ## Unity plugin
 
 For streaming sensor data from a Unity application.
-All interfaces are supported.
-A sample Unity project (2020.3.42f1) can be found in the [hl2ss_unity](hl2ss_unity) directory. If you wish to create a new project you can start [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction).
+A sample Unity project (2020.3.42f1) can be found in the [hl2ss_unity](hl2ss_unity) directory.
 
 **Build and run the sample project**
 
@@ -184,6 +183,19 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Remove all: destroy all game objects created by the plugin.
 
 To enable this functionality add the RemoteUnityScene.cs script to the Main Camera and set the Material field to BasicMaterial.
+
+## Unreal plugin
+
+For streaming sensor data from a Unreal application.
+A sample Unreal project (4.27.2) can be found in the [hl2ss_unreal](hl2ss_unreal) directory.
+
+**Build and run the sample project**
+
+1. Open the project in Unreal and rebuild all missing modules. Ignore the Level_BuiltData error.
+2. Open Project Settings (Edit -> Project Settings). Navigate to Platforms -> HoloLens. Under Packaging -> Signing Certificate, click Generate New. In the Create Private Key Password window that appears click None. Close Project Settings.
+3. Package the project for HoloLens (File -> Package Project -> HoloLens). Unreal may ask for a destination folder. You can create a new one named Package.
+4. Install the hl2ss_unreal.appxbundle (generated in the Package/HoloLens folder) on your HoloLens.
+5. Run the hl2ss unreal app (located in the All apps list).
 
 ## Build from source and deploy
 
