@@ -147,7 +147,7 @@ A sample Unity project (2020.3.42f1) can be found in the [hl2ss_unity](hl2ss_uni
 7. Set Device Portal Address to your HoloLens IP address (e.g., https://192.168.1.7) and set your Device Portal Username and Password.
 8. Click Build and Run. Unity may ask for a Build folder. You can create a new one named Build.
 
-**Adding the plugin to an existing Unity Project**
+**Adding the plugin to an existing project**
 
 1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Assets folder into your Unity project folder.
 2. In the Unity Editor configure the hl2ss, Eye Tracking, and Scene Understanding DLLs as UWP ARM64.
@@ -186,7 +186,7 @@ To enable this functionality add the RemoteUnityScene.cs script to the Main Came
 
 ## Unreal plugin
 
-For streaming sensor data from a Unreal application.
+For streaming sensor data from an Unreal application.
 A sample Unreal project (4.27.2) can be found in the [hl2ss_unreal](hl2ss_unreal) directory.
 
 **Build and run the sample project**
@@ -197,9 +197,24 @@ A sample Unreal project (4.27.2) can be found in the [hl2ss_unreal](hl2ss_unreal
 4. Install the hl2ss_unreal.appxbundle (generated in the Package/HoloLens folder) on your HoloLens.
 5. Run the hl2ss unreal app (located in the All apps list).
 
+**Adding the plugin to an existing project**
+
+1. Download the [latest plugin zip file](https://github.com/jdibenes/hl2ss/releases) and extract the Plugins folder into your Unreal project folder.
+2. Enable the hl2ss plugin (Edit -> Plugins). Restart the Editor if prompted.
+3. Add "hl2ss" to PublicDependencyModuleNames in the project .Build.cs.
+4. Enable the following capabilities (Edit -> Project Settings -> Platforms -> HoloLens):
+   - Internet Client
+   - Internet Client Server
+   - Private Network Client Server
+   - Microphone
+   - Webcam
+   - Gaze Input
+   - Spatial Perception
+6. Add `+DeviceCapabilityList=backgroundSpatialPerception` to Config/HoloLens/HoloLensEngine.ini (see [here](hl2ss_unreal/Config/HoloLens/HoloLensEngine.ini) for an example).
+
 ## Build from source and deploy
 
-Building the server application and the Unity plugin requires a Windows 10 machine.
+Building the server application and the plugin requires a Windows 10 machine.
 
 1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
 2. Open the Visual Studio solution (sln file in the [hl2ss](hl2ss) folder) in Visual Studio 2022.
@@ -208,7 +223,7 @@ Building the server application and the Unity plugin requires a Windows 10 machi
 5. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](etc) into the hl2ss\ARM64\Release\hl2ss folder.
 6. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device) first. 
 
-The server application will remain installed on the HoloLens even after power off. The Unity plugin is in the hl2ss\ARM64\Release\plugin folder.
+The server application will remain installed on the HoloLens even after power off. The plugin is in the hl2ss\ARM64\Release\plugin folder.
 If you wish to create the server application appxbundle, right click the hl2ss project and select Publish -> Create App Packages.
 
 ## Known issues and limitations
