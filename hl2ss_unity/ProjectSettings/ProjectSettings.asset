@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: jcds
-  productName: hl2ss sample
+  productName: hl2ss unity
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -623,7 +623,7 @@ PlayerSettings:
   metroCertificateSubject: jcds
   metroCertificateIssuer: jcds
   metroCertificateNotAfter: 00e476f0c0bbdb01
-  metroApplicationDescription: hl2ss unity sample
+  metroApplicationDescription: hl2ss unity
   wsaImages: {}
   metroTileShortName: hl2ss sample
   metroTileShowName: 0
