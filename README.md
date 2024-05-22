@@ -39,17 +39,17 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Optional per-frame pose for the Front Camera and Research Mode sensors.
 - Support for Mixed Reality Capture (Holograms in Front Camera video) and Shared capture.
 - Client can configure the bitrate and properties of the [H264](https://learn.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder), [HEVC](https://learn.microsoft.com/en-us/windows/win32/medfound/h-265---hevc-video-encoder), and [AAC](https://learn.microsoft.com/en-us/windows/win32/medfound/aac-encoder) encoded streams.
-- Client can configure the resolution and framerate of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/etc/pv_configurations.txt) for a list of supported configurations.
-- Client can configure the focus, white balance, and exposure of the Front Camera. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
-- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py).
+- Client can configure the resolution and framerate of the Front Camera. See [here](etc/pv_configurations.txt) for a list of supported configurations.
+- Client can configure the focus, white balance, and exposure of the Front Camera. See [here](viewer/client_ipc_rc.py).
+- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](viewer/client_ipc_rc.py).
 - Client can send messages to a Unity application using the plugin.
 - Server application can run in background (alongside other applications) when running in flat mode.
-- [C++ client library](https://github.com/jdibenes/hl2ss/tree/main/extensions).
-- [MATLAB client (MEX)](https://github.com/jdibenes/hl2ss/tree/main/extensions).
+- [C++ client library](extensions).
+- [MATLAB client (MEX)](extensions).
 
 **Technical Report** 
 
-Our [paper](https://arxiv.org/abs/2211.02648) provides an overview of the code, features, and examples for the first released version of the application (1.0.11.0). For newer versions, please refer to the examples in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory. If hl2ss is useful for your research, please cite our report:
+Our [paper](https://arxiv.org/abs/2211.02648) provides an overview of the code, features, and examples for the first released version of the application (1.0.11.0). For newer versions, please refer to the examples in the [viewer](viewer) directory. If hl2ss is useful for your research, please cite our report:
 ```
 @article{dibene2022hololens,
   title={HoloLens 2 Sensor Streaming},
@@ -99,25 +99,25 @@ The first time the server runs it will ask for the necessary permissions to acce
 
 ## Python client
 
-The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time. Additional samples show how to associate data from multiple streams. Run the server on your HoloLens and set the host variable of the Python scripts to your HoloLens IP address.
+The Python scripts in the [viewer](viewer) directory demonstrate how to connect to the server, receive the data, unpack it, and decode it in real time. Additional samples show how to associate data from multiple streams. Run the server on your HoloLens and set the host variable of the Python scripts to your HoloLens IP address.
 
 **Interfaces**
 
-- RM VLC: [viewer/client_stream_rm_vlc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_vlc.py)
-- RM Depth AHAT: [viewer/client_stream_rm_depth_ahat.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_depth_ahat.py)
-- RM Depth Long Throw: [viewer/client_stream_rm_depth_longthrow.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_depth_longthrow.py)
-- RM IMU: [viewer/client_stream_rm_imu.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_rm_imu.py)
-- Front Camera: [viewer/client_stream_pv.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_pv.py)
-- Microphone: [viewer/client_stream_microphone.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_microphone.py)
-- Spatial Input: [viewer/client_stream_si.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_si.py)
-- Remote Configuration: [viewer/client_ipc_rc.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_rc.py)
-- Spatial Mapping: [viewer/client_ipc_sm.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_sm.py)
-- Scene Understanding: [viewer/client_ipc_su.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_su.py)
-- Voice Input: [viewer/client_ipc_vi.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_vi.py)
-- Unity Message Queue: [viewer/client_ipc_umq.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_ipc_umq.py) (Plugin Only)
-- Extended Eye Tracking: [viewer/client_stream_eet.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_eet.py)
-- Extended Audio: [viewer/client_stream_extended_audio.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_audio.py)
-- Extended Video: [viewer/client_stream_extended_video.py](https://github.com/jdibenes/hl2ss/blob/main/viewer/client_stream_extended_video.py)
+- RM VLC: [viewer/client_stream_rm_vlc.py](viewer/client_stream_rm_vlc.py)
+- RM Depth AHAT: [viewer/client_stream_rm_depth_ahat.py](viewer/client_stream_rm_depth_ahat.py)
+- RM Depth Long Throw: [viewer/client_stream_rm_depth_longthrow.py](viewer/client_stream_rm_depth_longthrow.py)
+- RM IMU: [viewer/client_stream_rm_imu.py](viewer/client_stream_rm_imu.py)
+- Front Camera: [viewer/client_stream_pv.py](viewer/client_stream_pv.py)
+- Microphone: [viewer/client_stream_microphone.py](viewer/client_stream_microphone.py)
+- Spatial Input: [viewer/client_stream_si.py](viewer/client_stream_si.py)
+- Remote Configuration: [viewer/client_ipc_rc.py](viewer/client_ipc_rc.py)
+- Spatial Mapping: [viewer/client_ipc_sm.py](viewer/client_ipc_sm.py)
+- Scene Understanding: [viewer/client_ipc_su.py](viewer/client_ipc_su.py)
+- Voice Input: [viewer/client_ipc_vi.py](viewer/client_ipc_vi.py)
+- Unity Message Queue: [viewer/client_ipc_umq.py](viewer/client_ipc_umq.py) (Plugin Only)
+- Extended Eye Tracking: [viewer/client_stream_eet.py](viewer/client_stream_eet.py)
+- Extended Audio: [viewer/client_stream_extended_audio.py](viewer/client_stream_extended_audio.py)
+- Extended Video: [viewer/client_stream_extended_video.py](viewer/client_stream_extended_video.py)
 
 **Required packages**
 
@@ -135,7 +135,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 For streaming sensor data from a Unity application.
 All interfaces are supported.
-A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.com/jdibenes/hl2ss/tree/main/unity) directory. If you wish to create a new project you can start [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction).
+A sample Unity project (2020.3.42f1) can be found in the [hl2ss_unity](hl2ss_unity) directory. If you wish to create a new project you can start [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction).
 
 **Build and run the sample project**
 
@@ -165,11 +165,11 @@ A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.
     - Microphone    
     - Spatial Perception
     - Gaze Input
-5. The plugin also requires the perceptionSensorsExperimental and backgroundSpatialPerception capabilities, which are not available in the Publishing Settings capabilities list. The Editor folder in the plugin zip file contains a script (BuildPostProcessor.cs) that adds the capabilities automatically after building the project. Just extract the Editor folder into the Assets folder of your Unity project. Alternatively, you can manually edit the Package.appxmanifest after building. See [here](https://github.com/jdibenes/hl2ss/blob/main/hl2ss/hl2ss/Package.appxmanifest) for an example.
+5. The plugin also requires the perceptionSensorsExperimental and backgroundSpatialPerception capabilities, which are not available in the Publishing Settings capabilities list. The Editor folder in the plugin zip file contains a script (BuildPostProcessor.cs) that adds the capabilities automatically after building the project. Just extract the Editor folder into the Assets folder of your Unity project. Alternatively, you can manually edit the Package.appxmanifest after building. See [here](hl2ss/hl2ss/Package.appxmanifest) for an example.
 
 **Remote Unity Scene**
 
-The plugin has basic support for creating and controlling 3D primitives and text objects via TCP for the purpose of sending feedback to the HoloLens user. See the unity_sample Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) directory for some examples. Some of the supported features include:
+The plugin has basic support for creating and controlling 3D primitives and text objects via TCP for the purpose of sending feedback to the HoloLens user. See the unity_sample Python scripts in the [viewer](viewer) directory for some examples. Some of the supported features include:
 
 - Create primitive: sphere, capsule, cylinder, cube, plane, and quad.
 - Set active: enable or disable game object.
@@ -190,10 +190,10 @@ To enable this functionality add the RemoteUnityScene.cs script to the Main Came
 Building the server application and the Unity plugin requires a Windows 10 machine.
 
 1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
-2. Open the Visual Studio solution (sln file in the [hl2ss](https://github.com/jdibenes/hl2ss/tree/main/hl2ss) folder) in Visual Studio 2022.
+2. Open the Visual Studio solution (sln file in the [hl2ss](hl2ss) folder) in Visual Studio 2022.
 3. Set build configuration to Release ARM64. Building for x86 and x64 (HoloLens emulator), and ARM is not supported.
 4. Right click the hl2ss project and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-5. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](https://github.com/jdibenes/hl2ss/tree/main/etc) into the hl2ss\ARM64\Release\hl2ss folder.
+5. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](etc) into the hl2ss\ARM64\Release\hl2ss folder.
 6. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device) first. 
 
 The server application will remain installed on the HoloLens even after power off. The Unity plugin is in the hl2ss\ARM64\Release\plugin folder.
