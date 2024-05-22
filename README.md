@@ -135,7 +135,7 @@ The Python scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/v
 
 For streaming sensor data from a Unity application.
 All interfaces are supported.
-A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.com/jdibenes/hl2ss/tree/main/unity) directory. If you wish to create a new project you can start [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction).
+A sample Unity project (2020.3.42f1) can be found in the [unity](https://github.com/jdibenes/hl2ss/tree/main/hl2ss_unity) directory. If you wish to create a new project you can start [here](https://learn.microsoft.com/en-us/training/modules/learn-mrtk-tutorials/1-1-introduction).
 
 **Build and run the sample project**
 
