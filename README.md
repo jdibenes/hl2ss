@@ -46,6 +46,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Server application can run in background (alongside other applications) when running in flat mode.
 - [C++ client library](extensions).
 - [MATLAB client (MEX)](extensions).
+- [hl2da plugin](https://github.com/jdibenes/hl2da): access sensor data from Unity, Unreal, and native UWP apps running on the HoloLens (no streaming).
 
 **Technical Report** 
 
@@ -229,8 +230,8 @@ If you wish to create the server application appxbundle, right click the hl2ss p
 ## Known issues and limitations
 
 - Multiple streams can be active at the same time but only one client per stream is allowed.
-- Occasionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.
-- The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.
+- ~~Occasionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.~~
+- ~~The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.~~
 - Spatial Input is not supported in flat mode.
 
 ## References
