@@ -83,7 +83,8 @@ for index, mesh in meshes.items():
     hl2ss_3dcv.sm_mesh_normalize(mesh)
     
     open3d_mesh = hl2ss_sa.sm_mesh_to_open3d_triangle_mesh(mesh)
+    open3d_mesh = hl2ss_sa.open3d_triangle_mesh_swap_winding(open3d_mesh)
     open3d_mesh.vertex_colors = open3d_mesh.vertex_normals
     open3d_meshes.append(open3d_mesh)
 
-o3d.visualization.draw_geometries(open3d_meshes, mesh_show_back_face=True)
+o3d.visualization.draw_geometries(open3d_meshes, mesh_show_back_face=False)

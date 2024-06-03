@@ -31,6 +31,11 @@ def su_mesh_to_open3d_triangle_mesh(mesh):
     return open3d_mesh
 
 
+def open3d_triangle_mesh_swap_winding(open3d_mesh):
+    open3d_mesh.triangles = o3d.utility.Vector3iVector(np.asarray(open3d_mesh.triangles)[:, ::-1])
+    return open3d_mesh
+
+
 #------------------------------------------------------------------------------
 # Spatial Mapping Data Manager
 #------------------------------------------------------------------------------
