@@ -42,10 +42,14 @@ class Hl2ssExt:
 
 	@property
 	def Data(self):
+		"""Access original hl2ss data.
+		"""
 		return self.data
 	
 	@property
 	def Calibration(self):
+		"""Access original hl2ss calibration.
+		"""
 		return self.calibration
 	
 	@property
