@@ -26,6 +26,7 @@ class Hl2ssExt:
 		self.buffer = deque(maxlen = self.ownerComp.par.Bufferlen.eval())
 		self.framestamp = 0
 		self.lastPresentedFramestamp = 0
+		self._activeSubsystemPv = False
 
 		# multiprocessing
 		self.producer = hl2ss_mp.producer()
@@ -60,6 +61,29 @@ class Hl2ssExt:
 	def threadMode(self):
 		return self.ownerComp.par.Threadmode.eval()
 	
+	@property
+	def activeSubsystemPv(self):
+		return self._activeSubsystemPv
+	
+	@activeSubsystemPv.setter
+	def activeSubsystemPv(self, value: bool):
+		if self.port != hl2ss.StreamPort.PERSONAL_VIDEO:
+			raise ValueError('Wrong port selected. To start / stop subsystem pv, select stream port PERSONAL_VIDEO.')
+		if value != self._activeSubsystemPv:
+			if value:
+				hl2ss_lnm.start_subsystem_pv(
+					self.ownerComp.par.Address.eval(),
+					self.port,
+					enable_mrc=self.ownerComp.par.Enablemrc.eval(),
+					shared=self.ownerComp.par.Shared.eval()
+				)
+			else:
+				hl2ss_lnm.stop_subsystem_pv(
+					self.ownerComp.par.Address.eval(),
+					self.port
+				)
+			self._activeSubsystemPv = value
+	
 	def getPVFormat(self):
 		format = self.ownerComp.par.Format.eval()
 		resolution = format.split('@')[0].split('x')
@@ -84,14 +108,6 @@ class Hl2ssExt:
 
 		# Video encoding profile
 		profile = int( self.ownerComp.par.Videoprofile.eval() )
-
-		# PV | Enable Mixed Reality Capture (Holograms)
-		enableMrc = self.ownerComp.par.Enablemrc.eval()
-
-		# PV | Enable Shared Capture
-		# If another program is already using the PV camera, you can still stream it by
-		# enabling shared mode, however you cannot change the resolution and framerate
-		shared = self.ownerComp.par.Shared.eval()
 
 		# PV | camera parameters
 		# Ignored in shared mode
@@ -122,7 +138,6 @@ class Hl2ssExt:
 			client = hl2ss_lnm.rx_rm_imu(host, self.port, mode=mode)
 			
 		elif self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
-			hl2ss_lnm.start_subsystem_pv(host, self.port, enable_mrc=enableMrc, shared=shared)
 			client = hl2ss_lnm.rx_pv(host, self.port, mode=mode, width=width, height=height, framerate=framerate, divisor=divisor, profile=profile, decoded_format=decodedFormat)
 		
 		return client
@@ -134,77 +149,74 @@ class Hl2ssExt:
 		# store calibration for any downstream python-based cv
 		if self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
 			width, height, framerate = self.getPVFormat()
-			hl2ss_lnm.start_subsystem_pv(host, self.port, enable_mrc=self.ownerComp.par.Enablemrc.eval(), shared=self.ownerComp.par.Shared.eval())
+			prevActiveSubsystemPv = self.activeSubsystemPv
+			self.activeSubsystemPv = True
 			# focus is set to 0 as it doesn't seem to be used in hl2ss_3dcv
 			self.calibration = hl2ss_3dcv.get_calibration_pv(host, self.port, calibFolder, 0, width, height, framerate)
-			hl2ss_lnm.stop_subsystem_pv(host, self.port)
+			self.activeSubsystemPv = prevActiveSubsystemPv
 		else:
 			self.calibration = hl2ss_3dcv.get_calibration_rm(host, self.port, calibFolder)
 
 	def OpenStream(self):
+		if (self.threadMode == 'sync' and self.client is not None) or (self.threadMode == 'mp' and self.sink is not None):
+			# stream is already open
+			return
+
+		if self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
+			# start subsystem PV
+			self.activeSubsystemPv = True
+		if self.ownerComp.par.Autogetcalib:
+			self.GetCalibration()
+		self.framestamp = 0
+		self.lastPresentedFramestamp = 0
+
 		match self.threadMode:
 			case 'sync':
-				if self.client is None:
-					if self.ownerComp.par.Autogetcalib:
-						self.GetCalibration()
-					self.buffer = deque(maxlen = self.ownerComp.par.Bufferlen.eval())
-					self.framestamp = 0
-					self.lastPresentedFramestamp = 0
-					self.client = self.getClient()
-					try:
-						self.client.open()
-						self.ownerComp.color = (0.05, 0.5, 0.2)
-						self.ownerComp.clearScriptErrors(recurse=False, error="Can't connect to HL.")
-					except:
-						self.client = None
-						self.ownerComp.par.Stream = False
-						self.ownerComp.addScriptError("Can't connect to HL.")
-				else:
-					debug('Stream is already open.')
+				self.buffer = deque(maxlen = self.ownerComp.par.Bufferlen.eval())
+				self.client = self.getClient()
+				try:
+					self.client.open()
+					self.ownerComp.color = (0.05, 0.5, 0.2)
+					self.ownerComp.clearScriptErrors(recurse=False, error="Can't connect to HL.")
+				except:
+					self.client = None
+					self.ownerComp.par.Stream = False
+					self.ownerComp.addScriptError("Can't connect to HL.")
 			
 			case 'mp':
-				if self.sink is None:
-					if self.ownerComp.par.Autogetcalib:
-						self.GetCalibration()
-					self.lastPresentedFramestamp = 0
-					client = self.getClient()
-					
-					manager = self.ownerComp.par.Mpmanager.eval().Manager
-					consumer = hl2ss_mp.consumer()
-					self.producer.configure( self.port, client )
-					self.producer.initialize( self.port, self.ownerComp.par.Bufferlen.eval() )
-					self.producer.start( self.port )
-					self.sink = consumer.create_sink(self.producer, self.port, manager, None)
-					self.sink.get_attach_response()
-					while (self.sink.get_buffered_frame(0)[0] != 0):
-						pass
-					self.ownerComp.color = (0.35, 0.5, 0.05)
-				else:
-					debug('Stream is already open.')
+				client = self.getClient()
+				manager = self.ownerComp.par.Mpmanager.eval().Manager
+				consumer = hl2ss_mp.consumer()
+				self.producer.configure( self.port, client )
+				self.producer.initialize( self.port, self.ownerComp.par.Bufferlen.eval() )
+				self.producer.start( self.port )
+				self.sink = consumer.create_sink(self.producer, self.port, manager, None)
+				self.sink.get_attach_response()
+				while (self.sink.get_buffered_frame(0)[0] != 0):
+					pass
+				self.ownerComp.color = (0.35, 0.5, 0.05)
 
 	def CloseStream(self):
-		match self.threadMode:
-			case 'sync':
-				if self.client is not None:
-					self.client.close()
-					self.client = None
-				else:
-					debug('Stream is already closed.')
-			
-			case 'mp':
-				if self.sink is not None:
-					self.sink.detach()
-					self.sink = None
-					self.producer.stop(self.port)
-				else:
-					debug('Stream is already closed.')
-
 		self.ownerComp.par.Stream = False
 		self.ownerComp.color = (0.55, 0.55, 0.55)
 
-		# cleanup PV
+		if (self.threadMode == 'sync' and self.client is None) or (self.threadMode == 'mp' and self.sink is None):
+			# stream is already closed
+			return
+
+		match self.threadMode:
+			case 'sync':
+				self.client.close()
+				self.client = None
+			
+			case 'mp':
+				self.sink.detach()
+				self.sink = None
+				self.producer.stop(self.port)
+
 		if self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
-			hl2ss_lnm.stop_subsystem_pv(self.ownerComp.par.Address.eval(), self.port)
+			# cleanup subsystem PV
+			self.activeSubsystemPv = False
 
 	def OnTdFrame(self) -> bool:
 		"""Try to receive new data and process next frame.
