@@ -30,7 +30,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Internal Microphone mirror
   - External USB-C Microphone
 - Extended Video
-  - Front Camera mirror (no Mixed Reality Capture)
+  - Internal Front Camera mirror
   - External USB-C Camera
   
 **Additional features**
@@ -40,10 +40,10 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Support for Mixed Reality Capture (Holograms in Front Camera video) and Shared capture.
 - Client can configure the bitrate and properties of the [H264](https://learn.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder), [HEVC](https://learn.microsoft.com/en-us/windows/win32/medfound/h-265---hevc-video-encoder), and [AAC](https://learn.microsoft.com/en-us/windows/win32/medfound/aac-encoder) encoded streams.
 - Client can configure the resolution and framerate of the Front Camera. See [here](etc/pv_configurations.txt) for a list of supported configurations.
-- Client can configure the focus, white balance, and exposure of the Front Camera. See [here](viewer/client_ipc_rc.py).
-- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](viewer/client_ipc_rc.py).
-- Client can send messages to a Unity, Unreal, or native UWP application using the plugin.
-- Server application can run in background (alongside other applications) when running in flat mode.
+- Client can configure the focus, white balance, and exposure of the Front Camera [[example](viewer/client_ipc_rc.py)].
+- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization [[example](viewer/client_ipc_rc.py)].
+- Client can send messages to a Unity, Unreal, or native UWP application using the plugin [[example](viewer/client_ipc_umq.py)].
+- Server application can run in background (alongside other applications) when running in flat mode [[example](viewer/client_ipc_rc.py)].
 - [C++ client library](extensions).
 - [MATLAB client (MEX)](extensions).
 - [hl2da plugin](https://github.com/jdibenes/hl2da): access sensor data from Unity, Unreal, and native UWP applications running on the HoloLens.
@@ -211,7 +211,7 @@ A sample Unreal project (4.27.2) can be found in the [hl2ss_unreal](hl2ss_unreal
    - Webcam
    - Gaze Input
    - Spatial Perception
-6. Add `+DeviceCapabilityList=backgroundSpatialPerception` to Config/HoloLens/HoloLensEngine.ini (see [here](hl2ss_unreal/Config/HoloLens/HoloLensEngine.ini) for an example).
+6. Add `+DeviceCapabilityList=backgroundSpatialPerception` to Config/HoloLens/HoloLensEngine.ini. See [here](hl2ss_unreal/Config/HoloLens/HoloLensEngine.ini) for an example.
 
 ## Build from source and deploy
 
