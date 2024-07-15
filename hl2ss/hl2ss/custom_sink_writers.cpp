@@ -46,7 +46,7 @@ static uint32_t ComputeStride(uint32_t width)
 	uint32_t const align = 64;
 	uint32_t const mask = align - 1;
 
-	return width + ((align - (width & mask)) & mask);
+	return (width + mask) & ~mask;
 }
 
 // OK
