@@ -301,6 +301,7 @@ static DWORD WINAPI MQX_EntryPoint_Exchange(void* param)
 	pack_buffer(wsabuf, 1, msg.data, msg.size);
 
 	ok = send_multiple(clientsocket, wsabuf, sizeof(wsabuf) / sizeof(WSABUF));
+	if (msg.data) { free(msg.data); }
 	if (!ok) { break; }
 	}
 	while (true);
@@ -351,7 +352,12 @@ void MQX_CI_Push(uint32_t command, uint32_t size, uint8_t const* data)
 UNITY_EXPORT
 void MQX_Restart()
 {
-	g_queue_ci = {};
+	while (g_queue_ci.size() > 0)
+	{
+	MQ_MSG msg = g_queue_ci.front();
+	g_queue_ci.pop();
+	if (msg.data) { free(msg.data); }
+	}
 	SetEvent(g_event_restart_cx);
 }
 
