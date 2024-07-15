@@ -40,3 +40,15 @@ void MQ_SO_Push(uint32_t id);
 
 UNITY_IMPORT
 void MQ_Restart();
+
+UNITY_IMPORT
+uint32_t MQX_CO_Peek();
+
+UNITY_IMPORT
+void MQX_CO_Pop(uint32_t& id);
+
+UNITY_IMPORT
+void MQX_CI_Push(uint32_t command, uint32_t size, uint8_t const* data);
+
+UNITY_IMPORT
+void MQX_Restart();

@@ -67,6 +67,7 @@ void InitializeStreams(uint32_t enable)
     if (enable & HL2SS_ENABLE_EET) { EET_Initialize(); }
     if (enable & HL2SS_ENABLE_EA) { EA_Initialize(); }
     if (enable & HL2SS_ENABLE_EV) { EV_Initialize(); }
+    if (enable & HL2SS_ENABLE_MQX) { MQX_Initialize(); }
 }
 
 // OK

@@ -22,6 +22,14 @@ public static class hl2ss
     private static extern void GetLocalIPv4Address(byte[] data, int size);
     [DllImport("hl2ss")]
     private static extern int OverrideWorldCoordinateSystem(IntPtr scs);
+    [DllImport("hl2ss")]
+    private static extern uint MQX_CO_Peek();
+    [DllImport("hl2ss")]
+    private static extern void MQX_CO_Pop(out uint value);
+    [DllImport("hl2ss")]
+    private static extern void MQX_CI_Push(uint command, uint size, IntPtr data);
+    [DllImport("hl2ss")]
+    private static extern void MQX_Restart();
 #else
     private static void InitializeStreamsOnUI(uint enable)
     {
@@ -58,11 +66,29 @@ public static class hl2ss
     {
         return 1;
     }
+
+    private static uint MQX_CO_Peek()
+    {
+        return ~0U;
+    }
+
+    private static void MQX_CO_Pop(out uint value)
+    {
+        value = ~0U;
+    }
+
+    private static void MQX_CI_Push(uint command, uint size, IntPtr data)
+    {
+    }
+
+    private static void MQX_Restart()
+    {
+    }
 #endif
 
-    public static void Initialize(bool enableRM, bool enablePV, bool enableMC, bool enableSI, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ, bool enableEET, bool enableEA, bool enableEV)
+    public static void Initialize(bool enableRM, bool enablePV, bool enableMC, bool enableSI, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ, bool enableEET, bool enableEA, bool enableEV, bool enableMQX)
     {
-        InitializeStreamsOnUI((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableSI ? 8U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U) | (enableMQ ? 256U : 0U) | (enableEET ? 512U : 0U) | (enableEA ? 1024U : 0) | (enableEV ? 2048U : 0));
+        InitializeStreamsOnUI((enableRM ? 1U : 0U) | (enablePV ? 2U : 0U) | (enableMC ? 4U : 0U) | (enableSI ? 8U : 0U) | (enableRC ? 16U : 0U) | (enableSM ? 32U : 0U) | (enableSU ? 64U : 0U) | (enableVI ? 128U : 0U) | (enableMQ ? 256U : 0U) | (enableEET ? 512U : 0U) | (enableEA ? 1024U : 0) | (enableEV ? 2048U : 0) | (enableMQX ? 4096U : 0));
     }
 
     public static void Print(string str)
@@ -112,5 +138,23 @@ public static class hl2ss
     public static void AcknowledgeMessage(uint command)
     {
         if (command == ~0U) { MQ_Restart(); }
+    }
+
+    public static void PushMessage(uint command, uint size, IntPtr data)
+    {
+        MQX_CI_Push(command, size, data);
+    }
+
+    public static bool PullResult(out uint result)
+    {
+        uint size = MQX_CO_Peek();
+        bool status = size != ~0U;
+        if (status) { MQX_CO_Pop(out result); } else { result = ~0U; }
+        return status;
+    }
+
+    public static void AcknowledgeResult(uint result)
+    {
+        if (result == ~0U) { MQX_Restart(); }
     }
 }
