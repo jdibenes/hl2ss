@@ -193,3 +193,7 @@ def ipc_vi(host, port):
 def ipc_umq(host, port):
     return hl2ss.ipc_umq(host, port)
 
+
+def ipc_gmq(host, port):
+    return hl2ss.ipc_gmq(host, port)
+

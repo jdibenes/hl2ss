@@ -32,6 +32,7 @@ class IPCPort:
     SCENE_UNDERSTANDING  = 3814
     VOICE_INPUT          = 3815
     UNITY_MESSAGE_QUEUE  = 3816
+    GUEST_MESSAGE_QUEUE  = 3820
 
 
 # Default Chunk Sizes
@@ -1087,7 +1088,7 @@ def unpack_pv(payload):
 
 
 def get_video_stride(width):
-    return width + ((64 - (width & 63)) & 63)
+    return (width + 63) & ~63
 
 
 class _decode_pv:
@@ -2367,6 +2368,34 @@ class ipc_umq(_context_manager):
     def pull_n(self, count):
         return np.frombuffer(self._client.download(_SIZEOF.DWORD * count, ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
 
+    def close(self):
+        self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Guest Message Queue
+#------------------------------------------------------------------------------
+
+class ipc_gmq(_context_manager):
+    _CMD_NONE = _RANGEOF.U32_MAX
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def open(self):
+        self._client = _client()
+        self._client.open(self.host, self.port)
+
+    def pull(self):
+        self._client.sendall(struct.pack('<I', ipc_gmq._CMD_NONE))
+        header = struct.unpack('<II', self._client.download(_SIZEOF.DWORD * 2, ChunkSize.SINGLE_TRANSFER))
+        data = self._client.download(header[1], ChunkSize.SINGLE_TRANSFER) if (header[1] > 0) else b''
+        return (header[0], data) if (header[0] != ipc_gmq._CMD_NONE) else None
+    
+    def push(self, response):
+        self._client.sendall(struct.pack('<I', response))
+    
     def close(self):
         self._client.close()
 
