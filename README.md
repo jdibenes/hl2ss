@@ -120,6 +120,7 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - Extended Eye Tracking: [viewer/client_stream_eet.py](viewer/client_stream_eet.py)
 - Extended Audio: [viewer/client_stream_extended_audio.py](viewer/client_stream_extended_audio.py)
 - Extended Video: [viewer/client_stream_extended_video.py](viewer/client_stream_extended_video.py)
+- Guest Message Queue: [viewer/client_ipc_gmq.py](viewer/client_ipc_gmq.py) (Plugin Only)
 
 **Required packages**
 
