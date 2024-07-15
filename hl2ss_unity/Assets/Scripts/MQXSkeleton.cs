@@ -29,7 +29,7 @@ public class MQXSkeleton : MonoBehaviour
             uint result;
             if (!hl2ss.PullResult(out result)) { break; }
             hl2ss.AcknowledgeResult(result); // result == ~0U means client disconnected
-            m_state = 2;
+            m_state = 0;
             break;
         }
     }
