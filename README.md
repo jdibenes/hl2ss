@@ -43,7 +43,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Client can configure the resolution and framerate of the Front Camera. See [here](etc/pv_configurations.txt) for a list of supported configurations.
 - Client can configure the focus, white balance, and exposure of the Front Camera [[example](viewer/client_ipc_rc.py)].
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization [[example](viewer/client_ipc_rc.py)].
-- Client can send messages to a Unity, Unreal, or native UWP application using the plugin [[example](viewer/client_ipc_umq.py)].
+- Client can exchange messages with a Unity, Unreal, or native UWP application using the plugin [[example](viewer/client_ipc_umq.py)].
 - Server application can run in background (alongside other applications) when running in flat mode [[example](viewer/client_ipc_rc.py)].
 - [C++ client library](extensions).
 - [MATLAB client (MEX)](extensions).
