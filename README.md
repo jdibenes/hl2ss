@@ -186,6 +186,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Remove all: destroy all game objects created by the plugin.
 
 To enable this functionality add the RemoteUnityScene.cs script to the Main Camera and set the Material field to BasicMaterial.
+Alternatively, the [mrtk_remote_ui](https://github.com/jdibenes/mrtk_remote_ui) project enables creating simple User Interfaces (windows with controls) remotely to interact with the HoloLens user.
 
 ## Unreal plugin
 
