@@ -99,7 +99,7 @@ void SpatialMapping_GetObservedSurfaces(SpatialMapping_SurfaceInfo const*& data,
     g_observed = g_sso.GetObservedSurfaces();
     int i = 0;
     g_observed_ids.resize(g_observed.Size());
-    for (auto pair : g_observed) { g_observed_ids[i++] = { pair.Key(), pair.Value().UpdateTime().time_since_epoch().count()}; }
+    for (auto pair : g_observed) { g_observed_ids[i++] = { pair.Key(), pair.Value().UpdateTime().time_since_epoch().count() }; }
     data = g_observed_ids.data();
     size = g_observed_ids.size();
 }
