@@ -963,7 +963,6 @@ class _unpack_rm_depth_ahat:
     def decode(self, payload):
         depth = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE,                                                  count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
         ab    = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE + Parameters_RM_DEPTH_AHAT.PIXELS * _SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        depth[depth >= 4090] = 0
         return _RM_Depth_Frame(depth, ab)
 
 
