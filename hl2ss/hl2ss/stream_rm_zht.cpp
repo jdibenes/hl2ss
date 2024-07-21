@@ -51,7 +51,7 @@ static RM_ZAB_Blob g_blob_sh;
 // OK
 static void RM_ZHT_SetZAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* out)
 {
-    memcpy(out,                pDepth, RM_ZHT_ZSIZE);
+    Neon_ZHTInvalidate(pDepth, (uint16_t*)out);
     memcpy(out + RM_ZHT_ZSIZE, pAb,    RM_ZHT_ABSIZE);
 }
 
