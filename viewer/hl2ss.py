@@ -910,6 +910,10 @@ class _RM_Depth_Frame:
         self.ab    = ab
 
 
+class _Mode0Layout_RM_DEPTH_AHAT_STRUCT:
+    BASE = 8
+
+
 class _Mode0Layout_RM_DEPTH_AHAT:
     BEGIN_DEPTH_Y = 0
     END_DEPTH_Y   = BEGIN_DEPTH_Y + Parameters_RM_DEPTH_AHAT.HEIGHT
@@ -946,7 +950,7 @@ class _decode_rm_depth_ahat:
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
+        for packet in self._codec.parse(payload[_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE:]):
             for frame in self._codec.decode(packet):
                 return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray())
         return None
@@ -957,8 +961,8 @@ class _unpack_rm_depth_ahat:
         pass
 
     def decode(self, payload):
-        depth = np.frombuffer(payload, dtype=np.uint16, offset=0,                                            count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        ab    = np.frombuffer(payload, dtype=np.uint16, offset=Parameters_RM_DEPTH_AHAT.PIXELS*_SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        depth = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE,                                                  count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        ab    = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE + Parameters_RM_DEPTH_AHAT.PIXELS * _SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
         depth[depth >= 4090] = 0
         return _RM_Depth_Frame(depth, ab)
 
@@ -969,7 +973,9 @@ class _decompress_zdepth:
         self._codec = pyzdepth.DepthCompressor()
 
     def decode(self, payload):
-        result, width, height, decompressed = self._codec.Decompress(payload)
+        if (len(payload) <= 0):
+            return None
+        result, width, height, decompressed = self._codec.Decompress(bytes(payload))
         return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
 
 
@@ -1007,12 +1013,12 @@ class _decode_rm_depth_ahat_zdepth:
     def decode(self, payload):
         size_z, size_ab = struct.unpack_from('<II', payload, 0)
 
-        start_z  = 8
+        start_z  = _Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE
         end_z    = start_z + size_z
         start_ab = end_z
         end_ab   = start_ab + size_ab
 
-        depth = self._codec_z.decode(bytes(payload[start_z:end_z]))
+        depth = self._codec_z.decode(payload[start_z:end_z])
         ab    = self._codec_ab.decode(payload[start_ab:end_ab])
 
         return _RM_Depth_Frame(depth, ab)
