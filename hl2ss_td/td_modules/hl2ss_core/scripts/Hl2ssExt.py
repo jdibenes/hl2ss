@@ -34,6 +34,7 @@ class Hl2ssExt:
 
 		# initial cleanup
 		op('metadata').text = op('default_metadata').text
+		op('calibration').text = op('default_calibration').text
 		self.ownerComp.par.Stream = False
 
 	def __delTD__(self):
@@ -156,6 +157,12 @@ class Hl2ssExt:
 			self.activeSubsystemPv = prevActiveSubsystemPv
 		else:
 			self.calibration = hl2ss_3dcv.get_calibration_rm(host, self.port, calibFolder)
+
+		self.handleCalibration()
+
+		callbacks = self.ownerComp.par.Callbacks.eval()
+		if callbacks is not None:
+			mod(callbacks.path).onCalibration(self.ownerComp, self.calibration)
 
 	def OpenStream(self):
 		if (self.threadMode == 'sync' and self.client is not None) or (self.threadMode == 'mp' and self.sink is not None):
@@ -281,6 +288,11 @@ class Hl2ssExt:
 			# present data to TD
 			self.handleData(fs, data, targetComp=extObj.ownerComp)
 			extObj.lastPresentedFramestamp = fs
+
+			callbacks = self.ownerComp.par.Callbacks.eval()
+			if callbacks is not None:
+				mod(callbacks.path).onData(self.ownerComp, data)
+
 			return True
 		return False
 	
@@ -338,7 +350,7 @@ class Hl2ssExt:
 			metadata = {
 				'framestamp': framestamp,
 				'timestamp': data.timestamp,
-				'pose': data.pose.ravel().tolist()
+				'pose': data.pose.tolist()
 			}
 
 		elif self.port == hl2ss.StreamPort.RM_DEPTH_AHAT or self.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW:
@@ -347,7 +359,7 @@ class Hl2ssExt:
 			metadata = {
 				'framestamp': framestamp,
 				'timestamp': data.timestamp,
-				'pose': data.pose.ravel().tolist()
+				'pose': data.pose.tolist()
 			}
 
 		elif self.port in (
@@ -359,7 +371,7 @@ class Hl2ssExt:
 			metadata = {
 				'framestamp': framestamp,
 				'timestamp': data.timestamp,
-				'pose': data.pose.ravel().tolist()
+				'pose': data.pose.tolist()
 			}
 
 		elif self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
@@ -367,7 +379,7 @@ class Hl2ssExt:
 			metadata = {
 				'framestamp': framestamp,
 				'timestamp': data.timestamp,
-				'pose': data.pose.ravel().tolist(),
+				'pose': data.pose.tolist(),
 				'focal_length': data.payload.focal_length.tolist(),
 				'principal_point': data.payload.principal_point.tolist()
 			}
@@ -401,17 +413,63 @@ class Hl2ssExt:
 		scriptOp.copyNumpyArray(chopData, baseName='chan')
 		scriptOp.lock = False
 
-	# def metadata2Chop(self, data, constChop):
-	# 	constChop.seq.const.numBlocks = 17
-	# 	# write timestamp
-	# 	constChop.seq.const[0].par.name = 'timestamp'
-	# 	constChop.seq.const[0].par.value = data.timestamp
-	# 	# write pose matrix
-	# 	mtxNames = ['m00', 'm10', 'm20', 'm30', 'm01', 'm11', 'm21', 'm31', 'm02', 'm12', 'm22', 'm32', 'm03', 'm13', 'm23', 'm33']
-	# 	pose = np.ravel(data.pose)
-	# 	for i in range(16):
-	# 		constChop.seq.const[i + 1].par.name = mtxNames[i]
-	# 		constChop.seq.const[i + 1].par.value = pose[i]
+	def handleCalibration(self):
+		"""Push hl2ss calibration to TD.
+		"""
+		calib = {}
+		if self.port in (
+			hl2ss.StreamPort.RM_VLC_LEFTFRONT,
+			hl2ss.StreamPort.RM_VLC_LEFTLEFT,
+			hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
+			hl2ss.StreamPort.RM_VLC_RIGHTRIGHT
+			):
+			self.processImage(self.calibration.uv2xy, op('script_img3'))
+			self.processImage(self.calibration.undistort_map, op('script_img4'))
+			calib = {
+				'extrinsics': self.calibration.extrinsics.tolist(),
+				'intrinsics': self.calibration.intrinsics.tolist()
+			}
+
+		elif self.port == hl2ss.StreamPort.RM_DEPTH_AHAT:
+			self.processImage(self.calibration.uv2xy, op('script_img3'))
+			self.processImage(self.calibration.undistort_map, op('script_img4'))
+			calib = {
+				'extrinsics': self.calibration.extrinsics.tolist(),
+				'scale': self.calibration.scale.tolist(),
+				'alias': self.calibration.alias.tolist(),
+				'intrinsics': self.calibration.intrinsics.tolist()
+			}
+
+		elif self.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW:
+			self.processImage(self.calibration.uv2xy, op('script_img3'))
+			self.processImage(self.calibration.undistort_map, op('script_img4'))
+			calib = {
+				'extrinsics': self.calibration.extrinsics.tolist(),
+				'scale': self.calibration.scale.tolist(),
+				'intrinsics': self.calibration.intrinsics.tolist()
+			}
+
+		elif self.port in (
+			hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
+			hl2ss.StreamPort.RM_IMU_GYROSCOPE,
+			hl2ss.StreamPort.RM_IMU_MAGNETOMETER
+			):
+			calib = {
+				'extrinsics': self.calibration.extrinsics.tolist(),
+			}
+
+		elif self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
+			calib = {
+				'focal_length': self.calibration.focal_length.tolist(),
+				'principal_point': self.calibration.principal_point.tolist(),
+				'radial_distortion': self.calibration.radial_distortion.tolist(),
+				'tangential_distortion': self.calibration.tangential_distortion.tolist(),
+				'projection': self.calibration.projection.tolist(),
+				'intrinsics': self.calibration.intrinsics.tolist(),
+				'extrinsics': self.calibration.extrinsics.tolist()
+			}
+
+		op('calibration').text = json.dumps(calib, indent=4)
 
 	def GetFlipFlops(self) -> tuple[bool, bool, int]:
 		"""Provides correct image transformation
