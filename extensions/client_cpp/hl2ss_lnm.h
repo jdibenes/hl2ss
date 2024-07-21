@@ -62,5 +62,6 @@ std::unique_ptr<hl2ss::ipc_sm> ipc_sm(char const* host, uint16_t port);
 std::unique_ptr<hl2ss::ipc_su> ipc_su(char const* host, uint16_t port);
 std::unique_ptr<hl2ss::ipc_vi> ipc_vi(char const* host, uint16_t port);
 std::unique_ptr<hl2ss::ipc_umq> ipc_umq(char const* host, uint16_t port);
+std::unique_ptr<hl2ss::ipc_gmq> ipc_gmq(char const* host, uint16_t port);
 }
 }
