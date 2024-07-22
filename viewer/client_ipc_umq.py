@@ -41,4 +41,6 @@ buffer.debug_message(text) # Append send_debug_message command
 client.push(buffer) # Send commands in buffer to the Unity app
 response = client.pull(buffer) # Receive response from the Unity app (4 byte integer per command)
 
+print(f'response={response}')
+
 client.close() # Disconnect
