@@ -1,8 +1,10 @@
 
 #include <Windows.h>
+#include <queue>
 #include "timestamps.h"
 #include "locator.h"
 #include "spatial_mapping.h"
+#include "lock.h"
 
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
@@ -19,9 +21,11 @@ using namespace winrt::Windows::Perception::Spatial::Surfaces;
 using namespace winrt::Windows::Graphics::DirectX;
 using namespace winrt::Windows::Storage::Streams;
 
-struct SSM
+struct SpatialMapping_MeshTaskGroup
 {
-    SpatialSurfaceMesh mesh = nullptr;
+    SpatialMapping_MeshTask* task;
+    size_t size;
+    int maxtasks;
 };
 
 //-----------------------------------------------------------------------------
@@ -30,15 +34,16 @@ struct SSM
 
 static HANDLE g_thread_consent = NULL; // CloseHandle
 static SpatialPerceptionAccessStatus g_status_consent = SpatialPerceptionAccessStatus::Unspecified;
+static CRITICAL_SECTION g_lock; // DeleteCriticalSection
+
 static SpatialSurfaceObserver g_sso = nullptr;
 static SpatialCoordinateSystem g_world = nullptr;
 static IMapView<winrt::guid, SpatialSurfaceInfo> g_observed = nullptr;
 static std::vector<SpatialMapping_SurfaceInfo> g_observed_ids;
-static std::vector<SSM> g_observed_meshes;
-static std::vector<SpatialMapping_MeshInfo> g_observed_meshes_info;
-static std::vector<HANDLE> g_event_observed_meshes; // CloseHandle
-static std::vector<HANDLE> g_thread_observed_meshes; // CloseHandle
-static HANDLE g_semaphore_observed_meshes; // CloseHandle
+
+static HANDLE g_compute_thread = NULL; // CloseHandle
+static HANDLE g_semaphore_observed_meshes = NULL; // CloseHandle
+static std::queue<SpatialMapping_MeshInfo*> g_observed_meshes_info;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -55,6 +60,7 @@ static DWORD WINAPI SpatialMapping_RequestAccess(void *param)
 // OK
 void SpatialMapping_Initialize()
 {
+    InitializeCriticalSection(&g_lock);
     g_thread_consent = CreateThread(NULL, 0, SpatialMapping_RequestAccess, NULL, 0, NULL);
 }
 
@@ -112,8 +118,10 @@ static SpatialBoundingOrientedBox SpatialMapping_GetBounds(SpatialSurfaceInfo ss
 }
 
 // OK
-static void SpatialMapping_ComputeMesh(SpatialMapping_MeshTask* task)
+static DWORD WINAPI SpatialMapping_ComputeMesh(void* param)
 {
+    SpatialMapping_MeshTask* task = (SpatialMapping_MeshTask*)param;
+    SpatialMapping_MeshInfo* observed_meshes_info = new SpatialMapping_MeshInfo; // delete
     SpatialSurfaceInfo ssi = nullptr;
     SpatialSurfaceMeshOptions options = nullptr;
     SpatialSurfaceMesh ssm = nullptr;
@@ -122,14 +130,16 @@ static void SpatialMapping_ComputeMesh(SpatialMapping_MeshTask* task)
     IBuffer vertex_positions;
     IBuffer triangle_indices;
     IBuffer vertex_normals;    
+    
+    memset(observed_meshes_info, 0, sizeof(observed_meshes_info));
 
-    g_observed_meshes_info[task->index].index = task->index;
+    observed_meshes_info->index = task->index;
 
     ssi = g_observed.TryLookup(task->md.id);
     if (!ssi)
     {
-        g_observed_meshes_info[task->index].status = 1;
-        return;
+        observed_meshes_info->status = 1;
+        goto _push_mesh_info;
     }
 
     options = SpatialSurfaceMeshOptions();
@@ -141,74 +151,117 @@ static void SpatialMapping_ComputeMesh(SpatialMapping_MeshTask* task)
     ssm = ssi.TryComputeLatestMeshAsync(task->md.maxtpcm, options).get();
     if (!ssm)
     {
-        g_observed_meshes_info[task->index].status = 2;
-        return;
+        observed_meshes_info->status = 2;
+        goto _push_mesh_info;
     }
-
-    g_observed_meshes[task->index].mesh = ssm;
 
     vertex_positions = ssm.VertexPositions().Data();
     triangle_indices = ssm.TriangleIndices().Data();
     vertex_normals   = compute_normals ? ssm.VertexNormals().Data() : nullptr;
 
-    g_observed_meshes_info[task->index].status = 0;
-    g_observed_meshes_info[task->index].vpl    = vertex_positions.Length();
-    g_observed_meshes_info[task->index].til    = triangle_indices.Length();
-    g_observed_meshes_info[task->index].vnl    = compute_normals ? vertex_normals.Length() : 0;
-    g_observed_meshes_info[task->index].vpd    = vertex_positions.data();
-    g_observed_meshes_info[task->index].tid    = triangle_indices.data();
-    g_observed_meshes_info[task->index].vnd    = compute_normals ? vertex_normals.data() : NULL;
-    g_observed_meshes_info[task->index].pose   = Locator_GetTransformTo(ssm.CoordinateSystem(), g_world);
-    g_observed_meshes_info[task->index].scale  = ssm.VertexPositionScale();
-    g_observed_meshes_info[task->index].bsz    = compute_bounds ? sizeof(SpatialBoundingOrientedBox) : 0;
+    observed_meshes_info->status = 0;
+    observed_meshes_info->vpl    = vertex_positions.Length();
+    observed_meshes_info->til    = triangle_indices.Length();
+    observed_meshes_info->vnl    = compute_normals ? vertex_normals.Length() : 0;
+    observed_meshes_info->vpd    = vertex_positions.data();
+    observed_meshes_info->tid    = triangle_indices.data();
+    observed_meshes_info->vnd    = compute_normals ? vertex_normals.data() : NULL;
+    observed_meshes_info->pose   = Locator_GetTransformTo(ssm.CoordinateSystem(), g_world);
+    observed_meshes_info->scale  = ssm.VertexPositionScale();
+    observed_meshes_info->bsz    = compute_bounds ? sizeof(SpatialBoundingOrientedBox) : 0;
     if (compute_bounds)
     {
-    g_observed_meshes_info[task->index].bounds = SpatialMapping_GetBounds(ssi, ssm);
+    observed_meshes_info->bounds = SpatialMapping_GetBounds(ssi, ssm);
     }
+    observed_meshes_info->ssm    = winrt::detach_abi(ssm); // attach_abi
+
+_push_mesh_info:
+    {
+    CriticalSection cs(&g_lock);
+    g_observed_meshes_info.push(observed_meshes_info);
+    }
+
+    ReleaseSemaphore(g_semaphore_observed_meshes, 1, NULL);
+
+    return 0;
 }
 
 // OK
-static DWORD WINAPI SpatialMapping_ComputeMesh(void* param)
+static DWORD WINAPI SpatialMapping_ComputeMeshes(void* param)
 {
-    SpatialMapping_MeshTask* task = (SpatialMapping_MeshTask*)param;
-    WaitForSingleObject(g_semaphore_observed_meshes, INFINITE);
-    SpatialMapping_ComputeMesh(task);
-    SetEvent(g_event_observed_meshes[task->index]);
-    ReleaseSemaphore(g_semaphore_observed_meshes, 1, NULL);
+    SpatialMapping_MeshTaskGroup* mtg = (SpatialMapping_MeshTaskGroup*)param; // delete
+    SpatialMapping_MeshTask* task = mtg->task;
+    size_t size = mtg->size;
+    int maxtasks = (size < mtg->maxtasks) ? (int)size : mtg->maxtasks;
+    std::vector<HANDLE> threads; // CloseHandle
+    int i;
+    DWORD status;
+    int s;
+
+    threads.resize(maxtasks);
+
+    for (i = 0; i < size;     ++i)
+    {
+    task[i].index = i;
+    }
+    for (i = 0; i < maxtasks; ++i) 
+    { 
+    threads[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)(task + i), 0, NULL);
+    }
+    for (;      i < size;     ++i)
+    {
+    status = WaitForMultipleObjects(maxtasks, threads.data(), FALSE, INFINITE);
+    s = status - WAIT_OBJECT_0;
+    CloseHandle(threads[s]);
+    threads[s] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)(task + i), 0, NULL);
+    }
+    status = WaitForMultipleObjects(maxtasks, threads.data(), TRUE,  INFINITE);
+    for (i = 0; i < maxtasks; ++i) 
+    {
+    CloseHandle(threads[i]);
+    }
+
+    delete mtg;
+
     return 0;
 }
 
 // OK
 void SpatialMapping_BeginComputeMeshes(SpatialMapping_MeshTask* task, size_t size, int maxtasks)
 {
-    g_observed_meshes.resize(size);
-    g_observed_meshes_info.resize(size);
-    g_event_observed_meshes.resize(size);
-    g_thread_observed_meshes.resize(size);
+    void* param = (void*)(new SpatialMapping_MeshTaskGroup{ task, size, maxtasks }); // delete
 
-    g_semaphore_observed_meshes = CreateSemaphore(NULL, maxtasks, maxtasks, NULL);
-
-    for (int i = 0; i < size; ++i) { task[i].index = i; }
-    for (int i = 0; i < size; ++i) { g_event_observed_meshes[i] = CreateEvent(NULL, FALSE, FALSE, NULL); }
-    for (int i = 0; i < size; ++i) { g_thread_observed_meshes[i] = CreateThread(NULL, 0, SpatialMapping_ComputeMesh, (void*)(task + i), 0, NULL); }
+    g_semaphore_observed_meshes = CreateSemaphore(NULL, 0, maxtasks, NULL);
+    g_compute_thread = CreateThread(NULL, 0, SpatialMapping_ComputeMeshes, param, 0, NULL);
 }
 
 // OK
 SpatialMapping_MeshInfo* SpatialMapping_GetNextMesh()
 {
-    size_t size = g_event_observed_meshes.size();
-    DWORD status = WaitForMultipleObjects((DWORD)size, g_event_observed_meshes.data(), FALSE, INFINITE);
-    return ((status >= WAIT_OBJECT_0) && (status < (WAIT_OBJECT_0 + size))) ? (g_observed_meshes_info.data() + (status - WAIT_OBJECT_0)) : NULL;
+    SpatialMapping_MeshInfo* mi;
+
+    WaitForSingleObject(g_semaphore_observed_meshes, INFINITE);
+
+    {
+    CriticalSection cs(&g_lock);
+    mi = g_observed_meshes_info.front();
+    g_observed_meshes_info.pop();
+    }
+
+    return mi;
+}
+
+// OK
+void SpatialMapping_DestroyMesh(SpatialMapping_MeshInfo* mi)
+{
+    if (mi->ssm) { SpatialSurfaceMesh ssm{ mi->ssm, winrt::take_ownership_from_abi }; }
+    delete mi;
 }
 
 // OK
 void SpatialMapping_EndComputeMeshes()
 {
-    size_t size = g_observed_meshes.size();
-
-    WaitForMultipleObjects((DWORD)size, g_thread_observed_meshes.data(), TRUE, INFINITE);
-
-    for (int i = 0; i < size; ++i) { CloseHandle(g_thread_observed_meshes[i]); }
-    for (int i = 0; i < size; ++i) { CloseHandle(g_event_observed_meshes[i]); }
+    WaitForSingleObject(g_compute_thread, INFINITE);
+    CloseHandle(g_compute_thread);
     CloseHandle(g_semaphore_observed_meshes);
 }
