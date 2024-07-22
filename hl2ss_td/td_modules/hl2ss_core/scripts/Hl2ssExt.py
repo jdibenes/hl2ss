@@ -1,5 +1,5 @@
 # add paths for external python libraries
-extLibs = ['../viewer', 'venv/Lib/site-packages']
+extLibs = [f'{parent().fileFolder}/../../../viewer', f'{parent().fileFolder}/../../venv/Lib/site-packages']
 for extLib in extLibs:
 	if extLib not in sys.path:
 		sys.path = extLibs + sys.path
