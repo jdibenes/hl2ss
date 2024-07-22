@@ -44,6 +44,7 @@ private:
     std::unique_ptr<hl2ss::ipc_su>     ipc_su;
     std::unique_ptr<hl2ss::ipc_vi>     ipc_vi;
     std::unique_ptr<hl2ss::ipc_umq>    ipc_umq;
+    std::unique_ptr<hl2ss::ipc_gmq>    ipc_gmq;
 
 public:
     //------------------------------------------------------------------------------
@@ -273,6 +274,7 @@ public:
         case hl2ss::ipc_port::SCENE_UNDERSTANDING:     (ipc_su  = hl2ss::lnm::ipc_su( host.c_str(), port))->open(); break;
         case hl2ss::ipc_port::VOICE_INPUT:             (ipc_vi  = hl2ss::lnm::ipc_vi( host.c_str(), port))->open(); break;
         case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     (ipc_umq = hl2ss::lnm::ipc_umq(host.c_str(), port))->open(); break;
+        case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     (ipc_gmq = hl2ss::lnm::ipc_gmq(host.c_str(), port))->open(); break;
         default:                                       throw std::runtime_error("Unknown port");
         }
     }
@@ -308,6 +310,7 @@ public:
         case hl2ss::ipc_port::SCENE_UNDERSTANDING:     ipc_su  = nullptr; break;
         case hl2ss::ipc_port::VOICE_INPUT:             ipc_vi  = nullptr; break;
         case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     ipc_umq = nullptr; break;
+        case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     ipc_gmq = nullptr; break;
         default:                                       throw std::runtime_error("Unknown port");
         }
     }
@@ -1304,6 +1307,32 @@ public:
         }
     }
 
+    void ipc_call_gmq(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        if (!ipc_gmq) { throw std::runtime_error("Port not open"); }
+
+        std::string f = get_argument_string(inputs);
+
+        if (f == "pull")
+        {
+        hl2ss::gmq_message msg;
+        ipc_gmq->pull(msg);
+        matlab::data::TypedArray<uint8_t> data = m_factory.createArray<uint8_t>({ msg.size });
+        if (msg.size > 0) { memcpy(get_pointer(data), msg.data.get(), msg.size); }
+        outputs[0] = m_factory.createScalar<uint32_t>(msg.command);
+        outputs[1] = std::move(data);
+        }
+        else if (f == "push")
+        {
+        uint32_t response = get_argument<uint32_t>(inputs);
+        ipc_gmq->push(response);
+        }
+        else
+        {
+        throw std::runtime_error("Unknown method");
+        }
+    }
+
     void ipc_call(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         uint16_t port = get_argument<uint16_t>(inputs);
@@ -1315,6 +1344,7 @@ public:
         case hl2ss::ipc_port::SCENE_UNDERSTANDING:  ipc_call_su( outputs, inputs); break;
         case hl2ss::ipc_port::VOICE_INPUT:          ipc_call_vi( outputs, inputs); break;
         case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:  ipc_call_umq(outputs, inputs); break;
+        case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:  ipc_call_gmq(outputs, inputs); break;
         default:                                    throw std::runtime_error("Unsupported port");
         }
     }

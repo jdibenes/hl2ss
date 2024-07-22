@@ -45,6 +45,7 @@ uint16_t const SPATIAL_MAPPING      = 3813;
 uint16_t const SCENE_UNDERSTANDING  = 3814;
 uint16_t const VOICE_INPUT          = 3815;
 uint16_t const UNITY_MESSAGE_QUEUE  = 3816;
+uint16_t const GUEST_MESSAGE_QUEUE  = 3820;
 };
 
 namespace chunk_size
@@ -1229,6 +1230,27 @@ public:
 
     void push(uint8_t const* data, size_t size);
     void pull(uint32_t* data, uint32_t count);
+};
+
+//------------------------------------------------------------------------------
+// * Guest Message Queue
+//------------------------------------------------------------------------------
+
+class gmq_message
+{
+public:
+    uint32_t command;
+    uint32_t size;
+    std::unique_ptr<uint8_t[]> data;
+};
+
+class ipc_gmq : public ipc
+{
+public:
+    ipc_gmq(char const* host, uint16_t port);
+
+    void pull(gmq_message& message);
+    void push(uint32_t response);
 };
 
 //------------------------------------------------------------------------------

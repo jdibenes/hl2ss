@@ -39,13 +39,19 @@ struct RM_ZAB_Blob
 // https://github.com/microsoft/HoloLens2ForCV/issues/133
 
 //-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+static RM_ZAB_Blob g_blob_sh;
+
+//-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
 static void RM_ZHT_SetZAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* out)
 {
-    memcpy(out,                pDepth, RM_ZHT_ZSIZE);
+    Neon_ZHTInvalidate(pDepth, (uint16_t*)out);
     memcpy(out + RM_ZHT_ZSIZE, pAb,    RM_ZHT_ABSIZE);
 }
 
@@ -86,11 +92,18 @@ static void RM_ZHT_AppendZ(zdepth::DepthCompressor& compressor, uint16_t const* 
 }
 
 // OK
+static void RM_ZHT_FreeBlobZ()
+{
+    if (g_blob_sh.z == NULL) { return; }
+    delete g_blob_sh.z;
+    g_blob_sh.z = NULL;
+}
+
+// OK
 template<bool ENABLE_LOCATION>
 void RM_ZHT_SendSample(IMFSample* pSample, void* param)
 {
     IMFMediaBuffer* pBuffer; // Release
-    HookCallbackSocket* user;
     int64_t sampletime;
     uint8_t* p_z;
     BYTE* pBytes;
@@ -98,37 +111,42 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     uint32_t size_p;
     uint32_t size_z;
     uint32_t size_ab;
-    RM_ZAB_Blob blob;
     bool has_z;
     WSABUF wsaBuf[ENABLE_LOCATION ? 7 : 6];
+    HookCallbackSocket* user;
+    H26xFormat* format;
+    bool sh;
     bool ok;
 
     user = (HookCallbackSocket*)param;
+    format = (H26xFormat*)user->format;
+    sh = format->profile != H26xProfile::H26xProfile_None;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
-    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&blob, sizeof(blob), NULL);
+    
+    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_blob_sh, sizeof(g_blob_sh), NULL); }
 
-    has_z = blob.z != NULL;
+    has_z = g_blob_sh.z != NULL;
 
-    if (has_z) { p_z = blob.z->data(); size_z = (uint32_t)blob.z->size(); }
-    else       { p_z = NULL;           size_z = 0;}
+    if (has_z) { p_z = g_blob_sh.z->data(); size_z = (uint32_t)g_blob_sh.z->size(); }
+    else       { p_z = NULL;                size_z = 0; }
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
     size_ab = (uint32_t)cbData;
-    size_p  = ((sizeof(size_z) + sizeof(size_ab)) * has_z) + size_z + size_ab;
+    size_p = sizeof(size_z) + sizeof(size_ab) + size_z + size_ab;
 
     pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
     pack_buffer(wsaBuf, 1, &size_p, sizeof(size_p));
-    pack_buffer(wsaBuf, 2, &size_z, sizeof(size_z)*has_z);
-    pack_buffer(wsaBuf, 3, &size_ab, sizeof(size_ab)*has_z);
+    pack_buffer(wsaBuf, 2, &size_z, sizeof(size_z));
+    pack_buffer(wsaBuf, 3, &size_ab, sizeof(size_ab));
     pack_buffer(wsaBuf, 4, p_z, size_z);
     pack_buffer(wsaBuf, 5, pBytes, size_ab);
 
     if constexpr (ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 6, &blob.pose, sizeof(blob.pose));
+    pack_buffer(wsaBuf, 6, &g_blob_sh.pose, sizeof(g_blob_sh.pose));
     }
 
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -137,7 +155,9 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     pBuffer->Unlock();
     pBuffer->Release();
 
-    if (has_z) { delete blob.z; }
+    RM_ZHT_FreeBlobZ();
+
+    if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_blob_sh, sizeof(g_blob_sh), NULL); }
 }
 
 // OK
@@ -209,6 +229,9 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     }
 
     CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, options, RM_ZHT_SendSample<ENABLE_LOCATION>, &user);
+
+    RM_ZHT_FreeBlobZ();
+    memset(&g_blob_sh, 0, sizeof(g_blob_sh));
 
     sensor->OpenStream();
 

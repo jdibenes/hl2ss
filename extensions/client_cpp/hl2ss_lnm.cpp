@@ -215,5 +215,10 @@ std::unique_ptr<hl2ss::ipc_umq> ipc_umq(char const* host, uint16_t port)
 {
     return std::make_unique<hl2ss::ipc_umq>(host, port);
 }
+
+std::unique_ptr<hl2ss::ipc_gmq> ipc_gmq(char const* host, uint16_t port)
+{
+    return std::make_unique<hl2ss::ipc_gmq>(host, port);
+}
 }
 }

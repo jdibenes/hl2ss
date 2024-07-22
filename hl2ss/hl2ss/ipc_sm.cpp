@@ -146,8 +146,10 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
 
     SpatialMapping_BeginComputeMeshes(task, count, maxtasks);
 
-    for (; count > 0; --count)
+    while (count > 0)
     {
+    --count;
+
     info = SpatialMapping_GetNextMesh();
 
     pack_buffer(wsaBuf, 0, info, SM_MESH_INFO_HEADER_SIZE + info->bsz);
@@ -156,11 +158,22 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
     pack_buffer(wsaBuf, 3, info->vnd, info->vnl);
 
     ok = send_multiple(clientsocket, wsaBuf, (info->status == 0) ? (sizeof(wsaBuf) / sizeof(WSABUF)) : 1);
+    
+    SpatialMapping_DestroyMesh(info);
+    
     if (!ok)
     {
         SM_TransferError();
         break;
     }
+    }
+
+    while (count > 0)
+    {
+    --count;
+
+    info = SpatialMapping_GetNextMesh();
+    SpatialMapping_DestroyMesh(info);
     }
 
     SpatialMapping_EndComputeMeshes();

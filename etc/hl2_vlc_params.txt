@@ -1,0 +1,1 @@
+exposure 5990000 ns
