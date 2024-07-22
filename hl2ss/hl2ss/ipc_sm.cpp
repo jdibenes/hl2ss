@@ -156,6 +156,9 @@ static void SM_MSG_GetMeshes(SOCKET clientsocket)
     pack_buffer(wsaBuf, 3, info->vnd, info->vnl);
 
     ok = send_multiple(clientsocket, wsaBuf, (info->status == 0) ? (sizeof(wsaBuf) / sizeof(WSABUF)) : 1);
+    
+    SpatialMapping_DestroyMesh(info);
+    
     if (!ok)
     {
         SM_TransferError();
