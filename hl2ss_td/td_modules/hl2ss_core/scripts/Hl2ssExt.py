@@ -267,8 +267,8 @@ class Hl2ssExt:
 
 		Args:
 		    extObj: Specifies which extension object will be used for frame
-		    picker settings and final data storage. Its purpose is to enable
-		    decoupled frame picker fuctionality.
+		    picker settings, final data storage and callback trigger. Its
+		    purpose is to enable decoupled frame picker fuctionality.
 
 		Returns:
 		    bool: Success of providing new data.
@@ -289,9 +289,9 @@ class Hl2ssExt:
 			self.handleData(fs, data, targetComp=extObj.ownerComp)
 			extObj.lastPresentedFramestamp = fs
 
-			callbacks = self.ownerComp.par.Callbacks.eval()
+			callbacks = extObj.ownerComp.par.Callbacks.eval()
 			if callbacks is not None:
-				mod(callbacks.path).onData(self.ownerComp, data)
+				mod(callbacks.path).onData(extObj.ownerComp, data)
 
 			return True
 		return False

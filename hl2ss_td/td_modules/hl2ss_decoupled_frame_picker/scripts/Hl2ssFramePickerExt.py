@@ -6,6 +6,9 @@ class Hl2ssFramePickerExt():
 		self.ownerComp = ownerComp
 		self.lastPresentedFramestamp = 0
 		self.data = None
+
+		# initial cleanup
+		op('metadata').text = op('default_metadata').text
 	
 	@property
 	def MainComp(self):
