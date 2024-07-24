@@ -427,6 +427,8 @@ class H26xEncoderProperty:
     CODECAPI_AVLowLatencyMode = 16
     CODECAPI_AVEncVideoMaxQP = 17
     CODECAPI_VideoEncoderDisplayContentType = 18
+    HL2SSAPI_VLCHostTicksOffsetConstant = 0xFFFFFFFFFFFFFFFE
+    HL2SSAPI_VLCHostTicksOffsetExposure = 0xFFFFFFFFFFFFFFFF
 
 
 def _create_configuration_for_mode(mode):
