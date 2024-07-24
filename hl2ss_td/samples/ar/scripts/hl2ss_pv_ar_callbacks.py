@@ -3,22 +3,11 @@ import cv2
 import hl2ss_3dcv
 
 def onData(comp, data):
-	# In case of RAW Video Profile pose should match the image
-	pose = data.pose
-	if int( comp.par.Videoprofile.eval() ) != 255:
-		# H265 / H264 Video Profile
-		# video encoding seems to add latency to images - merging old image with "future" pose
-		ext = comp.ext.Hl2ssExt
-		curFs = ext.lastPresentedFramestamp
-		bufFs, bufData = ext.getBufferedFrame(curFs - 1)
-		if bufData is not None:
-			pose = bufData.pose
-
 	# Save sensor pose to CHOP.
 	# Hl2ss uses row-major format, but TD uses column-major. Matrix2Chop
 	# basically transposes matrix as it reads numpy matrix row-by-row and writes
 	# to CHOP column-by-column.
-	matrix2Chop(pose.ravel(), op('constant_pose'))
+	matrix2Chop(data.pose.ravel(), op('constant_pose'))
 
 	# Each pv frame contains focal length and principal point (based on current
 	# focus). Use these to construct up-to-date intrinsics and convert them to
