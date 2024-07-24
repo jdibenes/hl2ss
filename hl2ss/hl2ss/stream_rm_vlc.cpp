@@ -27,6 +27,22 @@ static float4x4 g_pose_sh;
 //-----------------------------------------------------------------------------
 
 // OK
+static void RM_VLC_TranslateEncoderOptions(std::vector<uint64_t> const& options, double& exposure_factor, int64_t& constant_factor)
+{
+    exposure_factor = 0.0;
+    constant_factor = 0;
+
+    for (int i = 0; i < (int)(options.size() / 2); ++i)
+    {
+    switch (options[2 * i])
+    {
+    case 0xFFFFFFFFFFFFFFFE: constant_factor =   (int64_t)options[(2 * i) + 1]; break;
+    case 0xFFFFFFFFFFFFFFFF: exposure_factor = *(double*)&options[(2 * i) + 1]; break;
+    }
+    }
+}
+
+// OK
 template<bool ENABLE_LOCATION>
 void RM_VLC_SendSample(IMFSample* pSample, void* param)
 {
@@ -104,6 +120,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     HRESULT hr;
     VideoSubtype subtype;
     UINT64 exposure;
+    double exposure_factor;
+    int64_t constant_factor;
     UINT64 adjusted_timestamp;
     bool ok;
 
@@ -134,6 +152,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, options, RM_VLC_SendSample<ENABLE_LOCATION>, &user);
 
+    RM_VLC_TranslateEncoderOptions(options, exposure_factor, constant_factor);
+
     framebytes = lumasize + chromasize;
     memset(&g_pose_sh, 0, sizeof(g_pose_sh));
 
@@ -162,8 +182,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     MFCreateSample(&pSample);
 
-    adjusted_timestamp = timestamp.HostTicks - (exposure / 100);
-
+    adjusted_timestamp = timestamp.HostTicks + (int64_t)((exposure_factor * exposure) / 100.0) + constant_factor;
+    
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(duration);
     pSample->SetSampleTime(adjusted_timestamp);
