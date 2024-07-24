@@ -54,10 +54,10 @@ static void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAtt
 {
 	MFCreateAttributes(pEncoderAttr, (UINT32)(options.size() / 2));
 
-	for (int i = 0; i < (int)options.size(); i += 2)
+	for (int i = 0; i < (int)(options.size() / 2); ++i)
 	{
-	uint64_t option = options[i];
-	uint64_t value  = options[i + 1];
+	uint64_t option = options[(2 * i)];
+	uint64_t value  = options[(2 * i) + 1];
 
 	if (option >= (sizeof(g_AVLUT) / sizeof(AVOption))) { continue; }
 
