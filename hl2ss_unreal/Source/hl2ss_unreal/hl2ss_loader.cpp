@@ -31,6 +31,7 @@ void Ahl2ss_loader::BeginPlay()
 	auto ip_address = FString(buffer);
 	hl2ss_api::DebugMessage(StringCast<ANSICHAR>(*ip_address).Get());
 
+	mqx_state = 0;
 }
 
 // Called every frame
@@ -38,6 +39,12 @@ void Ahl2ss_loader::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	ProcessClientMessage();
+	ProcessServerMessage();
+}
+
+void Ahl2ss_loader::ProcessClientMessage()
+{
 	// Translate and process client messages
 
 	uint32_t size = hl2ss_api::MQ_SI_Peek();
@@ -67,3 +74,25 @@ void Ahl2ss_loader::Tick(float DeltaTime)
 	if (command == hl2ss_api::CLIENT_DISCONNECTED) { hl2ss_api::MQ_Restart(); }
 }
 
+void Ahl2ss_loader::ProcessServerMessage()
+{
+	char const* text = "Hello from HoloLens 2!";
+	uint32_t status;
+	uint32_t response;
+
+	switch (mqx_state)
+	{
+	case 0:
+		hl2ss_api::MQX_CI_Push(0xFFFFFFFE, (uint32_t)strlen(text), (uint8_t*)text);
+		mqx_state = 1;
+		break;
+	case 1:
+		status = hl2ss_api::MQX_CO_Peek();
+		if (status == hl2ss_api::QUEUE_EMPTY) { break; }
+		hl2ss_api::MQX_CO_Pop(response);
+		if (response != hl2ss_api::CLIENT_DISCONNECTED) { break; }
+		hl2ss_api::MQX_Restart();
+		mqx_state = 0;
+		break;
+	}
+}
