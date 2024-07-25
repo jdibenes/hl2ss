@@ -1,12 +1,12 @@
 ﻿
 #include <queue>
 #include <malloc.h>
-#include "plugin.h"
 
-#include "../hl2ss/server.h"
-#include "../hl2ss/ports.h"
-#include "../hl2ss/lock.h"
-#include "../hl2ss/log.h"
+#include "server.h"
+#include "ports.h"
+#include "lock.h"
+#include "log.h"
+#include "ipc_mq.h"
 
 struct MQ_MSG
 {
@@ -81,7 +81,6 @@ static DWORD WINAPI MQ_EntryPoint_Receive(void *param)
 }
 
 // OK
-UNITY_EXPORT
 uint32_t MQ_SI_Peek()
 {
 	CriticalSection cs(&g_lock_si);
@@ -89,7 +88,6 @@ uint32_t MQ_SI_Peek()
 }
 
 // OK
-UNITY_EXPORT
 void MQ_SI_Pop(uint32_t& command, uint8_t* data)
 {
 	MQ_MSG msg;
@@ -145,7 +143,6 @@ static DWORD WINAPI MQ_EntryPoint_Send(void *param)
 }
 
 // OK
-UNITY_EXPORT
 void MQ_SO_Push(uint32_t id)
 {
 	CriticalSection cs(&g_lock_so);
@@ -154,7 +151,6 @@ void MQ_SO_Push(uint32_t id)
 }
 
 // OK
-UNITY_EXPORT
 void MQ_Restart()
 {
 	g_queue_so = {};
@@ -310,7 +306,6 @@ static DWORD WINAPI MQX_EntryPoint_Exchange(void* param)
 }
 
 // OK
-UNITY_EXPORT
 uint32_t MQX_CO_Peek()
 {
 	CriticalSection cs(&g_lock_co);
@@ -318,7 +313,6 @@ uint32_t MQX_CO_Peek()
 }
 
 // OK
-UNITY_EXPORT
 void MQX_CO_Pop(uint32_t& id)
 {
 	CriticalSection cs(&g_lock_co);
@@ -327,7 +321,6 @@ void MQX_CO_Pop(uint32_t& id)
 }
 
 // OK
-UNITY_EXPORT
 void MQX_CI_Push(uint32_t command, uint32_t size, uint8_t const* data)
 {
 	MQ_MSG msg;
@@ -349,7 +342,6 @@ void MQX_CI_Push(uint32_t command, uint32_t size, uint8_t const* data)
 }
 
 // OK
-UNITY_EXPORT
 void MQX_Restart()
 {
 	while (g_queue_ci.size() > 0)
