@@ -6,6 +6,7 @@
 #include "ports.h"
 #include "lock.h"
 #include "log.h"
+#include "ipc_mq.h"
 
 struct MQ_MSG
 {
