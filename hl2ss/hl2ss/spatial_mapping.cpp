@@ -231,7 +231,7 @@ void SpatialMapping_BeginComputeMeshes(SpatialMapping_MeshTask* task, size_t siz
 {
     void* param = (void*)(new SpatialMapping_MeshTaskGroup{ task, size, maxtasks }); // delete
 
-    g_semaphore_observed_meshes = CreateSemaphore(NULL, 0, maxtasks, NULL);
+    g_semaphore_observed_meshes = CreateSemaphore(NULL, 0, 0x7FFFFFFF, NULL);
     g_compute_thread = CreateThread(NULL, 0, SpatialMapping_ComputeMeshes, param, 0, NULL);
 }
 
