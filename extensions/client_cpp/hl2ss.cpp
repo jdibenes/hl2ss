@@ -721,7 +721,7 @@ void collect_nv12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* 
 
 constexpr uint16_t get_video_stride(uint16_t width)
 {
-    return width + ((64 - (width & 63)) & 63);
+    return (width + 63) & ~63;
 }
 
 int const cv_format[5][4] = 
@@ -768,6 +768,8 @@ void decoder_rm_depth_ahat::open(uint8_t profile_z, uint8_t profile_ab)
 
 std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t size)
 {
+    int const base = 2 * sizeof(uint32_t);
+
     std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(DECODED_SIZE);
     uint32_t sz = DECODED_SIZE / 2;
     uint8_t* dst_z  = out.get();
@@ -777,7 +779,7 @@ std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t
     {
     if (m_profile_ab != hl2ss::video_profile::RAW)
     {
-    std::shared_ptr<frame> f = m_codec.decode(data, size);
+    std::shared_ptr<frame> f = m_codec.decode(data + base, size);
 
     cv::Mat depth = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH, CV_16UC1, dst_z);
     cv::Mat ab    = cv::Mat(parameters_rm_depth_ahat::HEIGHT, parameters_rm_depth_ahat::WIDTH, CV_16UC1, dst_ab);
@@ -797,7 +799,7 @@ std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t
     }
     else
     {
-    memcpy(out.get(), data, size);
+    memcpy(out.get(), data + base, size);
     }
     }
     else
@@ -809,9 +811,11 @@ std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t
     memcpy(&sz_depth, data,                    sizeof(sz_depth));
     memcpy(&sz_ab,    data + sizeof(uint32_t), sizeof(sz_ab));
 
-    uint8_t* data_z  = data   + (2 * sizeof(uint32_t));
+    uint8_t* data_z  = data   + base;
     uint8_t* data_ab = data_z + sz_depth;
 
+    if (sz_depth > 0)
+    {
     std::vector<uint8_t> v_z(data_z, data_ab);
     int w;
     int h;
@@ -821,6 +825,11 @@ std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t
     if (result != zdepth::DepthResult::Success) { throw std::runtime_error("hl2ss::decoder_rm_depth_ahat::decode : zdepth::DepthCompressor::Decompress failed"); }
     
     memcpy(dst_z, v_d.data(), sz);
+    }
+    else
+    {
+    memset(dst_z, 0, sz);
+    }
 
     if (m_profile_ab != hl2ss::video_profile::RAW)
     {
@@ -1771,6 +1780,30 @@ void ipc_umq::push(uint8_t const* data, size_t size)
 void ipc_umq::pull(uint32_t* data, uint32_t count)
 {
     m_client.download(data, count * sizeof(uint32_t), chunk_size::SINGLE_TRANSFER);
+}
+
+//------------------------------------------------------------------------------
+// * Guest Message Queue
+//------------------------------------------------------------------------------
+
+ipc_gmq::ipc_gmq(char const* host, uint16_t port) : ipc(host, port)
+{
+}
+
+void ipc_gmq::pull(gmq_message& message)
+{
+    uint32_t peek = ~0U;
+    m_client.sendall(&peek, sizeof(peek));
+    m_client.download(&message, 2 * sizeof(uint32_t), hl2ss::chunk_size::SINGLE_TRANSFER);
+    message.data = nullptr;
+    if (message.size <= 0) { return; }
+    message.data = std::make_unique<uint8_t[]>(message.size);
+    m_client.download(message.data.get(), message.size, hl2ss::chunk_size::SINGLE_TRANSFER);
+}
+
+void ipc_gmq::push(uint32_t response)
+{
+    m_client.sendall(&response, sizeof(response));
 }
 
 //------------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 
+import struct
 import hl2ss
 
 
@@ -90,6 +91,8 @@ def rx_rm_vlc(host, port, chunk=hl2ss.ChunkSize.RM_VLC, mode=hl2ss.StreamMode.MO
 
     if (options is None):
         options = get_video_codec_default_options(hl2ss.Parameters_RM_VLC.WIDTH, hl2ss.Parameters_RM_VLC.HEIGHT, hl2ss.Parameters_RM_VLC.FPS, divisor, profile)
+        options[hl2ss.H26xEncoderProperty.HL2SSAPI_VLCHostTicksOffsetExposure] = struct.unpack('<Q', struct.pack('<d', -2.1))[0]
+        options[hl2ss.H26xEncoderProperty.HL2SSAPI_VLCHostTicksOffsetConstant] = struct.unpack('<Q', struct.pack('<q', 0))[0]
     
     return hl2ss.rx_decoded_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options) if (decoded) else hl2ss.rx_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options)
 
@@ -192,4 +195,8 @@ def ipc_vi(host, port):
 
 def ipc_umq(host, port):
     return hl2ss.ipc_umq(host, port)
+
+
+def ipc_gmq(host, port):
+    return hl2ss.ipc_gmq(host, port)
 

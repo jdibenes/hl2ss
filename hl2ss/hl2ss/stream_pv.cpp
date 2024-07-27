@@ -43,6 +43,7 @@ static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
 static uint32_t g_counter = 0;
 static uint32_t g_divisor = 1;
+static PV_Projection g_pvp_sh;
 
 // Mode: 2
 static HANDLE g_event_intrinsic = NULL; // alias
@@ -151,30 +152,34 @@ void PV_SendSample(IMFSample* pSample, void* param)
     BYTE* pBytes;
     DWORD cbData;
     DWORD cbDataEx;
-    PV_Projection pj;
     WSABUF wsaBuf[ENABLE_LOCATION ? 6 : 5];
     HookCallbackSocket* user;
+    H26xFormat* format;
+    bool sh;
     bool ok;
 
     user = (HookCallbackSocket*)param;
+    format = (H26xFormat*)user->format;
+    sh = format->profile != H26xProfile::H26xProfile_None;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
-    pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj), NULL);
+    
+    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    cbDataEx = cbData + sizeof(pj.f) + sizeof(pj.c);
+    cbDataEx = cbData + sizeof(g_pvp_sh.f) + sizeof(g_pvp_sh.c);
 
     pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
-    pack_buffer(wsaBuf, 3, &pj.f, sizeof(pj.f));
-    pack_buffer(wsaBuf, 4, &pj.c, sizeof(pj.c));
+    pack_buffer(wsaBuf, 3, &g_pvp_sh.f, sizeof(g_pvp_sh.f));
+    pack_buffer(wsaBuf, 4, &g_pvp_sh.c, sizeof(g_pvp_sh.c));
 
     if constexpr(ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 5, &pj.pose, sizeof(pj.pose));
+    pack_buffer(wsaBuf, 5, &g_pvp_sh.pose, sizeof(g_pvp_sh.pose));
     }
     
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -182,6 +187,8 @@ void PV_SendSample(IMFSample* pSample, void* param)
 
     pBuffer->Unlock();
     pBuffer->Release();
+
+    if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
 }
 
 // OK
@@ -212,6 +219,7 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 
     g_counter = 0;
     g_divisor = format.divisor;
+    memset(&g_pvp_sh, 0, sizeof(g_pvp_sh));
 
     g_reader_status = true;
     reader.StartAsync().get();

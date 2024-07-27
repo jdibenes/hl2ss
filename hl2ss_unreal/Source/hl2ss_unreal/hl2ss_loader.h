@@ -11,9 +11,14 @@ class HL2SS_UNREAL_API Ahl2ss_loader : public AActor
 {
 	GENERATED_BODY()
 	
+	int mqx_state;
+
 public:	
 	// Sets default values for this actor's properties
 	Ahl2ss_loader();
+
+	void ProcessClientMessage();
+	void ProcessServerMessage();
 
 protected:
 	// Called when the game starts or when spawned

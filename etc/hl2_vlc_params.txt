@@ -1,0 +1,4 @@
+exposure 5990000 ns
+frame: 329990 hns
+avg sensor-host delay: 4.23 hns
+max sensor-host delay ~11000 hns

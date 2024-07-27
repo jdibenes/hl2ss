@@ -66,6 +66,7 @@ struct SpatialMapping_MeshInfo
     uint8_t* vpd;
     uint8_t* tid;
     uint8_t* vnd;
+    void* ssm;
 };
 
 int const SM_MESH_INFO_HEADER_SIZE = 100;
@@ -77,4 +78,5 @@ void SpatialMapping_SetVolumes(SpatialMapping_VolumeDescription const* vd, size_
 void SpatialMapping_GetObservedSurfaces(SpatialMapping_SurfaceInfo const*& data, size_t& size);
 void SpatialMapping_BeginComputeMeshes(SpatialMapping_MeshTask* task, size_t size, int maxtasks);
 SpatialMapping_MeshInfo* SpatialMapping_GetNextMesh();
+void SpatialMapping_DestroyMesh(SpatialMapping_MeshInfo* mi);
 void SpatialMapping_EndComputeMeshes();

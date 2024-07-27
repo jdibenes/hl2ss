@@ -32,6 +32,7 @@ class IPCPort:
     SCENE_UNDERSTANDING  = 3814
     VOICE_INPUT          = 3815
     UNITY_MESSAGE_QUEUE  = 3816
+    GUEST_MESSAGE_QUEUE  = 3820
 
 
 # Default Chunk Sizes
@@ -426,6 +427,8 @@ class H26xEncoderProperty:
     CODECAPI_AVLowLatencyMode = 16
     CODECAPI_AVEncVideoMaxQP = 17
     CODECAPI_VideoEncoderDisplayContentType = 18
+    HL2SSAPI_VLCHostTicksOffsetConstant = 0xFFFFFFFFFFFFFFFE
+    HL2SSAPI_VLCHostTicksOffsetExposure = 0xFFFFFFFFFFFFFFFF
 
 
 def _create_configuration_for_mode(mode):
@@ -909,6 +912,10 @@ class _RM_Depth_Frame:
         self.ab    = ab
 
 
+class _Mode0Layout_RM_DEPTH_AHAT_STRUCT:
+    BASE = 8
+
+
 class _Mode0Layout_RM_DEPTH_AHAT:
     BEGIN_DEPTH_Y = 0
     END_DEPTH_Y   = BEGIN_DEPTH_Y + Parameters_RM_DEPTH_AHAT.HEIGHT
@@ -945,7 +952,7 @@ class _decode_rm_depth_ahat:
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
+        for packet in self._codec.parse(payload[_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE:]):
             for frame in self._codec.decode(packet):
                 return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray())
         return None
@@ -956,9 +963,8 @@ class _unpack_rm_depth_ahat:
         pass
 
     def decode(self, payload):
-        depth = np.frombuffer(payload, dtype=np.uint16, offset=0,                                            count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        ab    = np.frombuffer(payload, dtype=np.uint16, offset=Parameters_RM_DEPTH_AHAT.PIXELS*_SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        depth[depth >= 4090] = 0
+        depth = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE,                                                  count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        ab    = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE + Parameters_RM_DEPTH_AHAT.PIXELS * _SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
         return _RM_Depth_Frame(depth, ab)
 
 
@@ -968,7 +974,9 @@ class _decompress_zdepth:
         self._codec = pyzdepth.DepthCompressor()
 
     def decode(self, payload):
-        result, width, height, decompressed = self._codec.Decompress(payload)
+        if (len(payload) <= 0):
+            return None
+        result, width, height, decompressed = self._codec.Decompress(bytes(payload))
         return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
 
 
@@ -1006,12 +1014,12 @@ class _decode_rm_depth_ahat_zdepth:
     def decode(self, payload):
         size_z, size_ab = struct.unpack_from('<II', payload, 0)
 
-        start_z  = 8
+        start_z  = _Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE
         end_z    = start_z + size_z
         start_ab = end_z
         end_ab   = start_ab + size_ab
 
-        depth = self._codec_z.decode(bytes(payload[start_z:end_z]))
+        depth = self._codec_z.decode(payload[start_z:end_z])
         ab    = self._codec_ab.decode(payload[start_ab:end_ab])
 
         return _RM_Depth_Frame(depth, ab)
@@ -1087,7 +1095,7 @@ def unpack_pv(payload):
 
 
 def get_video_stride(width):
-    return width + ((64 - (width & 63)) & 63)
+    return (width + 63) & ~63
 
 
 class _decode_pv:
@@ -2367,6 +2375,34 @@ class ipc_umq(_context_manager):
     def pull_n(self, count):
         return np.frombuffer(self._client.download(_SIZEOF.DWORD * count, ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
 
+    def close(self):
+        self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Guest Message Queue
+#------------------------------------------------------------------------------
+
+class ipc_gmq(_context_manager):
+    _CMD_NONE = _RANGEOF.U32_MAX
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def open(self):
+        self._client = _client()
+        self._client.open(self.host, self.port)
+
+    def pull(self):
+        self._client.sendall(struct.pack('<I', ipc_gmq._CMD_NONE))
+        header = struct.unpack('<II', self._client.download(_SIZEOF.DWORD * 2, ChunkSize.SINGLE_TRANSFER))
+        data = self._client.download(header[1], ChunkSize.SINGLE_TRANSFER) if (header[1] > 0) else b''
+        return (header[0], data) if (header[0] != ipc_gmq._CMD_NONE) else None
+    
+    def push(self, response):
+        self._client.sendall(struct.pack('<I', response))
+    
     def close(self):
         self._client.close()
 

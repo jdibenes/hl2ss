@@ -597,13 +597,44 @@ void test_mt(char const* host)
 }
 
 //-----------------------------------------------------------------------------
+// Guest Message Queue
+//-----------------------------------------------------------------------------
+
+void test_gmq(char const* host)
+{
+    std::unique_ptr<hl2ss::ipc_gmq> client = hl2ss::lnm::ipc_gmq(host, hl2ss::ipc_port::GUEST_MESSAGE_QUEUE);
+    hl2ss::gmq_message msg;
+
+    client->open();
+    
+    while (true)
+    {
+        client->pull(msg);
+        if (msg.command == ~0U) { continue; }
+        client->push(1);
+        break;
+    }
+
+    client->close();
+
+    switch (msg.command)
+    {
+    case 0xFFFFFFFE:
+        std::cout << msg.data << std::endl;
+        break;
+    default:
+        std::cout << "Received command id=" << msg.command << std::endl;
+    }
+}
+
+//-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
 
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 20;
+    int test_id = 21;
 
     try
     {
@@ -630,8 +661,9 @@ int main()
         case 16: test_su(host); break; // OK
         case 17: test_vi(host); break; // OK
         case 18: test_umq(host); break; // OK
-        case 19: test_extended_audio(host); break;
-        case 20: test_mt(host); break;
+        case 19: test_extended_audio(host); break; // OK
+        case 20: test_mt(host); break; // OK
+        case 21: test_gmq(host); break; // OK
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }

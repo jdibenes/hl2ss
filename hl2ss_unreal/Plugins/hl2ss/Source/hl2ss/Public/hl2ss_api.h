@@ -24,6 +24,11 @@ private:
     static void* p_MQ_SO_Push;
     static void* p_MQ_Restart;
 
+    static void* p_MQX_CO_Peek;
+    static void* p_MQX_CO_Pop;
+    static void* p_MQX_CI_Push;
+    static void* p_MQX_Restart;
+
     static int Load();
 
 public:
@@ -41,6 +46,7 @@ public:
         ENABLE_EET =  512,
         ENABLE_EA  = 1024,
         ENABLE_EV  = 2048,
+        ENABLE_MQX = 4096,
 
         ENABLE_ALL = 0xFFFFFFFF,
     };
@@ -57,4 +63,8 @@ public:
     static void MQ_SI_Pop(uint32_t& command, uint8_t* data);
     static void MQ_SO_Push(uint32_t id);
     static void MQ_Restart();
+    static uint32_t MQX_CO_Peek();
+    static void MQX_CO_Pop(uint32_t& id);
+    static void MQX_CI_Push(uint32_t command, uint32_t size, uint8_t const* data);
+    static void MQX_Restart();
 };

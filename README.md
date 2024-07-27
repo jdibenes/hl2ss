@@ -1,6 +1,6 @@
 # HoloLens 2 Sensor Streaming
 
-HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data in real time over WiFi to a Linux machine for research purposes but also works on Windows and macOS. The server is offered as a standalone application (appxbundle) or Unity plugin (dll).
+HoloLens 2 server software and Python client library for streaming sensor data via TCP. Created to stream HoloLens data in real time over WiFi to a Linux machine for research purposes but also works on Windows and macOS. The server is offered as a standalone application (appxbundle) or as a plugin (dll) compatible with Unity, Unreal, and native UWP applications.
 
 **Supported interfaces**
 
@@ -30,23 +30,24 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Internal Microphone mirror
   - External USB-C Microphone
 - Extended Video
-  - Front Camera mirror (no Mixed Reality Capture)
+  - Internal Front Camera mirror
   - External USB-C Camera
   
 **Additional features**
 
 - Download calibration data (e.g., camera intrinsics, extrinsics, undistort maps) for the Front Camera and Research Mode sensors (except RM IMU Magnetometer).
 - Optional per-frame pose for the Front Camera and Research Mode sensors.
-- Support for Mixed Reality Capture (Holograms in Front Camera video) and Shared capture.
+- Support for Mixed Reality Capture (Holograms in Front Camera video).
+- Support for Shared capture for Front Camera and Extended Video.
 - Client can configure the bitrate and properties of the [H264](https://learn.microsoft.com/en-us/windows/win32/medfound/h-264-video-encoder), [HEVC](https://learn.microsoft.com/en-us/windows/win32/medfound/h-265---hevc-video-encoder), and [AAC](https://learn.microsoft.com/en-us/windows/win32/medfound/aac-encoder) encoded streams.
 - Client can configure the resolution and framerate of the Front Camera. See [here](etc/pv_configurations.txt) for a list of supported configurations.
-- Client can configure the focus, white balance, and exposure of the Front Camera. See [here](viewer/client_ipc_rc.py).
-- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization. See [here](viewer/client_ipc_rc.py).
-- Client can send messages to a Unity application using the plugin.
-- Server application can run in background (alongside other applications) when running in flat mode.
+- Client can configure the focus, white balance, and exposure of the Front Camera [[example](viewer/client_ipc_rc.py)].
+- Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization [[example](viewer/client_ipc_rc.py)].
+- Client can exchange messages with a Unity, Unreal, or native UWP application using the plugin [[example](viewer/client_ipc_umq.py)].
+- Server application can run in background (alongside other applications) when running in flat mode [[example](viewer/client_ipc_rc.py)].
 - [C++ client library](extensions).
 - [MATLAB client (MEX)](extensions).
-- [hl2da plugin](https://github.com/jdibenes/hl2da): access sensor data from Unity, Unreal, and native UWP apps running on the HoloLens.
+- [hl2da plugin](https://github.com/jdibenes/hl2da): access sensor data from Unity, Unreal, and native UWP applications running on the HoloLens.
 
 **Technical Report** 
 
@@ -109,7 +110,8 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - RM Depth Long Throw: [viewer/client_stream_rm_depth_longthrow.py](viewer/client_stream_rm_depth_longthrow.py)
 - RM IMU: [viewer/client_stream_rm_imu.py](viewer/client_stream_rm_imu.py)
 - Front Camera: [viewer/client_stream_pv.py](viewer/client_stream_pv.py)
-- Microphone: [viewer/client_stream_microphone.py](viewer/client_stream_microphone.py)
+- Microphone (2 channels): [viewer/client_stream_microphone.py](viewer/client_stream_microphone.py)
+- Microphone Array (5 channels): [viewer/client_stream_microphone_array.py](viewer/client_stream_microphone_array.py)
 - Spatial Input: [viewer/client_stream_si.py](viewer/client_stream_si.py)
 - Remote Configuration: [viewer/client_ipc_rc.py](viewer/client_ipc_rc.py)
 - Spatial Mapping: [viewer/client_ipc_sm.py](viewer/client_ipc_sm.py)
@@ -119,6 +121,7 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - Extended Eye Tracking: [viewer/client_stream_eet.py](viewer/client_stream_eet.py)
 - Extended Audio: [viewer/client_stream_extended_audio.py](viewer/client_stream_extended_audio.py)
 - Extended Video: [viewer/client_stream_extended_video.py](viewer/client_stream_extended_video.py)
+- Guest Message Queue: [viewer/client_ipc_gmq.py](viewer/client_ipc_gmq.py) (Plugin Only)
 
 **Required packages**
 
@@ -192,6 +195,7 @@ The plugin has basic support for creating and controlling 3D primitives and text
 - Remove all: destroy all game objects created by the plugin.
 
 To enable this functionality add the RemoteUnityScene.cs script to the Main Camera and set the Material field to BasicMaterial.
+Alternatively, the [mrtk_remote_ui](https://github.com/jdibenes/mrtk_remote_ui) project enables creating simple User Interfaces (windows with controls) remotely to interact with the HoloLens user.
 
 ## Unreal plugin
 
@@ -219,7 +223,7 @@ A sample Unreal project (4.27.2) can be found in the [hl2ss_unreal](hl2ss_unreal
    - Webcam
    - Gaze Input
    - Spatial Perception
-6. Add `+DeviceCapabilityList=backgroundSpatialPerception` to Config/HoloLens/HoloLensEngine.ini (see [here](hl2ss_unreal/Config/HoloLens/HoloLensEngine.ini) for an example).
+6. Add `+DeviceCapabilityList=backgroundSpatialPerception` to Config/HoloLens/HoloLensEngine.ini. See [here](hl2ss_unreal/Config/HoloLens/HoloLensEngine.ini) for an example.
 
 ## Build from source and deploy
 
@@ -238,8 +242,6 @@ If you wish to create the server application appxbundle, right click the hl2ss p
 ## Known issues and limitations
 
 - Multiple streams can be active at the same time but only one client per stream is allowed.
-- ~~Occasionally, the server might crash when accessing the Front Camera and RM Depth Long Throw streams simultaneously. See https://github.com/microsoft/HoloLens2ForCV/issues/142.~~
-- ~~The RM Depth AHAT and RM Depth Long Throw streams cannot be accessed simultaneously.~~
 - Spatial Input is not supported in flat mode.
 
 ## References
