@@ -84,7 +84,7 @@ class wr_process_producer(mp.Process):
 
         while ((not self._stopping) or (self._frame_stamp < self._stop_stamp)):
             self._sink.acquire()
-            state, data = self._sink.get_buffered_frame(self._frame_stamp)
+            state, _, data = self._sink.get_buffered_frame(self._frame_stamp)
 
             if (state == 0):
                 self._frame_stamp += 1
