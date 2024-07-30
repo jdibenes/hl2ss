@@ -20,5 +20,7 @@ properties (Constant)
     CODECAPI_AVLowLatencyMode               = uint64(16);
     CODECAPI_AVEncVideoMaxQP                = uint64(17);
     CODECAPI_VideoEncoderDisplayContentType = uint64(18);
+    HL2SSAPI_VLCHostTicksOffsetConstant     = uint64(0xFFFFFFFFFFFFFFFE);
+    HL2SSAPI_VLCHostTicksOffsetExposure     = uint64(0xFFFFFFFFFFFFFFFF);
 end
 end
