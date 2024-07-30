@@ -634,7 +634,7 @@ void test_gmq(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 21;
+    int test_id = 0;
 
     try
     {
