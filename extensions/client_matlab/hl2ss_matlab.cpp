@@ -612,9 +612,10 @@ public:
         }
         else if (type == hl2ss::matlab::grab_mode::BY_TIMESTAMP)
         {
-        uint64_t timestamp = get_argument<uint64_t>(inputs);
-        int32_t  mode      = get_argument<int32_t>(inputs);
-        return source->get_packet(timestamp, mode, frame_index, status);
+        uint64_t timestamp       = get_argument<uint64_t>(inputs);
+        int32_t  time_preference = get_argument<int32_t>(inputs);
+        int32_t  tiebreak_right  = get_argument<int32_t>(inputs);
+        return source->get_packet(timestamp, time_preference, tiebreak_right, frame_index, status);
         }
         else
         {

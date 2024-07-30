@@ -54,8 +54,8 @@ methods
         response = self.module('get_packet', self.port, hl2ss.grab_mode.BY_FRAME_INDEX, int64(index));
     end
     
-    function response = get_packet_by_timestamp(self, timestamp, preference)
-        response = self.module('get_packet', self.port, hl2ss.grab_mode.BY_TIMESTAMP, uint64(timestamp), int32(preference));
+    function response = get_packet_by_timestamp(self, timestamp, time_preference, tiebreak_right)
+        response = self.module('get_packet', self.port, hl2ss.grab_mode.BY_TIMESTAMP, uint64(timestamp), int32(time_preference), int32(tiebreak_right));
     end
     
     function close(self)
