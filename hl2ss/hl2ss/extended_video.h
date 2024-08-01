@@ -1,9 +1,14 @@
 
 #pragma once
 
+#include <Windows.h>
 #include "custom_media_types.h"
 #include "custom_video_effect.h"
+#include "plugin.h"
+
 #include <winrt/Windows.Media.Capture.Frames.h>
+
+HL2SS_PLUGIN_EXPORT void ExtendedVideo_RegisterNamedMutex(wchar_t const* name);
 
 void ExtendedVideo_QueryDevices(winrt::hstring& out);
 void ExtendedVideo_RegisterEvent(HANDLE h);
