@@ -1,6 +1,6 @@
 
 using System;
-using System.IO;
+using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -14,6 +14,8 @@ public class RemoteUnityScene : MonoBehaviour
     private bool m_loop;
     private bool m_mode;
     private int m_last_key;
+    private hl2ss.NamedMutex m_mutex_pv;
+    private hl2ss.NamedMutex m_mutex_ev;
 
     [Tooltip("Set to BasicMaterial to support semi-transparent primitives.")]
     public Material m_material;
@@ -23,6 +25,8 @@ public class RemoteUnityScene : MonoBehaviour
         m_remote_objects = new Dictionary<int, GameObject>();
         m_loop = false;
         m_mode = false;
+        m_mutex_pv = hl2ss.NamedMutex.Create(hl2ss.MUTEX_NAME_PV);
+        m_mutex_ev = hl2ss.NamedMutex.Create(hl2ss.MUTEX_NAME_EV);
     }
 
     void Update()
@@ -46,22 +50,29 @@ public class RemoteUnityScene : MonoBehaviour
 
         switch (command)
         {
-        case   0: ret = MSG_CreatePrimitive(data);   break;
-        case   1: ret = MSG_SetActive(data);         break;
-        case   2: ret = MSG_SetWorldTransform(data); break;
-        case   3: ret = MSG_SetLocalTransform(data); break;
-        case   4: ret = MSG_SetColor(data);          break;
-        case   5: ret = MSG_SetTexture(data);        break;
-        case   6: ret = MSG_CreateText(data);        break;
-        case   7: ret = MSG_SetText(data);           break;
-        case   8: ret = MSG_Say(data);               break; 
+        case 0x00000000: ret = MSG_CreatePrimitive(data); break;
+        case 0x00000001: ret = MSG_SetActive(data); break;
+        case 0x00000002: ret = MSG_SetWorldTransform(data); break;
+        case 0x00000003: ret = MSG_SetLocalTransform(data); break;
+        case 0x00000004: ret = MSG_SetColor(data); break;
+        case 0x00000005: ret = MSG_SetTexture(data); break;
+        case 0x00000006: ret = MSG_CreateText(data); break;
+        case 0x00000007: ret = MSG_SetText(data); break;
+        case 0x00000008: ret = MSG_Say(data); break; 
 
-        case  16: ret = MSG_Remove(data);            break;
-        case  17: ret = MSG_RemoveAll(data);         break;
-        case  18: ret = MSG_BeginDisplayList(data);  break;
-        case  19: ret = MSG_EndDisplayList(data);    break;
-        case  20: ret = MSG_SetTargetMode(data);     break;
-        case ~0U: ret = MSG_Disconnect(data);        break;
+        case 0x00000010: ret = MSG_Remove(data); break;
+        case 0x00000011: ret = MSG_RemoveAll(data); break;
+        case 0x00000012: ret = MSG_BeginDisplayList(data); break;
+        case 0x00000013: ret = MSG_EndDisplayList(data); break;
+        case 0x00000014: ret = MSG_SetTargetMode(data); break;
+
+        case 0xFFFFFF00: ret = MSG_DebugTryLockPV(data); break;
+        case 0xFFFFFF01: ret = MSG_DebugUnlockPV(data); break;
+        case 0xFFFFFF02: ret = MSG_DebugTryLockEV(data); break;
+        case 0xFFFFFF03: ret = MSG_DebugUnlockEV(data); break;
+        case 0xFFFFFFFE: ret = MSG_DebugMessage(data); break;
+
+        case ~0U:        ret = MSG_Disconnect(data); break;
         }
 
         return ret;
@@ -305,7 +316,7 @@ public class RemoteUnityScene : MonoBehaviour
         {
             byte[] str_bytes = new byte[data.Length - 24];
             Array.Copy(data, 24, str_bytes, 0, str_bytes.Length);
-            try { str = System.Text.Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
+            try { str = Encoding.UTF8.GetString(str_bytes); } catch { return 0; }
         }
         else
         {
@@ -321,8 +332,41 @@ public class RemoteUnityScene : MonoBehaviour
     uint MSG_Say(byte[] data)
     {
         string str;
-        try { str = System.Text.Encoding.UTF8.GetString(data); } catch { return 0; }
+        try { str = Encoding.UTF8.GetString(data); } catch { return 0; }
         m_tts.GetComponent<TextToSpeech>().StartSpeaking(str);
+        return 1;
+    }
+
+    // OK
+    uint MSG_DebugTryLockPV(byte[] data)
+    {
+        return m_mutex_pv.Acquire(0) ? 1U : 0;
+    }
+
+    // OK
+    uint MSG_DebugUnlockPV(byte[] data)
+    {
+        return m_mutex_pv.Release() ? 1U : 0;
+    }
+
+    // OK
+    uint MSG_DebugTryLockEV(byte[] data)
+    {
+        return m_mutex_ev.Acquire(0) ? 1U : 0;
+    }
+
+    // OK
+    uint MSG_DebugUnlockEV(byte[] data)
+    {
+        return m_mutex_ev.Release() ? 1U : 0;
+    }
+
+    // OK
+    uint MSG_DebugMessage(byte[] data)
+    {
+        string str;
+        try { str = Encoding.UTF8.GetString(data); } catch { return 0; }
+        hl2ss.Print(str);
         return 1;
     }
 }
