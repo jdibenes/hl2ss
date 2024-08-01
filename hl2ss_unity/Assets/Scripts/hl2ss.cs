@@ -11,17 +11,17 @@ public static class hl2ss
     [DllImport("hl2ss")]
     private static extern void DebugMessage(string str);
     [DllImport("hl2ss")]
-    private static extern void MQ_SO_Push(uint value);
-    [DllImport("hl2ss")]
-    private static extern void MQ_SI_Pop(out uint command, byte[] data);
-    [DllImport("hl2ss")]
-    private static extern uint MQ_SI_Peek();
-    [DllImport("hl2ss")]
-    private static extern void MQ_Restart();
-    [DllImport("hl2ss")]
     private static extern void GetLocalIPv4Address(byte[] data, int size);
     [DllImport("hl2ss")]
     private static extern int OverrideWorldCoordinateSystem(IntPtr scs);
+    [DllImport("hl2ss")]
+    private static extern uint MQ_SI_Peek();
+    [DllImport("hl2ss")]
+    private static extern void MQ_SI_Pop(out uint command, byte[] data);
+    [DllImport("hl2ss")]
+    private static extern void MQ_SO_Push(uint value);
+    [DllImport("hl2ss")]
+    private static extern void MQ_Restart();
     [DllImport("hl2ss")]
     private static extern uint MQX_CO_Peek();
     [DllImport("hl2ss")]
@@ -30,6 +30,18 @@ public static class hl2ss
     private static extern void MQX_CI_Push(uint command, uint size, IntPtr data);
     [DllImport("hl2ss")]
     private static extern void MQX_Restart();
+    [DllImport("hl2ss")]
+    private static extern IntPtr NamedMutex_Create([MarshalAs(UnmanagedType.LPWStr)] string name);
+    [DllImport("hl2ss")]
+    private static extern void NamedMutex_Destroy(IntPtr p);
+    [DllImport("hl2ss")]
+    private static extern int NamedMutex_Acquire(IntPtr p, uint timeout);
+    [DllImport("hl2ss")]
+    private static extern int NamedMutex_Release(IntPtr p);
+    [DllImport("hl2ss")]
+    private static extern void PersonalVideo_RegisterNamedMutex([MarshalAs(UnmanagedType.LPWStr)] string name);
+    [DllImport("hl2ss")]
+    private static extern void ExtendedVideo_RegisterNamedMutex([MarshalAs(UnmanagedType.LPWStr)] string name);
 #else
     private static void InitializeStreamsOnUI(uint enable)
     {
@@ -40,24 +52,6 @@ public static class hl2ss
         Debug.Log(str);
     }
 
-    private static void MQ_SO_Push(uint value)
-    {
-    }
-
-    private static void MQ_SI_Pop(out uint command, byte[] data)
-    {
-        command = ~0U;
-    }
-
-    private static uint MQ_SI_Peek()
-    {
-        return ~0U;
-    }
-
-    private static void MQ_Restart()
-    {
-    }
-
     private static void GetLocalIPv4Address(byte[] data, int size)
     {
     }
@@ -65,6 +59,24 @@ public static class hl2ss
     private static int OverrideWorldCoordinateSystem(IntPtr scs)
     {
         return 1;
+    }
+
+    private static uint MQ_SI_Peek()
+    {
+        return ~0U;
+    }
+
+    private static void MQ_SI_Pop(out uint command, byte[] data)
+    {
+        command = ~0U;
+    }
+
+    private static void MQ_SO_Push(uint value)
+    {
+    }
+
+    private static void MQ_Restart()
+    {
     }
 
     private static uint MQX_CO_Peek()
@@ -84,7 +96,79 @@ public static class hl2ss
     private static void MQX_Restart()
     {
     }
+    private static IntPtr NamedMutex_Create(string name)
+    {
+        return IntPtr.Zero;
+    }
+
+    private static void NamedMutex_Destroy(IntPtr p)
+    {
+    }
+
+    private static int NamedMutex_Acquire(IntPtr p, uint timeout)
+    {
+        return 1;
+    }
+
+    private static int NamedMutex_Release(IntPtr p)
+    {
+        return 1;
+    }
+
+    private static void PersonalVideo_RegisterNamedMutex(string name)
+    {
+    }
+
+    private static void ExtendedVideo_RegisterNamedMutex(string name)
+    {
+    }
 #endif
+    public enum Device
+    {
+        PERSONAL_VIDEO = 3810,
+        EXTENDED_VIDEO = 3819
+    }
+
+    public class NamedMutex
+    {
+        private IntPtr m_p;
+
+        private NamedMutex(IntPtr p)
+        {
+            m_p = p;
+        }
+
+        ~NamedMutex()
+        {
+            Destroy();
+        }
+
+        public static NamedMutex Create(string name)
+        {
+            IntPtr p = NamedMutex_Create(name);
+            if (p == IntPtr.Zero) { return null; }
+            return new NamedMutex(p);
+        }
+
+        public void Destroy()
+        {
+            if (m_p == IntPtr.Zero) { return; }
+            NamedMutex_Destroy(m_p);
+            m_p = IntPtr.Zero;
+        }
+
+        public bool Acquire(uint timeout)
+        {
+            if (m_p == IntPtr.Zero) { throw new NullReferenceException(); }
+            return NamedMutex_Acquire(m_p, timeout) != 0;
+        }
+
+        public bool Release()
+        {
+            if (m_p == IntPtr.Zero) { throw new NullReferenceException(); }
+            return NamedMutex_Release(m_p) != 0;
+        }
+    }
 
     public static void Initialize(bool enableRM, bool enablePV, bool enableMC, bool enableSI, bool enableRC, bool enableSM, bool enableSU, bool enableVI, bool enableMQ, bool enableEET, bool enableEA, bool enableEV, bool enableMQX)
     {
@@ -156,5 +240,14 @@ public static class hl2ss
     public static void AcknowledgeResult(uint result)
     {
         if (result == ~0U) { MQX_Restart(); }
+    }
+
+    public static void RegisterNamedMutex(Device device, string name)
+    {
+        switch (device)
+        {
+        case Device.PERSONAL_VIDEO: PersonalVideo_RegisterNamedMutex(name); break;
+        case Device.EXTENDED_VIDEO: ExtendedVideo_RegisterNamedMutex(name); break;
+        }
     }
 }
