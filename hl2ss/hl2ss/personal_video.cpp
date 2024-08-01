@@ -1,4 +1,5 @@
 
+#include "personal_video.h"
 #include "lock.h"
 #include "custom_video_effect.h"
 #include "nfo.h"
@@ -18,6 +19,7 @@ using namespace winrt::Windows::Media::Capture::Frames;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static NamedMutex g_mutex;
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
 static HANDLE g_event = NULL;
 
@@ -29,6 +31,12 @@ static MediaFrameSource g_videoSource = nullptr;
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
+
+// OK
+void PersonalVideo_RegisterNamedMutex(wchar_t const* name)
+{
+    g_mutex.Create(name);
+}
 
 // OK
 static void PersonalVideo_OnFailed(MediaCapture const&, MediaCaptureFailedEventArgs const& b)
@@ -110,6 +118,8 @@ void PersonalVideo_RegisterEvent(HANDLE h)
 // OK
 void PersonalVideo_Open(MRCVideoOptions const& options)
 {
+    if (!g_mutex.Acquire(0)) { return; }
+
     uint32_t const width     = 1920;
     uint32_t const height    = 1080;
     double   const framerate = 30;
@@ -163,6 +173,8 @@ void PersonalVideo_Close()
     g_mediaCapture = nullptr;
 
     g_ready = false;
+
+    g_mutex.Release();
 }
 
 // OK

@@ -98,7 +98,16 @@ std::unique_ptr<hl2ss::rx_rm_vlc> rx_rm_vlc(char const* host, uint16_t port, siz
     if (bitrate <= 0) { bitrate = get_video_codec_default_bitrate(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::FPS, divisor, profile); }
     if (options == nullptr)
     {
+    double  exposure_factor = 0.0;
+    int64_t constant_factor = -125000;
+
     default_options = get_video_codec_default_options(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::FPS, divisor, profile);
+    
+    default_options.push_back(hl2ss::h26x_encoder_property::HL2SSAPI_VLCHostTicksOffsetExposure);
+    default_options.push_back(*(uint64_t*)&exposure_factor);
+    default_options.push_back(hl2ss::h26x_encoder_property::HL2SSAPI_VLCHostTicksOffsetConstant);
+    default_options.push_back(*(uint64_t*)&constant_factor);
+
     options = &default_options;
     }
     return decoded ? std::make_unique<hl2ss::rx_decoded_rm_vlc>(host, port, chunk, mode, divisor, profile, level, bitrate, *options) : std::make_unique<hl2ss::rx_rm_vlc>(host, port, chunk, mode, divisor, profile, level, bitrate, *options);

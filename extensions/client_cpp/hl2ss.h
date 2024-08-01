@@ -174,6 +174,8 @@ uint64_t const CODECAPI_AVEncVideoMinQP                = 15;
 uint64_t const CODECAPI_AVLowLatencyMode               = 16;
 uint64_t const CODECAPI_AVEncVideoMaxQP                = 17;
 uint64_t const CODECAPI_VideoEncoderDisplayContentType = 18;
+uint64_t const HL2SSAPI_VLCHostTicksOffsetConstant     = 0xFFFFFFFFFFFFFFFE;
+uint64_t const HL2SSAPI_VLCHostTicksOffsetExposure     = 0xFFFFFFFFFFFFFFFF;
 };
 
 namespace hologram_perspective

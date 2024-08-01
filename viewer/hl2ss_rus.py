@@ -75,3 +75,18 @@ class command_buffer(hl2ss.umq_command_buffer):
     def set_target_mode(self, mode):
         self.add(20, struct.pack('<I', mode))
 
+    def debug_try_lock_pv(self):
+        self.add(0xFFFFFF00, b'')
+
+    def debug_unlock_pv(self):
+        self.add(0xFFFFFF01, b'')
+
+    def debug_try_lock_ev(self):
+        self.add(0xFFFFFF02, b'')
+
+    def debug_unlock_ev(self):
+        self.add(0xFFFFFF03, b'')
+
+    def debug_message(self, text):
+        self.add(0xFFFFFFFE, text.encode('utf-8'))
+

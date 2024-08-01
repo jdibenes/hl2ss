@@ -555,13 +555,15 @@ void test_mt(char const* host)
             // NEAREST: return closest
             // PAST: return closest with timestamp <= data_pv->timestamp
             // FUTURE: return closest with timestamp >= data_pv->timestamp
-            int32_t search_mode = hl2ss::mt::search_mode::PREFER_NEAREST; 
+            int32_t search_mode = hl2ss::mt::time_preference::PREFER_NEAREST; 
+            // Choose frame with timestamp > data->timestamp if search mode is NEAREST and the two nearest frames are at the distance
+            bool tiebreak_right = false;
             // Return value: frame_index of the returned depth frame
             int64_t lt_frame_index;
             // Return value: status is 0 if depth frame was retrieved successfully, < 0 if too old, > 0 if not received yet
             int32_t lt_status;
             // Get depth frame
-            std::shared_ptr<hl2ss::packet> data_lt = source_lt->get_packet(data_pv->timestamp, search_mode, lt_frame_index, lt_status);
+            std::shared_ptr<hl2ss::packet> data_lt = source_lt->get_packet(data_pv->timestamp, search_mode, tiebreak_right, lt_frame_index, lt_status);
 
             // Check if depth frame was retrieved successfully
             if (data_lt)
@@ -634,7 +636,7 @@ void test_gmq(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 21;
+    int test_id = 20;
 
     try
     {

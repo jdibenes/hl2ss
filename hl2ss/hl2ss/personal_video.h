@@ -1,8 +1,13 @@
 
 #pragma once
 
+#include <Windows.h>
 #include "custom_video_effect.h"
+#include "plugin.h"
+
 #include <winrt/Windows.Media.Capture.Frames.h>
+
+HL2SS_PLUGIN_EXPORT void PersonalVideo_RegisterNamedMutex(wchar_t const* name);
 
 void PersonalVideo_Initialize();
 void PersonalVideo_Cleanup();

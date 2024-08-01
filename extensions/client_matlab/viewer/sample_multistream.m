@@ -24,7 +24,7 @@ while (true)
         pause(1); % wait for data
         continue;
     end
-    data_rf = client_rf.get_packet_by_timestamp(data_lf.timestamp, hl2ss.grab_preference.PREFER_NEAREST);
+    data_rf = client_rf.get_packet_by_timestamp(data_lf.timestamp, hl2ss.grab_preference.PREFER_NEAREST, false);
     if (data_rf.status ~= 0) % no data
         pause(1); % wait for data
         continue;

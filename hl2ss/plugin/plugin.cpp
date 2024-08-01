@@ -8,6 +8,7 @@
 #include "../hl2ss/log.h"
 #include "../hl2ss/nfo.h"
 #include "../hl2ss/types.h"
+#include "../hl2ss/lock.h"
 #include "../hl2ss/locator.h"
 #include "../hl2ss/research_mode.h"
 #include "../hl2ss/spatial_input.h"

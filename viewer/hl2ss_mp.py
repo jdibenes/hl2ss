@@ -2,6 +2,12 @@
 import multiprocessing as mp
 
 
+class TimePreference:
+    PREFER_NEAREST = 0
+    PREFER_PAST = 1
+    PREFER_FUTURE = 2
+
+
 #------------------------------------------------------------------------------
 # Buffer
 #------------------------------------------------------------------------------
@@ -47,17 +53,7 @@ class _RingBuffer:
         return len(self.data)
 
 
-def _get_nearest_packet(data, timestamp):
-    n = len(data)
-
-    if (n <= 0):
-        return None
-    elif (n == 1):
-        return 0
-
-    l = 0
-    r = n - 1
-
+def _get_packet_interval(data, timestamp, l, r):
     while ((r - l) > 1):
         i = (r + l) // 2
         t = data[i].timestamp
@@ -66,9 +62,44 @@ def _get_nearest_packet(data, timestamp):
         elif (t > timestamp):
             r = i
         else:
-            return i
+            return (i, i)
+        
+    return (l, r)
 
-    return l if (abs(data[l].timestamp - timestamp) < abs(data[r].timestamp - timestamp)) else r
+
+def _get_nearest_packet(data, timestamp, time_preference, tiebreak_right):
+    n = len(data)
+
+    if (n <= 0):
+        return None
+
+    si = _get_packet_interval(data, timestamp, 0, n - 1)
+
+    if (si[0] == si[1]):
+        return si[0]
+    
+    t0 = data[si[0]].timestamp
+    t1 = data[si[1]].timestamp
+
+    if (timestamp <= t0):
+        return si[0]
+    if (timestamp >= t1):
+        return si[1]
+    
+    if (time_preference == TimePreference.PREFER_PAST):
+        return si[0]
+    if (time_preference == TimePreference.PREFER_FUTURE):
+        return si[1]
+    
+    d0 = timestamp - t0
+    d1 = t1 - timestamp
+
+    if (d0 < d1):
+        return si[0]
+    if (d0 > d1):
+        return si[1]
+    
+    return si[1 if (tiebreak_right) else 0] 
 
 
 #------------------------------------------------------------------------------
@@ -125,6 +156,7 @@ class _interconnect(mp.Process):
     IPC_SINK_GET_NEAREST = -2
     IPC_SINK_GET_FRAME_STAMP = -3
     IPC_SINK_GET_MOST_RECENT_FRAME = -4
+    IPC_SINK_GET_BUFFERED_FRAME = -5
     
     def __init__(self, buffer_size, event_stop, source_wires, interconnect_wires):
         super().__init__()
@@ -161,8 +193,9 @@ class _interconnect(mp.Process):
 
     def _get_nearest(self, sink_din, sink_dout):
         timestamp = sink_dout.get()
+        options = sink_dout.get()
         buffer = self._buffer.get()
-        index = _get_nearest_packet(buffer, timestamp)
+        index = _get_nearest_packet(buffer, timestamp, options & 3, (options & 4) != 0)
         response = (None, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index])
         sink_din.put(response[0])
         sink_din.put(response[1])
@@ -174,12 +207,16 @@ class _interconnect(mp.Process):
         sink_din.put(self._frame_stamp)
         sink_din.put(self._buffer.last())
 
-    def _get_buffered_frame(self, sink_din, sink_dout, frame_stamp):
+    def _get_buffered_frame(self, sink_din, sink_dout):
+        frame_stamp = sink_dout.get()
+        if (frame_stamp < 0):
+            frame_stamp = self._frame_stamp + frame_stamp + 1
         n = self._buffer.length()
         index = n - 1 - self._frame_stamp + frame_stamp
         response = (-1, None) if (index < 0) else (1, None) if (index >= n) else (0, self._buffer.get()[index])
         sink_din.put(response[0])
-        sink_din.put(response[1])
+        sink_din.put(self._frame_stamp - n + 1 + index)
+        sink_din.put(response[1])        
 
     def _process_source(self):
         try:
@@ -215,8 +252,8 @@ class _interconnect(mp.Process):
             self._get_frame_stamp(sink_din, sink_dout)         
         elif (message == _interconnect.IPC_SINK_GET_MOST_RECENT_FRAME):
             self._get_most_recent_frame(sink_din, sink_dout)        
-        else:
-            self._get_buffered_frame(sink_din, sink_dout, message)
+        elif (message == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
+            self._get_buffered_frame(sink_din, sink_dout)
         self._interconnect_semaphore.acquire()
 
     def _process_sink(self):
@@ -282,9 +319,10 @@ class _sink:
         self._sink_dout.put(self._key)
         self._interconnect_semaphore.release()
 
-    def get_nearest(self, timestamp):
+    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
         self._sink_dout.put(_interconnect.IPC_SINK_GET_NEAREST)
         self._sink_dout.put(timestamp)
+        self._sink_dout.put(time_preference + (4 if (tiebreak_right) else 0))
         self._interconnect_semaphore.release()
         frame_stamp = self._sink_din.get()
         data = self._sink_din.get()
@@ -304,11 +342,13 @@ class _sink:
         return (frame_stamp, data)
 
     def get_buffered_frame(self, frame_stamp):
+        self._sink_dout.put(_interconnect.IPC_SINK_GET_BUFFERED_FRAME)
         self._sink_dout.put(frame_stamp)
         self._interconnect_semaphore.release()
         state = self._sink_din.get()
-        data = self._sink_din.get()
-        return (state, data)
+        frame_stamp = self._sink_din.get()
+        data = self._sink_din.get()        
+        return (state, frame_stamp, data)
 
 
 def _create_interface_sink(sink_din, sink_dout, sink_semaphore):
