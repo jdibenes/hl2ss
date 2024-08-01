@@ -129,6 +129,9 @@ public static class hl2ss
         EXTENDED_VIDEO = 3819
     }
 
+    public static string MUTEX_NAME_PV = "x38.hl2ss.pv.mutex";
+    public static string MUTEX_NAME_EV = "x38.hl2ss.ev.mutex";
+
     public class NamedMutex
     {
         private IntPtr m_p;
