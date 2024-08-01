@@ -576,6 +576,8 @@ MonoBehaviour:
   enableEA: 1
   enableEV: 1
   enableMQX: 1
+  mutexNamePV: x38.hl2ss.pv.mutex
+  mutexNameEV: x38.hl2ss.ev.mutex
 --- !u!114 &963194234
 MonoBehaviour:
   m_ObjectHideFlags: 0

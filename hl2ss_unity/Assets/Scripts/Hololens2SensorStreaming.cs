@@ -44,6 +44,8 @@ public class Hololens2SensorStreaming : MonoBehaviour
 
     void Start()
     {
+        hl2ss.RegisterNamedMutex(hl2ss.Device.PERSONAL_VIDEO, hl2ss.MUTEX_NAME_PV);
+        hl2ss.RegisterNamedMutex(hl2ss.Device.EXTENDED_VIDEO, hl2ss.MUTEX_NAME_EV);
         hl2ss.UpdateCoordinateSystem();
         hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ, enableEET, enableEA, enableEV, enableMQX);
     }

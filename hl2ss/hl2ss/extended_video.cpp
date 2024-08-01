@@ -1,4 +1,6 @@
 
+#include "extended_video.h"
+#include "lock.h"
 #include "custom_media_types.h"
 #include "custom_video_effect.h"
 #include "nfo.h"
@@ -21,6 +23,7 @@ using namespace winrt::Windows::Data::Json;
 // Global Variables
 //-----------------------------------------------------------------------------
 
+static NamedMutex g_mutex;
 static HANDLE g_event = NULL;
 
 static bool g_ready = false;
@@ -31,6 +34,12 @@ static MediaFrameSource g_videoSource = nullptr;
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
+
+// OK
+void ExtendedVideo_RegisterNamedMutex(wchar_t const* name)
+{
+    g_mutex.Create(name);
+}
 
 // OK
 static void ExtendedVideo_OnFailed(MediaCapture const&, MediaCaptureFailedEventArgs const& b)
@@ -209,6 +218,8 @@ void ExtendedVideo_RegisterEvent(HANDLE h)
 // OK
 void ExtendedVideo_Open(MRCVideoOptions const& options)
 {
+    if (!g_mutex.Acquire(0)) { return; }
+
     MediaFrameSourceGroup sourceGroup = nullptr;
     winrt::hstring sourceId;
     MediaCaptureVideoProfile profile = nullptr;
@@ -261,6 +272,8 @@ void ExtendedVideo_Close()
     g_mediaCapture = nullptr;
 
     g_ready = false;
+
+    g_mutex.Release();
 }
 
 // OK
