@@ -280,7 +280,7 @@ class Hl2ssExt:
 
 		pickerMode = extObj.ownerComp.par.Framepicker.eval()
 		refMetadata = extObj.ownerComp.op('json_ref_metadata')
-		fs, data = self.getFrame(pickerMode, refMetadata)
+		fs, data = self.getFrame(pickerMode, refMetadata, extObj.ownerComp)
 
 		if data is not None and fs > extObj.lastPresentedFramestamp:
 			# store data for any downstream python-based cv
@@ -296,13 +296,13 @@ class Hl2ssExt:
 			return True
 		return False
 	
-	def getFrame(self, pickerMode: str, refMetadata: DAT):
+	def getFrame(self, pickerMode: str, refMetadata: DAT, ownerComp):
 		match pickerMode:
 			case 'getLatestFrame':
 				return self.getLatestFrame()
 			case 'getNearestFrame':
 				targetTimestamp = int(refMetadata.source['timestamp'])
-				return self.getNearestFrame(targetTimestamp)
+				return self.getNearestFrame(targetTimestamp, ownerComp)
 			case 'getBufferedFrame':
 				targetFramestamp = int(refMetadata.source['framestamp'])
 				return self.getBufferedFrame(targetFramestamp)
@@ -316,13 +316,15 @@ class Hl2ssExt:
 			case 'mp':
 				return self.sink.get_most_recent_frame()
 	
-	def getNearestFrame(self, timestamp):
+	def getNearestFrame(self, timestamp, ownerComp):
+		timePreference = ownerComp.par.Timepreference.menuIndex
+		tiebreakRight = ownerComp.par.Tiebreakright.eval()
 		match self.threadMode:
 			case 'sync':
-				index = hl2ss_mp._get_nearest_packet(self.buffer, timestamp)
+				index = hl2ss_mp._get_nearest_packet(self.buffer, timestamp, timePreference, tiebreakRight)
 				return (None, None) if (index is None) else (self.framestamp - len(self.buffer) + 1 + index, self.buffer[index])
 			case 'mp':
-				return self.sink.get_nearest(timestamp)
+				return self.sink.get_nearest(timestamp, timePreference, tiebreakRight)
 	
 	def getBufferedFrame(self, framestamp):
 		match self.threadMode:
