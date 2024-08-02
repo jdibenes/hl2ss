@@ -152,11 +152,24 @@ class Hl2ssExt:
 			width, height, framerate = self.getPVFormat()
 			prevActiveSubsystemPv = self.activeSubsystemPv
 			self.activeSubsystemPv = True
-			# focus is set to 0 as it doesn't seem to be used in hl2ss_3dcv
-			self.calibration = hl2ss_3dcv.get_calibration_pv(host, self.port, calibFolder, 0, width, height, framerate)
+
+			try:
+				# focus is set to 0 as it doesn't seem to be used in hl2ss_3dcv
+				self.calibration = hl2ss_3dcv.get_calibration_pv(host, self.port, calibFolder, 0, width, height, framerate)
+				self.ownerComp.clearScriptErrors(recurse=False, error="Getting PV calibration failed.")
+			except:
+				# calibration wasn't found on disk and downloading from HL failed
+				self.activeSubsystemPv = False # cleanup subsystem PV
+				self.ownerComp.addScriptError("Getting PV calibration failed.")
+			
 			self.activeSubsystemPv = prevActiveSubsystemPv
 		else:
-			self.calibration = hl2ss_3dcv.get_calibration_rm(host, self.port, calibFolder)
+			try:
+				self.calibration = hl2ss_3dcv.get_calibration_rm(host, self.port, calibFolder)
+				self.ownerComp.clearScriptErrors(recurse=False, error="Getting RM calibration failed.")
+			except:
+				# calibration wasn't found on disk and downloading from HL failed
+				self.ownerComp.addScriptError("Getting RM calibration failed.")
 
 		self.handleCalibration()
 
@@ -170,8 +183,7 @@ class Hl2ssExt:
 			return
 
 		if self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
-			# start subsystem PV
-			self.activeSubsystemPv = True
+			self.activeSubsystemPv = True # start subsystem PV
 		if self.ownerComp.par.Autogetcalib:
 			self.GetCalibration()
 		self.framestamp = 0
@@ -184,11 +196,13 @@ class Hl2ssExt:
 				try:
 					self.client.open()
 					self.ownerComp.color = (0.05, 0.5, 0.2)
-					self.ownerComp.clearScriptErrors(recurse=False, error="Can't connect to HL.")
+					self.ownerComp.clearScriptErrors(recurse=False, error="Opening of stream failed.")
 				except:
 					self.client = None
+					if self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
+						self.activeSubsystemPv = False # cleanup subsystem PV
 					self.ownerComp.par.Stream = False
-					self.ownerComp.addScriptError("Can't connect to HL.")
+					self.ownerComp.addScriptError("Opening of stream failed.")
 			
 			case 'mp':
 				client = self.getClient()
