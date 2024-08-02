@@ -1,4 +1,5 @@
 
+using System.Text;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -19,7 +20,7 @@ public class MQXSkeleton : MonoBehaviour
         switch (m_state)
         {
         case 0:
-            byte[] data = System.Text.Encoding.UTF8.GetBytes(m_text);
+            byte[] data = Encoding.UTF8.GetBytes(m_text);
             GCHandle h = GCHandle.Alloc(data, GCHandleType.Pinned);
             hl2ss.PushMessage(0xFFFFFFFE, (uint)data.Length, h.AddrOfPinnedObject());
             h.Free();
