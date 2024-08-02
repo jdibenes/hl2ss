@@ -2,6 +2,9 @@
 
 #pragma once
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "hl2ss_loader.generated.h"
@@ -11,7 +14,12 @@ class HL2SS_UNREAL_API Ahl2ss_loader : public AActor
 {
 	GENERATED_BODY()
 	
+	wchar_t const* const MUTEX_PV = L"x38.hl2ss.pv.mutex";
+	wchar_t const* const MUTEX_EV = L"x38.hl2ss.ev.mutex";
+
 	int mqx_state;
+	HANDLE pv_mutex;
+	HANDLE ev_mutex;
 
 public:	
 	// Sets default values for this actor's properties
