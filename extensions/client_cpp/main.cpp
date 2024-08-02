@@ -630,13 +630,86 @@ void test_gmq(char const* host)
 }
 
 //-----------------------------------------------------------------------------
+// PV + UMQ Example
+//-----------------------------------------------------------------------------
+
+void test_pv_umq(char const* host)
+{
+    // Camera parameters
+    uint16_t const pv_width = 640;
+    uint16_t const pv_height = 360;
+    uint8_t const pv_fps = 30;
+
+    // Buffer size in seconds
+    int64_t const buffer_size = 5;
+
+    // Test message to send to the HoloLens app
+    uint32_t const command_id = 0xFFFFFFFE; // Output to debugger
+    char const command_data[] = "C++ client test message"; // UTF-8 string parameter
+    hl2ss::umq_command_buffer buffer;
+    std::vector<uint32_t> response;
+    buffer.add(command_id, command_data, sizeof(command_data));
+    response.resize(buffer.count());
+
+    // Initialize PV camera
+    hl2ss::lnm::start_subsystem_pv(host, hl2ss::stream_port::PERSONAL_VIDEO);
+
+    // Start clients
+    std::unique_ptr<hl2ss::mt::source> source_pv = std::make_unique<hl2ss::mt::source>(buffer_size*pv_fps, hl2ss::lnm::rx_pv(host, hl2ss::stream_port::PERSONAL_VIDEO, pv_width, pv_height, pv_fps));
+    std::unique_ptr<hl2ss::ipc_umq> client_umq = hl2ss::lnm::ipc_umq(host, hl2ss::ipc_port::UNITY_MESSAGE_QUEUE);
+
+    source_pv->start();
+    client_umq->open();
+   
+    // Main loop
+    while (true)
+    {
+        // Check for errors
+        std::exception error;
+        if (!source_pv->status(error)) { throw error; }
+
+        // Get most recent frame
+        int64_t frame_stamp = -1;
+        int32_t status;
+        std::shared_ptr<hl2ss::packet> data_pv = source_pv->get_packet(frame_stamp, status);
+
+        if (data_pv)
+        {
+            // Show video frame
+            // Note that the unpacked pointers are only valid as long as data_pv exists
+            uint8_t* pv_image;
+            hl2ss::pv_intrinsics* pv_intrinsics;            
+            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, &pv_image, &pv_intrinsics);
+            cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
+            cv::imshow("PV", pv_mat);
+
+            // Send test message to the HoloLens app
+            client_umq->push(buffer.data(), buffer.size());
+            client_umq->pull(response.data(), buffer.count());
+            std::cout << "Response from HoloLens app: " << response[0] << std::endl;
+        }
+
+        // Update window and stop if ESC was pressed
+        int key = cv::waitKey(1);
+        if ((key & 0xFF) == 27) { break; }
+    }
+
+    // Stop clients
+    client_umq->close();
+    source_pv->stop();
+
+    // Stop PV camera
+    hl2ss::lnm::stop_subsystem_pv(host, hl2ss::stream_port::PERSONAL_VIDEO);
+}
+
+//-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
 
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 20;
+    int test_id = 22;
 
     try
     {
@@ -666,6 +739,7 @@ int main()
         case 19: test_extended_audio(host); break; // OK
         case 20: test_mt(host); break; // OK
         case 21: test_gmq(host); break; // OK
+        case 22: test_pv_umq(host); break; // OK
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }
