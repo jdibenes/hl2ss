@@ -359,6 +359,8 @@ def create_wr_from_rx(filename, rx, user):
         return _create_wr_from_rx_eet(filename, rx, user)
     if (rx.port == hl2ss.StreamPort.EXTENDED_AUDIO):
         return _create_wr_from_rx_extended_audio(filename, rx, user)
+    if (rx.port == hl2ss.StreamPort.EXTENDED_VIDEO):
+        return _create_wr_from_rx_pv(filename, rx, user) 
 
 
 #------------------------------------------------------------------------------
@@ -512,6 +514,7 @@ class _rd(hl2ss._context_manager):
         hl2ss.StreamPort.SPATIAL_INPUT        : (__load_si,),
         hl2ss.StreamPort.EXTENDED_EYE_TRACKER : (__load_eet,),
         hl2ss.StreamPort.EXTENDED_AUDIO       : (__load_extended_audio,),
+        hl2ss.StreamPort.EXTENDED_VIDEO       : (__load_pv,),
     }
 
     def __build(self):
@@ -634,6 +637,7 @@ class _rd_decoded(_rd):
         hl2ss.StreamPort.SPATIAL_INPUT        : (__set_codec_si,                 __create_codec_si,                 __decode_si),
         hl2ss.StreamPort.EXTENDED_EYE_TRACKER : (__set_codec_eet,                __create_codec_eet,                __decode_eet),
         hl2ss.StreamPort.EXTENDED_AUDIO       : (__set_codec_extended_audio,     __create_codec_microphone,         __decode_microphone),
+        hl2ss.StreamPort.EXTENDED_VIDEO       : (__set_codec_pv,                 __create_codec_pv,                 __decode_pv),
     }
 
     def __build(self):
