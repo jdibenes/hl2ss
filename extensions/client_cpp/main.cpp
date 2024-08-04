@@ -703,13 +703,51 @@ void test_pv_umq(char const* host)
 }
 
 //-----------------------------------------------------------------------------
+// Extended Video
+//-----------------------------------------------------------------------------
+
+void test_extended_video(char const* host)
+{
+    uint16_t port = hl2ss::stream_port::EXTENDED_VIDEO;
+    uint16_t width = 1280;
+    uint16_t height = 720;
+    uint8_t framerate = 30;
+
+    std::unique_ptr<hl2ss::rx_pv> client = hl2ss::lnm::rx_pv(host, port, width, height, framerate);
+    std::string port_name = hl2ss::get_port_name(port);
+
+    hl2ss::lnm::start_subsystem_pv(host, port, false, false, false, false, false, false, false, 0, 2, 4, 0, 0);
+
+    client->open();
+    for (;;)
+    {
+        std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
+        uint8_t* image;
+        hl2ss::pv_intrinsics* intrinsics;
+        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, &image, &intrinsics);
+
+        print_packet_metadata(data->timestamp, data->pose.get());
+
+        std::cout << "Focal length: "    << intrinsics->fx << ", " << intrinsics->fy << std::endl;
+        std::cout << "Principal point: " << intrinsics->cx << ", " << intrinsics->cy << std::endl;
+
+        cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, image);
+        cv::imshow(port_name, mat_image);
+        if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+    }
+    client->close();
+
+    hl2ss::lnm::stop_subsystem_pv(host, port);
+}
+
+//-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
 
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 22;
+    int test_id = 23;
 
     try
     {
@@ -740,6 +778,7 @@ int main()
         case 20: test_mt(host); break; // OK
         case 21: test_gmq(host); break; // OK
         case 22: test_pv_umq(host); break; // OK
+        case 23: test_extended_video(host); break; // OK
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }
