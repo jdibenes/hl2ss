@@ -1727,6 +1727,8 @@ class _PortName:
         'unity_message_queue',
         'extended_eye_tracker',
         'extended_audio',
+        'extended_video',
+        'guest_message_queue',
     ]
 
 
