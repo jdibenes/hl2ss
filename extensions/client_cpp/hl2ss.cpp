@@ -1267,6 +1267,8 @@ char const* const port_name[] = {
     "unity_message_queue",
     "extended_eye_tracker",
     "extended_audio",
+    "extended_video",
+    "guest_message_queue",
 };
 
 char const* get_port_name(uint16_t port)
