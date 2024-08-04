@@ -89,7 +89,7 @@ void client::sendall(void const* data, size_t count)
 
 size_t client::recv(void* buffer, size_t count)
 {
-    size_t bytes = ::recv(m_socket, (char*)buffer, (int)count, 0);
+    int64_t bytes = ::recv(m_socket, (char*)buffer, (int)count, 0);
     if ((bytes <= 0) && (count > 0)) { throw std::runtime_error("hl2ss::client::recv : recv failed"); }
     return bytes;
 }
