@@ -13,7 +13,7 @@ If you build `main.cpp` on Windows, you may need to copy the FFmpeg and OpenCV D
 
 ## client_matlab
 
-C++ MEX client library for MATLAB. It uses client_cpp as a base so it has the same requirements. See the scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/extensions/client_matlab/viewer) folder for examples.
+C++ MEX client library for MATLAB. It uses client_cpp as a base so it has the same requirements. See the scripts in the [viewer](https://github.com/jdibenes/hl2ss/tree/main/extensions/client_matlab/viewer) folder for examples. See `viewer_simulink.slx` for using the client library in Simulink.
 
 **Build**
 
