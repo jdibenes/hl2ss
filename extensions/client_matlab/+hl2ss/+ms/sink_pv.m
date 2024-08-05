@@ -33,6 +33,9 @@ classdef sink_pv < matlab.System
         output_height              = 0.0
         video_stabilization_length = 0
         hologram_perspective       = hl2ss.hologram_perspective.PV
+
+        time_preference = hl2ss.grab_preference.PREFER_NEAREST
+        tiebreak_right  = false
     end
 
     properties (DiscreteState)
@@ -77,8 +80,12 @@ classdef sink_pv < matlab.System
             obj.client.open()
         end
 
-        function [frame_index, status, timestamp, image, intrinsics, pose] = stepImpl(obj)
-            response = obj.client.get_packet_by_index(-1); % Get most recent frame
+        function [frame_index, status, timestamp, image, intrinsics, pose] = stepImpl(obj, sync, index)
+            if (sync <= 0)
+                response = obj.client.get_packet_by_index(index);
+            else
+                response = obj.client.get_packet_by_timestamp(sync, obj.time_preference, obj.tiebreak_right);
+            end
 
             coder.extrinsic('hl2ss.ms.unpack_pv')
 

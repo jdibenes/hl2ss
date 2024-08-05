@@ -10,6 +10,9 @@ classdef sink_si < matlab.System
         chunk       = 4096
         buffer_size = 300
         sample_time = 1 / hl2ss.parameters_si.SAMPLE_RATE
+
+        time_preference = hl2ss.grab_preference.PREFER_NEAREST
+        tiebreak_right  = false
     end
 
     properties (DiscreteState)
@@ -49,8 +52,12 @@ classdef sink_si < matlab.System
             obj.client.open()
         end
 
-        function [frame_index, status, timestamp, valid, head_pose, eye_ray, left_hand, right_hand] = stepImpl(obj)
-            response = obj.client.get_packet_by_index(-1); % Get most recent frame
+        function [frame_index, status, timestamp, valid, head_pose, eye_ray, left_hand, right_hand] = stepImpl(obj, sync, index)
+            if (sync <= 0)
+                response = obj.client.get_packet_by_index(index);
+            else
+                response = obj.client.get_packet_by_timestamp(sync, obj.time_preference, obj.tiebreak_right);
+            end
 
             coder.extrinsic('hl2ss.ms.unpack_si')
 

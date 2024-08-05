@@ -11,6 +11,9 @@ classdef sink_rm_imu < matlab.System
         mode        = hl2ss.stream_mode.MODE_1
         buffer_size = 300
         sample_time = 1 / 30
+
+        time_preference = hl2ss.grab_preference.PREFER_NEAREST
+        tiebreak_right  = false
     end
 
     properties (DiscreteState)
@@ -54,10 +57,12 @@ classdef sink_rm_imu < matlab.System
             obj.client.open()
         end
 
-        function [frame_index, status, timestamp, sensor_timestamp, host_timestamp, x, y, z, temperature, pose] = stepImpl(obj)
-            % For sequential reading create a stamp=0 variable, increment
-            % when data.status == 0, ignore data when data.status != 0
-            response = obj.client.get_packet_by_index(-1); % Get most recent frame
+        function [frame_index, status, timestamp, sensor_timestamp, host_timestamp, x, y, z, temperature, pose] = stepImpl(obj, sync, index)
+            if (sync <= 0)
+                response = obj.client.get_packet_by_index(index);
+            else
+                response = obj.client.get_packet_by_timestamp(sync, obj.time_preference, obj.tiebreak_right);
+            end
 
             coder.extrinsic('hl2ss.ms.unpack_rm_imu')
 

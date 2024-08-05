@@ -12,6 +12,9 @@ classdef sink_microphone < matlab.System
         level       = hl2ss.aac_level.L5
         buffer_size = 1000
         sample_time = hl2ss.parameters_microphone.GROUP_SIZE_RAW / hl2ss.parameters_microphone.SAMPLE_RATE
+
+        time_preference = hl2ss.grab_preference.PREFER_NEAREST
+        tiebreak_right  = false
     end
 
     properties (DiscreteState)
@@ -56,12 +59,14 @@ classdef sink_microphone < matlab.System
             obj.client.open()
         end
 
-        function [frame_index, status, timestamp, audio] = stepImpl(obj)
+        function [frame_index, status, timestamp, audio] = stepImpl(obj, sync, index)
             [audio_size, audio_type] = obj.getAudioType();
 
-            % For sequential reading create a stamp=0 variable, increment
-            % when data.status == 0, ignore data when data.status != 0
-            response = obj.client.get_packet_by_index(-1); % Get most recent frame
+            if (sync <= 0)
+                response = obj.client.get_packet_by_index(index);
+            else
+                response = obj.client.get_packet_by_timestamp(sync, obj.time_preference, obj.tiebreak_right);
+            end
 
             coder.extrinsic('hl2ss.ms.unpack_microphone')
 

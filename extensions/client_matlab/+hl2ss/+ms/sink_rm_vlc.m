@@ -16,6 +16,9 @@ classdef sink_rm_vlc < matlab.System
         options     = [hl2ss.h26x_encoder_property.CODECAPI_AVEncMPVGOPSize, hl2ss.parameters_rm_vlc.FPS]
         buffer_size = hl2ss.parameters_rm_vlc.FPS * 10
         sample_time = 1 / hl2ss.parameters_rm_vlc.FPS
+
+        time_preference = hl2ss.grab_preference.PREFER_NEAREST
+        tiebreak_right  = false
     end
 
     properties (DiscreteState)
@@ -48,9 +51,13 @@ classdef sink_rm_vlc < matlab.System
             obj.client.open()
         end
 
-        function [frame_index, status, timestamp, image, pose] = stepImpl(obj)
-            response = obj.client.get_packet_by_index(-1); % Get most recent frame
-
+        function [frame_index, status, timestamp, image, pose] = stepImpl(obj, sync, index)
+            if (sync <= 0)
+                response = obj.client.get_packet_by_index(index);
+            else
+                response = obj.client.get_packet_by_timestamp(sync, obj.time_preference, obj.tiebreak_right);
+            end
+            
             coder.extrinsic('hl2ss.ms.unpack_rm_vlc')
 
             data = obj.definition_rm_vlc;
