@@ -28,7 +28,7 @@ uint8_t get_video_coded_default_gop_size(uint8_t framerate, uint8_t divisor, uin
 
 uint32_t get_video_codec_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, float factor)
 {
-    return (uint32_t)((double)width*(double)height*((double)framerate/(double)divisor)*12.0*(double)factor);
+    return (uint32_t)((double)width*(double)height*(double)framerate*12.0*(double)factor);
 }
 
 uint32_t get_video_codec_default_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile)
@@ -70,6 +70,7 @@ uint64_t get_sync_period(hl2ss::rx* rx)
     case hl2ss::stream_port::MICROPHONE:           return 1;
     case hl2ss::stream_port::SPATIAL_INPUT:        return 1;
     case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return 1;
+    case hl2ss::stream_port::EXTENDED_VIDEO:       return ((hl2ss::rx_pv*)rx)->options[hl2ss::h26x_encoder_property::CODECAPI_AVEncMPVGOPSize];
     default:                                       return 1;
     }
 }
@@ -95,13 +96,13 @@ void stop_subsystem_pv(char const* host, uint16_t port)
 std::unique_ptr<hl2ss::rx_rm_vlc> rx_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const* options, bool decoded)
 {
     std::vector<uint64_t> default_options;
-    if (bitrate <= 0) { bitrate = get_video_codec_default_bitrate(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::FPS, divisor, profile); }
+    if (bitrate <= 0) { bitrate = get_video_codec_default_bitrate(hl2ss::parameters_rm_vlc::WIDTH, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::FPS, divisor, profile); }
     if (options == nullptr)
     {
     double  exposure_factor = 0.0;
     int64_t constant_factor = -125000;
 
-    default_options = get_video_codec_default_options(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::FPS, divisor, profile);
+    default_options = get_video_codec_default_options(hl2ss::parameters_rm_vlc::WIDTH, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::FPS, divisor, profile);
     
     default_options.push_back(hl2ss::h26x_encoder_property::HL2SSAPI_VLCHostTicksOffsetExposure);
     default_options.push_back(*(uint64_t*)&exposure_factor);
@@ -116,10 +117,10 @@ std::unique_ptr<hl2ss::rx_rm_vlc> rx_rm_vlc(char const* host, uint16_t port, siz
 std::unique_ptr<hl2ss::rx_rm_depth_ahat> rx_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const* options, bool decoded)
 {
     std::vector<uint64_t> default_options;
-    if (bitrate <= 0) { bitrate = get_video_codec_default_bitrate(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::FPS, divisor, profile_ab) * (((profile_z == hl2ss::depth_profile::SAME) && (profile_ab != hl2ss::video_profile::RAW)) ? 4 : 1); }
+    if (bitrate <= 0) { bitrate = get_video_codec_default_bitrate(hl2ss::parameters_rm_depth_ahat::WIDTH, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::FPS, divisor, profile_ab) * ((profile_z == hl2ss::depth_profile::SAME) ? 16 : 1); }
     if (options == nullptr) 
     {
-    default_options = get_video_codec_default_options(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::FPS, divisor, profile_ab);
+    default_options = get_video_codec_default_options(hl2ss::parameters_rm_depth_ahat::WIDTH, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::FPS, divisor, profile_ab);
     options = &default_options;
     }
     return decoded ? std::make_unique<hl2ss::rx_decoded_rm_depth_ahat>(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, *options) : std::make_unique<hl2ss::rx_rm_depth_ahat>(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, *options);
