@@ -5,3 +5,5 @@
 *.mexw64
 *.mexa64
 *.asv
+*.autosave
+slprj

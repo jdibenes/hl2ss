@@ -1,0 +1,110 @@
+
+classdef sink_rm_vlc < matlab.System
+    properties
+    
+    end
+
+    properties (Nontunable)
+        host        = '192.168.1.7'
+        port        = hl2ss.stream_port.RM_VLC_LEFTFRONT
+        chunk       = 4096
+        mode        = hl2ss.stream_mode.MODE_1
+        divisor     = 1
+        profile     = hl2ss.video_profile.H265_MAIN
+        level       = hl2ss.h26x_level.DEFAULT
+        bitrate     = 0
+        options     = [hl2ss.h26x_encoder_property.CODECAPI_AVEncMPVGOPSize, hl2ss.parameters_rm_vlc.FPS]
+        buffer_size = hl2ss.parameters_rm_vlc.FPS * 10
+        sample_time = 1 / hl2ss.parameters_rm_vlc.FPS
+    end
+
+    properties (DiscreteState)
+
+    end
+
+    % Pre-computed constants
+    properties (Access = private)
+        client
+        definition_rm_vlc
+    end
+
+    methods (Access = protected)
+        function [image_size] = getImageSize(obj)
+            image_size = [hl2ss.parameters_rm_vlc.HEIGHT, hl2ss.parameters_rm_vlc.WIDTH];
+        end
+
+        function setupImpl(obj) % (1)
+            obj.definition_rm_vlc = ...
+                struct('frame_index', zeros([1, 1],             'int64' ), ...
+                       'status',      zeros([1, 1],             'int32' ), ...
+                       'timestamp',   zeros([1, 1],             'uint64'), ...
+                       'image',       zeros(obj.getImageSize(), 'uint8' ), ...
+                       'pose',        zeros([4, 4],             'single'));
+
+            coder.extrinsic('hl2ss_matlab')
+
+            obj.client = hl2ss.mt.sink_rm_vlc(obj.host, obj.port, obj.chunk, obj.mode, obj.divisor, obj.profile, obj.level, obj.bitrate, obj.options, obj.buffer_size, @hl2ss_matlab);
+            
+            obj.client.open()
+        end
+
+        function [frame_index, status, timestamp, image, pose] = stepImpl(obj)
+            response = obj.client.get_packet_by_index(-1); % Get most recent frame
+
+            coder.extrinsic('hl2ss.ms.unpack_rm_vlc')
+
+            data = obj.definition_rm_vlc;
+            data = hl2ss.ms.unpack_rm_vlc(response, obj.mode);
+
+            frame_index = data.frame_index;
+            status      = data.status;
+            timestamp   = data.timestamp;
+            image       = data.image;
+            pose        = data.pose;
+        end
+
+        function resetImpl(obj)
+
+        end
+
+        function releaseImpl(obj)
+            obj.client.close();
+        end
+
+        function [out1, out2, out3, out4, out5] = getOutputSizeImpl(obj)
+            out1 = [1, 1];
+            out2 = [1, 1];
+            out3 = [1, 1];
+            out4 = obj.getImageSize();
+            out5 = [4, 4];
+        end
+
+        function [out1, out2, out3, out4, out5] = getOutputDataTypeImpl(obj)
+            out1 = 'int64';
+            out2 = 'int32';
+            out3 = 'uint64';
+            out4 = 'uint8';
+            out5 = 'single';
+        end
+
+        function [out1, out2, out3, out4, out5] = isOutputComplexImpl(obj)
+            out1 = false;
+            out2 = false;
+            out3 = false;
+            out4 = false;
+            out5 = false;
+        end
+
+        function [out1, out2, out3, out4, out5] = isOutputFixedSizeImpl(obj)
+            out1 = true;
+            out2 = true;
+            out3 = true;
+            out4 = true;
+            out5 = true;
+        end
+
+        function sts = getSampleTimeImpl(obj)
+            sts = obj.createSampleTime("Type", "Discrete", "SampleTime", obj.sample_time);
+        end
+    end
+end
