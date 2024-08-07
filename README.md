@@ -47,6 +47,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Server application can run in background (alongside other applications) when running in flat mode [[example](viewer/client_ipc_rc.py)].
 - [C++ client library](extensions).
 - [MATLAB and Simulink client library](extensions).
+- [Unity client plugin](extensions) (Experimental).
 - [hl2da plugin](https://github.com/jdibenes/hl2da): access sensor data from Unity, Unreal, and native UWP applications running on the HoloLens.
 
 **Technical Report** 
