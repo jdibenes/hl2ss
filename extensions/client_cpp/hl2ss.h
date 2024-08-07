@@ -36,7 +36,7 @@ uint16_t const SPATIAL_INPUT        = 3812;
 uint16_t const EXTENDED_EYE_TRACKER = 3817;
 uint16_t const EXTENDED_AUDIO       = 3818;
 uint16_t const EXTENDED_VIDEO       = 3819;
-};
+}
 
 namespace ipc_port
 {
@@ -46,7 +46,7 @@ uint16_t const SCENE_UNDERSTANDING  = 3814;
 uint16_t const VOICE_INPUT          = 3815;
 uint16_t const UNITY_MESSAGE_QUEUE  = 3816;
 uint16_t const GUEST_MESSAGE_QUEUE  = 3820;
-};
+}
 
 namespace chunk_size
 {
@@ -67,7 +67,7 @@ namespace stream_mode
 uint8_t const MODE_0 = 0;
 uint8_t const MODE_1 = 1;
 uint8_t const MODE_2 = 2;
-};
+}
 
 namespace video_profile
 {
@@ -76,7 +76,7 @@ uint8_t const H264_MAIN = 1;
 uint8_t const H264_HIGH = 2;
 uint8_t const H265_MAIN = 3;
 uint8_t const RAW       = 0xFF;
-};
+}
 
 namespace h26x_level
 {
@@ -111,13 +111,13 @@ uint8_t const H265_6   = 180;
 uint8_t const H265_6_1 = 183;
 uint8_t const H265_6_2 = 186;
 uint8_t const DEFAULT  = 255;
-};
+}
 
 namespace depth_profile
 {
 uint8_t const SAME   = 0;
 uint8_t const ZDEPTH = 1;
-};
+}
 
 namespace audio_profile
 {
@@ -126,7 +126,7 @@ uint8_t const AAC_16000 = 1;
 uint8_t const AAC_20000 = 2;
 uint8_t const AAC_24000 = 3;
 uint8_t const RAW       = 0xFF;
-};
+}
 
 namespace aac_level
 {
@@ -140,7 +140,7 @@ uint8_t const HEV2L2  = 0x30;
 uint8_t const HEV2L3  = 0x31;
 uint8_t const HEV2L4  = 0x32;
 uint8_t const HEV2L5  = 0x33;
-};
+}
 
 namespace png_filter_mode
 {
@@ -151,7 +151,7 @@ uint8_t const UP        = 3;
 uint8_t const AVERAGE   = 4;
 uint8_t const PAETH     = 5;
 uint8_t const ADAPTIVE  = 6;
-};
+}
 
 namespace h26x_encoder_property
 {
@@ -176,13 +176,13 @@ uint64_t const CODECAPI_AVEncVideoMaxQP                = 17;
 uint64_t const CODECAPI_VideoEncoderDisplayContentType = 18;
 uint64_t const HL2SSAPI_VLCHostTicksOffsetConstant     = 0xFFFFFFFFFFFFFFFE;
 uint64_t const HL2SSAPI_VLCHostTicksOffsetExposure     = 0xFFFFFFFFFFFFFFFF;
-};
+}
 
 namespace hologram_perspective
 {
 uint32_t const DISPLAY = 0;
 uint32_t const PV      = 1;
-};
+}
 
 namespace mixer_mode
 {
@@ -190,7 +190,7 @@ uint32_t const MICROPHONE = 0;
 uint32_t const SYSTEM     = 1;
 uint32_t const BOTH       = 2;
 uint32_t const QUERY      = 0x80000000;
-};
+}
 
 namespace pv_decoded_format
 {
@@ -199,14 +199,14 @@ uint8_t const RGB  = 1;
 uint8_t const BGRA = 2;
 uint8_t const RGBA = 3;
 uint8_t const GRAY = 4;
-};
+}
 
 namespace eet_framerate
 {
 uint8_t const FPS_30 = 30;
 uint8_t const FPS_60 = 60;
 uint8_t const FPS_90 = 90;
-};
+}
 
 namespace parameters_rm_vlc
 {
@@ -214,7 +214,7 @@ uint16_t const WIDTH  = 640;
 uint16_t const HEIGHT = 480;
 uint8_t  const FPS    = 30;
 uint32_t const PIXELS = WIDTH * HEIGHT;
-};
+}
 
 namespace parameters_rm_depth_ahat
 {
@@ -222,7 +222,7 @@ uint16_t const WIDTH  = 512;
 uint16_t const HEIGHT = 512;
 uint8_t  const FPS    = 45;
 uint32_t const PIXELS = WIDTH * HEIGHT;
-};
+}
 
 namespace parameters_rm_depth_longthrow
 {
@@ -230,22 +230,22 @@ uint16_t const WIDTH  = 320;
 uint16_t const HEIGHT = 288;
 uint8_t  const FPS    = 5;
 uint32_t const PIXELS = WIDTH * HEIGHT;
-};
+}
 
 namespace parameters_rm_imu_accelerometer
 {
 uint16_t const BATCH_SIZE = 93;
-};
+}
 
 namespace parameters_rm_imu_gyroscope
 {
 uint16_t const BATCH_SIZE = 315;
-};
+}
 
 namespace parameters_rm_imu_magnetometer
 {
 uint16_t const BATCH_SIZE = 11;
-};
+}
 
 namespace parameters_microphone
 {
@@ -260,19 +260,19 @@ uint32_t const SAMPLE_RATE    = 48000;
 uint8_t  const CHANNELS       = 2;
 uint16_t const GROUP_SIZE_RAW = 768;
 uint16_t const GROUP_SIZE_AAC = 1024;
-};
+}
 
 namespace parameters_si
 {
 uint8_t const SAMPLE_RATE = 30;
-};
+}
 
 namespace parameters_extended_audio
 {
 uint32_t const SAMPLE_RATE    = 48000;
 uint8_t  const CHANNELS       = 2;
 uint16_t const GROUP_SIZE_AAC = 1024;
-};
+}
 
 //------------------------------------------------------------------------------
 // Geometry
@@ -833,7 +833,7 @@ namespace hs_marker_state
 {
 uint32_t const Disable = 0;
 uint32_t const Enable  = 1;
-};
+}
 
 namespace pv_focus_mode
 {
@@ -841,38 +841,38 @@ uint32_t const Auto       = 0;
 uint32_t const Single     = 1;
 uint32_t const Continuous = 2;
 uint32_t const Manual     = 3;
-};
+}
 
 namespace pv_auto_focus_range
 {
 uint32_t const FullRange = 0;
 uint32_t const Macro     = 1;
 uint32_t const Normal    = 2;
-};
+}
 
 namespace pv_manual_focus_distance
 {
 uint32_t const Infinity = 0;
 uint32_t const Nearest  = 2;
-};
+}
 
 namespace pv_focus_value
 {
 uint32_t const Min =   170;
 uint32_t const Max = 10000;
-};
+}
 
 namespace pv_driver_fallback
 {
 uint32_t const Enable  = 0;
 uint32_t const Disable = 1;
-};
+}
 
 namespace pv_video_temporal_denoising_mode
 {
 uint32_t const Off = 0;
 uint32_t const On  = 1;
-};
+}
 
 namespace pv_color_temperature_preset
 {
@@ -884,43 +884,43 @@ uint32_t const Flash       = 4;
 uint32_t const Fluorescent = 5;
 uint32_t const Tungsten    = 6;
 uint32_t const Candlelight = 7;
-};
+}
 
 namespace pv_white_balance_value
 {
 uint32_t const Min = 2300; // 25
 uint32_t const Max = 7500; // 25
-};
+}
 
 namespace pv_exposure_mode
 {
 uint32_t const Manual = 0;
 uint32_t const Auto   = 1;
-};   
+}
 
 namespace pv_exposure_value
 {
 uint32_t const Min =   1000; // 10
 uint32_t const Max = 660000; // 10
-};
+}
 
 namespace pv_exposure_priority_video
 {
 uint32_t const Disabled = 0;
 uint32_t const Enabled  = 1;
-};
+}
 
 namespace pv_iso_speed_mode
 {
 uint32_t const Manual = 0;
 uint32_t const Auto   = 1;
-};
+}
 
 namespace pv_iso_speed_value
 {
 uint32_t const Min =  100;
 uint32_t const Max = 3200;
-};
+}
 
 namespace pv_capture_scene_mode
 {
@@ -936,13 +936,13 @@ uint32_t const Candlelight   =  9;
 uint32_t const Landscape     = 10;
 uint32_t const NightPortrait = 11;
 uint32_t const Backlit       = 12;
-};
+}
 
 namespace pv_backlight_compensation_state
 {
 uint32_t const Disable = 0;
 uint32_t const Enable  = 1;
-};
+}
 
 struct version
 {
@@ -985,19 +985,19 @@ namespace sm_vertex_position_format
 {
 uint32_t const R32G32B32A32Float         =  2;
 uint32_t const R16G16B16A16IntNormalized = 13;
-};
+}
 
 namespace sm_triangle_index_format
 {
 uint32_t const R16UInt = 57;
 uint32_t const R32Uint = 42;
-};
+}
 
 namespace sm_vertex_normal_format
 {
 uint32_t const R32G32B32A32Float     =  2;
 uint32_t const R8G8B8A8IntNormalized = 31;
-};
+}
 
 namespace sm_volume_type
 {
@@ -1005,7 +1005,7 @@ uint32_t const Box         = 0;
 uint32_t const Frustum     = 1;
 uint32_t const OrientedBox = 2;
 uint32_t const Sphere      = 3;
-};
+}
 
 class sm_bounding_volume
 {
@@ -1082,7 +1082,7 @@ uint32_t const Coarse    =   0;
 uint32_t const Medium    =   1;
 uint32_t const Fine      =   2;
 uint32_t const Unlimited = 255;
-};
+}
 
 namespace su_kind_flag
 {
@@ -1094,13 +1094,13 @@ uint8_t const Platform           =  16;
 uint8_t const Unknown            =  32;
 uint8_t const World              =  64;
 uint8_t const CompletelyInferred = 128;
-};
+}
 
 namespace su_create
 {
 uint8_t const New             = 0;
 uint8_t const NewFromPrevious = 1;
-};
+}
 
 namespace su_kind
 {
@@ -1112,7 +1112,7 @@ int32_t const Platform           =   4;
 int32_t const Unknown            = 247;
 int32_t const World              = 248;
 int32_t const CompletelyInferred = 249;
-};
+}
 
 struct su_mesh
 {
@@ -1181,7 +1181,7 @@ uint32_t const High     = 0;
 uint32_t const Medium   = 1;
 uint32_t const Low      = 2;
 uint32_t const Rejected = 3;
-};
+}
 
 struct vi_result
 {
@@ -1275,7 +1275,7 @@ uint32_t const HEAD  = 0x01;
 uint32_t const EYE   = 0x02;
 uint32_t const LEFT  = 0x04;
 uint32_t const RIGHT = 0x08;
-};
+}
 
 struct si_head_pose
 {
@@ -1341,7 +1341,7 @@ uint32_t const RIGHT_RAY         = 0x08;
 uint32_t const LEFT_OPENNESS     = 0x10;
 uint32_t const RIGHT_OPENNESS    = 0x20;
 uint32_t const VERGENCE_DISTANCE = 0x40;
-};
+}
 
 struct eet_frame
 {
