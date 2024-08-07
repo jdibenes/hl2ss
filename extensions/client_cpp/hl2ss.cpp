@@ -763,7 +763,7 @@ void decoder_rm_depth_ahat::open(uint8_t profile_z, uint8_t profile_ab)
 {
     m_profile_z = profile_z;
     m_profile_ab = profile_ab;
-    if (m_profile_ab != hl2ss::video_profile::RAW) { m_codec.open(get_video_codec_id(profile_ab)); }
+    if (m_profile_ab != video_profile::RAW) { m_codec.open(get_video_codec_id(profile_ab)); }
 }
 
 std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t size)
@@ -775,9 +775,9 @@ std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t
     uint8_t* dst_z  = out.get();
     uint8_t* dst_ab = out.get() + sz;
     
-    if (m_profile_z == hl2ss::depth_profile::SAME)
+    if (m_profile_z == depth_profile::SAME)
     {
-    if (m_profile_ab != hl2ss::video_profile::RAW)
+    if (m_profile_ab != video_profile::RAW)
     {
     std::shared_ptr<frame> f = m_codec.decode(data + base, size);
 
@@ -831,7 +831,7 @@ std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t
     memset(dst_z, 0, sz);
     }
 
-    if (m_profile_ab != hl2ss::video_profile::RAW)
+    if (m_profile_ab != video_profile::RAW)
     {
     std::shared_ptr<frame> f = m_codec.decode(data_ab, sz_ab);
 
@@ -854,7 +854,7 @@ std::unique_ptr<uint8_t[]> decoder_rm_depth_ahat::decode(uint8_t* data, uint32_t
 
 void decoder_rm_depth_ahat::close()
 {
-    if (m_profile_ab != hl2ss::video_profile::RAW) { m_codec.close(); }
+    if (m_profile_ab != video_profile::RAW) { m_codec.close(); }
 }
 
 void decoder_rm_depth_longthrow::open()
@@ -1796,11 +1796,11 @@ void ipc_gmq::pull(gmq_message& message)
 {
     uint32_t peek = ~0U;
     m_client.sendall(&peek, sizeof(peek));
-    m_client.download(&message, 2 * sizeof(uint32_t), hl2ss::chunk_size::SINGLE_TRANSFER);
+    m_client.download(&message, 2 * sizeof(uint32_t), chunk_size::SINGLE_TRANSFER);
     message.data = nullptr;
     if (message.size <= 0) { return; }
     message.data = std::make_unique<uint8_t[]>(message.size);
-    m_client.download(message.data.get(), message.size, hl2ss::chunk_size::SINGLE_TRANSFER);
+    m_client.download(message.data.get(), message.size, chunk_size::SINGLE_TRANSFER);
 }
 
 void ipc_gmq::push(uint32_t response)
@@ -1820,13 +1820,13 @@ void unpack_rm_vlc(uint8_t* payload, uint8_t** image)
 void unpack_rm_depth_ahat(uint8_t* payload, uint16_t** depth, uint16_t** ab)
 {
     *depth = (uint16_t*)(payload);
-    *ab    = (uint16_t*)(payload + (hl2ss::parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
+    *ab    = (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
 }
 
 void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t** depth, uint16_t** ab)
 {
     *depth = (uint16_t*)(payload);
-    *ab    = (uint16_t*)(payload + (hl2ss::parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
+    *ab    = (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
 }
 
 void unpack_rm_imu(uint8_t* payload, rm_imu_sample** samples)
