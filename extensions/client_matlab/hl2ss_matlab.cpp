@@ -437,7 +437,7 @@ public:
         matlab::data::TypedArray<float>    temperature      = m_factory.createArray<float>({ samples });
 
         hl2ss::rm_imu_sample* base;
-        hl2ss::unpack_rm_imu(packet->payload.get(), &base);
+        hl2ss::unpack_rm_imu(packet->payload.get(), base);
 
         for (uint32_t i = 0; i < samples; ++i)
         {
@@ -533,7 +533,7 @@ public:
         if (packet->payload)
         {
         hl2ss::si_frame* base;
-        hl2ss::unpack_si(packet->payload.get(), &base);
+        hl2ss::unpack_si(packet->payload.get(), base);
 
         o[0]["valid"]       = m_factory.createScalar<uint32_t>({ base->valid });
         o[0]["head_pose"]   = to_typed_array<float>(&base->head_pose,  sizeof(base->head_pose),  { 3, 3 });
@@ -559,7 +559,7 @@ public:
         if (packet->payload)
         {
         hl2ss::eet_frame* base;
-        hl2ss::unpack_eet(packet->payload.get(), &base);
+        hl2ss::unpack_eet(packet->payload.get(), base);
 
         o[0]["combined_ray"]      = to_typed_array<float>(&base->combined_ray, sizeof(base->combined_ray), { 6 });
         o[0]["left_ray"]          = to_typed_array<float>(&base->left_ray,     sizeof(base->left_ray),     { 6 });
@@ -1348,8 +1348,8 @@ public:
         }
         else if (f == "push")
         {
-        uint32_t response = get_argument<uint32_t>(inputs);
-        ipc_gmq->push(response);
+        matlab::data::TypedArray<uint32_t> response = get_argument_array<uint32_t>(inputs);
+        ipc_gmq->push(get_pointer(response), response.getNumberOfElements());
         }
         else
         {
