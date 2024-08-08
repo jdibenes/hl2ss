@@ -1238,9 +1238,8 @@ public:
 // * Guest Message Queue
 //------------------------------------------------------------------------------
 
-class gmq_message
+struct gmq_message
 {
-public:
     uint32_t command;
     uint32_t size;
     std::unique_ptr<uint8_t[]> data;
@@ -1252,7 +1251,7 @@ public:
     ipc_gmq(char const* host, uint16_t port);
 
     void pull(gmq_message& message);
-    void push(uint32_t response);
+    void push(uint32_t const* response, uint32_t count);
 };
 
 //------------------------------------------------------------------------------
