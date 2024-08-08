@@ -20,7 +20,7 @@ std::vector<uint64_t> get_video_codec_default_options(uint16_t width, uint16_t h
 //------------------------------------------------------------------------------
 
 uint64_t get_sync_frame_stamp(uint64_t frame_stamp, uint64_t sync_period);
-uint64_t get_sync_period(hl2ss::rx* rx);
+uint64_t get_sync_period(hl2ss::rx const* rx);
 
 //------------------------------------------------------------------------------
 // Control
