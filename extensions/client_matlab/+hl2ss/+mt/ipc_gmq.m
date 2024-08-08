@@ -32,7 +32,7 @@ methods
     end
     
     function push(self, response)
-        self.module('ipc_call', self.port, 'push', response);
+        self.module('ipc_call', self.port, 'push', uint32(response));
     end
 end
 end
