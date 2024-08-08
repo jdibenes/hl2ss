@@ -53,7 +53,7 @@ void test_rm_vlc(char const* host, uint16_t port)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
-        hl2ss::unpack_rm_vlc(data->payload.get(), &image);
+        hl2ss::unpack_rm_vlc(data->payload.get(), image);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -87,7 +87,7 @@ void test_rm_depth_ahat(char const* host)
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint16_t* depth;
         uint16_t* ab;
-        hl2ss::unpack_rm_depth_ahat(data->payload.get(), &depth, &ab);
+        hl2ss::unpack_rm_depth_ahat(data->payload.get(), depth, ab);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -123,7 +123,7 @@ void test_rm_depth_longthrow(char const* host)
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint16_t* depth;
         uint16_t* ab;
-        hl2ss::unpack_rm_depth_longthrow(data->payload.get(), &depth, &ab);
+        hl2ss::unpack_rm_depth_longthrow(data->payload.get(), depth, ab);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -159,7 +159,7 @@ void test_rm_imu(char const* host, uint16_t port)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         hl2ss::rm_imu_sample *samples;
-        hl2ss::unpack_rm_imu(data->payload.get(), &samples);
+        hl2ss::unpack_rm_imu(data->payload.get(), samples);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -191,7 +191,7 @@ void test_pv(char const* host, uint16_t width, uint16_t height, uint8_t framerat
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
         hl2ss::pv_intrinsics* intrinsics;
-        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, &image, &intrinsics);
+        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, intrinsics);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -224,7 +224,7 @@ void test_microphone(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         float* samples;
-        hl2ss::unpack_microphone_aac(data->payload.get(), &samples);
+        hl2ss::unpack_microphone_aac(data->payload.get(), samples);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -250,7 +250,7 @@ void test_si(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         hl2ss::si_frame* si;
-        hl2ss::unpack_si(data->payload.get(), &si);
+        hl2ss::unpack_si(data->payload.get(), si);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -277,7 +277,7 @@ void test_eet(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         hl2ss::eet_frame* eet;
-        hl2ss::unpack_eet(data->payload.get(), &eet);
+        hl2ss::unpack_eet(data->payload.get(), eet);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -304,7 +304,7 @@ void test_extended_audio(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         float* samples;
-        hl2ss::unpack_extended_audio_aac(data->payload.get(), &samples);
+        hl2ss::unpack_extended_audio_aac(data->payload.get(), samples);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -546,7 +546,7 @@ void test_mt(char const* host)
             // Unpack PV image and show
             uint8_t* pv_image;
             hl2ss::pv_intrinsics* pv_intrinsics;
-            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, &pv_image, &pv_intrinsics);
+            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_intrinsics);
             cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
             cv::imshow(pv_name, pv_mat);
 
@@ -571,7 +571,7 @@ void test_mt(char const* host)
                 // Unpack depth image and show
                 uint16_t* lt_depth;
                 uint16_t* lt_ab;
-                hl2ss::unpack_rm_depth_longthrow(data_lt->payload.get(), &lt_depth, &lt_ab);                
+                hl2ss::unpack_rm_depth_longthrow(data_lt->payload.get(), lt_depth, lt_ab);                
                 cv::Mat lt_depth_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_depth);
                 cv::Mat lt_ab_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_ab);
                 cv::imshow(lt_depth_name, lt_depth_mat * 8); // Scaled for visibility otherwise image will be too dark
@@ -613,7 +613,8 @@ void test_gmq(char const* host)
     {
         client->pull(msg);
         if (msg.command == ~0U) { continue; }
-        client->push(1);
+        uint32_t response = 1;
+        client->push(&response, sizeof(response) / sizeof(uint32_t));
         break;
     }
 
@@ -679,7 +680,7 @@ void test_pv_umq(char const* host)
             // Note that the unpacked pointers are only valid as long as data_pv exists
             uint8_t* pv_image;
             hl2ss::pv_intrinsics* pv_intrinsics;            
-            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, &pv_image, &pv_intrinsics);
+            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_intrinsics);
             cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
             cv::imshow("PV", pv_mat);
 
@@ -724,7 +725,7 @@ void test_extended_video(char const* host)
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
         hl2ss::pv_intrinsics* intrinsics;
-        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, &image, &intrinsics);
+        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, intrinsics);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
