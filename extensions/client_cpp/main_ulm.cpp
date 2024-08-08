@@ -40,35 +40,35 @@ void test_sources(char const* host)
         switch (source_ports[i])
         {
         case hl2ss::stream_port::RM_VLC_LEFTFRONT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], &calibration_rm_vlc[0].uv2xy[0][0][0], &calibration_rm_vlc[0].extrinsics[0][0], &calibration_rm_vlc[0].undistort_map[0][0][0], &calibration_rm_vlc[0].intrinsics[0]);
+            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[0]);
             source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_VLC_LEFTLEFT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], &calibration_rm_vlc[1].uv2xy[0][0][0], &calibration_rm_vlc[1].extrinsics[0][0], &calibration_rm_vlc[1].undistort_map[0][0][0], &calibration_rm_vlc[1].intrinsics[0]);
+            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[1]);
             source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_VLC_RIGHTFRONT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], &calibration_rm_vlc[2].uv2xy[0][0][0], &calibration_rm_vlc[2].extrinsics[0][0], &calibration_rm_vlc[2].undistort_map[0][0][0], &calibration_rm_vlc[2].intrinsics[0]);  
+            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[2]);  
             source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], &calibration_rm_vlc[3].uv2xy[0][0][0], &calibration_rm_vlc[3].extrinsics[0][0], &calibration_rm_vlc[3].undistort_map[0][0][0], &calibration_rm_vlc[3].intrinsics[0]);
+            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[3]);
             source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_DEPTH_AHAT:
-            hl2ss::ulm::download_calibration_rm_depth_ahat(host, source_ports[i], &calibration_rm_depth_ahat.uv2xy[0][0][0], &calibration_rm_depth_ahat.extrinsics[0][0], &calibration_rm_depth_ahat.scale, &calibration_rm_depth_ahat.alias, &calibration_rm_depth_ahat.undistort_map[0][0][0], &calibration_rm_depth_ahat.intrinsics[0]);
+            hl2ss::ulm::download_calibration_rm_depth_ahat(host, source_ports[i], calibration_rm_depth_ahat);
             source_objects[i] = hl2ss::ulm::open_rm_depth_ahat(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_DEPTH_LONGTHROW:
-            hl2ss::ulm::download_calibration_rm_depth_longthrow(host, source_ports[i], &calibration_rm_depth_longthrow.uv2xy[0][0][0], &calibration_rm_depth_longthrow.extrinsics[0][0], &calibration_rm_depth_longthrow.scale, &calibration_rm_depth_longthrow.undistort_map[0][0][0], &calibration_rm_depth_longthrow.intrinsics[0]);
+            hl2ss::ulm::download_calibration_rm_depth_longthrow(host, source_ports[i], calibration_rm_depth_longthrow);
             source_objects[i] = hl2ss::ulm::open_rm_depth_longthrow(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_IMU_ACCELEROMETER:
-            hl2ss::ulm::download_calibration_rm_imu(host, source_ports[i], &calibration_rm_imu[0].extrinsics[0][0]);
+            hl2ss::ulm::download_calibration_rm_imu(host, source_ports[i], calibration_rm_imu[0]);
             source_objects[i] = hl2ss::ulm::open_rm_imu(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_IMU_GYROSCOPE:
-            hl2ss::ulm::download_calibration_rm_imu(host, source_ports[i], &calibration_rm_imu[1].extrinsics[0][0]); 
+            hl2ss::ulm::download_calibration_rm_imu(host, source_ports[i], calibration_rm_imu[1]); 
             source_objects[i] = hl2ss::ulm::open_rm_imu(host, source_ports[i]); 
             break;
         case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  
@@ -76,7 +76,7 @@ void test_sources(char const* host)
             break;
         case hl2ss::stream_port::PERSONAL_VIDEO:
             hl2ss::ulm::start_subsystem_pv(host, source_ports[i]);
-            hl2ss::ulm::download_calibration_pv(host, source_ports[i], 640, 360, 30, &calibration_pv.focal_length[0], &calibration_pv.principal_point[0], &calibration_pv.radial_distortion[0], &calibration_pv.tangential_distortion[0], &calibration_pv.projection[0][0], &calibration_pv.extrinsics[0][0]);
+            hl2ss::ulm::download_calibration_pv(host, source_ports[i], 640, 360, 30, calibration_pv);
             source_objects[i] = hl2ss::ulm::open_pv(host, source_ports[i], 640, 360, 30);
             break;
         case hl2ss::stream_port::MICROPHONE:           

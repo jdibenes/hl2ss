@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <codecvt>
 #include "hl2ss_lnm.h"
 #include "hl2ss_mt.h"
 
@@ -34,7 +35,7 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-void* open_rm_vlc(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, uint64_t options_size, uint64_t const* options_data, uint64_t buffer_size)
+void* open_rm_vlc(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, uint64_t const* options_data, uint64_t options_size, uint64_t buffer_size)
 HL2SS_ULM_BEGIN
 {
     std::vector<uint64_t> options{options_data, options_data + options_size};
@@ -47,7 +48,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void* open_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, uint64_t options_size, uint64_t const* options_data, uint64_t buffer_size)
+void* open_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, uint64_t const* options_data, uint64_t options_size, uint64_t buffer_size)
 HL2SS_ULM_BEGIN
 {
     std::vector<uint64_t> options{options_data, options_data + options_size};
@@ -82,7 +83,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void* open_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, uint64_t options_size, uint64_t const* options_data, uint8_t decoded_format, uint64_t buffer_size)
+void* open_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, uint64_t const* options_data, uint64_t options_size, uint8_t decoded_format, uint64_t buffer_size)
 HL2SS_ULM_BEGIN
 {
     std::vector<uint64_t> options{options_data, options_data + options_size};
@@ -309,85 +310,339 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_vlc(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* undistort_map, float* intrinsics)
+int32_t download_calibration_rm_vlc(char const* host, uint16_t port, calibration_rm_vlc& calibration)
 HL2SS_ULM_BEGIN
 {
-    std::shared_ptr<hl2ss::calibration_rm_vlc> calibration = hl2ss::lnm::download_calibration_rm_vlc(host, port);
-
-    memcpy(uv2xy,         calibration->uv2xy,         sizeof(calibration->uv2xy));
-    memcpy(extrinsics,    calibration->extrinsics,    sizeof(calibration->extrinsics));
-    memcpy(undistort_map, calibration->undistort_map, sizeof(calibration->undistort_map));
-    memcpy(intrinsics,    calibration->intrinsics,    sizeof(calibration->intrinsics));
-
+    calibration = *hl2ss::lnm::download_calibration_rm_vlc(host, port);
     return 0;
 }
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_depth_ahat(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* scale, float* alias, float* undistort_map, float* intrinsics)
+int32_t download_calibration_rm_depth_ahat(char const* host, uint16_t port, calibration_rm_depth_ahat& calibration)
 HL2SS_ULM_BEGIN
 {
-    std::shared_ptr<hl2ss::calibration_rm_depth_ahat> calibration = hl2ss::lnm::download_calibration_rm_depth_ahat(host, port);
-
-    memcpy(uv2xy,          calibration->uv2xy,         sizeof(calibration->uv2xy));
-    memcpy(extrinsics,     calibration->extrinsics,    sizeof(calibration->extrinsics));
-    memcpy(scale,         &calibration->scale,         sizeof(calibration->scale));
-    memcpy(alias,         &calibration->alias,         sizeof(calibration->alias));
-    memcpy(undistort_map,  calibration->undistort_map, sizeof(calibration->undistort_map));
-    memcpy(intrinsics,     calibration->intrinsics,    sizeof(calibration->intrinsics));
-
+    calibration = *hl2ss::lnm::download_calibration_rm_depth_ahat(host, port);
     return 0;
 }
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_depth_longthrow(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* scale, float* undistort_map, float* intrinsics)
+int32_t download_calibration_rm_depth_longthrow(char const* host, uint16_t port, calibration_rm_depth_longthrow& calibration)
 HL2SS_ULM_BEGIN
 {
-    std::shared_ptr<hl2ss::calibration_rm_depth_longthrow> calibration = hl2ss::lnm::download_calibration_rm_depth_longthrow(host, port);
-
-    memcpy(uv2xy,          calibration->uv2xy,         sizeof(calibration->uv2xy));
-    memcpy(extrinsics,     calibration->extrinsics,    sizeof(calibration->extrinsics));
-    memcpy(scale,         &calibration->scale,         sizeof(calibration->scale));
-    memcpy(undistort_map,  calibration->undistort_map, sizeof(calibration->undistort_map));
-    memcpy(intrinsics,     calibration->intrinsics,    sizeof(calibration->intrinsics));
-
+    calibration = *hl2ss::lnm::download_calibration_rm_depth_longthrow(host, port);
     return 0;
 }
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_imu(char const* host, uint16_t port, float* extrinsics)
+int32_t download_calibration_rm_imu(char const* host, uint16_t port, calibration_rm_imu& calibration)
 HL2SS_ULM_BEGIN
 {
-    std::shared_ptr<hl2ss::calibration_rm_imu> calibration = hl2ss::lnm::download_calibration_rm_imu(host, port);
-
-    memcpy(extrinsics, calibration->extrinsics, sizeof(calibration->extrinsics));
-
+    calibration = *hl2ss::lnm::download_calibration_rm_imu(host, port);
     return 0;
 }
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, float* focal_length, float* principal_point, float* radial_distortion, float* tangential_distortion, float* projection, float* extrinsics)
+int32_t download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, calibration_pv& calibration)
 HL2SS_ULM_BEGIN
 {
-    std::shared_ptr<hl2ss::calibration_pv> calibration = hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
+    calibration = *hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
+    return 0;
+}
+HL2SS_ULM_END(-1)
 
-    memcpy(focal_length,          calibration->focal_length,          sizeof(calibration->focal_length));
-    memcpy(principal_point,       calibration->principal_point,       sizeof(calibration->principal_point));
-    memcpy(radial_distortion,     calibration->radial_distortion,     sizeof(calibration->radial_distortion));
-    memcpy(tangential_distortion, calibration->tangential_distortion, sizeof(calibration->tangential_distortion));
-    memcpy(projection,            calibration->projection,            sizeof(calibration->projection));
-    memcpy(extrinsics,            calibration->extrinsics,            sizeof(calibration->extrinsics));
+//------------------------------------------------------------------------------
+// Remote Configuration
+//------------------------------------------------------------------------------
 
+HL2SS_CLIENT_EXPORT
+int32_t rc_get_application_version(void* ipc, hl2ss::version& version)
+HL2SS_ULM_BEGIN
+{
+    version = ((hl2ss::ipc_rc*)ipc)->get_application_version();
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_get_utc_offset(void* ipc, uint32_t samples, uint64_t& offset)
+HL2SS_ULM_BEGIN
+{
+    offset = ((hl2ss::ipc_rc*)ipc)->get_utc_offset(samples);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_hs_marker_state(void* ipc, uint32_t state)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_hs_marker_state(state);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_get_pv_subsystem_status(void* ipc, uint32_t& status)
+HL2SS_ULM_BEGIN
+{
+    status = ((hl2ss::ipc_rc*)ipc)->get_pv_subsystem_status();
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_wait_for_pv_subsystem(void* ipc, uint32_t status)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->wait_for_pv_subsystem(status);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_focus(void* ipc, uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_focus(mode, range, distance, value, driver_fallback);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_video_temporal_denoising(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_video_temporal_denoising(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_white_balance_preset(void* ipc, uint32_t preset)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_white_balance_preset(preset);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_white_balance_value(void* ipc, uint32_t value)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_white_balance_value(value);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_exposure(void* ipc, uint32_t mode, uint32_t value)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_exposure(mode, value);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_exposure_priority_video(void* ipc, uint32_t enabled)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_exposure_priority_video(enabled);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_iso_speed(void* ipc, uint32_t mode, uint32_t value)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_iso_speed(mode, value);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_backlight_compensation(void* ipc, uint32_t state)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_backlight_compensation(state);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_scene_mode(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_scene_mode(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_flat_mode(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_flat_mode(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+//------------------------------------------------------------------------------
+// Spatial Mapping
+//------------------------------------------------------------------------------
+// TODO:
+
+//------------------------------------------------------------------------------
+// Scene Understanding
+//------------------------------------------------------------------------------
+// TODO:
+
+//------------------------------------------------------------------------------
+// Voice Input
+//------------------------------------------------------------------------------
+
+HL2SS_CLIENT_EXPORT
+int32_t vi_create_recognizer(void* ipc)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_vi*)ipc)->create_recognizer();
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t vi_register_commands(void* ipc, bool clear, char const* utf8_array)
+HL2SS_ULM_BEGIN
+{
+    char const* current = utf8_array;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+    std::vector<std::u16string> commands;
+    size_t count;
+    char const* next;
+    
+    while ((count = strlen(current)) > 0)
+    {
+        next = current + count + 1;
+        commands.push_back(convert.from_bytes(current, next));
+        current = next;
+    }
+
+    ((hl2ss::ipc_vi*)ipc)->register_commands(clear, commands);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t vi_start(void* ipc)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_vi*)ipc)->start();
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+void* vi_pop(void* ipc, uint64_t& size, hl2ss::vi_result*& data)
+HL2SS_ULM_BEGIN
+{
+    std::unique_ptr<std::vector<hl2ss::vi_result>> results = std::make_unique<std::vector<hl2ss::vi_result>>();
+    ((hl2ss::ipc_vi*)ipc)->pop(*results);
+
+    size = results->size();
+    data = results->data();
+
+    return results.release();    
+}
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
+void vi_release(void* results)
+HL2SS_ULM_BEGIN
+{
+    delete (std::vector<hl2ss::vi_result>*)results;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+int32_t vi_clear(void* ipc)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_vi*)ipc)->clear();
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t vi_stop(void* ipc)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_vi*)ipc)->stop();
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+//------------------------------------------------------------------------------
+// Unity Message Queue
+//------------------------------------------------------------------------------
+
+HL2SS_CLIENT_EXPORT
+int32_t umq_push(void* ipc, uint8_t const* data, uint64_t size)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_umq*)ipc)->push(data, size);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t umq_pull(void* ipc, uint32_t* data, uint32_t count)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_umq*)ipc)->pull(data, count);
     return 0;
 }
 HL2SS_ULM_END(-1)
 
 //-----------------------------------------------------------------------------
-// IPC
+// Guest Message Queue
 //-----------------------------------------------------------------------------
-// TODO: IPC Interfaces
+
+HL2SS_CLIENT_EXPORT
+void* gmq_pull(void *ipc, uint32_t& command, uint32_t& size, uint8_t*& data)
+HL2SS_ULM_BEGIN
+{
+    std::unique_ptr<hl2ss::gmq_message> message = std::make_unique<hl2ss::gmq_message>();
+    ((hl2ss::ipc_gmq*)ipc)->pull(*message);
+
+    command = message->command;
+    size    = message->size;
+    data    = message->data.get();
+
+    return message.release();
+}
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
+int32_t gmq_push(void* ipc, uint32_t const* response, uint32_t count)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_gmq*)ipc)->push(response, count);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+void gmq_release(void* message)
+HL2SS_ULM_BEGIN
+{
+    delete (hl2ss::gmq_message*)message;
+}
+HL2SS_ULM_END(void())
 }
 }
