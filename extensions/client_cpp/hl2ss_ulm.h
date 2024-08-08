@@ -460,6 +460,133 @@ struct calibration_pv
     float projection[4][4];
     float extrinsics[4][4];
 };
+
+//------------------------------------------------------------------------------
+// Stream Configuration
+//------------------------------------------------------------------------------
+
+constexpr
+char const* get_port_name(uint16_t port)
+{
+    switch (port)
+    {
+    case hl2ss::stream_port::RM_VLC_LEFTFRONT:     return "rm_vlc_leftfront";
+    case hl2ss::stream_port::RM_VLC_LEFTLEFT:      return "rm_vlc_leftleft";
+    case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    return "rm_vlc_rightfront";
+    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    return "rm_vlc_rightright";
+    case hl2ss::stream_port::RM_DEPTH_AHAT:        return "rm_depth_ahat";
+    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   return "rm_depth_longthrow";
+    case hl2ss::stream_port::RM_IMU_ACCELEROMETER: return "rm_imu_accelerometer";
+    case hl2ss::stream_port::RM_IMU_GYROSCOPE:     return "rm_imu_gyroscope";
+    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  return "rm_imu_magnetometer";
+    case hl2ss::ipc_port::REMOTE_CONFIGURATION:    return "remote_configuration";
+    case hl2ss::stream_port::PERSONAL_VIDEO:       return "personal_video";
+    case hl2ss::stream_port::MICROPHONE:           return "microphone";
+    case hl2ss::stream_port::SPATIAL_INPUT:        return "spatial_input";
+    case hl2ss::ipc_port::SPATIAL_MAPPING:         return "spatial_mapping";
+    case hl2ss::ipc_port::SCENE_UNDERSTANDING:     return "scene_understanding";
+    case hl2ss::ipc_port::VOICE_INPUT:             return "voice_input";
+    case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     return "unity_message_queue";
+    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return "extended_eye_tracker";
+    case hl2ss::stream_port::EXTENDED_AUDIO:       return "extended_audio";
+    case hl2ss::stream_port::EXTENDED_VIDEO:       return "extended_video";
+    case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     return "guest_message_queue";
+    default:                                       return nullptr;
+    }
+}
+
+constexpr
+uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device)
+{
+    uint32_t const DEVICE_BASE = 0x00000004;
+    return mixer_mode | (DEVICE_BASE * (device + 1));
+}
+
+//------------------------------------------------------------------------------
+// Unpacking
+//------------------------------------------------------------------------------
+
+constexpr
+void unpack_rm_vlc(uint8_t* payload, uint8_t*& image)
+{
+    image = payload;
+}
+
+constexpr
+void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab)
+{
+    depth = (uint16_t*)(payload);
+    ab    = (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
+}
+
+constexpr
+void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab)
+{
+    depth = (uint16_t*)(payload);
+    ab    = (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
+}
+
+constexpr
+void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples)
+{
+    samples = (rm_imu_sample*)payload;
+}
+
+constexpr
+void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_intrinsics*& intrinsics)
+{
+    image = payload;
+    intrinsics = (pv_intrinsics*)(payload + size - sizeof(pv_intrinsics));
+}
+
+constexpr
+void unpack_microphone_raw(uint8_t* payload, int16_t*& samples)
+{
+    samples = (int16_t*)payload;
+}
+
+constexpr
+void unpack_microphone_aac(uint8_t* payload, float*& samples)
+{
+    samples = (float*)payload;
+}
+
+constexpr
+void unpack_si(uint8_t* payload, si_frame*& si)
+{
+    si = (si_frame*)payload;
+}
+
+constexpr
+void unpack_eet(uint8_t* payload, eet_frame*& eet)
+{
+    eet = (eet_frame*)payload;
+}
+
+constexpr
+void unpack_extended_audio_raw(uint8_t* payload, int16_t*& samples)
+{
+    samples = (int16_t*)payload;
+}
+
+constexpr
+void unpack_extended_audio_aac(uint8_t* payload, float*& samples)
+{
+    samples = (float*)payload;
+}
+}
+
+namespace hl2ss
+{
+namespace mt
+{
+namespace time_preference
+{
+int32_t const PREFER_PAST    = -1;
+int32_t const PREFER_NEAREST =  0;
+int32_t const PREFER_FUTURE  =  1;
+}
+}
 }
 
 namespace hl2ss
@@ -471,38 +598,38 @@ namespace ulm
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void initialize();
+int initialize();
 
 //-----------------------------------------------------------------------------
 // Open
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void open_rm_vlc(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_VLC, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t profile=hl2ss::video_profile::H265_MAIN, uint8_t level=hl2ss::h26x_level::DEFAULT, uint32_t bitrate=0, uint64_t options_size=0, uint64_t const* options_data=nullptr, uint64_t buffer_size=hl2ss::parameters_rm_vlc::FPS*10);
+void* open_rm_vlc(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_VLC, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t profile=hl2ss::video_profile::H265_MAIN, uint8_t level=hl2ss::h26x_level::DEFAULT, uint32_t bitrate=0, uint64_t options_size=0, uint64_t const* options_data=nullptr, uint64_t buffer_size=hl2ss::parameters_rm_vlc::FPS*10);
 
 HL2SS_CLIENT_IMPORT
-void open_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_DEPTH_AHAT, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t profile_z=hl2ss::depth_profile::SAME, uint8_t profile_ab=hl2ss::video_profile::H265_MAIN, uint8_t level=hl2ss::h26x_level::DEFAULT, uint32_t bitrate=0, uint64_t options_size=0, uint64_t const* options_data=nullptr, uint64_t buffer_size=hl2ss::parameters_rm_depth_ahat::FPS*10);
+void* open_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_DEPTH_AHAT, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t profile_z=hl2ss::depth_profile::SAME, uint8_t profile_ab=hl2ss::video_profile::H265_MAIN, uint8_t level=hl2ss::h26x_level::DEFAULT, uint32_t bitrate=0, uint64_t options_size=0, uint64_t const* options_data=nullptr, uint64_t buffer_size=hl2ss::parameters_rm_depth_ahat::FPS*10);
 
 HL2SS_CLIENT_IMPORT
-void open_rm_depth_longthrow(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_DEPTH_LONGTHROW, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t png_filter=hl2ss::png_filter_mode::PAETH, uint64_t buffer_size=hl2ss::parameters_rm_depth_longthrow::FPS*10);
+void* open_rm_depth_longthrow(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_DEPTH_LONGTHROW, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t png_filter=hl2ss::png_filter_mode::PAETH, uint64_t buffer_size=hl2ss::parameters_rm_depth_longthrow::FPS*10);
 
 HL2SS_CLIENT_IMPORT
-void open_rm_imu(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_IMU, uint8_t mode=hl2ss::stream_mode::MODE_1, uint64_t buffer_size=300);
+void* open_rm_imu(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::RM_IMU, uint8_t mode=hl2ss::stream_mode::MODE_1, uint64_t buffer_size=300);
 
 HL2SS_CLIENT_IMPORT
-void open_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, uint64_t chunk=hl2ss::chunk_size::PERSONAL_VIDEO, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t profile=hl2ss::video_profile::H265_MAIN, uint8_t level=hl2ss::h26x_level::DEFAULT, uint32_t bitrate=0, uint64_t options_size=0, uint64_t const* options_data=nullptr, uint8_t decoded_format=hl2ss::pv_decoded_format::BGR, uint64_t buffer_size=300);
+void* open_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, uint64_t chunk=hl2ss::chunk_size::PERSONAL_VIDEO, uint8_t mode=hl2ss::stream_mode::MODE_1, uint8_t divisor=1, uint8_t profile=hl2ss::video_profile::H265_MAIN, uint8_t level=hl2ss::h26x_level::DEFAULT, uint32_t bitrate=0, uint64_t options_size=0, uint64_t const* options_data=nullptr, uint8_t decoded_format=hl2ss::pv_decoded_format::BGR, uint64_t buffer_size=300);
 
 HL2SS_CLIENT_IMPORT
-void open_microphone(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::MICROPHONE, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, uint64_t buffer_size=500);
+void* open_microphone(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::MICROPHONE, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, uint64_t buffer_size=500);
 
 HL2SS_CLIENT_IMPORT
-void open_si(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::SPATIAL_INPUT, uint64_t buffer_size=300);
+void* open_si(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::SPATIAL_INPUT, uint64_t buffer_size=300);
 
 HL2SS_CLIENT_IMPORT
-void open_eet(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_EYE_TRACKER, uint8_t framerate=hl2ss::eet_framerate::FPS_30, uint64_t buffer_size=900);
+void* open_eet(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_EYE_TRACKER, uint8_t framerate=hl2ss::eet_framerate::FPS_30, uint64_t buffer_size=900);
 
 HL2SS_CLIENT_IMPORT
-void open_extended_audio(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_AUDIO, uint32_t mixer_mode=hl2ss::mixer_mode::BOTH, float loopback_gain=1.0f, float microphone_gain=1.0f, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, uint64_t buffer_size=500);
+void* open_extended_audio(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_AUDIO, uint32_t mixer_mode=hl2ss::mixer_mode::BOTH, float loopback_gain=1.0f, float microphone_gain=1.0f, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, uint64_t buffer_size=500);
 
 HL2SS_CLIENT_IMPORT
 void open_rc(char const* host, uint16_t port);
@@ -527,96 +654,52 @@ void open_gmq(char const* host, uint16_t port);
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void close(uint16_t port);
+void close_source(void* source);
+
+HL2SS_CLIENT_IMPORT
+void close_ipc(void* ipc);
 
 //-----------------------------------------------------------------------------
 // Grab
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t get_by_index(uint16_t port, int64_t& frame_stamp, int32_t& status, void*& frame, uint32_t error_size=0, char* error_data=nullptr);
+int32_t get_by_index(void* source, int64_t& frame_stamp, int32_t& status, void*& frame, uint64_t& frame_timestamp, uint32_t& frame_payload_size, uint8_t*& frame_payload, matrix_4x4*& frame_pose);
 
 HL2SS_CLIENT_IMPORT
-int32_t get_by_timestamp(uint16_t port, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, uint32_t error_size=0, char* error_data=nullptr);
+int32_t get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, uint64_t& frame_timestamp, uint32_t& frame_payload_size, uint8_t*& frame_payload, matrix_4x4*& frame_pose);
 
 HL2SS_CLIENT_IMPORT
 void release_frame(void* frame);
-
-HL2SS_CLIENT_IMPORT
-int32_t unpack_frame(void* frame, uint64_t& timestamp, uint32_t& payload_size, uint8_t*& payload_data, matrix_4x4*& pose_data);
-
-//------------------------------------------------------------------------------
-// Unpacking
-//------------------------------------------------------------------------------
-
-HL2SS_CLIENT_IMPORT
-void unpack_rm_vlc(uint8_t* payload, uint8_t*& image);
-
-HL2SS_CLIENT_IMPORT
-void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab);
-
-HL2SS_CLIENT_IMPORT
-void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab);
-
-HL2SS_CLIENT_IMPORT
-void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples);
-
-HL2SS_CLIENT_IMPORT
-void unpack_pv(uint8_t* payload, uint64_t size, uint8_t*& image, pv_intrinsics*& intrinsics);
-
-HL2SS_CLIENT_IMPORT
-void unpack_microphone_raw(uint8_t* payload, int16_t*& samples);
-
-HL2SS_CLIENT_IMPORT
-void unpack_microphone_aac(uint8_t* payload, float*& samples);
-
-HL2SS_CLIENT_IMPORT
-void unpack_si(uint8_t* payload, si_frame*& si);
-
-HL2SS_CLIENT_IMPORT
-void unpack_eet(uint8_t* payload, eet_frame*& eet);
-
-HL2SS_CLIENT_IMPORT
-void unpack_extended_audio_raw(uint8_t* payload, int16_t*& samples);
-
-HL2SS_CLIENT_IMPORT
-void unpack_extended_audio_aac(uint8_t* payload, float*& samples);
-
-//------------------------------------------------------------------------------
-// Stream Configuration
-//------------------------------------------------------------------------------
-
-HL2SS_CLIENT_IMPORT
-uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device);
 
 //-----------------------------------------------------------------------------
 // Control
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t start_subsystem_pv(char const* host, uint16_t port, uint8_t enable_mrc=false, uint8_t hologram_composition=true, uint8_t recording_indicator=false, uint8_t video_stabilization=false, uint8_t blank_protected=false, uint8_t show_mesh=false, uint8_t shared=false, float global_opacity=0.9f, float output_width=0.0f, float output_height=0.0f, uint32_t video_stabilization_length=0, uint32_t hologram_perspective=hl2ss::hologram_perspective::PV, uint32_t error_size=0, char* error_data=nullptr);
+int32_t start_subsystem_pv(char const* host, uint16_t port, uint8_t enable_mrc=false, uint8_t hologram_composition=true, uint8_t recording_indicator=false, uint8_t video_stabilization=false, uint8_t blank_protected=false, uint8_t show_mesh=false, uint8_t shared=false, float global_opacity=0.9f, float output_width=0.0f, float output_height=0.0f, uint32_t video_stabilization_length=0, uint32_t hologram_perspective=hl2ss::hologram_perspective::PV);
 
 HL2SS_CLIENT_IMPORT
-int32_t stop_subsystem_pv(char const* host, uint16_t port, uint32_t error_size=0, char* error_data=nullptr);
+int32_t stop_subsystem_pv(char const* host, uint16_t port);
 
 //-----------------------------------------------------------------------------
 // Calibration
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_vlc(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* undistort_map, float* intrinsics, uint32_t error_size=0, char* error_data=nullptr);
+int32_t download_calibration_rm_vlc(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* undistort_map, float* intrinsics);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_depth_ahat(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* scale, float* alias, float* undistort_map, float* intrinsics, uint32_t error_size=0, char* error_data=nullptr);
+int32_t download_calibration_rm_depth_ahat(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* scale, float* alias, float* undistort_map, float* intrinsics);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_depth_longthrow(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* scale, float* undistort_map, float* intrinsics, uint32_t error_size=0, char* error_data=nullptr);
+int32_t download_calibration_rm_depth_longthrow(char const* host, uint16_t port, float* uv2xy, float* extrinsics, float* scale, float* undistort_map, float* intrinsics);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_imu(char const* host, uint16_t port, float* extrinsics, uint32_t error_size=0, char* error_data=nullptr);
+int32_t download_calibration_rm_imu(char const* host, uint16_t port, float* extrinsics);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, float* focal_length, float* principal_point, float* radial_distortion, float* tangential_distortion, float* projection, float* extrinsics, uint32_t error_size=0, char* error_data=nullptr);
+int32_t download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, float* focal_length, float* principal_point, float* radial_distortion, float* tangential_distortion, float* projection, float* extrinsics);
 
 //-----------------------------------------------------------------------------
 // IPC
