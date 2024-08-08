@@ -24,12 +24,12 @@ void test_sources(char const* host)
         //hl2ss::stream_port::RM_IMU_ACCELEROMETER,
         //hl2ss::stream_port::RM_IMU_GYROSCOPE,
         //hl2ss::stream_port::RM_IMU_MAGNETOMETER,
-        //hl2ss::stream_port::PERSONAL_VIDEO,
+        hl2ss::stream_port::PERSONAL_VIDEO,
         //hl2ss::stream_port::MICROPHONE,
         //hl2ss::stream_port::SPATIAL_INPUT,
         //hl2ss::stream_port::EXTENDED_EYE_TRACKER,
         //hl2ss::stream_port::EXTENDED_AUDIO,
-        hl2ss::stream_port::EXTENDED_VIDEO,
+        //hl2ss::stream_port::EXTENDED_VIDEO,
     };
 
     constexpr int source_count = sizeof(source_ports) / sizeof(uint16_t);
@@ -114,6 +114,9 @@ void test_sources(char const* host)
         uint64_t target_timestamp;
         int32_t result;
 
+        uint8_t* pv_image;
+        hl2ss::pv_intrinsics* pv_intrinsics;
+
         for (int i = 0; i < source_count; ++i)
         {
             result = hl2ss::ulm::get_by_index(source_objects[i], frame_stamp, status, frame, timestamp, payload_size, payload, pose);
@@ -124,17 +127,18 @@ void test_sources(char const* host)
             {
             case hl2ss::stream_port::PERSONAL_VIDEO:
             case hl2ss::stream_port::EXTENDED_VIDEO:
-                cv::imshow(hl2ss::get_port_name(source_ports[i]), cv::Mat(360, 640, CV_8UC3, payload));
+                hl2ss::unpack_pv(payload, payload_size, pv_image, pv_intrinsics);
+                cv::imshow(hl2ss::get_port_name(source_ports[i]), cv::Mat(360, 640, CV_8UC3, pv_image));
                 break;
             }
 
-            hl2ss::ulm::release_frame(frame);
+            hl2ss::ulm::release_frame(frame); // all pointers from hl2ss::ulm::get_by_[...] and hl2ss::unpack_[...] are now "invalid"
 
             target_timestamp = timestamp;
 
-            result = hl2ss::ulm::get_by_timestamp(source_objects[i], target_timestamp, hl2ss::mt::time_preference::PREFER_NEAREST, true, frame_stamp, status, frame, timestamp, payload_size, payload, pose);
-            if (result < 0) { continue; }
-            if (status != 0) { continue; }
+            result = hl2ss::ulm::get_by_timestamp(source_objects[i], target_timestamp, hl2ss::mt::time_preference::PREFER_NEAREST, false, frame_stamp, status, frame, timestamp, payload_size, payload, pose);
+            if (result < 0) { continue; } // fatal error (network error, decode error, ...), must close and open anew
+            if (status != 0) { continue; } // status != 0: buffer is empty, status == 0: OK
 
             hl2ss::ulm::release_frame(frame);
         }
