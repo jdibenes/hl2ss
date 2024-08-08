@@ -1803,9 +1803,9 @@ void ipc_gmq::pull(gmq_message& message)
     m_client.download(message.data.get(), message.size, chunk_size::SINGLE_TRANSFER);
 }
 
-void ipc_gmq::push(uint32_t response)
+void ipc_gmq::push(uint32_t const* response, uint32_t count)
 {
-    m_client.sendall(&response, sizeof(response));
+    m_client.sendall(response, count * sizeof(uint32_t));
 }
 
 //------------------------------------------------------------------------------
