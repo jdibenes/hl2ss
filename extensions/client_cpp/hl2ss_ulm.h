@@ -7,8 +7,13 @@
 #define HL2SS_CLIENT_IMPORT extern "C"
 #endif
 
+//******************************************************************************
+// HL2SS Module
+//******************************************************************************
+
 namespace hl2ss
 {
+
 //------------------------------------------------------------------------------
 // Constants
 //------------------------------------------------------------------------------
@@ -44,16 +49,16 @@ uint16_t const GUEST_MESSAGE_QUEUE  = 3820;
 
 namespace chunk_size
 {
-size_t const RM_VLC               = 4096;
-size_t const RM_DEPTH_AHAT        = 4096;
-size_t const RM_DEPTH_LONGTHROW   = 4096;
-size_t const RM_IMU               = 4096;
-size_t const PERSONAL_VIDEO       = 4096;
-size_t const MICROPHONE           = 512;
-size_t const SPATIAL_INPUT        = 1024;
-size_t const EXTENDED_EYE_TRACKER = 256;
-size_t const EXTENDED_AUDIO       = 512;
-size_t const SINGLE_TRANSFER      = 4096;
+uint64_t const RM_VLC               = 4096;
+uint64_t const RM_DEPTH_AHAT        = 4096;
+uint64_t const RM_DEPTH_LONGTHROW   = 4096;
+uint64_t const RM_IMU               = 4096;
+uint64_t const PERSONAL_VIDEO       = 4096;
+uint64_t const MICROPHONE           = 512;
+uint64_t const SPATIAL_INPUT        = 1024;
+uint64_t const EXTENDED_EYE_TRACKER = 256;
+uint64_t const EXTENDED_AUDIO       = 512;
+uint64_t const SINGLE_TRANSFER      = 4096;
 }
 
 namespace stream_mode
@@ -586,6 +591,18 @@ struct version
 };
 
 //------------------------------------------------------------------------------
+// Spatial Mapping
+//------------------------------------------------------------------------------
+
+// TODO
+
+//------------------------------------------------------------------------------
+// Scene Understanding
+//------------------------------------------------------------------------------
+
+// TODO
+
+//------------------------------------------------------------------------------
 // Voice Input
 //------------------------------------------------------------------------------
 
@@ -678,7 +695,7 @@ void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples)
 }
 
 constexpr
-void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_intrinsics*& intrinsics)
+void unpack_pv(uint8_t* payload, uint64_t size, uint8_t*& image, pv_intrinsics*& intrinsics)
 {
     image = payload;
     intrinsics = (pv_intrinsics*)(payload + size - sizeof(pv_intrinsics));
@@ -719,7 +736,12 @@ void unpack_extended_audio_aac(uint8_t* payload, float*& samples)
 {
     samples = (float*)payload;
 }
+
 }
+
+//******************************************************************************
+// MultiThreaded Module
+//******************************************************************************
 
 namespace hl2ss
 {
@@ -734,10 +756,35 @@ int32_t const PREFER_FUTURE  =  1;
 }
 }
 
+//******************************************************************************
+// Unified Library Methods Module
+//******************************************************************************
+
 namespace hl2ss
 {
 namespace ulm
 {
+
+//-----------------------------------------------------------------------------
+// Adapters
+//-----------------------------------------------------------------------------
+
+struct packet
+{
+    uint64_t timestamp;
+    uint32_t sz_payload;
+    uint32_t _reserved;
+    uint8_t* payload;
+    matrix_4x4* pose;
+};
+
+struct gmq_message
+{
+    uint32_t command;
+    uint32_t size;
+    uint8_t* data;
+};
+
 //-----------------------------------------------------------------------------
 // Initialize
 //-----------------------------------------------------------------------------
@@ -898,11 +945,13 @@ int32_t rc_set_flat_mode(void* ipc, uint32_t mode);
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
+
 // TODO:
 
 //------------------------------------------------------------------------------
 // Scene Understanding
 //------------------------------------------------------------------------------
+
 // TODO:
 
 //------------------------------------------------------------------------------
@@ -945,12 +994,13 @@ int32_t umq_pull(void* ipc, uint32_t* data, uint32_t count);
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void* gmq_pull(void *ipc, uint32_t& command, uint32_t& size, uint8_t*& data);
+void* gmq_pull(void *ipc, hl2ss::ulm::gmq_message& result);
 
 HL2SS_CLIENT_IMPORT
 int32_t gmq_push(void* ipc, uint32_t const* response, uint32_t count);
 
 HL2SS_CLIENT_IMPORT
 void gmq_release(void* message);
+
 }
 }
