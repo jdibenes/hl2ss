@@ -856,10 +856,10 @@ void close_ipc(void* ipc);
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t get_by_index(void* source, int64_t& frame_stamp, int32_t& status, void*& frame, uint64_t& frame_timestamp, uint32_t& frame_payload_size, uint8_t*& frame_payload, matrix_4x4*& frame_pose);
+int32_t get_by_index(void* source, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet);
 
 HL2SS_CLIENT_IMPORT
-int32_t get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, uint64_t& frame_timestamp, uint32_t& frame_payload_size, uint8_t*& frame_payload, matrix_4x4*& frame_pose);
+int32_t get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet);
 
 HL2SS_CLIENT_IMPORT
 void release_frame(void* frame);
