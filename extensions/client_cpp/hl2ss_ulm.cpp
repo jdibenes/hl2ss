@@ -17,6 +17,27 @@ namespace hl2ss
 {
 namespace ulm
 {
+
+//-----------------------------------------------------------------------------
+// Adapters
+//-----------------------------------------------------------------------------
+
+struct packet
+{
+    uint64_t timestamp;
+    uint32_t sz_payload;
+    uint32_t _reserved;
+    uint8_t* payload;
+    matrix_4x4* pose;
+};
+
+struct gmq_message
+{
+    uint32_t command;
+    uint32_t size;
+    uint8_t* data;
+};
+
 //-----------------------------------------------------------------------------
 // Initialize
 //-----------------------------------------------------------------------------
@@ -223,28 +244,28 @@ HL2SS_ULM_END(void())
 // Grab
 //-----------------------------------------------------------------------------
 
-static void unpack_frame(std::shared_ptr<hl2ss::packet> data, void*& frame, uint64_t& timestamp, uint32_t& payload_size, uint8_t*& payload, matrix_4x4*& pose)
+static void unpack_frame(std::shared_ptr<hl2ss::packet> data, void*& frame, hl2ss::ulm::packet& packet)
 {
     if (data)
     {
-        frame        = new std::shared_ptr<hl2ss::packet>(data);
-        timestamp    = data->timestamp;
-        payload_size = data->sz_payload;
-        payload      = data->payload.get();
-        pose         = data->pose.get();
+        frame             = new std::shared_ptr<hl2ss::packet>(data);
+        packet.timestamp  = data->timestamp;
+        packet.sz_payload = data->sz_payload;
+        packet.payload    = data->payload.get();
+        packet.pose       = data->pose.get();
     }
     else
     {
-        frame        = nullptr;
-        timestamp    = 0ULL;
-        payload_size = 0UL;
-        payload      = nullptr;
-        pose         = nullptr;
+        frame             = nullptr;
+        packet.timestamp  = 0ULL;
+        packet.sz_payload = 0UL;
+        packet.payload    = nullptr;
+        packet.pose       = nullptr;
     }
 }
 
 HL2SS_CLIENT_EXPORT
-int32_t get_by_index(void* source, int64_t& frame_stamp, int32_t& status, void*& frame, uint64_t& frame_timestamp, uint32_t& frame_payload_size, uint8_t*& frame_payload, matrix_4x4*& frame_pose)
+int32_t get_by_index(void* source, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet)
 HL2SS_ULM_BEGIN
 {
     hl2ss::mt::source* s = (hl2ss::mt::source*)source;
@@ -253,14 +274,14 @@ HL2SS_ULM_BEGIN
     if (!s->status(source_error)) { throw source_error; }
 
     std::shared_ptr<hl2ss::packet> data = s->get_packet(frame_stamp, status);
-    if (status == 0) { unpack_frame(data, frame, frame_timestamp, frame_payload_size, frame_payload, frame_pose); }
+    if (status == 0) { unpack_frame(data, frame, packet); }
 
     return 0;
 }
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, uint64_t& frame_timestamp, uint32_t& frame_payload_size, uint8_t*& frame_payload, matrix_4x4*& frame_pose)
+int32_t get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet)
 HL2SS_ULM_BEGIN
 {
     hl2ss::mt::source* s = (hl2ss::mt::source*)source;
@@ -269,7 +290,7 @@ HL2SS_ULM_BEGIN
     if (!s->status(source_error)) { throw source_error; }
 
     std::shared_ptr<hl2ss::packet> data = s->get_packet(timestamp, time_preference, tiebreak_right, frame_stamp, status);
-    if (status == 0) { unpack_frame(data, frame, frame_timestamp, frame_payload_size, frame_payload, frame_pose); }
+    if (status == 0) { unpack_frame(data, frame, packet); }
 
     return 0;
 }
@@ -496,11 +517,13 @@ HL2SS_ULM_END(-1)
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
+
 // TODO:
 
 //------------------------------------------------------------------------------
 // Scene Understanding
 //------------------------------------------------------------------------------
+
 // TODO:
 
 //------------------------------------------------------------------------------
@@ -524,7 +547,6 @@ HL2SS_ULM_BEGIN
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     std::vector<std::u16string> commands;
     size_t count;
-    char const* next;
     
     while ((count = strlen(current)) > 0)
     {
@@ -613,15 +635,15 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-void* gmq_pull(void *ipc, uint32_t& command, uint32_t& size, uint8_t*& data)
+void* gmq_pull(void *ipc, hl2ss::ulm::gmq_message& result)
 HL2SS_ULM_BEGIN
 {
     std::unique_ptr<hl2ss::gmq_message> message = std::make_unique<hl2ss::gmq_message>();
     ((hl2ss::ipc_gmq*)ipc)->pull(*message);
 
-    command = message->command;
-    size    = message->size;
-    data    = message->data.get();
+    result.command = message->command;
+    result.size    = message->size;
+    result.data    = message->data.get();
 
     return message.release();
 }
@@ -643,5 +665,6 @@ HL2SS_ULM_BEGIN
     delete (hl2ss::gmq_message*)message;
 }
 HL2SS_ULM_END(void())
+
 }
 }
