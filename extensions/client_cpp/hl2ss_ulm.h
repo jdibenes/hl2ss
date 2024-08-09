@@ -777,22 +777,22 @@ HL2SS_CLIENT_IMPORT
 void* open_extended_audio(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_AUDIO, uint32_t mixer_mode=hl2ss::mixer_mode::BOTH, float loopback_gain=1.0f, float microphone_gain=1.0f, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, uint64_t buffer_size=500);
 
 HL2SS_CLIENT_IMPORT
-void open_rc(char const* host, uint16_t port);
+void* open_rc(char const* host, uint16_t port);
 
 HL2SS_CLIENT_IMPORT
-void open_sm(char const* host, uint16_t port);
+void* open_sm(char const* host, uint16_t port);
 
 HL2SS_CLIENT_IMPORT
-void open_su(char const* host, uint16_t port);
+void* open_su(char const* host, uint16_t port);
 
 HL2SS_CLIENT_IMPORT
-void open_vi(char const* host, uint16_t port);
+void* open_vi(char const* host, uint16_t port);
 
 HL2SS_CLIENT_IMPORT
-void open_umq(char const* host, uint16_t port);
+void* open_umq(char const* host, uint16_t port);
 
 HL2SS_CLIENT_IMPORT
-void open_gmq(char const* host, uint16_t port);
+void* open_gmq(char const* host, uint16_t port);
 
 //-----------------------------------------------------------------------------
 // Close
@@ -913,7 +913,7 @@ HL2SS_CLIENT_IMPORT
 int32_t vi_create_recognizer(void* ipc);
 
 HL2SS_CLIENT_IMPORT
-int32_t vi_register_commands(void* ipc, bool clear, char const* utf8_array);
+int32_t vi_register_commands(void* ipc, bool clear, char const* utf8_array, uint32_t& status);
 
 HL2SS_CLIENT_IMPORT
 int32_t vi_start(void* ipc);
