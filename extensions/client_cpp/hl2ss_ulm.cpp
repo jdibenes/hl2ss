@@ -517,7 +517,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t vi_register_commands(void* ipc, bool clear, char const* utf8_array)
+int32_t vi_register_commands(void* ipc, bool clear, char const* utf8_array, uint32_t& status)
 HL2SS_ULM_BEGIN
 {
     char const* current = utf8_array;
@@ -528,12 +528,11 @@ HL2SS_ULM_BEGIN
     
     while ((count = strlen(current)) > 0)
     {
-        next = current + count + 1;
-        commands.push_back(convert.from_bytes(current, next));
-        current = next;
+        commands.push_back(convert.from_bytes(current));
+        current += count + 1;
     }
 
-    ((hl2ss::ipc_vi*)ipc)->register_commands(clear, commands);
+    status = ((hl2ss::ipc_vi*)ipc)->register_commands(clear, commands);
     return 0;
 }
 HL2SS_ULM_END(-1)
