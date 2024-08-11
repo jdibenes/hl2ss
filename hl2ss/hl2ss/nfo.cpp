@@ -1,6 +1,7 @@
 
 #include <Windows.h>
 #include <combaseapi.h>
+#include "nfo.h"
 #include "log.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
@@ -70,6 +71,86 @@ void PrintSystemInfo()
 }
 
 // OK
+static void PrintVariant(winrt::hstring const& name, winrt::Windows::Foundation::IInspectable const& value)
+{
+    if (!value)
+    {
+        ShowMessage(L"%s : ? -> [NULL]", name.c_str());
+        return;
+    }
+
+    winrt::hstring type = winrt::get_class_name(value);
+    winrt::hstring text = L"[?]";
+
+    if (type == L"Windows.Foundation.IReferenceArray`1<UInt8>") // blob
+    {
+        auto const& w = value.try_as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>();
+        if (w)
+        { 
+            auto m = w.Value();
+            text = L"{" + winrt::to_hstring(m.size()) + L", [";
+            for (auto a = m.begin(); a != m.end(); a++) { text = text + winrt::hstring(a != m.begin() ? L", " : L"") + winrt::to_hstring(*a); }
+            text = text + L"]}";
+        };
+    }
+    if (type == L"Windows.Foundation.IReference`1<Boolean>")
+    {
+        auto const& w = value.try_as<bool>();
+        if (w) { text = w.value() ? L"true" : L"false"; }
+    }
+    if (type == L"Windows.Foundation.IReference`1<UInt32>")
+    {
+        auto const& w = value.try_as<uint32_t>();
+        if (w) { text = winrt::to_hstring(w.value()); }
+    }
+    if (type == L"Windows.Foundation.IReference`1<UInt64>")
+    {
+        auto const& w = value.try_as<uint64_t>();
+        if (w) { text = winrt::to_hstring(w.value()); }
+    }
+    if (type == L"Windows.Foundation.IReference`1<Guid>")
+    {
+        auto const& w = value.try_as<winrt::guid>();
+        if (w) { text = winrt::to_hstring(w.value()); }
+    }
+    if (type == L"Windows.Foundation.IReference`1<String>")
+    {
+        auto const& w = value.try_as<winrt::hstring>();
+        if (w) { text = w.value(); }
+    }
+    if (type == L"Windows.Foundation.Collections.IMapView`2<Guid, Object>")
+    {
+        auto const& w = value.try_as<winrt::Windows::Foundation::Collections::IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable>>();
+        if (w)
+        {
+            ShowMessage(L"SET %s BEGIN", name.c_str());
+            PrintProperties(w);
+            ShowMessage(L"SET %s END", name.c_str());
+        }
+    }
+
+    ShowMessage(L"%s : %s -> %s", name.c_str(), type.c_str(), text.c_str());
+}
+
+// OK
+void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::hstring, winrt::Windows::Foundation::IInspectable> const& p)
+{
+    if (p) { for (auto kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
+}
+
+// OK
+void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable> const& p)
+{
+    if (p) { for (auto kv : p) { PrintVariant(winrt::to_hstring(kv.Key()), kv.Value()); } }
+}
+
+// OK
+void PrintProperties(winrt::Windows::Foundation::Collections::IPropertySet const& p)
+{
+    if (p) { for (auto kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
+}
+
+// OK
 void PrintDeviceList(DeviceClass dc)
 {
     auto list = DeviceInformation::FindAllAsync(dc).get();
@@ -104,42 +185,7 @@ void PrintDeviceList(DeviceClass dc)
     }
 
     ShowMessage("Properties:");
-    auto p = item.Properties();
-    if (p)
-    {
-    for (auto y : p)
-    {
-    auto s = y.Value().try_as<winrt::hstring>();
-    if (s)
-    {
-    ShowMessage(L"%s: %s", y.Key().c_str(), s.value().c_str());
-    continue;
-    }
-    auto i = y.Value().try_as<int>();
-    if (i)
-    {
-    ShowMessage(L"%s: %d", y.Key().c_str(), i.value());
-    continue;
-    }
-    auto b = y.Value().try_as<bool>();
-    if (b)
-    {
-    ShowMessage(L"%s: %d", y.Key().c_str(), (int)b.value());
-    continue;
-    }
-    auto g = y.Value().try_as<winrt::guid>();
-    if (g)
-    {
-    wchar_t buffer[39];
-    memset(buffer, 0, sizeof(buffer));
-    StringFromGUID2(g.value(), buffer, sizeof(buffer) / sizeof(wchar_t));
-    buffer[38] = L'\0';
-    ShowMessage(L"%s: %s", y.Key().c_str(), buffer);
-    continue;
-    }
-    ShowMessage(L"%s: %s", y.Key().c_str(), L"[?]");
-    }
-    }
+    PrintProperties(item.Properties());
     }
 }
 
