@@ -5,6 +5,7 @@
 #include "holographic_space.h"
 #include "personal_video.h"
 #include "extended_execution.h"
+#include "research_mode.h"
 #include "timestamps.h"
 #include "nfo.h"
 
@@ -308,6 +309,22 @@ static void RC_MSG_SetFlatMode(SOCKET clientsocket)
 }
 
 // OK
+static void RC_MSG_SetEyeSelection(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t enable;
+
+    ok = recv_u32(clientsocket, enable);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ResearchMode_SetEyeSelection(enable != 0);
+}
+
+// OK
 static void RC_Dispatch(SOCKET clientsocket)
 {
     uint8_t state;
@@ -336,6 +353,7 @@ static void RC_Dispatch(SOCKET clientsocket)
     case 0x0B: RC_MSG_SetPVBacklightCompensation(clientsocket);  break;
     case 0x0C: RC_MSG_SetPVSceneMode(clientsocket);              break;
     case 0x0D: RC_MSG_SetFlatMode(clientsocket);                 break;
+    case 0x0E: RC_MSG_SetEyeSelection(clientsocket);             break;
     default:
         RC_TransferError();
         return;
