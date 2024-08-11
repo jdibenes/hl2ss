@@ -336,3 +336,9 @@ SpatialLocator ResearchMode_GetLocator()
 {
 	return g_locator;
 }
+
+// OK
+void ResearchMode_SetEyeSelection(bool enable)
+{
+	if (enable) { g_pSensorDevice->EnableEyeSelection(); } else { g_pSensorDevice->DisableEyeSelection(); }
+}
