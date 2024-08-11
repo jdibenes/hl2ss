@@ -32,7 +32,7 @@ struct PV_Projection
 
 static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_thread = NULL; // CloseHandle
-static bool g_reader_status = false;
+static SRWLOCK g_lock;
 
 // Mode: 0, 1
 static IMFSinkWriter* g_pSinkWriter = NULL; // Release
@@ -55,10 +55,11 @@ void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     SoftwareBitmapBuffer* pBuffer; // Release
     int64_t timestamp;
 
-    if (!g_reader_status) { return; }
+    if (TryAcquireSRWLockShared(&g_lock) != 0)
+    {
     frame = sender.TryAcquireLatestFrame();
-    if (!frame) { return; }
-
+    if (frame) 
+    {
     if (g_counter == 0)
     {
     SoftwareBitmapBuffer::CreateInstance(&pBuffer, frame);
@@ -76,8 +77,10 @@ void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pSample->Release();
     pBuffer->Release();
     }
-
     g_counter = (g_counter + 1) % g_divisor;
+    }
+    ReleaseSRWLockShared(&g_lock);
+    }
 }
 
 // OK
@@ -151,11 +154,11 @@ void EV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     g_counter = 0;
     g_divisor = format.divisor;
 
-    g_reader_status = true;
+    ReleaseSRWLockExclusive(&g_lock);
     reader.StartAsync().get();
     WaitForSingleObject(clientevent, INFINITE);
-    g_reader_status = false;
     reader.StopAsync().get();
+    AcquireSRWLockExclusive(&g_lock);
 
     g_pSinkWriter->Flush(g_dwVideoIndex);
     g_pSinkWriter->Release();
@@ -256,6 +259,8 @@ static DWORD WINAPI EV_EntryPoint(void *param)
 
     ShowMessage("EV: Listening at port %s", PORT_NAME_EV);
 
+    AcquireSRWLockExclusive(&g_lock);
+
     do
     {
     ShowMessage("EV: Waiting for client");
@@ -283,6 +288,7 @@ static DWORD WINAPI EV_EntryPoint(void *param)
 // OK
 void EV_Initialize()
 {
+    InitializeSRWLock(&g_lock);
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, EV_EntryPoint, NULL, 0, NULL);
 }
