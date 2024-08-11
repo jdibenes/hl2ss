@@ -1854,6 +1854,7 @@ class ipc_rc(_context_manager):
     _CMD_SET_PV_BACKLIGHT_COMPENSATION = 0x0B
     _CMD_SET_PV_SCENE_MODE = 0x0C
     _CMD_SET_FLAT_MODE = 0x0D
+    _CMD_SET_EYE_SELECTION = 0x0E
 
     def __init__(self, host, port):
         self.host = host
@@ -1931,6 +1932,10 @@ class ipc_rc(_context_manager):
 
     def set_flat_mode(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_FLAT_MODE, mode)
+        self._client.sendall(command)
+
+    def set_eye_selection(self, enable):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_EYE_SELECTION, 1 if (enable) else 0)
         self._client.sendall(command)
 
 
