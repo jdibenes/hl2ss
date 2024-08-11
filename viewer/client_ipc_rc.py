@@ -65,6 +65,9 @@ backlight_compensation_state = hl2ss.PV_BacklightCompensationState.Enable
 # https://learn.microsoft.com/en-us/uwp/api/windows.media.devices.scenemodecontrol?view=winrt-22621
 scene_mode = hl2ss.PV_CaptureSceneMode.Auto
 
+# Set eye selection
+eye_selection = False
+
 #------------------------------------------------------------------------------
 
 client = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
@@ -93,6 +96,9 @@ client.set_pv_exposure_priority_video(exposure_priority_video)
 client.set_pv_iso_speed(iso_speed_mode, iso_speed_value)
 client.set_pv_backlight_compensation(backlight_compensation_state)
 client.set_pv_scene_mode(scene_mode)
+
 client.set_flat_mode(flat_mode)
+
+client.set_eye_selection(eye_selection)
 
 client.close()
