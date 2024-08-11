@@ -43,3 +43,5 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 bool ResearchMode_GetExtrinsics(IResearchModeSensor* sensor, DirectX::XMFLOAT4X4& extrinsics);
 
 winrt::Windows::Perception::Spatial::SpatialLocator ResearchMode_GetLocator();
+
+void ResearchMode_SetEyeSelection(bool enable);
