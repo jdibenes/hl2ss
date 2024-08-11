@@ -36,7 +36,7 @@ struct PV_Projection
 
 static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_thread = NULL; // CloseHandle
-static bool g_reader_status = false;
+static SRWLOCK g_lock;
 
 // Mode: 0, 1
 static IMFSinkWriter* g_pSinkWriter = NULL; // Release
@@ -67,10 +67,11 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     PV_Projection pj;
     int64_t timestamp;
 
-    if (!g_reader_status) { return; }
+    if (TryAcquireSRWLockShared(&g_lock) != 0)
+    {
     frame = sender.TryAcquireLatestFrame();
-    if (!frame) { return; }
-
+    if (frame) 
+    {
     if (g_counter == 0)
     {
     SoftwareBitmapBuffer::CreateInstance(&pBuffer, frame);
@@ -98,10 +99,12 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     g_pSinkWriter->WriteSample(g_dwVideoIndex, pSample);
 
     pSample->Release();
-    pBuffer->Release();
+    pBuffer->Release();    
     }
-
     g_counter = (g_counter + 1) % g_divisor;
+    }
+    ReleaseSRWLockShared(&g_lock);
+    }
 }
 
 // OK
@@ -218,15 +221,15 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     reader.FrameArrived(PV_OnVideoFrameArrived<ENABLE_LOCATION>);
 
     g_counter = 0;
-    g_divisor = format.divisor;
+    g_divisor = format.divisor;    
     memset(&g_pvp_sh, 0, sizeof(g_pvp_sh));
 
-    g_reader_status = true;
+    ReleaseSRWLockExclusive(&g_lock);
     reader.StartAsync().get();
     WaitForSingleObject(clientevent, INFINITE);
-    g_reader_status = false;
     reader.StopAsync().get();
-
+    AcquireSRWLockExclusive(&g_lock);
+    
     g_pSinkWriter->Flush(g_dwVideoIndex);
     g_pSinkWriter->Release();
     pSink->Shutdown();
@@ -286,7 +289,7 @@ static void PV_Stream(SOCKET clientsocket)
     PersonalVideo_RegisterEvent(clientevent);
     videoFrameReader = PersonalVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
-
+    
     switch (mode & 3)
     {
     case 0: PV_Stream<false>(clientsocket, clientevent, videoFrameReader, format); break;
@@ -313,6 +316,8 @@ static DWORD WINAPI PV_EntryPoint(void *param)
     listensocket = CreateSocket(PORT_NAME_PV);
 
     ShowMessage("PV: Listening at port %s", PORT_NAME_PV);
+
+    AcquireSRWLockExclusive(&g_lock);
 
     do
     {
@@ -341,6 +346,7 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 // OK
 void PV_Initialize()
 {
+    InitializeSRWLock(&g_lock);
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, PV_EntryPoint, NULL, 0, NULL);
 }
