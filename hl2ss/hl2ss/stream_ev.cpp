@@ -19,10 +19,24 @@ using namespace winrt::Windows::Media::Capture::Frames;
 using namespace winrt::Windows::Media::Devices::Core;
 using namespace winrt::Windows::Foundation::Numerics;
 
+struct uint64x2
+{
+    uint64_t val[2];
+};
+
 struct PV_Projection
 {
-    float2 f;
-    float2 c;
+    float2   f;
+    float2   c;
+    uint64_t exposure_time;
+    uint64x2 exposure_compensation;
+    uint32_t lens_position;
+    uint32_t focus_state;
+    uint32_t iso_speed;
+    uint32_t white_balance;
+    float2   iso_gains;
+    float3   white_balance_gains;
+    uint32_t _reserved;
     float4x4 pose;
 };
 
@@ -48,16 +62,13 @@ static uint32_t g_divisor = 1;
 void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
 {
     (void)args;
-    
-    CameraIntrinsics intrinsics = nullptr;
-    MediaFrameReference frame = nullptr;
+
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
-    int64_t timestamp;
 
     if (TryAcquireSRWLockShared(&g_lock) != 0)
     {
-    frame = sender.TryAcquireLatestFrame();
+    auto const& frame = sender.TryAcquireLatestFrame();
     if (frame) 
     {
     if (g_counter == 0)
@@ -66,7 +77,7 @@ void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
     MFCreateSample(&pSample);
 
-    timestamp = frame.SystemRelativeTime().Value().count();
+    int64_t timestamp = frame.SystemRelativeTime().Value().count();
 
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(frame.Duration().count());
@@ -91,13 +102,10 @@ void EV_SendSample(IMFSample* pSample, void* param)
     LONGLONG sampletime;
     BYTE* pBytes;
     DWORD cbData;
-    DWORD cbDataEx;
     PV_Projection pj;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 6 : 5];
-    HookCallbackSocket* user;
-    bool ok;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];    
 
-    user = (HookCallbackSocket*)param;
+    HookCallbackSocket* user = (HookCallbackSocket*)param;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
@@ -105,20 +113,20 @@ void EV_SendSample(IMFSample* pSample, void* param)
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    cbDataEx = cbData + sizeof(pj.f) + sizeof(pj.c);
+    int const metadata = sizeof(pj) - sizeof(pj.pose);
+    DWORD cbDataEx = cbData + metadata;
 
     pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
-    pack_buffer(wsaBuf, 3, &pj.f, sizeof(pj.f));
-    pack_buffer(wsaBuf, 4, &pj.c, sizeof(pj.c));
+    pack_buffer(wsaBuf, 3, &pj, metadata);
 
     if constexpr (ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 5, &pj.pose, sizeof(pj.pose));
+    pack_buffer(wsaBuf, 4, &pj.pose, sizeof(pj.pose));
     }
 
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 
     pBuffer->Unlock();
@@ -170,12 +178,11 @@ void EV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 static void EV_DeviceQuery(SOCKET clientsocket)
 {
     winrt::hstring query;
-    uint32_t bytes;
     WSABUF wsaBuf[2];
 
     ExtendedVideo_QueryDevices(query);
 
-    bytes = query.size() * sizeof(wchar_t);
+    uint32_t bytes = query.size() * sizeof(wchar_t);
 
     pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
     pack_buffer(wsaBuf, 1, query.c_str(), bytes);
@@ -186,7 +193,6 @@ static void EV_DeviceQuery(SOCKET clientsocket)
 // OK
 static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
 {
-    MediaFrameReader videoFrameReader = nullptr;
     HANDLE clientevent; // CloseHandle
     VideoSubtype subtype;
     bool ok;
@@ -197,7 +203,7 @@ static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
     clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     ExtendedVideo_RegisterEvent(clientevent);
-    videoFrameReader = ExtendedVideo_CreateFrameReader();
+    auto const& videoFrameReader = ExtendedVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
     switch (mode & 3)
@@ -215,6 +221,7 @@ static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
 // OK
 static void EV_Stream(SOCKET clientsocket)
 {
+    MRCVideoOptions options;
     H26xFormat format;
     uint8_t mode;    
     bool ok;
@@ -233,7 +240,6 @@ static void EV_Stream(SOCKET clientsocket)
 
     if (mode & 4)
     {
-    MRCVideoOptions options;
     ok = ReceiveMRCVideoOptions(clientsocket, options);
     if (!ok) { return; }
     if (ExtendedVideo_Status()) { ExtendedVideo_Close(); }
