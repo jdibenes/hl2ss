@@ -32,6 +32,7 @@ typedef void(*RM_ZXX_KERNEL)(zdepth::DepthCompressor&, uint16_t const*, std::vec
 struct RM_ZAB_Blob
 {
     std::vector<uint8_t>* z;
+    uint64_t sensor_ticks;
     float4x4 pose;
 };
 
@@ -112,7 +113,7 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     uint32_t size_z;
     uint32_t size_ab;
     bool has_z;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 7 : 6];
+    WSABUF wsaBuf[ENABLE_LOCATION ? 8 : 7];
     HookCallbackSocket* user;
     H26xFormat* format;
     bool sh;
@@ -135,7 +136,7 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
     size_ab = (uint32_t)cbData;
-    size_p = sizeof(size_z) + sizeof(size_ab) + size_z + size_ab;
+    size_p = sizeof(size_z) + sizeof(size_ab) + size_z + size_ab + sizeof(g_blob_sh.sensor_ticks);
 
     pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
     pack_buffer(wsaBuf, 1, &size_p, sizeof(size_p));
@@ -143,10 +144,11 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     pack_buffer(wsaBuf, 3, &size_ab, sizeof(size_ab));
     pack_buffer(wsaBuf, 4, p_z, size_z);
     pack_buffer(wsaBuf, 5, pBytes, size_ab);
+    pack_buffer(wsaBuf, 6, &g_blob_sh.sensor_ticks, sizeof(g_blob_sh.sensor_ticks));
 
     if constexpr (ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 6, &g_blob_sh.pose, sizeof(g_blob_sh.pose));
+    pack_buffer(wsaBuf, 7, &g_blob_sh.pose, sizeof(g_blob_sh.pose));
     }
 
     ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -262,6 +264,8 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pSample->SetSampleTime(timestamp.HostTicks);
 
     kernel_blob(compressor, pDepth, blob.z);
+
+    blob.sensor_ticks = timestamp.SensorTicks;
 
     if constexpr (ENABLE_LOCATION)
     {
