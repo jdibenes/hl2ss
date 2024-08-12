@@ -85,6 +85,7 @@ while (enable):
     
     print(f'Pose at time {data.timestamp}')
     print(data.pose)
+    print(f'Sensor Ticks: {data.payload.sensor_ticks}')
     
     cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
     cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
