@@ -36,7 +36,7 @@ struct EET_Packet
 {
     uint64_t  timestamp;
     uint32_t  size;
-    uint32_t  reserved;
+    uint32_t  _reserved;
     EET_Frame frame;
     float4x4  pose;
 };
@@ -92,7 +92,7 @@ static void EET_Stream(SOCKET clientsocket, SpatialLocator const &locator, uint6
     pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
 
     eet_packet.size = sizeof(uint32_t) + sizeof(EET_Frame);
-    eet_packet.reserved = 0;
+    eet_packet._reserved = 0;
 
     do
     {
