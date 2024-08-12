@@ -9,6 +9,7 @@
 #include "timestamps.h"
 #include "ipc_sc.h"
 #include "research_mode.h"
+#include "nfo.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.h>
@@ -21,13 +22,45 @@ using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
 using namespace winrt::Windows::Media::Devices::Core;
 using namespace winrt::Windows::Foundation::Numerics;
+using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Perception::Spatial;
+
+struct uint64x2
+{
+    uint64_t val[2];
+};
+
+struct float7
+{
+    float val[7];
+};
 
 struct PV_Projection
 {
-    float2 f;
-    float2 c;
+    float2   f;
+    float2   c;
+    uint64_t exposure_time;
+    uint64x2 exposure_compensation;
+    uint32_t lens_position;
+    uint32_t focus_state;
+    uint32_t iso_speed;
+    uint32_t white_balance;
+    float2   iso_gains;
+    float3   white_balance_gains;
+    uint32_t _reserved;
     float4x4 pose;
+};
+
+struct PV_Mode2
+{
+    float2   f;
+    float2   c;
+    float3   r;
+    float2   t;
+    float4x4 p;
+    float4x4 extrinsics;
+    float4   intrinsics_mf;
+    float7   extrinsics_mf;
 };
 
 //-----------------------------------------------------------------------------
@@ -47,8 +80,7 @@ static PV_Projection g_pvp_sh;
 
 // Mode: 2
 static HANDLE g_event_intrinsic = NULL; // alias
-static float g_intrinsics[2 + 2 + 3 + 2 + 16];
-static float4x4 g_extrinsics;
+static PV_Mode2 g_calibration;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -60,16 +92,13 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 {
     (void)args;
     
-    CameraIntrinsics intrinsics = nullptr;
-    MediaFrameReference frame = nullptr;
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
     PV_Projection pj;
-    int64_t timestamp;
 
     if (TryAcquireSRWLockShared(&g_lock) != 0)
     {
-    frame = sender.TryAcquireLatestFrame();
+    auto const& frame = sender.TryAcquireLatestFrame();
     if (frame) 
     {
     if (g_counter == 0)
@@ -78,16 +107,26 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
     MFCreateSample(&pSample);
 
-    timestamp = frame.SystemRelativeTime().Value().count();
+    int64_t timestamp = frame.SystemRelativeTime().Value().count();
 
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(frame.Duration().count());
     pSample->SetSampleTime(timestamp);
 
-    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
+    auto const& intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
+    auto const& metadata   = frame.Properties().Lookup(MFSampleExtension_CaptureMetadata).as<IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable>>();
 
     pj.f = intrinsics.FocalLength();
     pj.c = intrinsics.PrincipalPoint();
+
+    pj.exposure_time         = metadata.Lookup(MF_CAPTURE_METADATA_EXPOSURE_TIME).as<uint64_t>();
+    pj.exposure_compensation = *(uint64x2*)metadata.Lookup(MF_CAPTURE_METADATA_EXPOSURE_COMPENSATION).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin();
+    pj.iso_speed             = metadata.Lookup(MF_CAPTURE_METADATA_ISO_SPEED).as<uint32_t>();
+    pj.iso_gains             = *(float2*)metadata.Lookup(MF_CAPTURE_METADATA_ISO_GAINS).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin();
+    pj.lens_position         = metadata.Lookup(MF_CAPTURE_METADATA_LENS_POSITION).as<uint32_t>();
+    pj.focus_state           = metadata.Lookup(MF_CAPTURE_METADATA_FOCUSSTATE).as<uint32_t>();
+    pj.white_balance         = metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE).as<uint32_t>();
+    pj.white_balance_gains   = *(float3*)metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin();
 
     if constexpr (ENABLE_LOCATION)
     {
@@ -99,7 +138,7 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     g_pSinkWriter->WriteSample(g_dwVideoIndex, pSample);
 
     pSample->Release();
-    pBuffer->Release();    
+    pBuffer->Release();
     }
     g_counter = (g_counter + 1) % g_divisor;
     }
@@ -112,38 +151,33 @@ static void PV_OnVideoFrameArrived_Intrinsics(MediaFrameReader const& sender, Me
 {
     (void)args;
 
-    CameraIntrinsics intrinsics = nullptr;
-    MediaFrameReference frame = nullptr;
-    float2 f;
-    float2 c;
-    float3 r;
-    float2 t;
-    float4x4 p;
-    DWORD status;
+    if (TryAcquireSRWLockExclusive(&g_lock) != 0)
+    {
+    if (WaitForSingleObject(g_event_intrinsic, 0) == WAIT_TIMEOUT)
+    {
+    auto const& frame = sender.TryAcquireLatestFrame();
+    if (frame) 
+    {    
+    auto const& intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
+    auto const& extrinsics = frame.Properties().Lookup(MFSampleExtension_CameraExtrinsics).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value();
+    auto const& additional = frame.Format().Properties().Lookup(winrt::guid("86b6adbb-3735-447d-bee5-6fc23cb58d4a")).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value();
 
-    frame = sender.TryAcquireLatestFrame();
-    if (!frame) { return; }
+    g_calibration.f = intrinsics.FocalLength();
+    g_calibration.c = intrinsics.PrincipalPoint();
+    g_calibration.r = intrinsics.RadialDistortion();
+    g_calibration.t = intrinsics.TangentialDistortion();
+    g_calibration.p = intrinsics.UndistortedProjectionTransform();
 
-    status = WaitForSingleObject(g_event_intrinsic, 0);
-    if (status != WAIT_TIMEOUT) { return; }
+    g_calibration.extrinsics = Locator_Locate(QPCTimestampToPerceptionTimestamp(frame.SystemRelativeTime().Value().count()), ResearchMode_GetLocator(), frame.CoordinateSystem());
 
-    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
-
-    f = intrinsics.FocalLength();
-    c = intrinsics.PrincipalPoint();
-    r = intrinsics.RadialDistortion();
-    t = intrinsics.TangentialDistortion();
-    p = intrinsics.UndistortedProjectionTransform();
-
-    memcpy(&g_intrinsics[0], &f, sizeof(f));
-    memcpy(&g_intrinsics[2], &c, sizeof(c));
-    memcpy(&g_intrinsics[4], &r, sizeof(r));
-    memcpy(&g_intrinsics[7], &t, sizeof(t));
-    memcpy(&g_intrinsics[9], &p, sizeof(p));
-
-    g_extrinsics = Locator_Locate(QPCTimestampToPerceptionTimestamp(frame.SystemRelativeTime().Value().count()), ResearchMode_GetLocator(), frame.CoordinateSystem());
+    g_calibration.intrinsics_mf = *(float4*)&((float*)additional.begin())[3];
+    g_calibration.extrinsics_mf = *(float7*)&((float*)extrinsics.begin())[5];
 
     SetEvent(g_event_intrinsic);
+    }
+    }
+    ReleaseSRWLockExclusive(&g_lock);
+    }
 }
 
 // OK
@@ -154,16 +188,11 @@ void PV_SendSample(IMFSample* pSample, void* param)
     LONGLONG sampletime;
     BYTE* pBytes;
     DWORD cbData;
-    DWORD cbDataEx;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 6 : 5];
-    HookCallbackSocket* user;
-    H26xFormat* format;
-    bool sh;
-    bool ok;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];
 
-    user = (HookCallbackSocket*)param;
-    format = (H26xFormat*)user->format;
-    sh = format->profile != H26xProfile::H26xProfile_None;
+    HookCallbackSocket* user = (HookCallbackSocket*)param;
+    H26xFormat* format = (H26xFormat*)user->format;
+    bool sh = format->profile != H26xProfile::H26xProfile_None;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
@@ -172,20 +201,20 @@ void PV_SendSample(IMFSample* pSample, void* param)
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    cbDataEx = cbData + sizeof(g_pvp_sh.f) + sizeof(g_pvp_sh.c);
+    int const metadata = sizeof(g_pvp_sh) - sizeof(g_pvp_sh.pose);
+    DWORD cbDataEx = cbData + metadata;
 
     pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
-    pack_buffer(wsaBuf, 3, &g_pvp_sh.f, sizeof(g_pvp_sh.f));
-    pack_buffer(wsaBuf, 4, &g_pvp_sh.c, sizeof(g_pvp_sh.c));
+    pack_buffer(wsaBuf, 3, &g_pvp_sh, metadata);
 
     if constexpr(ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 5, &g_pvp_sh.pose, sizeof(g_pvp_sh.pose));
+    pack_buffer(wsaBuf, 4, &g_pvp_sh.pose, sizeof(g_pvp_sh.pose));
     }
     
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 
     pBuffer->Unlock();
@@ -239,18 +268,19 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 // OK
 static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader)
 {
-    WSABUF wsaBuf[2];
+    WSABUF wsaBuf[1];
 
     g_event_intrinsic = clientevent;
 
     reader.FrameArrived(PV_OnVideoFrameArrived_Intrinsics);
 
+    ReleaseSRWLockExclusive(&g_lock);
     reader.StartAsync().get();
-    WaitForSingleObject(g_event_intrinsic, INFINITE);
+    WaitForSingleObject(clientevent, INFINITE);
     reader.StopAsync().get();
+    AcquireSRWLockExclusive(&g_lock);
 
-    pack_buffer(wsaBuf, 0,  g_intrinsics, sizeof(g_intrinsics));
-    pack_buffer(wsaBuf, 1, &g_extrinsics, sizeof(g_extrinsics));
+    pack_buffer(wsaBuf, 0, &g_calibration, sizeof(g_calibration));
 
     send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
@@ -258,8 +288,8 @@ static void PV_Intrinsics(SOCKET clientsocket, HANDLE clientevent, MediaFrameRea
 // OK
 static void PV_Stream(SOCKET clientsocket)
 {
-    MediaFrameReader videoFrameReader = nullptr;
     HANDLE clientevent; // CloseHandle
+    MRCVideoOptions options;
     H26xFormat format;
     uint8_t mode;    
     bool ok;
@@ -272,7 +302,6 @@ static void PV_Stream(SOCKET clientsocket)
 
     if (mode & 4)
     {
-    MRCVideoOptions options;
     ok = ReceiveMRCVideoOptions(clientsocket, options);
     if (!ok) { return; }
     if (PersonalVideo_Status()) { PersonalVideo_Close(); }
@@ -287,7 +316,7 @@ static void PV_Stream(SOCKET clientsocket)
     clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     PersonalVideo_RegisterEvent(clientevent);
-    videoFrameReader = PersonalVideo_CreateFrameReader();
+    auto const& videoFrameReader = PersonalVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
     
     switch (mode & 3)
