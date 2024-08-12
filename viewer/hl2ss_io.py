@@ -597,7 +597,9 @@ class _rd_decoded(_rd):
         pass
 
     def __decode_rm_vlc(self, payload):
-        return self._codec.decode(payload)
+        payload = hl2ss.unpack_rm_vlc(payload)
+        payload.image = self._codec.decode(payload.image)
+        return payload
     
     def __decode_rm_depth_ahat(self, payload):
         return self._codec.decode(payload)
