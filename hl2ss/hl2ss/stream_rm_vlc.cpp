@@ -16,11 +16,20 @@ using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
+struct VLC_Metadata
+{
+    uint64_t sensor_ticks;
+    uint64_t exposure;
+    uint32_t gain;
+    uint32_t _reserved;
+    float4x4 pose;
+};
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static float4x4 g_pose_sh;
+static VLC_Metadata g_pose_sh;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -50,41 +59,39 @@ void RM_VLC_SendSample(IMFSample* pSample, void* param)
     LONGLONG sampletime;
     BYTE* pBytes;
     DWORD cbData;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
-    HookCallbackSocket* user;
-    H26xFormat* format;
-    bool sh;
-    bool ok;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];
 
-    user = (HookCallbackSocket*)param;
-    format = (H26xFormat*)user->format;
-    sh = format->profile != H26xProfile::H26xProfile_None;
+    HookCallbackSocket* user = (HookCallbackSocket*)param;
+    H26xFormat* format = (H26xFormat*)user->format;
+    bool sh = format->profile != H26xProfile::H26xProfile_None;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
 
+    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pose_sh, sizeof(g_pose_sh), NULL); }
+
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
+    int const metadata = sizeof(g_pose_sh) - sizeof(g_pose_sh.pose);
+    DWORD cbDataEx = cbData + metadata;
+
     pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
-    pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
+    pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
+    pack_buffer(wsaBuf, 3, &g_pose_sh, metadata);
 
     if constexpr(ENABLE_LOCATION)
     {
-    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pose_sh, sizeof(g_pose_sh), NULL); }
-    pack_buffer(wsaBuf, 3, &g_pose_sh, sizeof(g_pose_sh));
+    pack_buffer(wsaBuf, 4, &g_pose_sh.pose, sizeof(g_pose_sh.pose));
     }
 
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 
     pBuffer->Unlock();
     pBuffer->Release();
 
-    if constexpr (ENABLE_LOCATION)
-    {
     if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pose_sh, sizeof(g_pose_sh), NULL); }
-    }
 }
 
 // OK
@@ -99,7 +106,6 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     PerceptionTimestamp ts = nullptr;
     uint32_t f = 0;
-    float4x4 pose;
     IResearchModeSensorFrame* pSensorFrame; // Release
     ResearchModeSensorTimestamp timestamp;
     IResearchModeSensorVLCFrame* pVLCFrame; // Release
@@ -119,10 +125,10 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     uint32_t framebytes;
     HRESULT hr;
     VideoSubtype subtype;
-    UINT64 exposure;
     double exposure_factor;
     int64_t constant_factor;
     UINT64 adjusted_timestamp;
+    VLC_Metadata vlc_metadata;
     bool ok;
 
     ok = ReceiveH26xFormat_Divisor(clientsocket, format);
@@ -170,7 +176,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pSensorFrame->QueryInterface(IID_PPV_ARGS(&pVLCFrame));
 
     pVLCFrame->GetBuffer(&pImage, &length);
-    pVLCFrame->GetExposure(&exposure);
+    pVLCFrame->GetExposure(&vlc_metadata.exposure);
+    pVLCFrame->GetGain(&vlc_metadata.gain);
 
     MFCreateMemoryBuffer(framebytes, &pBuffer);
 
@@ -182,8 +189,9 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     MFCreateSample(&pSample);
 
-    adjusted_timestamp = timestamp.HostTicks + (int64_t)((exposure_factor * exposure) / 100.0) + constant_factor;
-    
+    adjusted_timestamp = timestamp.HostTicks + (int64_t)((exposure_factor * vlc_metadata.exposure) / 100.0) + constant_factor;
+    vlc_metadata.sensor_ticks = timestamp.SensorTicks;
+
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(duration);
     pSample->SetSampleTime(adjusted_timestamp);
@@ -191,9 +199,10 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     if constexpr (ENABLE_LOCATION)
     {
     ts = QPCTimestampToPerceptionTimestamp(adjusted_timestamp);
-    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pose, sizeof(float4x4));
+    vlc_metadata.pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
     }
+
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&vlc_metadata, sizeof(vlc_metadata));
 
     pSinkWriter->WriteSample(dwVideoIndex, pSample);
 
