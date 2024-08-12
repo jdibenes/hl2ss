@@ -876,6 +876,25 @@ def get_audio_codec_bitrate(profile):
 # RM VLC Decoder
 #------------------------------------------------------------------------------
 
+class _RM_VLC_Frame:
+    def __init__(self, image, sensor_ticks, exposure, gain):
+        self.image        = image
+        self.sensor_ticks = sensor_ticks
+        self.exposure     = exposure
+        self.gain         = gain
+
+
+def unpack_rm_vlc(payload):
+    image    = payload[:-24]
+    metadata = payload[-24:]
+
+    sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0,  count=1)
+    exposure     = np.frombuffer(metadata, dtype=np.uint64, offset=8,  count=1)
+    gain         = np.frombuffer(metadata, dtype=np.uint32, offset=16, count=1)
+
+    return _RM_VLC_Frame(image, sensor_ticks, exposure, gain)
+
+
 class _decode_rm_vlc:
     def __init__(self, profile):
         self.profile = profile
@@ -1101,7 +1120,7 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
 def unpack_pv(payload):
     image    = payload[0:-80]
     metadata = payload[-80:]
-    
+
     focal_length          = np.frombuffer(metadata, dtype=np.float32, offset=0,  count=2)
     principal_point       = np.frombuffer(metadata, dtype=np.float32, offset=8,  count=2)
     exposure_time         = np.frombuffer(metadata, dtype=np.uint64,  offset=16, count=1)
@@ -1395,7 +1414,8 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
 
     def get_next_packet(self):
         data = super().get_next_packet()
-        data.payload = self._codec.decode(data.payload)
+        data.payload = unpack_rm_vlc(data.payload)
+        data.payload.image = self._codec.decode(data.payload.image)
         return data
 
     def close(self):
