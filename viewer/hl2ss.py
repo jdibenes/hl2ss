@@ -1068,10 +1068,18 @@ class unpack_rm_imu:
 #------------------------------------------------------------------------------
 
 class _PV_Frame:
-    def __init__(self, image, focal_length, principal_point):
-        self.image           = image
-        self.focal_length    = focal_length
-        self.principal_point = principal_point
+    def __init__(self, image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains):
+        self.image                 = image
+        self.focal_length          = focal_length
+        self.principal_point       = principal_point
+        self.exposure_time         = exposure_time
+        self.exposure_compensation = exposure_compensation
+        self.lens_position         = lens_position
+        self.focus_state           = focus_state
+        self.iso_speed             = iso_speed
+        self.white_balance         = white_balance
+        self.iso_gains             = iso_gains
+        self.white_balance_gains   = white_balance_gains
 
 
 def create_pv_intrinsics(focal_length, principal_point):
@@ -1091,7 +1099,21 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
 
 
 def unpack_pv(payload):
-    return _PV_Frame(payload[:-16], np.frombuffer(payload[-16:-8], dtype=np.float32), np.frombuffer(payload[-8:], dtype=np.float32))
+    image    = payload[0:-80]
+    metadata = payload[-80:]
+    
+    focal_length          = np.frombuffer(metadata, dtype=np.float32, offset=0,  count=2)
+    principal_point       = np.frombuffer(metadata, dtype=np.float32, offset=8,  count=2)
+    exposure_time         = np.frombuffer(metadata, dtype=np.uint64,  offset=16, count=1)
+    exposure_compensation = np.frombuffer(metadata, dtype=np.uint64,  offset=24, count=2)
+    lens_position         = np.frombuffer(metadata, dtype=np.uint32,  offset=40, count=1)
+    focus_state           = np.frombuffer(metadata, dtype=np.uint32,  offset=44, count=1)
+    iso_speed             = np.frombuffer(metadata, dtype=np.uint32,  offset=48, count=1)
+    white_balance         = np.frombuffer(metadata, dtype=np.uint32,  offset=52, count=1)
+    iso_gains             = np.frombuffer(metadata, dtype=np.float32, offset=56, count=2)
+    white_balance_gains   = np.frombuffer(metadata, dtype=np.float32, offset=64, count=3)
+
+    return _PV_Frame(image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains)
 
 
 def get_video_stride(width):
@@ -1549,7 +1571,11 @@ class _Mode2Layout_PV:
     END_PROJECTION             = BEGIN_PROJECTION + 16
     BEGIN_EXTRINSICS           = END_PROJECTION
     END_EXTRINSICS             = BEGIN_EXTRINSICS + 16
-    FLOAT_COUNT                = 2 + 2 + 3 + 2 + 16 + 16
+    BEGIN_INTRINSICS_MF        = END_EXTRINSICS
+    END_INTRINSICS_MF          = BEGIN_INTRINSICS_MF + 4
+    BEGIN_EXTRINSICS_MF        = END_INTRINSICS_MF
+    END_EXTRINSICS_MF          = BEGIN_EXTRINSICS_MF + 7
+    FLOAT_COUNT                = 2 + 2 + 3 + 2 + 16 + 16 + 4 + 7
 
 
 class _Mode2_RM_VLC:
@@ -1585,7 +1611,7 @@ class _Mode2_RM_IMU:
 
 
 class _Mode2_PV:
-    def __init__(self, focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics):
+    def __init__(self, focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics, intriniscs_mf, extrinsics_mf):
         self.focal_length          = focal_length
         self.principal_point       = principal_point
         self.radial_distortion     = radial_distortion
@@ -1593,6 +1619,8 @@ class _Mode2_PV:
         self.projection            = projection
         self.intrinsics            = intrinsics
         self.extrinsics            = extrinsics
+        self.intrinsics_mf         = intriniscs_mf
+        self.extrinsics_mf         = extrinsics_mf
 
 
 def _download_mode2_data(host, port, configuration, bytes):
@@ -1676,10 +1704,12 @@ def download_calibration_pv(host, port, width, height, framerate):
     tangential_distortion = floats[_Mode2Layout_PV.BEGIN_TANGENTIALDISTORTION : _Mode2Layout_PV.END_TANGENTIALDISTORTION]
     projection            = floats[_Mode2Layout_PV.BEGIN_PROJECTION           : _Mode2Layout_PV.END_PROJECTION          ].reshape((4, 4))
     extrinsics            = floats[_Mode2Layout_PV.BEGIN_EXTRINSICS           : _Mode2Layout_PV.END_EXTRINSICS          ].reshape((4, 4))
+    intrinsics_mf         = floats[_Mode2Layout_PV.BEGIN_INTRINSICS_MF        : _Mode2Layout_PV.END_INTRINSICS_MF       ]
+    extrinsics_mf         = floats[_Mode2Layout_PV.BEGIN_EXTRINSICS_MF        : _Mode2Layout_PV.END_EXTRINSICS_MF       ]
 
     intrinsics = np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
-    return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics)
+    return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics, intrinsics_mf, extrinsics_mf)
 
 
 def download_devicelist_extended_audio(host, port):
