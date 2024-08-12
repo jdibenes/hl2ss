@@ -48,6 +48,7 @@ struct PV_Projection
     float2   iso_gains;
     float3   white_balance_gains;
     uint32_t _reserved;
+    uint64_t timestamp;
     float4x4 pose;
 };
 
@@ -115,6 +116,8 @@ void PV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
     auto const& intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
     auto const& metadata   = frame.Properties().Lookup(MFSampleExtension_CaptureMetadata).as<IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable>>();
+
+    pj.timestamp = timestamp;
 
     pj.f = intrinsics.FocalLength();
     pj.c = intrinsics.PrincipalPoint();
@@ -201,10 +204,10 @@ void PV_SendSample(IMFSample* pSample, void* param)
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    int const metadata = sizeof(g_pvp_sh) - sizeof(g_pvp_sh.pose);
+    int const metadata = sizeof(g_pvp_sh) - sizeof(g_pvp_sh.timestamp) - sizeof(g_pvp_sh.pose);
     DWORD cbDataEx = cbData + metadata;
 
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 0, &g_pvp_sh.timestamp, sizeof(g_pvp_sh.timestamp));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
     pack_buffer(wsaBuf, 3, &g_pvp_sh, metadata);

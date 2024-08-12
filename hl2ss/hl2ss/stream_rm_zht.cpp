@@ -33,6 +33,7 @@ struct RM_ZAB_Blob
 {
     std::vector<uint8_t>* z;
     uint64_t sensor_ticks;
+    uint64_t timestamp;
     float4x4 pose;
 };
 
@@ -138,7 +139,7 @@ void RM_ZHT_SendSample(IMFSample* pSample, void* param)
     size_ab = (uint32_t)cbData;
     size_p = sizeof(size_z) + sizeof(size_ab) + size_z + size_ab + sizeof(g_blob_sh.sensor_ticks);
 
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 0, &g_blob_sh.timestamp, sizeof(g_blob_sh.timestamp));
     pack_buffer(wsaBuf, 1, &size_p, sizeof(size_p));
     pack_buffer(wsaBuf, 2, &size_z, sizeof(size_z));
     pack_buffer(wsaBuf, 3, &size_ab, sizeof(size_ab));
@@ -265,6 +266,7 @@ void RM_ZHT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     kernel_blob(compressor, pDepth, blob.z);
 
+    blob.timestamp = timestamp.HostTicks;
     blob.sensor_ticks = timestamp.SensorTicks;
 
     if constexpr (ENABLE_LOCATION)

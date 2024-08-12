@@ -37,6 +37,7 @@ struct PV_Projection
     float2   iso_gains;
     float3   white_balance_gains;
     uint32_t _reserved;
+    uint64_t timestamp;
     float4x4 pose;
 };
 
@@ -53,6 +54,7 @@ static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
 static uint32_t g_counter = 0;
 static uint32_t g_divisor = 1;
+static PV_Projection g_pvp_sh;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -65,6 +67,7 @@ void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
 
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
+    PV_Projection pj;
 
     if (TryAcquireSRWLockShared(&g_lock) != 0)
     {
@@ -82,6 +85,12 @@ void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEve
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(frame.Duration().count());
     pSample->SetSampleTime(timestamp);
+
+    memset(&pj, 0, sizeof(pj));
+
+    pj.timestamp = timestamp;
+
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj));
 
     g_pSinkWriter->WriteSample(g_dwVideoIndex, pSample);
 
@@ -102,28 +111,30 @@ void EV_SendSample(IMFSample* pSample, void* param)
     LONGLONG sampletime;
     BYTE* pBytes;
     DWORD cbData;
-    PV_Projection pj;
     WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];    
 
     HookCallbackSocket* user = (HookCallbackSocket*)param;
+    H26xFormat* format = (H26xFormat*)user->format;
+    bool sh = format->profile != H26xProfile::H26xProfile_None;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
-    memset(&pj, 0, sizeof(pj));
+
+    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    int const metadata = sizeof(pj) - sizeof(pj.pose);
+    int const metadata = sizeof(g_pvp_sh) - sizeof(g_pvp_sh.timestamp) - sizeof(g_pvp_sh.pose);
     DWORD cbDataEx = cbData + metadata;
 
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 0, &g_pvp_sh.timestamp, sizeof(g_pvp_sh.timestamp));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
-    pack_buffer(wsaBuf, 3, &pj, metadata);
+    pack_buffer(wsaBuf, 3, &g_pvp_sh, metadata);
 
     if constexpr (ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 4, &pj.pose, sizeof(pj.pose));
+    pack_buffer(wsaBuf, 4, &g_pvp_sh.pose, sizeof(g_pvp_sh.pose));
     }
 
     bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -131,6 +142,8 @@ void EV_SendSample(IMFSample* pSample, void* param)
 
     pBuffer->Unlock();
     pBuffer->Release();
+
+    if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
 }
 
 // OK
@@ -161,6 +174,7 @@ void EV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 
     g_counter = 0;
     g_divisor = format.divisor;
+    memset(&g_pvp_sh, 0, sizeof(g_pvp_sh));
 
     ReleaseSRWLockExclusive(&g_lock);
     reader.StartAsync().get();

@@ -22,6 +22,7 @@ struct VLC_Metadata
     uint64_t exposure;
     uint32_t gain;
     uint32_t _reserved;
+    uint64_t timestamp;
     float4x4 pose;
 };
 
@@ -72,10 +73,10 @@ void RM_VLC_SendSample(IMFSample* pSample, void* param)
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    int const metadata = sizeof(g_pose_sh) - sizeof(g_pose_sh.pose);
+    int const metadata = sizeof(g_pose_sh) - sizeof(g_pose_sh.timestamp) - sizeof(g_pose_sh.pose);
     DWORD cbDataEx = cbData + metadata;
 
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 0, &g_pose_sh.timestamp, sizeof(g_pose_sh.timestamp));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
     pack_buffer(wsaBuf, 3, &g_pose_sh, metadata);
@@ -190,6 +191,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     MFCreateSample(&pSample);
 
     adjusted_timestamp = timestamp.HostTicks + (int64_t)((exposure_factor * vlc_metadata.exposure) / 100.0) + constant_factor;
+    vlc_metadata.timestamp = adjusted_timestamp;
     vlc_metadata.sensor_ticks = timestamp.SensorTicks;
 
     pSample->AddBuffer(pBuffer);
