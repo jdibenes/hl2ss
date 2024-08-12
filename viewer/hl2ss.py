@@ -926,9 +926,10 @@ def decode_rm_vlc(profile):
 #------------------------------------------------------------------------------
 
 class _RM_Depth_Frame:
-    def __init__(self, depth, ab):
-        self.depth = depth
-        self.ab    = ab
+    def __init__(self, depth, ab, sensor_ticks):
+        self.depth        = depth
+        self.ab           = ab
+        self.sensor_ticks = sensor_ticks
 
 
 class _Mode0Layout_RM_DEPTH_AHAT_STRUCT:
@@ -944,7 +945,7 @@ class _Mode0Layout_RM_DEPTH_AHAT:
     END_AB_V_Y    = BEGIN_AB_V_Y + (Parameters_RM_DEPTH_AHAT.WIDTH // 4)
 
 
-def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv):
+def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv, sensor_ticks):
     y = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_DEPTH_Y : _Mode0Layout_RM_DEPTH_AHAT.END_DEPTH_Y, :]
     u = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_AB_U_Y  : _Mode0Layout_RM_DEPTH_AHAT.END_AB_U_Y,  :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH // 4))
     v = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_AB_V_Y  : _Mode0Layout_RM_DEPTH_AHAT.END_AB_V_Y,  :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH // 4))
@@ -960,7 +961,7 @@ def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv):
     ab[:, 2::4] = v
     ab[:, 3::4] = v
 
-    return _RM_Depth_Frame(depth, ab)
+    return _RM_Depth_Frame(depth, ab, sensor_ticks)
 
 
 class _decode_rm_depth_ahat:
@@ -971,9 +972,9 @@ class _decode_rm_depth_ahat:
         self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload[_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE:]):
+        for packet in self._codec.parse(payload[_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE:-8]):
             for frame in self._codec.decode(packet):
-                return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray())
+                return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray(), np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1))
         return None
 
 
@@ -982,9 +983,10 @@ class _unpack_rm_depth_ahat:
         pass
 
     def decode(self, payload):
-        depth = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE,                                                  count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        ab    = np.frombuffer(payload, dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE + Parameters_RM_DEPTH_AHAT.PIXELS * _SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        return _RM_Depth_Frame(depth, ab)
+        depth        = np.frombuffer(payload,      dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE,                                                  count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        ab           = np.frombuffer(payload,      dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE + Parameters_RM_DEPTH_AHAT.PIXELS * _SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        sensor_ticks = np.frombuffer(payload[-8:], dtype=np.uint64, offset=0,                                                                                       count=1)
+        return _RM_Depth_Frame(depth, ab, sensor_ticks)
 
 
 class _decompress_zdepth:
@@ -1038,10 +1040,11 @@ class _decode_rm_depth_ahat_zdepth:
         start_ab = end_z
         end_ab   = start_ab + size_ab
 
-        depth = self._codec_z.decode(payload[start_z:end_z])
-        ab    = self._codec_ab.decode(payload[start_ab:end_ab])
+        depth        = self._codec_z.decode(payload[start_z:end_z])
+        ab           = self._codec_ab.decode(payload[start_ab:end_ab])
+        sensor_ticks = np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1)
 
-        return _RM_Depth_Frame(depth, ab)
+        return _RM_Depth_Frame(depth, ab, sensor_ticks)
 
 
 def decode_rm_depth_ahat(profile_z, profile_ab):
@@ -1049,10 +1052,11 @@ def decode_rm_depth_ahat(profile_z, profile_ab):
 
 
 def decode_rm_depth_longthrow(payload):
-    composite = cv2.imdecode(np.frombuffer(payload, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-    h, w, _ = composite.shape
-    image = composite.view(np.uint16).reshape((2*h, w))
-    return _RM_Depth_Frame(image[:h, :], image[h:, :])
+    composite    = cv2.imdecode(np.frombuffer(payload[:-8], dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+    h, w, _      = composite.shape
+    image        = composite.view(np.uint16).reshape((2*h, w))
+    sensor_ticks = np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1)
+    return _RM_Depth_Frame(image[:h, :], image[h:, :], sensor_ticks)
 
 
 #------------------------------------------------------------------------------
