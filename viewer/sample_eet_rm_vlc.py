@@ -111,7 +111,7 @@ if __name__ == '__main__':
         if ((data_eet is None) or (not hl2ss.is_valid_pose(data_eet.pose))):
             continue
 
-        image = cv2.remap(data_vlc.payload, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        image = cv2.remap(data_vlc.payload.image, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         image = np.dstack((image, image, image))
         eet = hl2ss.unpack_eet(data_eet.payload)
 

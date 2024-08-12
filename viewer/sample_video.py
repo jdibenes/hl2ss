@@ -99,9 +99,9 @@ if __name__ == '__main__':
         if (payload.image is not None and payload.image.size > 0):
             cv2.imshow(hl2ss.get_port_name(port), payload.image)
 
-    def display_basic(port, payload):
-        if (payload is not None and payload.size > 0):
-            cv2.imshow(hl2ss.get_port_name(port), payload)
+    def display_vlc(port, payload):
+        if (payload.image is not None and payload.image.size > 0):
+            cv2.imshow(hl2ss.get_port_name(port), payload.image)
 
     def display_depth_lt(port, payload):
         cv2.imshow(hl2ss.get_port_name(port) + '-depth', payload.depth * 8) # Scaled for visibility
@@ -117,10 +117,10 @@ if __name__ == '__main__':
         pass
 
     DISPLAY_MAP = {
-        hl2ss.StreamPort.RM_VLC_LEFTFRONT     : display_basic,
-        hl2ss.StreamPort.RM_VLC_LEFTLEFT      : display_basic,
-        hl2ss.StreamPort.RM_VLC_RIGHTFRONT    : display_basic,
-        hl2ss.StreamPort.RM_VLC_RIGHTRIGHT    : display_basic,
+        hl2ss.StreamPort.RM_VLC_LEFTFRONT     : display_vlc,
+        hl2ss.StreamPort.RM_VLC_LEFTLEFT      : display_vlc,
+        hl2ss.StreamPort.RM_VLC_RIGHTFRONT    : display_vlc,
+        hl2ss.StreamPort.RM_VLC_RIGHTRIGHT    : display_vlc,
         hl2ss.StreamPort.RM_DEPTH_AHAT        : display_depth_ahat,
         hl2ss.StreamPort.RM_DEPTH_LONGTHROW   : display_depth_lt,
         hl2ss.StreamPort.PERSONAL_VIDEO       : display_pv,
