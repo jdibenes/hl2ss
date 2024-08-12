@@ -29,8 +29,8 @@ using namespace winrt::Windows::Foundation::Numerics;
 
 static HANDLE g_thread = NULL; // CloseHandle
 static HANDLE g_event_quit = NULL; // CloseHandle
+static SRWLOCK g_lock;
 
-static bool g_reader_status = false;
 static IMFSinkWriter* g_pSinkWriter = nullptr; // Release
 static DWORD g_dwAudioIndex = 0;
 
@@ -42,12 +42,11 @@ static DWORD g_dwAudioIndex = 0;
 static void EA_DeviceQuery(SOCKET clientsocket)
 {
     winrt::hstring query;
-    uint32_t bytes;
     WSABUF wsaBuf[2];
 
     ExtendedAudio_QueryDevices(query);
 
-    bytes = query.size() * sizeof(wchar_t);
+    uint32_t bytes = query.size() * sizeof(wchar_t);
 
     pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
     pack_buffer(wsaBuf, 1, query.c_str(), bytes);
@@ -60,24 +59,22 @@ static void EA_OnAudioFrameArrived(MediaFrameReader const& sender, MediaFrameArr
 {
     (void)args;
 
-    MediaFrameReference frame = nullptr;
     IMFSample* pSample; // Release
     IMFMediaBuffer* pBuffer; // Release
     BYTE* pDst;
-    int64_t timestamp;
 
-    if (!g_reader_status) { return; }
-    frame = sender.TryAcquireLatestFrame();
-    if (!frame) { return; }
-
-    timestamp = frame.SystemRelativeTime().Value().count();
+    if (TryAcquireSRWLockShared(&g_lock) != 0)
+    {
+    auto const& frame = sender.TryAcquireLatestFrame();
+    if (frame) 
+    {
+    int64_t timestamp = frame.SystemRelativeTime().Value().count();
 
     AudioMediaFrame amf       = frame.AudioMediaFrame();
     AudioFrame      audio     = amf.GetAudioFrame();
     AudioBuffer     buffer    = audio.LockBuffer(AudioBufferAccessMode::Read);
-    auto            reference = buffer.CreateReference();
-
-    auto aep = amf.AudioEncodingProperties();
+    auto const&     reference = buffer.CreateReference();
+    auto const&     aep       = amf.AudioEncodingProperties();
 
     uint32_t bytes_per_sample = aep.BitsPerSample() / 8;
     uint32_t channels         = aep.ChannelCount();
@@ -122,6 +119,9 @@ static void EA_OnAudioFrameArrived(MediaFrameReader const& sender, MediaFrameArr
 
     pBuffer->Release();
     pSample->Release();
+    }
+    ReleaseSRWLockShared(&g_lock);
+    }
 }
 
 // OK
@@ -132,10 +132,8 @@ static void EA_SendSample(IMFSample* pSample, void* param)
     BYTE* pBytes;
     DWORD cbData;
     WSABUF wsaBuf[3];
-    HookCallbackSocket* user;
-    bool ok;
 
-    user = (HookCallbackSocket*)param;
+    HookCallbackSocket* user = (HookCallbackSocket*)param;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
@@ -146,7 +144,7 @@ static void EA_SendSample(IMFSample* pSample, void* param)
     pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
 
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 
     pBuffer->Unlock();
@@ -159,7 +157,6 @@ static void EA_Shoutcast(SOCKET clientsocket)
     uint32_t const channels   = 2;
     uint32_t const samplerate = 48000;
 
-    MediaFrameReader reader = nullptr;
     CustomMediaSink* pSink; // Release
     HANDLE event_client; // CloseHandle
     MRCAudioOptions options;
@@ -188,6 +185,8 @@ static void EA_Shoutcast(SOCKET clientsocket)
     event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     ExtendedAudio_RegisterEvent(event_client);
+    auto const& reader = ExtendedAudio_CreateFrameReader();
+    reader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
     user.clientsocket = clientsocket;
     user.clientevent  = event_client;
@@ -195,22 +194,20 @@ static void EA_Shoutcast(SOCKET clientsocket)
 
     CreateSinkWriterAudio(&pSink, &g_pSinkWriter, &g_dwAudioIndex, AudioSubtype::AudioSubtype_S16, format, EA_SendSample, &user);
 
-    reader = ExtendedAudio_CreateFrameReader(); 
-
-    reader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
     reader.FrameArrived(EA_OnAudioFrameArrived);
 
-    g_reader_status = true;
+    ReleaseSRWLockExclusive(&g_lock);
     reader.StartAsync().get();
     WaitForSingleObject(event_client, INFINITE);
-    g_reader_status = false;
     reader.StopAsync().get();
+    AcquireSRWLockExclusive(&g_lock);
 
     g_pSinkWriter->Flush(g_dwAudioIndex);
     g_pSinkWriter->Release();
     pSink->Shutdown();
     pSink->Release();
 
+    reader.Close();
     ExtendedAudio_RegisterEvent(NULL);
 
     CloseHandle(event_client);
@@ -227,6 +224,8 @@ static DWORD WINAPI EA_EntryPoint(void*)
     listensocket = CreateSocket(PORT_NAME_EA);
 
     ShowMessage("EA: Listening at port %s", PORT_NAME_EA);
+
+    AcquireSRWLockExclusive(&g_lock);
 
     do
     {
@@ -255,6 +254,7 @@ static DWORD WINAPI EA_EntryPoint(void*)
 // OK
 void EA_Initialize()
 {
+    InitializeSRWLock(&g_lock);
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, EA_EntryPoint, NULL, 0, NULL);
 }
