@@ -71,7 +71,11 @@ while (enable):
     data = client.get_next_packet()
     print(f'Pose at time {data.timestamp}')
     print(data.pose)
-    cv2.imshow('Video', data.payload)
+    print(f'Sensor Ticks: {data.payload.sensor_ticks}')
+    print(f'Exposure: {data.payload.exposure}')
+    print(f'Gain: {data.payload.gain}')
+
+    cv2.imshow('Video', data.payload.image)
     cv2.waitKey(1)
 
 client.close()
