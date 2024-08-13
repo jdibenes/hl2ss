@@ -84,22 +84,22 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pDepthFrame->GetBuffer(&pDepth, &nDepthCount);
     pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
 
-    auto softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Straight);
+    auto const& softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Straight);
     {
-    auto bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
-    auto spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
+    auto const& bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
+    auto const& spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
     spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
     Neon_ZLTToBGRA8(pSigma, pDepth, pAbImage, (u32*)pixelBufferData);
     }
 
-    auto stream = InMemoryRandomAccessStream();
-    auto encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, pngProperties).get();
+    auto const& stream = InMemoryRandomAccessStream();
+    auto const& encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, pngProperties).get();
 
     encoder.SetSoftwareBitmap(softwareBitmap);
     encoder.FlushAsync().get();
 
     streamSize = (uint32_t)stream.Size();
-    auto streamBuf = Buffer(streamSize);
+    auto const& streamBuf = Buffer(streamSize);
 
     stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
 

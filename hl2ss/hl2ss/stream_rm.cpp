@@ -144,7 +144,7 @@ void RM_Cleanup()
 {
     WaitForMultipleObjects((DWORD)g_threads.size(), g_threads.data(), TRUE, INFINITE);
 
-    for (auto thread : g_threads) { CloseHandle(thread); }
+    for (auto const& thread : g_threads) { CloseHandle(thread); }
     CloseHandle(g_event_quit);
 
     g_threads.clear();

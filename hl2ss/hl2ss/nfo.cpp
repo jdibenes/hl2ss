@@ -33,7 +33,7 @@ void GetApplicationVersion(uint16_t data[4])
 // OK
 void GetLocalIPv4Address(std::vector<wchar_t> &address)
 {
-    for (auto hostname : NetworkInformation::GetHostNames())
+    for (auto const& hostname : NetworkInformation::GetHostNames())
     {
     if (hostname.Type() == HostNameType::Ipv4)
     {
@@ -87,7 +87,7 @@ static void PrintVariant(winrt::hstring const& name, winrt::Windows::Foundation:
         auto const& w = value.try_as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>();
         if (w)
         { 
-            auto m = w.Value();
+            auto const& m = w.Value();
             text = L"{" + winrt::to_hstring(m.size()) + L", [";
             for (auto a = m.begin(); a != m.end(); a++) { text = text + winrt::hstring(a != m.begin() ? L", " : L"") + winrt::to_hstring(*a); }
             text = text + L"]}";
@@ -135,28 +135,28 @@ static void PrintVariant(winrt::hstring const& name, winrt::Windows::Foundation:
 // OK
 void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::hstring, winrt::Windows::Foundation::IInspectable> const& p)
 {
-    if (p) { for (auto kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
+    if (p) { for (auto const& kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
 }
 
 // OK
 void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable> const& p)
 {
-    if (p) { for (auto kv : p) { PrintVariant(winrt::to_hstring(kv.Key()), kv.Value()); } }
+    if (p) { for (auto const& kv : p) { PrintVariant(winrt::to_hstring(kv.Key()), kv.Value()); } }
 }
 
 // OK
 void PrintProperties(winrt::Windows::Foundation::Collections::IPropertySet const& p)
 {
-    if (p) { for (auto kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
+    if (p) { for (auto const& kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
 }
 
 // OK
 void PrintDeviceList(DeviceClass dc)
 {
-    auto list = DeviceInformation::FindAllAsync(dc).get();
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
 
     ShowMessage("Items of DeviceClass %d", (int)dc);
-    for (auto item : list)
+    for (auto const& item : list)
     {
     ShowMessage(L"Name: %s", item.Name().c_str());
     ShowMessage(L"Id: %s", item.Id().c_str());
@@ -165,7 +165,7 @@ void PrintDeviceList(DeviceClass dc)
     ShowMessage("IsEnabled: %d", (int)item.IsEnabled());
     ShowMessage("Kind: %d", (int)item.Kind());
 
-    auto el = item.EnclosureLocation();
+    auto const& el = item.EnclosureLocation();
 
     if (el)
     {
@@ -175,7 +175,7 @@ void PrintDeviceList(DeviceClass dc)
     ShowMessage("RotationAngleInDegreesClockwise: %d", (int)el.RotationAngleInDegreesClockwise());
     }
         
-    auto pa = item.Pairing();
+    auto const& pa = item.Pairing();
 
     if (pa)
     {
@@ -206,16 +206,16 @@ winrt::hstring GetBuiltInId(DeviceClass dc)
 {
     winrt::hstring const key = L"System.Devices.ContainerId";
 
-    auto list = DeviceInformation::FindAllAsync(dc).get();
-    for (auto item : list)
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto const& item : list)
     {
-    auto p = item.Properties();
+    auto const& p = item.Properties();
     if (!p) { continue; }
     if (!p.HasKey(key)) { continue; }
-    auto v = p.Lookup(key);
-    auto g = v.try_as<winrt::guid>();
+    auto const& v = p.Lookup(key);
+    auto const& g = v.try_as<winrt::guid>();
     if (!g) { continue; }
-    auto d = g.value();
+    auto const& d = g.value();
     if ((d.Data1 != 0) || (d.Data2 != 0) || (d.Data3 != 0) || ((*(uint64_t*)d.Data4) != 0xFFFFFFFFFFFFFFFFULL)) { continue; }
     return item.Id();
     }
@@ -238,8 +238,8 @@ winrt::hstring GetBuiltInAudioCaptureId()
 // OK
 void GetDeviceIds(DeviceClass dc, std::vector<winrt::hstring>& ids)
 {
-    auto list = DeviceInformation::FindAllAsync(dc).get();
-    for (auto item : list)
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto const& item : list)
     {
     ids.push_back(item.Id());
     }
@@ -248,8 +248,8 @@ void GetDeviceIds(DeviceClass dc, std::vector<winrt::hstring>& ids)
 // OK
 void GetDeviceIdsAndNames(DeviceClass dc, std::vector<winrt::hstring>& ids, std::vector<winrt::hstring>& names)
 {
-    auto list = DeviceInformation::FindAllAsync(dc).get();
-    for (auto item : list)
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto const& item : list)
     {
     ids.push_back(item.Id());
     names.push_back(item.Name());

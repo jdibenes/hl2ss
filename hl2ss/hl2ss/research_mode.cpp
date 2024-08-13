@@ -159,7 +159,7 @@ bool ResearchMode_Initialize()
 // OK
 void ResearchMode_Cleanup()
 {
-	for (auto sensor : g_sensors) { if (sensor) { sensor->Release(); } }	
+	for (auto const& sensor : g_sensors) { if (sensor) { sensor->Release(); } }	
 
 	if (g_camera_consent_event) { CloseHandle(g_camera_consent_event); }
 	if (g_imu_consent_event) { CloseHandle(g_imu_consent_event); }
