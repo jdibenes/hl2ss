@@ -1099,21 +1099,53 @@ uint32_t const OrientedBox = 2;
 uint32_t const Sphere      = 3;
 }
 
+struct sm_box
+{
+    vector_3 center;
+    vector_3 extents;
+};
+
+struct sm_frustum
+{
+    plane p_near;
+    plane p_far;
+    plane p_right;
+    plane p_left;
+    plane p_top;
+    plane p_bottom;
+};
+
+struct sm_oriented_box
+{
+    vector_3 center;
+    vector_3 extents;
+    quaternion orientation;
+};
+
+struct sm_sphere
+{
+    vector_3 center;
+    float radius;
+};
+
 class sm_bounding_volume
 {
-    friend class ipc_sm;
-
 private:
     std::vector<uint8_t> m_data;
     uint32_t m_count;
 
 public:
     sm_bounding_volume();
+    sm_bounding_volume(uint32_t count, uint8_t const* data, size_t size);
 
-    void add_box(vector_3 center, vector_3 extents);
-    void add_frustum(plane p_near, plane p_far, plane p_right, plane p_left, plane p_top, plane p_bottom);
-    void add_oriented_box(vector_3 center, vector_3 extents, quaternion orientation);
-    void add_sphere(vector_3 center, float radius);
+    void add_box(sm_box box);
+    void add_frustum(sm_frustum frustum);
+    void add_oriented_box(sm_oriented_box oriented_box);
+    void add_sphere(sm_sphere sphere);
+
+    uint32_t get_count() const;
+    uint8_t const* get_data() const;
+    size_t get_size() const;
 };
 
 struct guid
@@ -1130,16 +1162,19 @@ struct sm_surface_info
 
 class sm_mesh_task
 {
-    friend class ipc_sm;
-
 private:
     std::vector<uint8_t> m_data;
     uint32_t m_count;
     
 public:
     sm_mesh_task();
+    sm_mesh_task(uint32_t count, uint8_t const* data, size_t size);
 
     void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds);
+
+    uint32_t get_count() const;
+    uint8_t const* get_data() const;
+    size_t get_size() const;
 };
 
 struct sm_mesh

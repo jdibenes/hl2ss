@@ -1157,12 +1157,7 @@ std::shared_ptr<calibration_rm_vlc> download_calibration_rm_vlc(char const* host
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
-
-    c.download(data->uv2xy,         sizeof(data->uv2xy),         chunk_size::SINGLE_TRANSFER);
-    c.download(data->extrinsics,    sizeof(data->extrinsics),    chunk_size::SINGLE_TRANSFER);
-    c.download(data->undistort_map, sizeof(data->undistort_map), chunk_size::SINGLE_TRANSFER);
-    c.download(data->intrinsics,    sizeof(data->intrinsics),    chunk_size::SINGLE_TRANSFER);
-    
+    c.download(data.get(), sizeof(calibration_rm_vlc), chunk_size::SINGLE_TRANSFER);    
     c.close();
 
     return data;
@@ -1178,14 +1173,7 @@ std::shared_ptr<calibration_rm_depth_ahat> download_calibration_rm_depth_ahat(ch
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
-
-    c.download(data->uv2xy,         sizeof(data->uv2xy),         chunk_size::SINGLE_TRANSFER);
-    c.download(data->extrinsics,    sizeof(data->extrinsics),    chunk_size::SINGLE_TRANSFER);
-    c.download(&data->scale,        sizeof(data->scale),         chunk_size::SINGLE_TRANSFER);
-    c.download(&data->alias,        sizeof(data->alias),         chunk_size::SINGLE_TRANSFER);
-    c.download(data->undistort_map, sizeof(data->undistort_map), chunk_size::SINGLE_TRANSFER);
-    c.download(data->intrinsics,    sizeof(data->intrinsics),    chunk_size::SINGLE_TRANSFER);
-    
+    c.download(data.get(), sizeof(calibration_rm_depth_ahat), chunk_size::SINGLE_TRANSFER);    
     c.close();
 
     return data;
@@ -1201,13 +1189,7 @@ std::shared_ptr<calibration_rm_depth_longthrow> download_calibration_rm_depth_lo
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
-
-    c.download(data->uv2xy,         sizeof(data->uv2xy),         chunk_size::SINGLE_TRANSFER);
-    c.download(data->extrinsics,    sizeof(data->extrinsics),    chunk_size::SINGLE_TRANSFER);
-    c.download(&data->scale,        sizeof(data->scale),         chunk_size::SINGLE_TRANSFER);
-    c.download(data->undistort_map, sizeof(data->undistort_map), chunk_size::SINGLE_TRANSFER);
-    c.download(data->intrinsics,    sizeof(data->intrinsics),    chunk_size::SINGLE_TRANSFER);
-    
+    c.download(data.get(), sizeof(calibration_rm_depth_longthrow), chunk_size::SINGLE_TRANSFER);    
     c.close();
 
     return data;
@@ -1223,9 +1205,7 @@ std::shared_ptr<calibration_rm_imu> download_calibration_rm_imu(char const* host
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
-
-    c.download(data->extrinsics, sizeof(data->extrinsics), chunk_size::SINGLE_TRANSFER);
-
+    c.download(data.get(), sizeof(calibration_rm_imu), chunk_size::SINGLE_TRANSFER);
     c.close();
 
     return data;
@@ -1241,16 +1221,7 @@ std::shared_ptr<calibration_pv> download_calibration_pv(char const* host, uint16
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
-
-    c.download(data->focal_length,          sizeof(data->focal_length),          chunk_size::SINGLE_TRANSFER);
-    c.download(data->principal_point,       sizeof(data->principal_point),       chunk_size::SINGLE_TRANSFER);
-    c.download(data->radial_distortion,     sizeof(data->radial_distortion),     chunk_size::SINGLE_TRANSFER);
-    c.download(data->tangential_distortion, sizeof(data->tangential_distortion), chunk_size::SINGLE_TRANSFER);
-    c.download(data->projection,            sizeof(data->projection),            chunk_size::SINGLE_TRANSFER);
-    c.download(data->extrinsics,            sizeof(data->extrinsics),            chunk_size::SINGLE_TRANSFER);
-    c.download(data->intrinsics_mf,         sizeof(data->intrinsics_mf),         chunk_size::SINGLE_TRANSFER);
-    c.download(data->extrinsics_mf,         sizeof(data->extrinsics_mf),         chunk_size::SINGLE_TRANSFER);
-
+    c.download(data.get(), sizeof(calibration_pv), chunk_size::SINGLE_TRANSFER);
     c.close();
 
     return data;
@@ -1491,46 +1462,64 @@ sm_bounding_volume::sm_bounding_volume()
     m_count = 0;
 }
 
-void sm_bounding_volume::add_box(vector_3 center, vector_3 extents)
+sm_bounding_volume::sm_bounding_volume(uint32_t count, uint8_t const* data, size_t size)
+{
+    m_count = count;
+    m_data  = { data, data + size };
+}
+
+void sm_bounding_volume::add_box(sm_box box)
 {
     m_count++;
     push_u32(m_data, sm_volume_type::Box);
-    push(m_data, &center,  sizeof(center));
-    push(m_data, &extents, sizeof(extents));
+    push(m_data, &box,  sizeof(box));
 }
 
-void sm_bounding_volume::add_frustum(plane p_near, plane p_far, plane p_right, plane p_left, plane p_top, plane p_bottom)
+void sm_bounding_volume::add_frustum(sm_frustum frustum)
 {
     m_count++;
     push_u32(m_data, sm_volume_type::Frustum);
-    push(m_data, &p_near,   sizeof(p_near));
-    push(m_data, &p_far,    sizeof(p_far));
-    push(m_data, &p_right,  sizeof(p_right));
-    push(m_data, &p_left,   sizeof(p_left));
-    push(m_data, &p_top,    sizeof(p_top));
-    push(m_data, &p_bottom, sizeof(p_bottom));
+    push(m_data, &frustum, sizeof(frustum));
 }
 
-void sm_bounding_volume::add_oriented_box(vector_3 center, vector_3 extents, quaternion orientation)
+void sm_bounding_volume::add_oriented_box(sm_oriented_box oriented_box)
 {
     m_count++;
     push_u32(m_data, sm_volume_type::OrientedBox);
-    push(m_data, &center,      sizeof(center));
-    push(m_data, &extents,     sizeof(extents));
-    push(m_data, &orientation, sizeof(orientation));
+    push(m_data, &oriented_box, sizeof(oriented_box));
 }
 
-void sm_bounding_volume::add_sphere(vector_3 center, float radius)
+void sm_bounding_volume::add_sphere(sm_sphere sphere)
 {
     m_count++;
     push_u32(m_data, sm_volume_type::Sphere);
-    push(m_data, &center, sizeof(center));
-    push_float(m_data, radius);
+    push(m_data, &sphere, sizeof(sphere));
+}
+
+uint32_t sm_bounding_volume::get_count() const
+{
+    return m_count;
+}
+
+uint8_t const* sm_bounding_volume::get_data() const
+{
+    return m_data.data();
+}
+
+size_t sm_bounding_volume::get_size() const
+{
+    return m_data.size();
 }
 
 sm_mesh_task::sm_mesh_task()
 {
     m_count = 0;
+}
+
+sm_mesh_task::sm_mesh_task(uint32_t count, uint8_t const* data, size_t size)
+{
+    m_count = count;
+    m_data  = { data, data + size };
 }
 
 void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds)
@@ -1543,6 +1532,21 @@ void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint3
     push_u32(m_data, triangle_index_format);
     push_u32(m_data, vertex_normal_format);
     push_u32(m_data, (1*include_vertex_normals) | (2*include_bounds));
+}
+
+uint32_t sm_mesh_task::get_count() const
+{
+    return m_count;
+}
+
+uint8_t const* sm_mesh_task::get_data() const
+{
+    return m_data.data();
+}
+
+size_t sm_mesh_task::get_size() const
+{
+    return m_data.size();
 }
 
 ipc_sm::ipc_sm(char const* host, uint16_t port) : ipc(host, port)
@@ -1559,8 +1563,8 @@ void ipc_sm::set_volumes(sm_bounding_volume const& volumes)
 {
     std::vector<uint8_t> sc;
     push_u8(sc, commmand_ipc_sm::SET_VOLUMES);
-    push_u8(sc, (uint8_t)volumes.m_count);
-    push(sc, volumes.m_data.data(), volumes.m_data.size());
+    push_u8(sc, (uint8_t)volumes.get_count());
+    push(sc, volumes.get_data(), volumes.get_size());
     m_client.sendall(sc.data(), sc.size());
 }
 
@@ -1578,14 +1582,14 @@ void ipc_sm::get_meshes(sm_mesh_task const& tasks, uint32_t threads, std::vector
 {
     std::vector<uint8_t> sc;
     push_u8(sc, commmand_ipc_sm::GET_MESHES);
-    push_u32(sc, tasks.m_count);
+    push_u32(sc, tasks.get_count());
     push_u32(sc, threads);
-    push(sc, tasks.m_data.data(), tasks.m_data.size());
+    push(sc, tasks.get_data(), tasks.get_size());
     m_client.sendall(sc.data(), sc.size());
 
-    meshes.resize(tasks.m_count);
+    meshes.resize(tasks.get_count());
 
-    for (uint32_t i = 0; i < tasks.m_count; ++i)
+    for (uint32_t i = 0; i < tasks.get_count(); ++i)
     {
     uint32_t index;
     
