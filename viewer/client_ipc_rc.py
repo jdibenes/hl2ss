@@ -99,6 +99,6 @@ client.set_pv_scene_mode(scene_mode)
 
 client.set_flat_mode(flat_mode)
 
-client.set_eye_selection(eye_selection)
+client.set_rm_eye_selection(eye_selection)
 
 client.close()
