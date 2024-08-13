@@ -24,11 +24,27 @@ namespace ulm
 
 struct packet
 {
+    int64_t frame_stamp;
     uint64_t timestamp;
     uint32_t sz_payload;
-    uint32_t _reserved;
+    int32_t status;
     uint8_t* payload;
     matrix_4x4* pose;
+};
+
+struct sm_mesh
+{
+    uint32_t status;
+    vector_3 vertex_position_scale;
+    uint64_t bounds_size;
+    uint64_t vertex_positions_size;
+    uint64_t triangle_indices_size;
+    uint64_t vertex_normals_size;
+    matrix_4x4* pose;    
+    uint8_t* bounds_data;
+    uint8_t* vertex_positions_data;
+    uint8_t* triangle_indices_data;
+    uint8_t* vertex_normals_data;
 };
 
 struct gmq_message
@@ -244,28 +260,32 @@ HL2SS_ULM_END(void())
 // Grab
 //-----------------------------------------------------------------------------
 
-static void unpack_frame(std::shared_ptr<hl2ss::packet> data, void*& frame, hl2ss::ulm::packet& packet)
+static void* unpack_frame(std::shared_ptr<hl2ss::packet> data, int64_t frame_stamp, int32_t status, hl2ss::ulm::packet& packet)
 {
     if (data)
     {
-        frame             = new std::shared_ptr<hl2ss::packet>(data);
-        packet.timestamp  = data->timestamp;
-        packet.sz_payload = data->sz_payload;
-        packet.payload    = data->payload.get();
-        packet.pose       = data->pose.get();
+        packet.frame_stamp = frame_stamp;
+        packet.timestamp   = data->timestamp;
+        packet.sz_payload  = data->sz_payload;
+        packet.status      = status;
+        packet.payload     = data->payload.get();        
+        packet.pose        = data->pose.get();
     }
     else
     {
-        frame             = nullptr;
-        packet.timestamp  = 0ULL;
-        packet.sz_payload = 0UL;
-        packet.payload    = nullptr;
-        packet.pose       = nullptr;
+        packet.frame_stamp = frame_stamp;
+        packet.timestamp   = 0ULL;
+        packet.sz_payload  = 0UL;
+        packet.status      = status;
+        packet.payload     = nullptr;
+        packet.pose        = nullptr;
     }
+
+    return new std::shared_ptr<hl2ss::packet>(data); // delete
 }
 
 HL2SS_CLIENT_EXPORT
-int32_t get_by_index(void* source, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet)
+void* get_by_index(void* source, int64_t frame_stamp, hl2ss::ulm::packet& packet)
 HL2SS_ULM_BEGIN
 {
     hl2ss::mt::source* s = (hl2ss::mt::source*)source;
@@ -273,15 +293,14 @@ HL2SS_ULM_BEGIN
     std::exception source_error;
     if (!s->status(source_error)) { throw source_error; }
 
+    int32_t status;
     std::shared_ptr<hl2ss::packet> data = s->get_packet(frame_stamp, status);
-    if (status == 0) { unpack_frame(data, frame, packet); }
-
-    return 0;
+    return unpack_frame(data, frame_stamp, status, packet);
 }
-HL2SS_ULM_END(-1)
+HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet)
+void* get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, hl2ss::ulm::packet& packet)
 HL2SS_ULM_BEGIN
 {
     hl2ss::mt::source* s = (hl2ss::mt::source*)source;
@@ -289,18 +308,18 @@ HL2SS_ULM_BEGIN
     std::exception source_error;
     if (!s->status(source_error)) { throw source_error; }
 
+    int64_t frame_stamp;
+    int32_t status;
     std::shared_ptr<hl2ss::packet> data = s->get_packet(timestamp, time_preference, tiebreak_right, frame_stamp, status);
-    if (status == 0) { unpack_frame(data, frame, packet); }
-
-    return 0;
+    return unpack_frame(data, frame_stamp, status, packet);
 }
-HL2SS_ULM_END(-1)
+HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void release_frame(void* frame)
+void release_packet(void* reference)
 HL2SS_ULM_BEGIN
 {
-    delete (std::shared_ptr<hl2ss::packet>*)frame;
+    delete (std::shared_ptr<hl2ss::packet>*)reference;
 }
 HL2SS_ULM_END(void())
 
@@ -331,49 +350,94 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_vlc(char const* host, uint16_t port, calibration_rm_vlc& calibration)
+void* download_calibration_rm_vlc(char const* host, uint16_t port, hl2ss::calibration_rm_vlc*& calibration)
 HL2SS_ULM_BEGIN
 {
-    calibration = *hl2ss::lnm::download_calibration_rm_vlc(host, port);
-    return 0;
+    std::shared_ptr<hl2ss::calibration_rm_vlc> data = hl2ss::lnm::download_calibration_rm_vlc(host, port);
+    calibration = data.get();
+    return new std::shared_ptr<hl2ss::calibration_rm_vlc>(data); // delete
 }
-HL2SS_ULM_END(-1)
+HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_depth_ahat(char const* host, uint16_t port, calibration_rm_depth_ahat& calibration)
+void* download_calibration_rm_depth_ahat(char const* host, uint16_t port, hl2ss::calibration_rm_depth_ahat*& calibration)
 HL2SS_ULM_BEGIN
 {
-    calibration = *hl2ss::lnm::download_calibration_rm_depth_ahat(host, port);
-    return 0;
+    std::shared_ptr<hl2ss::calibration_rm_depth_ahat> data = hl2ss::lnm::download_calibration_rm_depth_ahat(host, port);
+    calibration = data.get();
+    return new std::shared_ptr<hl2ss::calibration_rm_depth_ahat>(data); // delete
 }
-HL2SS_ULM_END(-1)
+HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_depth_longthrow(char const* host, uint16_t port, calibration_rm_depth_longthrow& calibration)
+void* download_calibration_rm_depth_longthrow(char const* host, uint16_t port, calibration_rm_depth_longthrow*& calibration)
 HL2SS_ULM_BEGIN
 {
-    calibration = *hl2ss::lnm::download_calibration_rm_depth_longthrow(host, port);
-    return 0;
+    std::shared_ptr<hl2ss::calibration_rm_depth_longthrow> data = hl2ss::lnm::download_calibration_rm_depth_longthrow(host, port);
+    calibration = data.get();
+    return new std::shared_ptr<hl2ss::calibration_rm_depth_longthrow>(data); // delete
 }
-HL2SS_ULM_END(-1)
+HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_rm_imu(char const* host, uint16_t port, calibration_rm_imu& calibration)
+void* download_calibration_rm_imu(char const* host, uint16_t port, calibration_rm_imu*& calibration)
 HL2SS_ULM_BEGIN
 {
-    calibration = *hl2ss::lnm::download_calibration_rm_imu(host, port);
-    return 0;
+    std::shared_ptr<hl2ss::calibration_rm_imu> data = hl2ss::lnm::download_calibration_rm_imu(host, port);
+    calibration = data.get();
+    return new std::shared_ptr<hl2ss::calibration_rm_imu>(data); // delete
 }
-HL2SS_ULM_END(-1)
+HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, calibration_pv& calibration)
+void* download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, calibration_pv*& calibration)
 HL2SS_ULM_BEGIN
 {
-    calibration = *hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
-    return 0;
+    std::shared_ptr<hl2ss::calibration_pv> data = hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
+    calibration = data.get();
+    return new std::shared_ptr<hl2ss::calibration_pv>(data); // delete
 }
-HL2SS_ULM_END(-1)
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
+void release_calibration_rm_vlc(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (std::shared_ptr<hl2ss::calibration_rm_vlc>*)reference;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+void release_calibration_rm_depth_ahat(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (std::shared_ptr<hl2ss::calibration_rm_depth_ahat>*)reference;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+void release_calibration_rm_depth_longthrow(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (std::shared_ptr<hl2ss::calibration_rm_depth_longthrow>*)reference;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+void release_calibration_rm_imu(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (std::shared_ptr<hl2ss::calibration_rm_imu>*)reference;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+void release_calibration_pv(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (std::shared_ptr<hl2ss::calibration_pv>*)reference;
+}
+HL2SS_ULM_END(void())
 
 //------------------------------------------------------------------------------
 // Remote Configuration
@@ -514,11 +578,146 @@ HL2SS_ULM_BEGIN
 }
 HL2SS_ULM_END(-1)
 
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_rm_eye_selection(void* ipc, uint32_t enable)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_rm_eye_selection(enable);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_desired_optimization(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_desired_optimization(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_primary_use(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_primary_use(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_optical_image_stabilization(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_optical_image_stabilization(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_hdr_video(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_hdr_video(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_pv_regions_of_interest(clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
 
-// TODO:
+HL2SS_CLIENT_EXPORT
+int32_t sm_create_observer(void* ipc)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_sm*)ipc)->create_observer();
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size)
+HL2SS_ULM_BEGIN
+{
+    hl2ss::sm_bounding_volume volumes(count, data, size);
+    ((hl2ss::ipc_sm*)ipc)->set_volumes(volumes);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+void* sm_get_observed_surfaces(void* ipc, uint64_t& size, hl2ss::sm_surface_info*& data)
+HL2SS_ULM_BEGIN
+{
+    std::unique_ptr<std::vector<hl2ss::sm_surface_info>> surfaces = std::make_unique<std::vector<hl2ss::sm_surface_info>>();
+    ((hl2ss::ipc_sm*)ipc)->get_observed_surfaces(*surfaces);
+    
+    size = surfaces->size();
+    data = surfaces->data();
+
+    return surfaces.release();
+}
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
+void sm_release_surfaces(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (std::vector<hl2ss::sm_surface_info>*)reference;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+void* sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads)
+HL2SS_ULM_BEGIN
+{
+    hl2ss::sm_mesh_task tasks(count, data, size);
+    std::unique_ptr<std::vector<hl2ss::sm_mesh>> meshes = std::make_unique<std::vector<hl2ss::sm_mesh>>();
+    ((hl2ss::ipc_sm*)ipc)->get_meshes(tasks, threads, *meshes);
+    return meshes.release();
+}
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
+void sm_release_meshes(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (std::vector<hl2ss::sm_mesh>*)reference;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+int32_t sm_unpack_mesh(void* reference, uint32_t index, hl2ss::ulm::sm_mesh& mesh)
+HL2SS_ULM_BEGIN
+{
+    std::vector<hl2ss::sm_mesh>& meshes = *(std::vector<hl2ss::sm_mesh>*)reference;
+    hl2ss::sm_mesh& m = meshes[index];
+
+    mesh.status                =  m.status;
+    mesh.vertex_position_scale =  m.vertex_position_scale;
+    mesh.pose                  = &m.pose;
+    mesh.bounds_data           =  m.bounds.data();
+    mesh.bounds_size           =  m.bounds.size();
+    mesh.vertex_positions_data =  m.vertex_positions.data();
+    mesh.vertex_positions_size =  m.vertex_positions.size();
+    mesh.triangle_indices_data =  m.triangle_indices.data();
+    mesh.triangle_indices_size =  m.triangle_indices.size();
+    mesh.vertex_normals_data   =  m.vertex_normals.data();
+    mesh.vertex_normals_size   =  m.vertex_normals.size();
+
+    return 0;
+}
+HL2SS_ULM_END(-1)
 
 //------------------------------------------------------------------------------
 // Scene Understanding
@@ -540,7 +739,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t vi_register_commands(void* ipc, bool clear, char const* utf8_array, uint32_t& status)
+int32_t vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status)
 HL2SS_ULM_BEGIN
 {
     char const* current = utf8_array;
