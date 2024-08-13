@@ -389,14 +389,6 @@ uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device);
 // * PV Control
 //------------------------------------------------------------------------------
 
-struct pv_intrinsics
-{
-    float fx;
-    float fy;
-    float cx;
-    float cy;
-};
-
 void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, bool shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective);
 void stop_subsystem_pv(char const* host, uint16_t port);
 
@@ -586,6 +578,58 @@ public:
 // * Decoders
 //------------------------------------------------------------------------------
 
+
+struct float2
+{
+    float x;
+    float y;
+};
+
+struct float3
+{
+    float x;
+    float y;
+    float z;
+};
+
+struct uint64x2
+{
+    uint64_t val[2];
+};
+
+struct rm_vlc_metadata
+{
+    uint64_t sensor_ticks;
+    uint64_t exposure;
+    uint32_t gain;
+    uint32_t _reserved;
+};
+
+struct rm_depth_ahat_metadata
+{
+    uint64_t sensor_ticks;
+};
+
+struct rm_depth_longthrow_metadata
+{
+    uint64_t sensor_ticks;
+};
+
+struct pv_metadata
+{
+    float2   f;
+    float2   c;
+    uint64_t exposure_time;
+    uint64x2 exposure_compensation;
+    uint32_t lens_position;
+    uint32_t focus_state;
+    uint32_t iso_speed;
+    uint32_t white_balance;
+    float2   iso_gains;
+    float3   white_balance_gains;
+    uint32_t _reserved;
+};
+
 class decoder_rm_vlc
 {
 private:
@@ -594,6 +638,7 @@ private:
     
 public:
     static uint32_t const DECODED_SIZE = parameters_rm_vlc::PIXELS * sizeof(uint8_t);
+    static uint32_t const METADATA_SIZE = sizeof(rm_vlc_metadata);
 
     void open(uint8_t profile);
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -612,6 +657,7 @@ private:
 
 public:
     static uint32_t const DECODED_SIZE = 2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t);
+    static uint32_t const METADATA_SIZE = sizeof(rm_depth_ahat_metadata);
 
     void open(uint8_t profile_z, uint8_t profile_ab);
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -622,6 +668,7 @@ class decoder_rm_depth_longthrow
 {
 public:
     static uint32_t const DECODED_SIZE = 2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t);
+    static uint32_t const METADATA_SIZE = sizeof(rm_depth_longthrow_metadata);
 
     void open();
     std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size);
@@ -637,7 +684,7 @@ private:
     uint8_t m_profile;
 
 public:
-    static uint32_t const K_SIZE = sizeof(pv_intrinsics);
+    static uint32_t const METADATA_SIZE = sizeof(pv_metadata);
 
     static uint8_t decoded_bpp(uint8_t decoded_format);
     static void resolution(uint32_t bytes, uint16_t& width, uint16_t& height, uint16_t& stride);
@@ -790,6 +837,8 @@ struct calibration_pv
     float tangential_distortion[2];
     float projection[4][4];
     float extrinsics[4][4];
+    float intrinsics_mf[4];
+    float extrinsics_mf[7];
 };
 
 std::shared_ptr<calibration_rm_vlc> download_calibration_rm_vlc(char const* host, uint16_t port);
@@ -922,6 +971,12 @@ uint32_t const Min =  100;
 uint32_t const Max = 3200;
 }
 
+namespace pv_backlight_compensation_state
+{
+uint32_t const Disable = 0;
+uint32_t const Enable  = 1;
+}
+
 namespace pv_capture_scene_mode
 {
 uint32_t const Auto          =  0;
@@ -938,10 +993,41 @@ uint32_t const NightPortrait = 11;
 uint32_t const Backlit       = 12;
 }
 
-namespace pv_backlight_compensation_state
+namespace pv_media_capture_optimization
 {
-uint32_t const Disable = 0;
-uint32_t const Enable  = 1;
+uint32_t const Default            = 0;
+uint32_t const Quality            = 1;
+uint32_t const Latency            = 2;
+uint32_t const Power              = 3;
+uint32_t const LatencyThenQuality = 4;
+uint32_t const LatencyThenPower   = 5;
+uint32_t const PowerAndQuality    = 6;
+}
+
+namespace pv_capture_use
+{
+uint32_t const NotSet = 0;
+uint32_t const Photo  = 1;
+uint32_t const Video  = 2;
+}
+
+namespace pv_optical_image_stabilization_mode
+{
+uint32_t const Off = 0;
+uint32_t const On  = 1;
+}
+
+namespace pv_hdr_video_mode
+{
+uint32_t const Off  = 0;
+uint32_t const On   = 1;
+uint32_t const Auto = 2;
+}
+
+namespace pv_region_of_interest_type
+{
+uint32_t const Unknown = 0;
+uint32_t const Face    = 1;
 }
 
 struct version
@@ -975,6 +1061,12 @@ public:
     void set_pv_backlight_compensation(uint32_t state);
     void set_pv_scene_mode(uint32_t mode);
     void set_flat_mode(uint32_t mode);
+    void set_rm_eye_selection(uint32_t enable);
+    void set_pv_desired_optimization(uint32_t mode);
+    void set_pv_primary_use(uint32_t mode);
+    void set_pv_optical_image_stabilization(uint32_t mode);
+    void set_pv_hdr_video(uint32_t mode);
+    void set_pv_regions_of_interest(bool clear, bool set, bool auto_exposure, bool auto_focus, bool bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h);
 };
 
 //------------------------------------------------------------------------------
@@ -1354,11 +1446,11 @@ struct eet_frame
     uint32_t valid;
 };
 
-void unpack_rm_vlc(uint8_t* payload, uint8_t*& image);
-void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab);
-void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab);
+void unpack_rm_vlc(uint8_t* payload, uint8_t*& image, rm_vlc_metadata*& metadata);
+void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_ahat_metadata*& metadata);
+void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_longthrow_metadata*& metadata);
 void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples);
-void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_intrinsics*& intrinsics);
+void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_metadata*& metadata);
 void unpack_microphone_raw(uint8_t* payload, int16_t*& samples);
 void unpack_microphone_aac(uint8_t* payload, float*& samples);
 void unpack_si(uint8_t* payload, si_frame*& si);
