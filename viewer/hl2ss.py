@@ -1873,6 +1873,11 @@ class PV_IsoSpeedValue:
     Max = 3200
 
 
+class PV_BacklightCompensationState:
+    Disable = 0
+    Enable = 1
+
+
 class PV_CaptureSceneMode:
     Auto = 0
     Macro = 2
@@ -1888,9 +1893,36 @@ class PV_CaptureSceneMode:
     Backlit = 12
 
 
-class PV_BacklightCompensationState:
-    Disable = 0
-    Enable = 1
+class PV_MediaCaptureOptimization:
+    Default = 0
+    Quality = 1
+    Latency = 2
+    Power = 3
+    LatencyThenQuality = 4
+    LatencyThenPower = 5
+    PowerAndQuality = 6
+
+
+class PV_CaptureUse:
+    NotSet = 0
+    Photo = 1
+    Video = 2
+
+
+class PV_OpticalImageStabilizationMode:
+    Off = 0
+    On = 1
+
+
+class PV_HdrVideoMode:
+    Off = 0
+    On = 1
+    Auto = 2
+
+
+class PV_RegionOfInterestType:
+    Unknown = 0
+    Face = 1
 
 
 class ipc_rc(_context_manager):
@@ -1908,7 +1940,12 @@ class ipc_rc(_context_manager):
     _CMD_SET_PV_BACKLIGHT_COMPENSATION = 0x0B
     _CMD_SET_PV_SCENE_MODE = 0x0C
     _CMD_SET_FLAT_MODE = 0x0D
-    _CMD_SET_EYE_SELECTION = 0x0E
+    _CMD_SET_RM_EYE_SELECTION = 0x0E
+    _CMD_SET_PV_DESIRED_OPTIMIZATION = 0x0F
+    _CMD_SET_PV_PRIMARY_USE = 0x10
+    _CMD_SET_PV_OPTICAL_IMAGE_STABILIZATION = 0x11
+    _CMD_SET_PV_HDR_VIDEO = 0x12
+    _CMD_SET_PV_REGIONS_OF_INTEREST = 0x13
 
     def __init__(self, host, port):
         self.host = host
@@ -1988,10 +2025,31 @@ class ipc_rc(_context_manager):
         command = struct.pack('<BI', ipc_rc._CMD_SET_FLAT_MODE, mode)
         self._client.sendall(command)
 
-    def set_eye_selection(self, enable):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_EYE_SELECTION, 1 if (enable) else 0)
+    def set_rm_eye_selection(self, enable):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_RM_EYE_SELECTION, 1 if (enable) else 0)
         self._client.sendall(command)
 
+    def set_pv_desired_optimization(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_DESIRED_OPTIMIZATION, mode)
+        self._client.sendall(command)
+
+    def set_pv_primary_use(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_PRIMARY_USE, mode)
+        self._client.sendall(command)
+
+    def set_pv_optical_image_stabilization(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_OPTICAL_IMAGE_STABILIZATION, mode)
+        self._client.sendall(command)
+
+    def set_pv_hdr_video(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_HDR_VIDEO, mode)
+        self._client.sendall(command)
+
+    def set_pv_regions_of_interest(self, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h):
+        mode = (0x1000 if (clear) else 0) | (0x0800 if (set) else 0) | (0x0400 if (auto_exposure) else 0) | (0x0200 if (auto_focus) else 0) | (0x0100 if (bounds_normalized) else 0) | ((type & 1) << 7) | (weight & 0x007F)
+        command = struct.pack('<BIffff', ipc_rc._CMD_SET_PV_REGIONS_OF_INTEREST, mode, x, y, w, h)
+        self._client.sendall(command)
+    
 
 #------------------------------------------------------------------------------
 # Spatial Mapping
