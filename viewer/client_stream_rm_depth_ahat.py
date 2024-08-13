@@ -32,7 +32,7 @@ mode = hl2ss.StreamMode.MODE_1
 # Effective framerate is framerate / divisor
 divisor = 1 
 
-# Depth encoding profile
+# Depth encoding profile, AB encoding profile and bitrate (None = default)
 # SAME: use same compression as AB
 #     AB RAW: 
 #         - data streamed as-is (most accurate)
@@ -45,10 +45,9 @@ divisor = 1
 #     - increased minimum range (objects close to the camera get truncated)
 #     - full framerate
 #     - requires building the pyzdepth extension (one time only)
-profile_z = hl2ss.DepthProfile.SAME
-
-# AB encoding profile
+profile_z  = hl2ss.DepthProfile.SAME
 profile_ab = hl2ss.VideoProfile.H265_MAIN
+bitrate    = None
 
 #------------------------------------------------------------------------------
 
@@ -82,10 +81,11 @@ client.open()
 
 while (enable):
     data = client.get_next_packet()
-    
-    print(f'Pose at time {data.timestamp}')
-    print(data.pose)
+
+    print(f'Frame captured at {data.timestamp}')
     print(f'Sensor Ticks: {data.payload.sensor_ticks}')
+    print(f'Pose')
+    print(data.pose)    
     
     cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
     cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
