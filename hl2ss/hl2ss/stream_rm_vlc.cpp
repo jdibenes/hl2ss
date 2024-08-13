@@ -42,12 +42,12 @@ static void RM_VLC_TranslateEncoderOptions(std::vector<uint64_t> const& options,
     exposure_factor = 0.0;
     constant_factor = 0;
 
-    for (int i = 0; i < (int)(options.size() / 2); ++i)
+    for (int i = 0; i < (int)(options.size() & ~1ULL); i += 2)
     {
-    switch (options[2 * i])
+    switch (options[i])
     {
-    case 0xFFFFFFFFFFFFFFFE: constant_factor =   (int64_t)options[(2 * i) + 1]; break;
-    case 0xFFFFFFFFFFFFFFFF: exposure_factor = *(double*)&options[(2 * i) + 1]; break;
+    case 0xFFFFFFFFFFFFFFFE: constant_factor =   (int64_t)options[i + 1]; break;
+    case 0xFFFFFFFFFFFFFFFF: exposure_factor = *(double*)&options[i + 1]; break;
     }
     }
 }

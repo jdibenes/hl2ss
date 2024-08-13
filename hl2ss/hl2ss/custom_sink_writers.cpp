@@ -52,12 +52,14 @@ static uint32_t ComputeStride(uint32_t width)
 // OK
 static void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAttributes **pEncoderAttr)
 {
-	MFCreateAttributes(pEncoderAttr, (UINT32)(options.size() / 2));
+	size_t size = options.size() & ~1ULL;
 
-	for (int i = 0; i < (int)(options.size() / 2); ++i)
+	MFCreateAttributes(pEncoderAttr, (UINT32)size);
+
+	for (int i = 0; i < (int)size; i += 2)
 	{
-	uint64_t option = options[(2 * i)];
-	uint64_t value  = options[(2 * i) + 1];
+	uint64_t option = options[i];
+	uint64_t value  = options[i + 1];
 
 	if (option >= (sizeof(g_AVLUT) / sizeof(AVOption))) { continue; }
 
