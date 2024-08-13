@@ -93,7 +93,7 @@ else:
     while (enable):
         data = client.get_next_packet()
 
-        print(f'== Frame at time {data.timestamp} ==')
+        print(f'Frame captured at {data.timestamp}')
         print(f'Focal length: {data.payload.focal_length}')
         print(f'Principal point: {data.payload.principal_point}')
         print(f'Exposure Time: {data.payload.exposure_time}')
