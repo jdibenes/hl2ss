@@ -70,6 +70,9 @@ classdef sink_pv < matlab.System
                        'timestamp',   zeros([1, 1],             'uint64'), ...
                        'image',       zeros(obj.getImageSize(), 'uint8' ), ...
                        'intrinsics',  zeros([4, 1],             'single'), ...
+                       'exposure',    zeros([3, 1],             'uint64'), ...
+                       'imaging',     zeros([4, 1],             'uint32'), ...
+                       'gains',       zeros([5, 1],             'single'), ...
                        'pose',        zeros([4, 4],             'single'));
 
             coder.extrinsic('hl2ss_matlab')
@@ -97,6 +100,9 @@ classdef sink_pv < matlab.System
             timestamp   = data.timestamp;
             image       = data.image;
             intrinsics  = data.intrinsics;
+            % exposure
+            % imaging
+            % gains
             pose        = data.pose;
         end
 
