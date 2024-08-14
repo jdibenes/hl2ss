@@ -30,7 +30,7 @@ struct VLC_Metadata
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static VLC_Metadata g_pose_sh;
+static VLC_Metadata g_pose_sh[4];
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -65,25 +65,26 @@ void RM_VLC_SendSample(IMFSample* pSample, void* param)
     HookCallbackSocket* user = (HookCallbackSocket*)param;
     H26xFormat* format = (H26xFormat*)user->format;
     bool sh = format->profile != H26xProfile::H26xProfile_None;
+    int id = format->framerate;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
 
-    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pose_sh, sizeof(g_pose_sh), NULL); }
+    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pose_sh[id], sizeof(g_pose_sh[id]), NULL); }
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    int const metadata = sizeof(g_pose_sh) - sizeof(g_pose_sh.timestamp) - sizeof(g_pose_sh.pose);
+    int const metadata = sizeof(g_pose_sh[id]) - sizeof(g_pose_sh[id].timestamp) - sizeof(g_pose_sh[id].pose);
     DWORD cbDataEx = cbData + metadata;
 
-    pack_buffer(wsaBuf, 0, &g_pose_sh.timestamp, sizeof(g_pose_sh.timestamp));
+    pack_buffer(wsaBuf, 0, &g_pose_sh[id].timestamp, sizeof(g_pose_sh[id].timestamp));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
-    pack_buffer(wsaBuf, 3, &g_pose_sh, metadata);
+    pack_buffer(wsaBuf, 3, &g_pose_sh[id], metadata);
 
     if constexpr(ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 4, &g_pose_sh.pose, sizeof(g_pose_sh.pose));
+    pack_buffer(wsaBuf, 4, &g_pose_sh[id].pose, sizeof(g_pose_sh[id].pose));
     }
 
     bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -92,7 +93,7 @@ void RM_VLC_SendSample(IMFSample* pSample, void* param)
     pBuffer->Unlock();
     pBuffer->Release();
 
-    if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pose_sh, sizeof(g_pose_sh), NULL); }
+    if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pose_sh[id], sizeof(g_pose_sh[id]), NULL); }
 }
 
 // OK
@@ -130,6 +131,7 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     int64_t constant_factor;
     UINT64 adjusted_timestamp;
     VLC_Metadata vlc_metadata;
+    int id;
     bool ok;
 
     ok = ReceiveH26xFormat_Divisor(clientsocket, format);
@@ -140,6 +142,8 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     ok = ReceiveH26xEncoder_Options(clientsocket, options);
     if (!ok) { return; }
+
+    id = sensor->GetSensorType();
 
     format.width     = width;
     format.height    = height;
@@ -159,10 +163,13 @@ void RM_VLC_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
 
     CreateSinkWriterVideo(&pSink, &pSinkWriter, &dwVideoIndex, subtype, format, options, RM_VLC_SendSample<ENABLE_LOCATION>, &user);
 
+    format.framerate = (uint8_t)id;
+
     RM_VLC_TranslateEncoderOptions(options, exposure_factor, constant_factor);
 
     framebytes = lumasize + chromasize;
-    memset(&g_pose_sh, 0, sizeof(g_pose_sh));
+
+    memset(&g_pose_sh[id], 0, sizeof(g_pose_sh[id]));
 
     sensor->OpenStream();
 
