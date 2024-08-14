@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <codecvt>
+#include "hl2ss.h"
 #include "hl2ss_lnm.h"
 #include "hl2ss_mt.h"
 
@@ -45,6 +46,59 @@ struct sm_mesh
     uint8_t* vertex_positions_data;
     uint8_t* triangle_indices_data;
     uint8_t* vertex_normals_data;
+};
+
+struct su_mesh
+{
+    uint64_t vertex_positions_size;
+    uint64_t triangle_indices_size;
+    uint8_t* vertex_positions_data;
+    uint8_t* triangle_indices_data;   
+};
+
+struct su_item
+{
+    guid id;
+    int32_t kind;
+    uint32_t _reserved;
+    quaternion orientation;
+    vector_3 position;
+    int32_t alignment;
+    vector_2 extents;
+    uint32_t meshes_count;
+    uint32_t collider_meshes_count;
+    matrix_4x4* location;
+    void* meshes;
+    void* collider_meshes;
+};
+
+struct su_result_header
+{
+    uint32_t status;
+    uint32_t count;
+    matrix_4x4* extrinsics;
+    matrix_4x4* pose;
+};
+
+struct su_task 
+{
+    bool enable_quads;
+    bool enable_meshes;
+    bool enable_only_observed;
+    bool enable_world_mesh;
+    uint32_t mesh_lod;
+    float query_radius;
+    uint8_t create_mode;
+    uint8_t kind_flags;
+    bool get_orientation;
+    bool get_position;
+    bool get_location_matrix;
+    bool get_quad;
+    bool get_meshes; 
+    bool get_collider_meshes;
+    uint32_t _reserved;
+    uint64_t guid_list_size;
+    guid* guid_list_data;
 };
 
 struct gmq_message
@@ -723,7 +777,86 @@ HL2SS_ULM_END(-1)
 // Scene Understanding
 //------------------------------------------------------------------------------
 
-// TODO:
+HL2SS_CLIENT_EXPORT
+void* su_query(void* ipc, hl2ss::ulm::su_task const& task, hl2ss::ulm::su_result_header& header)
+HL2SS_ULM_BEGIN
+{
+    hl2ss::su_task t;
+
+    t.enable_quads         = task.enable_quads;
+    t.enable_meshes        = task.enable_meshes;
+    t.enable_only_observed = task.enable_only_observed;
+    t.enable_world_mesh    = task.enable_world_mesh;
+    t.mesh_lod             = task.mesh_lod;
+    t.query_radius         = task.query_radius;
+    t.create_mode          = task.create_mode;
+    t.kind_flags           = task.kind_flags;
+    t.get_orientation      = task.get_orientation;
+    t.get_position         = task.get_position;
+    t.get_location_matrix  = task.get_location_matrix;
+    t.get_quad             = task.get_quad;
+    t.get_meshes           = task.get_meshes;
+    t.get_collider_meshes  = task.get_collider_meshes;
+    t.guid_list            = { task.guid_list_data, task.guid_list_data + task.guid_list_size };
+
+    std::unique_ptr<hl2ss::su_result> result = std::make_unique<hl2ss::su_result>();
+    ((hl2ss::ipc_su*)ipc)->query(t, *result);
+
+    header.status     =            result->status;
+    header.extrinsics =           &result->extrinsics;
+    header.pose       =           &result->pose;
+    header.count      =  (uint32_t)result->items.size();
+
+    return result.release();
+}
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
+void su_release(void* reference)
+HL2SS_ULM_BEGIN
+{
+    delete (hl2ss::su_result*)reference;
+}
+HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+int32_t su_unpack_item(void* reference, uint32_t index, hl2ss::ulm::su_item& item)
+HL2SS_ULM_BEGIN
+{
+    std::vector<hl2ss::su_item>& items = ((hl2ss::su_result*)reference)->items;
+    hl2ss::su_item& m = items[index];
+
+    item.id                    =           m.id;
+    item.kind                  =           m.kind;
+    item.orientation           =           m.orientation;
+    item.position              =           m.position;
+    item.location              =          &m.location;
+    item.alignment             =           m.alignment;
+    item.extents               =           m.extents;
+    item.meshes                =          &m.meshes;
+    item.meshes_count          = (uint32_t)m.meshes.size();
+    item.collider_meshes       =          &m.collider_meshes;
+    item.collider_meshes_count = (uint32_t)m.collider_meshes.size();
+
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm::su_mesh& mesh)
+HL2SS_ULM_BEGIN
+{
+    std::vector<hl2ss::su_mesh>& v = *(std::vector<hl2ss::su_mesh>*)meshes;
+    hl2ss::su_mesh& m = v[index];
+
+    mesh.vertex_positions_data = m.vertex_positions.data();
+    mesh.vertex_positions_size = m.vertex_positions.size();
+    mesh.triangle_indices_data = m.triangle_indices.data();
+    mesh.triangle_indices_size = m.triangle_indices.size();
+
+    return 0;
+}
+HL2SS_ULM_END(-1)
 
 //------------------------------------------------------------------------------
 // Voice Input
@@ -745,7 +878,7 @@ HL2SS_ULM_BEGIN
     char const* current = utf8_array;
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     std::vector<std::u16string> commands;
-    size_t count;
+    uint64_t count;
     
     while ((count = strlen(current)) > 0)
     {

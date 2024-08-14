@@ -312,116 +312,121 @@ struct ray
     vector_3 direction;
 };
 
+struct uint64x2
+{
+    uint64_t val[2];
+};
+
 //------------------------------------------------------------------------------
-// Unpacking
+// Packer
 //------------------------------------------------------------------------------
 
-struct pv_intrinsics
-{
-    float fx;
-    float fy;
-    float cx;
-    float cy;
-};
+union v8  {                           uint8_t  b; int8_t  c; };
+union v16 { struct { v8  b0, b1; } b; uint16_t w; int16_t s; };
+union v32 { struct { v16 w0, w1; } w; uint32_t d; int32_t i; };
+union v64 { struct { v32 d0, d1; } d; uint64_t q; int64_t l; };
 
-struct rm_imu_sample
+constexpr
+void push_u8(std::vector<uint8_t>& sc, uint8_t byte)
 {
-    uint64_t sensor_timestamp;
-    uint64_t timestamp;
-    float x;
-    float y;
-    float z;
-    float temperature;
-};
-
-namespace si_valid
-{
-uint32_t const HEAD  = 0x01;
-uint32_t const EYE   = 0x02;
-uint32_t const LEFT  = 0x04;
-uint32_t const RIGHT = 0x08;
+    sc.push_back(byte);
 }
 
-struct si_head_pose
+constexpr
+void push_u16(std::vector<uint8_t>& sc, uint16_t word)
 {
-    vector_3 position;
-    vector_3 forward;
-    vector_3 up;
-};
+    v16 data{word};
 
-namespace si_hand_joint_kind
-{
-uint8_t const Palm               =  0;
-uint8_t const Wrist              =  1;
-uint8_t const ThumbMetacarpal    =  2;
-uint8_t const ThumbProximal      =  3;
-uint8_t const ThumbDistal        =  4;
-uint8_t const ThumbTip           =  5;
-uint8_t const IndexMetacarpal    =  6;
-uint8_t const IndexProximal      =  7;
-uint8_t const IndexIntermediate  =  8;
-uint8_t const IndexDistal        =  9;
-uint8_t const IndexTip           = 10;
-uint8_t const MiddleMetacarpal   = 11;
-uint8_t const MiddleProximal     = 12;
-uint8_t const MiddleIntermediate = 13;
-uint8_t const MiddleDistal       = 14;
-uint8_t const MiddleTip          = 15;
-uint8_t const RingMetacarpal     = 16;
-uint8_t const RingProximal       = 17;
-uint8_t const RingIntermediate   = 18;
-uint8_t const RingDistal         = 19;
-uint8_t const RingTip            = 20;
-uint8_t const LittleMetacarpal   = 21;
-uint8_t const LittleProximal     = 22;
-uint8_t const LittleIntermediate = 23;
-uint8_t const LittleDistal       = 24;
-uint8_t const LittleTip          = 25;
-uint8_t const TOTAL              = 26;
+    push_u8(sc, data.b.b0.b);
+    push_u8(sc, data.b.b1.b);
 }
 
-struct si_hand_joint
+constexpr
+void push_u32(std::vector<uint8_t>& sc, uint32_t dword)
 {
-    quaternion orientation;
-    vector_3 position;
-    float radius;
-    int32_t accuracy;
-};
+    v32 data{dword};
 
-struct si_frame
-{
-    uint32_t valid;
-    si_head_pose head_pose;
-    ray eye_ray;
-    si_hand_joint left_hand[26];
-    si_hand_joint right_hand[26];
-};
-
-namespace eet_valid
-{
-uint32_t const CALIBRATION       = 0x01;
-uint32_t const COMBINED_RAY      = 0x02;
-uint32_t const LEFT_RAY          = 0x04;
-uint32_t const RIGHT_RAY         = 0x08;
-uint32_t const LEFT_OPENNESS     = 0x10;
-uint32_t const RIGHT_OPENNESS    = 0x20;
-uint32_t const VERGENCE_DISTANCE = 0x40;
+    push_u16(sc, data.w.w0.w);
+    push_u16(sc, data.w.w1.w);
 }
 
-struct eet_frame
+constexpr
+void push_u64(std::vector<uint8_t>& sc, uint64_t qword)
 {
+    v64 data{qword};
+
+    push_u32(sc, data.d.d0.d);
+    push_u32(sc, data.d.d1.d);
+}
+
+constexpr
+void push_float(std::vector<uint8_t>& sc, float f)
+{
+    push_u32(sc, *(uint32_t*)&f);
+}
+
+constexpr
+void push_double(std::vector<uint8_t>& sc, double d)
+{
+    push_u64(sc, *(uint64_t*)&d);
+}
+
+constexpr
+void push(std::vector<uint8_t>& sc, void const* data, size_t size)
+{
+    sc.insert(sc.end(), (uint8_t*)data, ((uint8_t*)data) + size);
+}
+
+//------------------------------------------------------------------------------
+// Stream Configuration
+//------------------------------------------------------------------------------
+
+constexpr
+uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device)
+{
+    uint32_t const DEVICE_BASE = 0x00000004;
+    return mixer_mode | (DEVICE_BASE * (device + 1));
+}
+
+//------------------------------------------------------------------------------
+// Decoders
+//------------------------------------------------------------------------------
+
+struct rm_vlc_metadata
+{
+    uint64_t sensor_ticks;
+    uint64_t exposure;
+    uint32_t gain;
     uint32_t _reserved;
-    ray combined_ray;
-    ray left_ray;
-    ray right_ray;
-    float left_openness;
-    float right_openness;
-    float vergence_distance;
-    uint32_t valid;
+};
+
+struct rm_depth_ahat_metadata
+{
+    uint64_t sensor_ticks;
+};
+
+struct rm_depth_longthrow_metadata
+{
+    uint64_t sensor_ticks;
+};
+
+struct pv_metadata
+{
+    vector_2 f;
+    vector_2 c;
+    uint64_t exposure_time;
+    uint64x2 exposure_compensation;
+    uint32_t lens_position;
+    uint32_t focus_state;
+    uint32_t iso_speed;
+    uint32_t white_balance;
+    vector_2 iso_gains;
+    vector_3 white_balance_gains;
+    uint32_t _reserved;
 };
 
 //------------------------------------------------------------------------------
-// Calibration
+// Mode 2 Data Acquisition
 //------------------------------------------------------------------------------
 
 struct calibration_rm_vlc
@@ -464,7 +469,43 @@ struct calibration_pv
     float tangential_distortion[2];
     float projection[4][4];
     float extrinsics[4][4];
+    float intrinsics_mf[4];
+    float extrinsics_mf[7];
 };
+
+//------------------------------------------------------------------------------
+// Port Information
+//------------------------------------------------------------------------------
+
+constexpr
+char const* get_port_name(uint16_t port)
+{
+    switch (port)
+    {
+    case hl2ss::stream_port::RM_VLC_LEFTFRONT:     return "rm_vlc_leftfront";
+    case hl2ss::stream_port::RM_VLC_LEFTLEFT:      return "rm_vlc_leftleft";
+    case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    return "rm_vlc_rightfront";
+    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    return "rm_vlc_rightright";
+    case hl2ss::stream_port::RM_DEPTH_AHAT:        return "rm_depth_ahat";
+    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   return "rm_depth_longthrow";
+    case hl2ss::stream_port::RM_IMU_ACCELEROMETER: return "rm_imu_accelerometer";
+    case hl2ss::stream_port::RM_IMU_GYROSCOPE:     return "rm_imu_gyroscope";
+    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  return "rm_imu_magnetometer";
+    case hl2ss::ipc_port::REMOTE_CONFIGURATION:    return "remote_configuration";
+    case hl2ss::stream_port::PERSONAL_VIDEO:       return "personal_video";
+    case hl2ss::stream_port::MICROPHONE:           return "microphone";
+    case hl2ss::stream_port::SPATIAL_INPUT:        return "spatial_input";
+    case hl2ss::ipc_port::SPATIAL_MAPPING:         return "spatial_mapping";
+    case hl2ss::ipc_port::SCENE_UNDERSTANDING:     return "scene_understanding";
+    case hl2ss::ipc_port::VOICE_INPUT:             return "voice_input";
+    case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     return "unity_message_queue";
+    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return "extended_eye_tracker";
+    case hl2ss::stream_port::EXTENDED_AUDIO:       return "extended_audio";
+    case hl2ss::stream_port::EXTENDED_VIDEO:       return "extended_video";
+    case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     return "guest_message_queue";
+    default:                                       return nullptr;
+    }
+}
 
 //------------------------------------------------------------------------------
 // Remote Configuration
@@ -563,6 +604,12 @@ uint32_t const Min =  100;
 uint32_t const Max = 3200;
 }
 
+namespace pv_backlight_compensation_state
+{
+uint32_t const Disable = 0;
+uint32_t const Enable  = 1;
+}
+
 namespace pv_capture_scene_mode
 {
 uint32_t const Auto          =  0;
@@ -579,10 +626,41 @@ uint32_t const NightPortrait = 11;
 uint32_t const Backlit       = 12;
 }
 
-namespace pv_backlight_compensation_state
+namespace pv_media_capture_optimization
 {
-uint32_t const Disable = 0;
-uint32_t const Enable  = 1;
+uint32_t const Default            = 0;
+uint32_t const Quality            = 1;
+uint32_t const Latency            = 2;
+uint32_t const Power              = 3;
+uint32_t const LatencyThenQuality = 4;
+uint32_t const LatencyThenPower   = 5;
+uint32_t const PowerAndQuality    = 6;
+}
+
+namespace pv_capture_use
+{
+uint32_t const NotSet = 0;
+uint32_t const Photo  = 1;
+uint32_t const Video  = 2;
+}
+
+namespace pv_optical_image_stabilization_mode
+{
+uint32_t const Off = 0;
+uint32_t const On  = 1;
+}
+
+namespace pv_hdr_video_mode
+{
+uint32_t const Off  = 0;
+uint32_t const On   = 1;
+uint32_t const Auto = 2;
+}
+
+namespace pv_region_of_interest_type
+{
+uint32_t const Unknown = 0;
+uint32_t const Face    = 1;
 }
 
 struct version
@@ -594,13 +672,222 @@ struct version
 // Spatial Mapping
 //------------------------------------------------------------------------------
 
-// TODO
+namespace sm_vertex_position_format
+{
+uint32_t const R32G32B32A32Float         =  2;
+uint32_t const R16G16B16A16IntNormalized = 13;
+}
+
+namespace sm_triangle_index_format
+{
+uint32_t const R16UInt = 57;
+uint32_t const R32Uint = 42;
+}
+
+namespace sm_vertex_normal_format
+{
+uint32_t const R32G32B32A32Float     =  2;
+uint32_t const R8G8B8A8IntNormalized = 31;
+}
+
+namespace sm_volume_type
+{
+uint32_t const Box         = 0;
+uint32_t const Frustum     = 1;
+uint32_t const OrientedBox = 2;
+uint32_t const Sphere      = 3;
+}
+
+struct sm_box
+{
+    vector_3 center;
+    vector_3 extents;
+};
+
+struct sm_frustum
+{
+    plane p_near;
+    plane p_far;
+    plane p_right;
+    plane p_left;
+    plane p_top;
+    plane p_bottom;
+};
+
+struct sm_oriented_box
+{
+    vector_3 center;
+    vector_3 extents;
+    quaternion orientation;
+};
+
+struct sm_sphere
+{
+    vector_3 center;
+    float radius;
+};
+
+struct guid
+{
+    uint64_t l;
+    uint64_t h;
+};
+
+struct sm_surface_info
+{
+    guid id;
+    uint64_t update_time;
+};
+
+class sm_bounding_volume
+{
+private:
+    std::vector<uint8_t> m_data;
+    uint32_t m_count;
+
+public:
+    sm_bounding_volume()
+    {
+        m_count = 0;
+    }
+
+    sm_bounding_volume(uint32_t count, uint8_t const* data, size_t size)
+    {
+        m_count = count;
+        m_data  = { data, data + size };
+    }
+
+    void add_box(sm_box box)
+    {
+        m_count++;
+        push_u32(m_data, sm_volume_type::Box);
+        push(m_data, &box,  sizeof(box));
+    }
+
+    void add_frustum(sm_frustum frustum)
+    {
+        m_count++;
+        push_u32(m_data, sm_volume_type::Frustum);
+        push(m_data, &frustum, sizeof(frustum));
+    }
+
+    void add_oriented_box(sm_oriented_box oriented_box)
+    {
+        m_count++;
+        push_u32(m_data, sm_volume_type::OrientedBox);
+        push(m_data, &oriented_box, sizeof(oriented_box));
+    }
+
+    void add_sphere(sm_sphere sphere)
+    {
+        m_count++;
+        push_u32(m_data, sm_volume_type::Sphere);
+        push(m_data, &sphere, sizeof(sphere));
+    }
+
+    uint32_t get_count() const
+    {
+        return m_count;
+    }
+
+    uint8_t const* get_data() const
+    {
+        return m_data.data();
+    }
+
+    size_t get_size() const
+    {
+        return m_data.size();
+    }
+};
+
+class sm_mesh_task
+{
+private:
+    std::vector<uint8_t> m_data;
+    uint32_t m_count;
+    
+public:
+    sm_mesh_task()
+    {
+        m_count = 0;
+    }
+
+    sm_mesh_task(uint32_t count, uint8_t const* data, size_t size)
+    {
+        m_count = count;
+        m_data  = { data, data + size };
+    }
+
+    void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds)
+    {
+        m_count++;
+        push_u64(m_data, id.l);
+        push_u64(m_data, id.h);
+        push_double(m_data, max_triangles_per_cubic_meter);
+        push_u32(m_data, vertex_position_format);
+        push_u32(m_data, triangle_index_format);
+        push_u32(m_data, vertex_normal_format);
+        push_u32(m_data, (1*include_vertex_normals) | (2*include_bounds));
+    }
+
+    uint32_t get_count() const
+    {
+        return m_count;
+    }
+
+    uint8_t const* get_data() const
+    {
+        return m_data.data();
+    }
+
+    size_t get_size() const
+    {
+        return m_data.size();
+    }
+};
 
 //------------------------------------------------------------------------------
 // Scene Understanding
 //------------------------------------------------------------------------------
 
-// TODO
+namespace su_mesh_lod
+{
+uint32_t const Coarse    =   0;
+uint32_t const Medium    =   1;
+uint32_t const Fine      =   2;
+uint32_t const Unlimited = 255;
+}
+
+namespace su_kind_flag
+{
+uint8_t const Background         =   1;
+uint8_t const Wall               =   2;
+uint8_t const Floor              =   4;
+uint8_t const Ceiling            =   8;
+uint8_t const Platform           =  16;
+uint8_t const Unknown            =  32;
+uint8_t const World              =  64;
+uint8_t const CompletelyInferred = 128;
+}
+
+namespace su_create
+{
+uint8_t const New             = 0;
+uint8_t const NewFromPrevious = 1;
+}
+
+namespace su_kind
+{
+int32_t const Background         =   0;
+int32_t const Wall               =   1;
+int32_t const Floor              =   2;
+int32_t const Ceiling            =   3;
+int32_t const Platform           =   4;
+int32_t const Unknown            = 247;
+int32_t const World              = 248;
+int32_t const CompletelyInferred = 249;
+}
 
 //------------------------------------------------------------------------------
 // Voice Input
@@ -624,68 +911,172 @@ struct vi_result
 };
 
 //------------------------------------------------------------------------------
-// Stream Configuration
+// Unity Message Queue
 //------------------------------------------------------------------------------
 
-constexpr
-char const* get_port_name(uint16_t port)
+class umq_command_buffer
 {
-    switch (port)
-    {
-    case hl2ss::stream_port::RM_VLC_LEFTFRONT:     return "rm_vlc_leftfront";
-    case hl2ss::stream_port::RM_VLC_LEFTLEFT:      return "rm_vlc_leftleft";
-    case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    return "rm_vlc_rightfront";
-    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    return "rm_vlc_rightright";
-    case hl2ss::stream_port::RM_DEPTH_AHAT:        return "rm_depth_ahat";
-    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   return "rm_depth_longthrow";
-    case hl2ss::stream_port::RM_IMU_ACCELEROMETER: return "rm_imu_accelerometer";
-    case hl2ss::stream_port::RM_IMU_GYROSCOPE:     return "rm_imu_gyroscope";
-    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  return "rm_imu_magnetometer";
-    case hl2ss::ipc_port::REMOTE_CONFIGURATION:    return "remote_configuration";
-    case hl2ss::stream_port::PERSONAL_VIDEO:       return "personal_video";
-    case hl2ss::stream_port::MICROPHONE:           return "microphone";
-    case hl2ss::stream_port::SPATIAL_INPUT:        return "spatial_input";
-    case hl2ss::ipc_port::SPATIAL_MAPPING:         return "spatial_mapping";
-    case hl2ss::ipc_port::SCENE_UNDERSTANDING:     return "scene_understanding";
-    case hl2ss::ipc_port::VOICE_INPUT:             return "voice_input";
-    case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     return "unity_message_queue";
-    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return "extended_eye_tracker";
-    case hl2ss::stream_port::EXTENDED_AUDIO:       return "extended_audio";
-    case hl2ss::stream_port::EXTENDED_VIDEO:       return "extended_video";
-    case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     return "guest_message_queue";
-    default:                                       return nullptr;
-    }
-}
+private:
+    std::vector<uint8_t> m_buffer;
+    uint32_t m_count;
 
-constexpr
-uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device)
-{
-    uint32_t const DEVICE_BASE = 0x00000004;
-    return mixer_mode | (DEVICE_BASE * (device + 1));
-}
+public:
+    umq_command_buffer()
+    {
+        m_count = 0;
+    }
+
+    void add(uint32_t id, void const* data, size_t size)
+    {
+        push_u32(m_buffer, id);
+        push_u32(m_buffer, (uint32_t)size);
+        push(m_buffer, data, size);
+        m_count++;
+    }
+
+    void clear()
+    {
+        m_buffer.clear();
+        m_count = 0;
+    }
+
+    uint8_t const* data()
+    {
+        return m_buffer.data();
+    }
+
+    size_t size()
+    {
+        return m_buffer.size();
+    }
+
+    uint32_t count()
+    {
+        return m_count;
+    }
+};
 
 //------------------------------------------------------------------------------
 // Unpacking
 //------------------------------------------------------------------------------
 
-constexpr
-void unpack_rm_vlc(uint8_t* payload, uint8_t*& image)
+struct rm_imu_sample
 {
-    image = payload;
+    uint64_t sensor_timestamp;
+    uint64_t timestamp;
+    float x;
+    float y;
+    float z;
+    float temperature;
+};
+
+namespace si_valid
+{
+uint32_t const HEAD  = 0x01;
+uint32_t const EYE   = 0x02;
+uint32_t const LEFT  = 0x04;
+uint32_t const RIGHT = 0x08;
+}
+
+struct si_head_pose
+{
+    vector_3 position;
+    vector_3 forward;
+    vector_3 up;
+};
+
+namespace si_hand_joint_kind
+{
+uint8_t const Palm               =  0;
+uint8_t const Wrist              =  1;
+uint8_t const ThumbMetacarpal    =  2;
+uint8_t const ThumbProximal      =  3;
+uint8_t const ThumbDistal        =  4;
+uint8_t const ThumbTip           =  5;
+uint8_t const IndexMetacarpal    =  6;
+uint8_t const IndexProximal      =  7;
+uint8_t const IndexIntermediate  =  8;
+uint8_t const IndexDistal        =  9;
+uint8_t const IndexTip           = 10;
+uint8_t const MiddleMetacarpal   = 11;
+uint8_t const MiddleProximal     = 12;
+uint8_t const MiddleIntermediate = 13;
+uint8_t const MiddleDistal       = 14;
+uint8_t const MiddleTip          = 15;
+uint8_t const RingMetacarpal     = 16;
+uint8_t const RingProximal       = 17;
+uint8_t const RingIntermediate   = 18;
+uint8_t const RingDistal         = 19;
+uint8_t const RingTip            = 20;
+uint8_t const LittleMetacarpal   = 21;
+uint8_t const LittleProximal     = 22;
+uint8_t const LittleIntermediate = 23;
+uint8_t const LittleDistal       = 24;
+uint8_t const LittleTip          = 25;
+uint8_t const TOTAL              = 26;
+}
+
+struct si_hand_joint
+{
+    quaternion orientation;
+    vector_3 position;
+    float radius;
+    int32_t accuracy;
+};
+
+struct si_frame
+{
+    uint32_t valid;
+    si_head_pose head_pose;
+    ray eye_ray;
+    si_hand_joint left_hand[26];
+    si_hand_joint right_hand[26];
+};
+
+namespace eet_valid
+{
+uint32_t const CALIBRATION       = 0x01;
+uint32_t const COMBINED_RAY      = 0x02;
+uint32_t const LEFT_RAY          = 0x04;
+uint32_t const RIGHT_RAY         = 0x08;
+uint32_t const LEFT_OPENNESS     = 0x10;
+uint32_t const RIGHT_OPENNESS    = 0x20;
+uint32_t const VERGENCE_DISTANCE = 0x40;
+}
+
+struct eet_frame
+{
+    uint32_t _reserved;
+    ray combined_ray;
+    ray left_ray;
+    ray right_ray;
+    float left_openness;
+    float right_openness;
+    float vergence_distance;
+    uint32_t valid;
+};
+
+constexpr
+void unpack_rm_vlc(uint8_t* payload, uint8_t*& image, rm_vlc_metadata*& metadata)
+{
+    image    =                    payload;
+    metadata = (rm_vlc_metadata*)(payload + parameters_rm_vlc::PIXELS);
 }
 
 constexpr
-void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab)
+void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_ahat_metadata*& metadata)
 {
-    depth = (uint16_t*)(payload);
-    ab    = (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
+    depth    = (uint16_t*)              (payload);
+    ab       = (uint16_t*)              (payload + (    parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
+    metadata = (rm_depth_ahat_metadata*)(payload + (2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
 }
 
 constexpr
-void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab)
+void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_longthrow_metadata*& metadata)
 {
-    depth = (uint16_t*)(payload);
-    ab    = (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
+    depth    = (uint16_t*)                   (payload);
+    ab       = (uint16_t*)                   (payload + (    parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
+    metadata = (rm_depth_longthrow_metadata*)(payload + (2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
 }
 
 constexpr
@@ -695,10 +1086,10 @@ void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples)
 }
 
 constexpr
-void unpack_pv(uint8_t* payload, uint64_t size, uint8_t*& image, pv_intrinsics*& intrinsics)
+void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_metadata*& metadata)
 {
-    image = payload;
-    intrinsics = (pv_intrinsics*)(payload + size - sizeof(pv_intrinsics));
+    image    =                payload;
+    metadata = (pv_metadata*)(payload + size - sizeof(pv_metadata));
 }
 
 constexpr
@@ -771,11 +1162,80 @@ namespace ulm
 
 struct packet
 {
+    int64_t frame_stamp;
     uint64_t timestamp;
     uint32_t sz_payload;
-    uint32_t _reserved;
+    int32_t status;
     uint8_t* payload;
     matrix_4x4* pose;
+};
+
+struct sm_mesh
+{
+    uint32_t status;
+    vector_3 vertex_position_scale;
+    uint64_t bounds_size;
+    uint64_t vertex_positions_size;
+    uint64_t triangle_indices_size;
+    uint64_t vertex_normals_size;
+    matrix_4x4* pose;    
+    uint8_t* bounds_data;
+    uint8_t* vertex_positions_data;
+    uint8_t* triangle_indices_data;
+    uint8_t* vertex_normals_data;
+};
+
+struct su_mesh
+{
+    uint64_t vertex_positions_size;
+    uint64_t triangle_indices_size;
+    uint8_t* vertex_positions_data;
+    uint8_t* triangle_indices_data;   
+};
+
+struct su_item
+{
+    guid id;
+    int32_t kind;
+    uint32_t _reserved;
+    quaternion orientation;
+    vector_3 position;
+    int32_t alignment;
+    vector_2 extents;
+    uint32_t meshes_count;
+    uint32_t collider_meshes_count;
+    matrix_4x4* location;
+    void* meshes;
+    void* collider_meshes;
+};
+
+struct su_result_header
+{
+    uint32_t status;
+    uint32_t count;
+    matrix_4x4* extrinsics;
+    matrix_4x4* pose;
+};
+
+struct su_task 
+{
+    bool enable_quads;
+    bool enable_meshes;
+    bool enable_only_observed;
+    bool enable_world_mesh;
+    uint32_t mesh_lod;
+    float query_radius;
+    uint8_t create_mode;
+    uint8_t kind_flags;
+    bool get_orientation;
+    bool get_position;
+    bool get_location_matrix;
+    bool get_quad;
+    bool get_meshes; 
+    bool get_collider_meshes;
+    uint32_t _reserved;
+    uint64_t guid_list_size;
+    guid* guid_list_data;
 };
 
 struct gmq_message
@@ -856,13 +1316,13 @@ void close_ipc(void* ipc);
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t get_by_index(void* source, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet);
+void* get_by_index(void* source, int64_t frame_stamp, hl2ss::ulm::packet& packet);
 
 HL2SS_CLIENT_IMPORT
-int32_t get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, int64_t& frame_stamp, int32_t& status, void*& frame, hl2ss::ulm::packet& packet);
+void* get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, hl2ss::ulm::packet& packet);
 
 HL2SS_CLIENT_IMPORT
-void release_frame(void* frame);
+void release_packet(void* reference);
 
 //-----------------------------------------------------------------------------
 // Control
@@ -879,19 +1339,34 @@ int32_t stop_subsystem_pv(char const* host, uint16_t port);
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_vlc(char const* host, uint16_t port, calibration_rm_vlc& calibration);
+void* download_calibration_rm_vlc(char const* host, uint16_t port, hl2ss::calibration_rm_vlc*& calibration);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_depth_ahat(char const* host, uint16_t port, calibration_rm_depth_ahat& calibration);
+void* download_calibration_rm_depth_ahat(char const* host, uint16_t port, hl2ss::calibration_rm_depth_ahat*& calibration);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_depth_longthrow(char const* host, uint16_t port, calibration_rm_depth_longthrow& calibration);
+void* download_calibration_rm_depth_longthrow(char const* host, uint16_t port, calibration_rm_depth_longthrow*& calibration);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_rm_imu(char const* host, uint16_t port, calibration_rm_imu& calibration);
+void* download_calibration_rm_imu(char const* host, uint16_t port, calibration_rm_imu*& calibration);
 
 HL2SS_CLIENT_IMPORT
-int32_t download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, calibration_pv& calibration);
+void* download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, calibration_pv*& calibration);
+
+HL2SS_CLIENT_IMPORT
+void release_calibration_rm_vlc(void* reference);
+
+HL2SS_CLIENT_IMPORT
+void release_calibration_rm_depth_ahat(void* reference);
+
+HL2SS_CLIENT_IMPORT
+void release_calibration_rm_depth_longthrow(void* reference);
+
+HL2SS_CLIENT_IMPORT
+void release_calibration_rm_imu(void* reference);
+
+HL2SS_CLIENT_IMPORT
+void release_calibration_pv(void* reference);
 
 //------------------------------------------------------------------------------
 // Remote Configuration
@@ -942,17 +1417,64 @@ int32_t rc_set_pv_scene_mode(void* ipc, uint32_t mode);
 HL2SS_CLIENT_IMPORT
 int32_t rc_set_flat_mode(void* ipc, uint32_t mode);
 
+HL2SS_CLIENT_IMPORT
+int32_t rc_set_rm_eye_selection(void* ipc, uint32_t enable);
+
+HL2SS_CLIENT_IMPORT
+int32_t rc_set_pv_desired_optimization(void* ipc, uint32_t mode);
+
+HL2SS_CLIENT_IMPORT
+int32_t rc_set_pv_primary_use(void* ipc, uint32_t mode);
+
+HL2SS_CLIENT_IMPORT
+int32_t rc_set_pv_optical_image_stabilization(void* ipc, uint32_t mode);
+
+HL2SS_CLIENT_IMPORT
+int32_t rc_set_pv_hdr_video(void* ipc, uint32_t mode);
+
+HL2SS_CLIENT_IMPORT
+int32_t rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h);
+
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
 
-// TODO:
+HL2SS_CLIENT_IMPORT
+int32_t sm_create_observer(void* ipc);
+
+HL2SS_CLIENT_IMPORT
+int32_t sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size);
+
+HL2SS_CLIENT_IMPORT
+void* sm_get_observed_surfaces(void* ipc, uint64_t& size, hl2ss::sm_surface_info*& data);
+
+HL2SS_CLIENT_IMPORT
+void sm_release_surfaces(void* reference);
+
+HL2SS_CLIENT_IMPORT
+void* sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads);
+
+HL2SS_CLIENT_IMPORT
+void sm_release_meshes(void* reference);
+
+HL2SS_CLIENT_IMPORT
+int32_t sm_unpack_mesh(void* reference, uint32_t index, hl2ss::ulm::sm_mesh& mesh);
 
 //------------------------------------------------------------------------------
 // Scene Understanding
 //------------------------------------------------------------------------------
 
-// TODO:
+HL2SS_CLIENT_IMPORT
+void* su_query(void* ipc, hl2ss::ulm::su_task const& task, hl2ss::ulm::su_result_header& header);
+
+HL2SS_CLIENT_IMPORT
+void su_release(void* reference);
+
+HL2SS_CLIENT_IMPORT
+int32_t su_unpack_item(void* reference, uint32_t index, hl2ss::ulm::su_item& item);
+
+HL2SS_CLIENT_IMPORT
+int32_t su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm::su_mesh& mesh);
 
 //------------------------------------------------------------------------------
 // Voice Input
@@ -962,7 +1484,7 @@ HL2SS_CLIENT_IMPORT
 int32_t vi_create_recognizer(void* ipc);
 
 HL2SS_CLIENT_IMPORT
-int32_t vi_register_commands(void* ipc, bool clear, char const* utf8_array, uint32_t& status);
+int32_t vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status);
 
 HL2SS_CLIENT_IMPORT
 int32_t vi_start(void* ipc);
