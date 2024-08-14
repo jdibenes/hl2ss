@@ -313,6 +313,11 @@ struct ray
     vector_3 direction;
 };
 
+struct uint64x2
+{
+    uint64_t val[2];
+};
+
 //------------------------------------------------------------------------------
 // * Client
 //------------------------------------------------------------------------------
@@ -578,25 +583,6 @@ public:
 // * Decoders
 //------------------------------------------------------------------------------
 
-
-struct float2
-{
-    float x;
-    float y;
-};
-
-struct float3
-{
-    float x;
-    float y;
-    float z;
-};
-
-struct uint64x2
-{
-    uint64_t val[2];
-};
-
 struct rm_vlc_metadata
 {
     uint64_t sensor_ticks;
@@ -617,16 +603,16 @@ struct rm_depth_longthrow_metadata
 
 struct pv_metadata
 {
-    float2   f;
-    float2   c;
+    vector_2 f;
+    vector_2 c;
     uint64_t exposure_time;
     uint64x2 exposure_compensation;
     uint32_t lens_position;
     uint32_t focus_state;
     uint32_t iso_speed;
     uint32_t white_balance;
-    float2   iso_gains;
-    float3   white_balance_gains;
+    vector_2 iso_gains;
+    vector_3 white_balance_gains;
     uint32_t _reserved;
 };
 
