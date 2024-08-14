@@ -82,5 +82,29 @@ methods
     function set_flat_mode(self, value)
         self.module('ipc_call', self.port, 'set_flat_mode', uint32(value));
     end
+
+    function set_rm_eye_selection(self, enable)
+        self.module('ipc_call', self.port, 'set_rm_eye_selection', uint32(enable));
+    end
+
+    function set_pv_desired_optimization(self, mode)
+        self.module('ipc_call', self.port, 'set_pv_desired_optimization', uint32(mode));
+    end
+
+    function set_pv_primary_use(self, mode)
+        self.module('ipc_call', self.port, 'set_pv_primary_use', uint32(mode));
+    end
+
+    function set_pv_optical_image_stabilization(self, mode)
+        self.module('ipc_call', self.port, 'set_pv_optical_image_stabilization', uint32(mode));
+    end
+
+    function set_pv_hdr_video(self, mode)
+        self.module('ipc_call', self.port, 'set_pv_hdr_video', uint32(mode));
+    end
+
+    function set_pv_regions_of_interest(self, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h)
+        self.module('ipc_call', self.port, 'set_pv_regions_of_interest', logical(clear), logical(set), logical(auto_exposure), logical(auto_focus), logical(bounds_normalized), uint32(type), uint32(weight), single(x), single(y), single(w), single(h));
+    end
 end
 end
