@@ -970,6 +970,15 @@ struct rm_imu_sample
     float temperature;
 };
 
+namespace pv_focus_state
+{
+uint32_t const UNINITIALIZED = 0;
+uint32_t const LOST          = 1;
+uint32_t const SEARCHING     = 2;
+uint32_t const FOCUSED       = 3;
+uint32_t const FAILED        = 4;
+}
+
 namespace si_valid
 {
 uint32_t const HEAD  = 0x01;
