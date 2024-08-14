@@ -94,7 +94,7 @@ if (__name__ == '__main__'):
         sink_left.acquire()
 
         # Get frames ----------------------------------------------------------
-        _, data_left = sink_left.get_most_recent_frame()
+        _, _, data_left = sink_left.get_buffered_frame(-6)
         if (data_left is None):
             continue
 
