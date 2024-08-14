@@ -1090,6 +1090,14 @@ class unpack_rm_imu:
 # PV Decoder
 #------------------------------------------------------------------------------
 
+class PV_FocusState:
+    UNINITIALIZED = 0
+    LOST          = 1
+    SEARCHING     = 2
+    FOCUSED       = 3
+    FAILED        = 4
+
+
 class _PV_Frame:
     def __init__(self, image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains):
         self.image                 = image
