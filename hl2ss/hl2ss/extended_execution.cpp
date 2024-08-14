@@ -1,8 +1,8 @@
 
+#include <atomic>
 #include "log.h"
 
 #include <winrt/Windows.Foundation.h>
-
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.ExtendedExecution.h>
 #include <winrt/Windows.ApplicationModel.ExtendedExecution.Foreground.h>
@@ -22,6 +22,8 @@ static wchar_t const* g_flat_name = L"flat_mode.cfg";
 
 static ExtendedExecutionForegroundSession g_eefs = nullptr;
 static bool g_status = false;
+
+static std::atomic<int32_t> g_interface_priority[32];
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -93,4 +95,18 @@ bool ExtendedExecution_GetFlatMode()
 	}
 
 	return false;
+}
+
+// OK
+void ExtendedExecution_SetInterfacePriority(uint32_t id, int32_t priority)
+{
+	if (id >= 32) { return; }
+	if ((priority < -2) || (priority > 2)) { return; }
+	g_interface_priority[id] = priority;
+}
+
+// OK
+int32_t ExtendedExecution_GetInterfacePriority(uint32_t id)
+{
+	return g_interface_priority[id];
 }

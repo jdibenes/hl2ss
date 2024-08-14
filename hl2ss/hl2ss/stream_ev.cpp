@@ -7,6 +7,7 @@
 #include "ports.h"
 #include "timestamps.h"
 #include "ipc_sc.h"
+#include "extended_execution.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.h>
@@ -274,12 +275,15 @@ static DWORD WINAPI EV_EntryPoint(void *param)
 
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    int base_priority;
 
     listensocket = CreateSocket(PORT_NAME_EV);
 
     ShowMessage("EV: Listening at port %s", PORT_NAME_EV);
 
     AcquireSRWLockExclusive(&g_lock);
+
+    base_priority = GetThreadPriority(GetCurrentThread());
 
     do
     {
@@ -290,7 +294,11 @@ static DWORD WINAPI EV_EntryPoint(void *param)
 
     ShowMessage("EV: Client connected");
 
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EV - PORT_NUMBER_BASE));
+
     EV_Stream(clientsocket);
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 

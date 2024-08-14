@@ -1932,6 +1932,12 @@ class PV_RegionOfInterestType:
     Unknown = 0
     Face = 1
 
+class InterfacePriority:
+    LOWEST = -2
+    BELOW_NORMAL = -1
+    NORMAL = 0
+    ABOVE_NORMAL = 1
+    HIGHEST = 2
 
 class ipc_rc(_context_manager):
     _CMD_GET_APPLICATION_VERSION = 0x00
@@ -1954,6 +1960,7 @@ class ipc_rc(_context_manager):
     _CMD_SET_PV_OPTICAL_IMAGE_STABILIZATION = 0x11
     _CMD_SET_PV_HDR_VIDEO = 0x12
     _CMD_SET_PV_REGIONS_OF_INTEREST = 0x13
+    _CMD_SET_INTERFACE_PRIORITY = 0x14
 
     def __init__(self, host, port):
         self.host = host
@@ -2056,6 +2063,10 @@ class ipc_rc(_context_manager):
     def set_pv_regions_of_interest(self, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h):
         mode = (0x1000 if (clear) else 0) | (0x0800 if (set) else 0) | (0x0400 if (auto_exposure) else 0) | (0x0200 if (auto_focus) else 0) | (0x0100 if (bounds_normalized) else 0) | ((type & 1) << 7) | (weight & 0x007F)
         command = struct.pack('<BIffff', ipc_rc._CMD_SET_PV_REGIONS_OF_INTEREST, mode, x, y, w, h)
+        self._client.sendall(command)
+
+    def set_interface_priority(self, port, priority):
+        command = struct.pack('<BIi', ipc_rc._CMD_SET_INTERFACE_PRIORITY, port, priority)
         self._client.sendall(command)
     
 

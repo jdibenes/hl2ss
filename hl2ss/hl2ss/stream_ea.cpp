@@ -3,6 +3,7 @@
 #include "custom_media_sink.h"
 #include "custom_media_buffers.h"
 #include "extended_audio.h"
+#include "extended_execution.h"
 #include "neon.h"
 #include "log.h"
 #include "ports.h"
@@ -220,12 +221,15 @@ static DWORD WINAPI EA_EntryPoint(void*)
 {
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    int base_priority;
 
     listensocket = CreateSocket(PORT_NAME_EA);
 
     ShowMessage("EA: Listening at port %s", PORT_NAME_EA);
 
     AcquireSRWLockExclusive(&g_lock);
+
+    base_priority = GetThreadPriority(GetCurrentThread());
 
     do
     {
@@ -236,7 +240,11 @@ static DWORD WINAPI EA_EntryPoint(void*)
 
     ShowMessage("EA: Client connected");
 
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EA - PORT_NUMBER_BASE));
+
     EA_Shoutcast(clientsocket);
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 

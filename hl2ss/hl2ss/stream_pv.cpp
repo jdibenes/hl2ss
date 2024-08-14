@@ -9,6 +9,7 @@
 #include "timestamps.h"
 #include "ipc_sc.h"
 #include "research_mode.h"
+#include "extended_execution.h"
 #include "nfo.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
@@ -344,12 +345,15 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    int base_priority;
 
     listensocket = CreateSocket(PORT_NAME_PV);
 
     ShowMessage("PV: Listening at port %s", PORT_NAME_PV);
 
     AcquireSRWLockExclusive(&g_lock);
+
+    base_priority = GetThreadPriority(GetCurrentThread());
 
     do
     {
@@ -360,7 +364,11 @@ static DWORD WINAPI PV_EntryPoint(void *param)
 
     ShowMessage("PV: Client connected");
 
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_PV - PORT_NUMBER_BASE));
+
     PV_Stream(clientsocket);
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 

@@ -446,6 +446,30 @@ static void RC_MSG_SetRegionsOfInterest(SOCKET clientsocket)
 }
 
 // OK
+static void RC_MSG_SetInterfacePriority(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t id;
+    uint32_t priority;
+
+    ok = recv_u32(clientsocket, id);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ok = recv_u32(clientsocket, priority);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ExtendedExecution_SetInterfacePriority(id - PORT_NUMBER_BASE, priority);
+}
+
+// OK
 static void RC_Dispatch(SOCKET clientsocket)
 {
     uint8_t state;
@@ -480,6 +504,7 @@ static void RC_Dispatch(SOCKET clientsocket)
     case 0x11: RC_MSG_SetPVOpticalImageStabilization(clientsocket); break;
     case 0x12: RC_MSG_SetPVHdrVideo(clientsocket);                  break;
     case 0x13: RC_MSG_SetRegionsOfInterest(clientsocket);           break;
+    case 0x14: RC_MSG_SetInterfacePriority(clientsocket);           break;
     default:
         RC_TransferError();
         return;

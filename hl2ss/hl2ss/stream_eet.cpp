@@ -2,6 +2,7 @@
 #include "server.h"
 #include "locator.h"
 #include "extended_eye_tracking.h"
+#include "extended_execution.h"
 #include "ports.h"
 #include "timestamps.h"
 #include "log.h"
@@ -139,6 +140,7 @@ static DWORD WINAPI EET_EntryPoint(void* param)
     uint64_t utc_offset;
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    int base_priority;
 
     ShowMessage("EET: Waiting for consent");
 
@@ -150,6 +152,8 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 
     ShowMessage("EET: Listening at port %s", PORT_NAME_EET);
 
+    base_priority = GetThreadPriority(GetCurrentThread());
+
     do
     {
     ShowMessage("EET: Waiting for client");
@@ -159,7 +163,11 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 
     ShowMessage("EET: Client connected");
 
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EET - PORT_NUMBER_BASE));
+
     EET_Stream(clientsocket, locator, utc_offset);
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 
