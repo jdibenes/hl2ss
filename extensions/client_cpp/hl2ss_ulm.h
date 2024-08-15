@@ -1372,6 +1372,12 @@ HL2SS_CLIENT_IMPORT
 void* download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, calibration_pv*& calibration);
 
 HL2SS_CLIENT_IMPORT
+void* download_devicelist_extended_audio(char const* host, uint16_t port, uint32_t& size, uint8_t*& query);
+
+HL2SS_CLIENT_IMPORT
+void* download_devicelist_extended_video(char const* host, uint16_t port, uint32_t& size, uint8_t*& query);
+
+HL2SS_CLIENT_IMPORT
 void release_calibration_rm_vlc(void* reference);
 
 HL2SS_CLIENT_IMPORT
@@ -1385,6 +1391,9 @@ void release_calibration_rm_imu(void* reference);
 
 HL2SS_CLIENT_IMPORT
 void release_calibration_pv(void* reference);
+
+HL2SS_CLIENT_IMPORT
+void release_devicelist(void* reference);
 
 //------------------------------------------------------------------------------
 // Remote Configuration

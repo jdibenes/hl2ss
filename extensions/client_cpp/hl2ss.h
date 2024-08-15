@@ -832,6 +832,8 @@ std::shared_ptr<calibration_rm_depth_ahat> download_calibration_rm_depth_ahat(ch
 std::shared_ptr<calibration_rm_depth_longthrow> download_calibration_rm_depth_longthrow(char const* host, uint16_t port);
 std::shared_ptr<calibration_rm_imu> download_calibration_rm_imu(char const* host, uint16_t port);
 std::shared_ptr<calibration_pv> download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate);
+std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_audio(char const* host, uint16_t port);
+std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_video(char const* host, uint16_t port);
 
 //------------------------------------------------------------------------------
 // * Port Information

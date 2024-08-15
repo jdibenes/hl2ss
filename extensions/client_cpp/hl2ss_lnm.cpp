@@ -197,6 +197,16 @@ std::shared_ptr<hl2ss::calibration_pv> download_calibration_pv(char const* host,
     return hl2ss::download_calibration_pv(host, port, width, height, framerate);
 }
 
+std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_audio(char const* host, uint16_t port)
+{
+    return hl2ss::download_devicelist_extended_audio(host, port);
+}
+
+std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_video(char const* host, uint16_t port)
+{
+    return hl2ss::download_devicelist_extended_video(host, port);
+}
+
 //------------------------------------------------------------------------------
 // IPC
 //------------------------------------------------------------------------------

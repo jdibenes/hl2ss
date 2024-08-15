@@ -1227,6 +1227,44 @@ std::shared_ptr<calibration_pv> download_calibration_pv(char const* host, uint16
     return data;
 }
 
+std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_audio(char const* host, uint16_t port)
+{
+    std::shared_ptr<std::vector<uint8_t>> data = std::make_shared<std::vector<uint8_t>>();
+    uint32_t size;
+    std::vector<uint8_t> sc;
+    client c;
+
+    create_configuration_for_extended_audio(sc, mixer_mode::QUERY, 1.0, 1.0, audio_profile::AAC_24000, aac_level::L2);
+
+    c.open(host, port);
+    c.sendall(sc.data(), sc.size());
+    c.download(&size, sizeof(size), chunk_size::SINGLE_TRANSFER);
+    data->resize(size);
+    c.download(data->data(), size, chunk_size::SINGLE_TRANSFER);
+    c.close();
+
+    return data;
+}
+
+std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_video(char const* host, uint16_t port)
+{
+    std::shared_ptr<std::vector<uint8_t>> data = std::make_shared<std::vector<uint8_t>>();
+    uint32_t size;
+    std::vector<uint8_t> sc;
+    client c;
+
+    create_configuration_for_pv_mode_2(sc, stream_mode::MODE_2, 1920, 1080, 30);
+
+    c.open(host, port);
+    c.sendall(sc.data(), sc.size());
+    c.download(&size, sizeof(size), chunk_size::SINGLE_TRANSFER);
+    data->resize(size);
+    c.download(data->data(), size, chunk_size::SINGLE_TRANSFER);
+    c.close();
+
+    return data;
+}
+
 //------------------------------------------------------------------------------
 // * Port Information
 //------------------------------------------------------------------------------

@@ -454,6 +454,28 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
+void* download_devicelist_extended_audio(char const* host, uint16_t port, uint32_t& size, uint8_t*& query)
+HL2SS_ULM_BEGIN
+{
+    std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_audio(host, port);
+    size  = (uint32_t)data->size();
+    query = data->data();
+    return new std::shared_ptr<std::vector<uint8_t>>(data); // delete
+}
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
+void* download_devicelist_extended_video(char const* host, uint16_t port, uint32_t& size, uint8_t*& query)
+HL2SS_ULM_BEGIN
+{
+    std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_video(host, port);
+    size  = (uint32_t)data->size();
+    query = data->data();
+    return new std::shared_ptr<std::vector<uint8_t>>(data); // delete
+}
+HL2SS_ULM_END(nullptr)
+
+HL2SS_CLIENT_EXPORT
 void release_calibration_rm_vlc(void* reference)
 HL2SS_ULM_BEGIN
 {
@@ -492,6 +514,12 @@ HL2SS_ULM_BEGIN
     delete (std::shared_ptr<hl2ss::calibration_pv>*)reference;
 }
 HL2SS_ULM_END(void())
+
+HL2SS_CLIENT_EXPORT
+void release_devicelist(void* reference)
+{
+    delete (std::shared_ptr<std::vector<uint8_t>>*)reference;
+}
 
 //------------------------------------------------------------------------------
 // Remote Configuration
