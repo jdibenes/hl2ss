@@ -54,7 +54,7 @@ classdef sink_rm_vlc < matlab.System
             obj.client.open()
         end
 
-        function [frame_index, status, timestamp, image, pose] = stepImpl(obj, sync, index)
+        function [frame_index, status, timestamp, image, pose, sensor_ticks, exposure, gain] = stepImpl(obj, sync, index)
             if (sync <= 0)
                 response = obj.client.get_packet_by_index(index);
             else
@@ -66,14 +66,14 @@ classdef sink_rm_vlc < matlab.System
             data = obj.definition_rm_vlc;
             data = hl2ss.ms.unpack_rm_vlc(response, obj.mode);
 
-            frame_index = data.frame_index;
-            status      = data.status;
-            timestamp   = data.timestamp;
-            image       = data.image;
-            % sensor_ticks
-            % exposure
-            % gain
-            pose        = data.pose;
+            frame_index  = data.frame_index;
+            status       = data.status;
+            timestamp    = data.timestamp;
+            image        = data.image;
+            sensor_ticks = data.sensor_ticks;
+            exposure     = data.exposure;
+            gain         = data.gain;
+            pose         = data.pose;
         end
 
         function resetImpl(obj)
@@ -84,36 +84,48 @@ classdef sink_rm_vlc < matlab.System
             obj.client.close();
         end
 
-        function [out1, out2, out3, out4, out5] = getOutputSizeImpl(obj)
+        function [out1, out2, out3, out4, out5, out6, out7, out8] = getOutputSizeImpl(obj)
             out1 = [1, 1];
             out2 = [1, 1];
             out3 = [1, 1];
             out4 = obj.getImageSize();
             out5 = [4, 4];
+            out6 = [1, 1];
+            out7 = [1, 1];
+            out8 = [1, 1];
         end
 
-        function [out1, out2, out3, out4, out5] = getOutputDataTypeImpl(obj)
+        function [out1, out2, out3, out4, out5, out6, out7, out8] = getOutputDataTypeImpl(obj)
             out1 = 'int64';
             out2 = 'int32';
             out3 = 'uint64';
             out4 = 'uint8';
             out5 = 'single';
+            out6 = 'uint64';
+            out7 = 'uint64';
+            out8 = 'uint32';
         end
 
-        function [out1, out2, out3, out4, out5] = isOutputComplexImpl(obj)
+        function [out1, out2, out3, out4, out5, out6, out7, out8] = isOutputComplexImpl(obj)
             out1 = false;
             out2 = false;
             out3 = false;
             out4 = false;
             out5 = false;
+            out6 = false;
+            out7 = false;
+            out8 = false;
         end
 
-        function [out1, out2, out3, out4, out5] = isOutputFixedSizeImpl(obj)
+        function [out1, out2, out3, out4, out5, out6, out7, out8] = isOutputFixedSizeImpl(obj)
             out1 = true;
             out2 = true;
             out3 = true;
             out4 = true;
             out5 = true;
+            out6 = true;
+            out7 = true;
+            out8 = true;
         end
 
         function sts = getSampleTimeImpl(obj)
