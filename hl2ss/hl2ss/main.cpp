@@ -108,7 +108,7 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 
 	void Run()
 	{
-		auto window = CoreWindow::GetForCurrentThread();
+		auto const& window = CoreWindow::GetForCurrentThread();
 		window.Activate();
 
 		while (!m_windowClosed)

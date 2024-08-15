@@ -62,11 +62,11 @@ static bool ExtendedAudio_FindAudioSource(MediaCapture const& mediaCapture, Medi
 
     for (auto const& frameSource : mediaCapture.FrameSources())
     {
-    auto source = frameSource.Value();
+    auto const& source = frameSource.Value();
     if (source.Info().MediaStreamType() != MediaStreamType::Audio) { continue; }
     for (auto const& format : source.SupportedFormats())
     {
-    auto aep = format.AudioEncodingProperties();
+    auto const& aep = format.AudioEncodingProperties();
     if (aep.SampleRate() != 48000) { continue; }
     AudioSubtype subtype;
     bool ok = ExtendedAudio_ParseSubtype(aep.Subtype(), subtype);

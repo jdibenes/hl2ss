@@ -50,7 +50,7 @@ DWORD CustomMediaSink::GetStreamId(IMFStreamSink* stream)
 // OK
 CustomStreamSink* CustomMediaSink::GetStreamSinkById(DWORD dwStreamSinkIdentifier)
 {
-    for (auto stream : m_streams) { if (GetStreamId(stream) == dwStreamSinkIdentifier) { return stream; } }
+    for (auto const& stream : m_streams) { if (GetStreamId(stream) == dwStreamSinkIdentifier) { return stream; } }
     return NULL;
 }
 
@@ -58,14 +58,14 @@ CustomStreamSink* CustomMediaSink::GetStreamSinkById(DWORD dwStreamSinkIdentifie
 CustomStreamSink* CustomMediaSink::GetStreamSinkByIndex(DWORD dwIndex)
 {
     DWORD idx = 0;
-    for (auto stream : m_streams) { if (idx++ == dwIndex) { return stream; } }
+    for (auto const& stream : m_streams) { if (idx++ == dwIndex) { return stream; } }
     return NULL;
 }
 
 // OK
 void CustomMediaSink::CleanupStreams()
 {
-    for (auto stream : m_streams) { stream->Release(); }
+    for (auto const& stream : m_streams) { stream->Release(); }
     m_streams.clear();
 }
 
@@ -207,7 +207,7 @@ HRESULT CustomMediaSink::Shutdown()
 {
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto stream : m_streams) { stream->Shutdown(); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Shutdown(); } // TODO: Error Handling
     //SafeRelease(&m_pClock);
     CleanupStreams();    
     m_isShutdown = true;
@@ -226,7 +226,7 @@ HRESULT CustomMediaSink::OnClockStart(MFTIME hnsSystemTime, LONGLONG llClockStar
 {
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto stream : m_streams) { stream->Start(hnsSystemTime, llClockStartOffset); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Start(hnsSystemTime, llClockStartOffset); } // TODO: Error Handling
     return S_OK;
 }
 
@@ -235,7 +235,7 @@ HRESULT CustomMediaSink::OnClockStop(MFTIME hnsSystemTime)
 {
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto stream : m_streams) { stream->Stop(hnsSystemTime); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Stop(hnsSystemTime); } // TODO: Error Handling
     return S_OK;
 }
 
@@ -244,7 +244,7 @@ HRESULT CustomMediaSink::OnClockPause(MFTIME hnsSystemTime)
 {
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto stream : m_streams) { stream->Pause(hnsSystemTime); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Pause(hnsSystemTime); } // TODO: Error Handling
     return S_OK;
 }
 
@@ -253,7 +253,7 @@ HRESULT CustomMediaSink::OnClockRestart(MFTIME hnsSystemTime)
 {
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto stream : m_streams) { stream->Restart(hnsSystemTime); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Restart(hnsSystemTime); } // TODO: Error Handling
     return S_OK;
 }
 
@@ -262,6 +262,6 @@ HRESULT CustomMediaSink::OnClockSetRate(MFTIME hnsSystemTime, float flRate)
 {
     CriticalSection cs(&m_critSec);
     if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto stream : m_streams) { stream->SetRate(hnsSystemTime, flRate); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->SetRate(hnsSystemTime, flRate); } // TODO: Error Handling
     return S_OK;
 }

@@ -140,7 +140,7 @@ void HolographicSpace_Clear()
 
     for (HolographicCameraPose const& pose : g_frame.CurrentPrediction().CameraPoses())
     {
-    auto rp = g_frame.GetRenderingParameters(pose);
+    auto const& rp = g_frame.GetRenderingParameters(pose);
     rp.Direct3D11BackBuffer().as<IDirect3DDxgiInterfaceAccess>()->GetInterface(IID_PPV_ARGS(&d3dBackBuffer));
     g_context->CopyResource(d3dBackBuffer.Get(), g_enable_marker ? g_texture_marker : g_texture_empty);
     }

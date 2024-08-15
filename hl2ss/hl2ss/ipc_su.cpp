@@ -69,7 +69,7 @@ static void SU_TransferMeshes(SOCKET clientsocket, std::vector<std::shared_ptr<S
         return;
     }
 
-    for (auto& mesh : meshes)
+    for (auto const& mesh : meshes)
     {
     count_vertices = mesh->GetVertexCount();
     count_triangle_indices = mesh->GetTriangleIndexCount();

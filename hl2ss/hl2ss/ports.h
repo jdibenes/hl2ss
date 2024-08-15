@@ -1,6 +1,7 @@
 
 #pragma once
 
+#define PORT_NUMBER_BASE   3800
 #define PORT_NUMBER_RM_VLF 3800
 #define PORT_NUMBER_RM_VLL 3801
 #define PORT_NUMBER_RM_VRF 3802

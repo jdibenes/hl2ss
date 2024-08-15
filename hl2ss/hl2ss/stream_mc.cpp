@@ -4,6 +4,7 @@
 #include "ports.h"
 #include "microphone_capture.h"
 #include "ipc_sc.h"
+#include "extended_execution.h"
 #include "log.h"
 
 #include <winrt/Windows.UI.Core.h>
@@ -114,10 +115,13 @@ static DWORD WINAPI MC_EntryPoint(void*)
 {
 	SOCKET listensocket; // closesocket
 	SOCKET clientsocket; // closesocket
+	int base_priority;
 
 	listensocket = CreateSocket(PORT_NAME_MC);
 
 	ShowMessage("MC: Listening at port %s", PORT_NAME_MC);
+
+	base_priority = GetThreadPriority(GetCurrentThread());
 
 	do
 	{
@@ -128,7 +132,11 @@ static DWORD WINAPI MC_EntryPoint(void*)
 
 	ShowMessage("MC: Client connected");
 
+	SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_MC - PORT_NUMBER_BASE));
+
 	MC_Shoutcast(clientsocket);
+
+	SetThreadPriority(GetCurrentThread(), base_priority);
 
 	closesocket(clientsocket);
 

@@ -277,6 +277,8 @@ def _save_calibration_pv(calibration, path):
     calibration.projection           .tofile(os.path.join(path, 'projection.bin'))
     calibration.intrinsics           .tofile(os.path.join(path, 'intrinsics.bin'))
     calibration.extrinsics           .tofile(os.path.join(path, 'extrinsics.bin'))
+    calibration.intrinsics_mf        .tofile(os.path.join(path, 'intrinsics_mf.bin'))
+    calibration.extrinsics_mf        .tofile(os.path.join(path, 'extriniscs_mf.bin'))
 
 
 def _load_calibration_rm_vlc(path):
@@ -329,8 +331,10 @@ def _load_calibration_pv(path):
     projection            = np.fromfile(os.path.join(path, 'projection.bin'),            dtype=np.float32).reshape((4, 4))
     intrinsics            = np.fromfile(os.path.join(path, 'intrinsics.bin'),            dtype=np.float32).reshape((4, 4))
     extrinsics            = np.fromfile(os.path.join(path, 'extrinsics.bin'),            dtype=np.float32).reshape((4, 4))
+    intrinsics_mf         = np.fromfile(os.path.join(path, 'intrinsics_mf.bin'),         dtype=np.float32)
+    extrinsics_mf         = np.fromfile(os.path.join(path, 'extrinsics_mf.bin'),         dtype=np.float32)
 
-    return hl2ss._Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics)
+    return hl2ss._Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics, intrinsics_mf, extrinsics_mf)
 
 
 #------------------------------------------------------------------------------

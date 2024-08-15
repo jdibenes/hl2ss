@@ -36,8 +36,9 @@ mode = hl2ss.StreamMode.MODE_1
 # Effective framerate is framerate / divisor
 divisor = 1 
 
-# Video encoding profile
+# Video encoding profile and bitrate (None = default)
 profile = hl2ss.VideoProfile.H265_MAIN
+bitrate = None
 
 #------------------------------------------------------------------------------
 
@@ -69,9 +70,15 @@ client.open()
 
 while (enable):
     data = client.get_next_packet()
-    print(f'Pose at time {data.timestamp}')
+
+    print(f'Frame captured at {data.timestamp}')
+    print(f'Sensor Ticks: {data.payload.sensor_ticks}')
+    print(f'Exposure: {data.payload.exposure}')
+    print(f'Gain: {data.payload.gain}')
+    print(f'Pose')
     print(data.pose)
-    cv2.imshow('Video', data.payload)
+
+    cv2.imshow('Video', data.payload.image)
     cv2.waitKey(1)
 
 client.close()

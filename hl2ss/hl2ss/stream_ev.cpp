@@ -7,6 +7,7 @@
 #include "ports.h"
 #include "timestamps.h"
 #include "ipc_sc.h"
+#include "extended_execution.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.h>
@@ -19,10 +20,25 @@ using namespace winrt::Windows::Media::Capture::Frames;
 using namespace winrt::Windows::Media::Devices::Core;
 using namespace winrt::Windows::Foundation::Numerics;
 
+struct uint64x2
+{
+    uint64_t val[2];
+};
+
 struct PV_Projection
 {
-    float2 f;
-    float2 c;
+    float2   f;
+    float2   c;
+    uint64_t exposure_time;
+    uint64x2 exposure_compensation;
+    uint32_t lens_position;
+    uint32_t focus_state;
+    uint32_t iso_speed;
+    uint32_t white_balance;
+    float2   iso_gains;
+    float3   white_balance_gains;
+    uint32_t _reserved;
+    uint64_t timestamp;
     float4x4 pose;
 };
 
@@ -32,13 +48,14 @@ struct PV_Projection
 
 static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_thread = NULL; // CloseHandle
-static bool g_reader_status = false;
+static SRWLOCK g_lock;
 
 // Mode: 0, 1
 static IMFSinkWriter* g_pSinkWriter = NULL; // Release
 static DWORD g_dwVideoIndex = 0;
 static uint32_t g_counter = 0;
 static uint32_t g_divisor = 1;
+static PV_Projection g_pvp_sh;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -48,36 +65,43 @@ static uint32_t g_divisor = 1;
 void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
 {
     (void)args;
-    
-    CameraIntrinsics intrinsics = nullptr;
-    MediaFrameReference frame = nullptr;
+
     IMFSample* pSample; // Release
     SoftwareBitmapBuffer* pBuffer; // Release
-    int64_t timestamp;
+    PV_Projection pj;
 
-    if (!g_reader_status) { return; }
-    frame = sender.TryAcquireLatestFrame();
-    if (!frame) { return; }
-
+    if (TryAcquireSRWLockShared(&g_lock) != 0)
+    {
+    auto const& frame = sender.TryAcquireLatestFrame();
+    if (frame) 
+    {
     if (g_counter == 0)
     {
     SoftwareBitmapBuffer::CreateInstance(&pBuffer, frame);
 
     MFCreateSample(&pSample);
 
-    timestamp = frame.SystemRelativeTime().Value().count();
+    int64_t timestamp = frame.SystemRelativeTime().Value().count();
 
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(frame.Duration().count());
     pSample->SetSampleTime(timestamp);
+
+    memset(&pj, 0, sizeof(pj));
+
+    pj.timestamp = timestamp;
+
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj));
 
     g_pSinkWriter->WriteSample(g_dwVideoIndex, pSample);
 
     pSample->Release();
     pBuffer->Release();
     }
-
     g_counter = (g_counter + 1) % g_divisor;
+    }
+    ReleaseSRWLockShared(&g_lock);
+    }
 }
 
 // OK
@@ -88,38 +112,39 @@ void EV_SendSample(IMFSample* pSample, void* param)
     LONGLONG sampletime;
     BYTE* pBytes;
     DWORD cbData;
-    DWORD cbDataEx;
-    PV_Projection pj;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 6 : 5];
-    HookCallbackSocket* user;
-    bool ok;
+    WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];    
 
-    user = (HookCallbackSocket*)param;
+    HookCallbackSocket* user = (HookCallbackSocket*)param;
+    H26xFormat* format = (H26xFormat*)user->format;
+    bool sh = format->profile != H26xProfile::H26xProfile_None;
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
-    memset(&pj, 0, sizeof(pj));
+
+    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
 
     pBuffer->Lock(&pBytes, NULL, &cbData);
 
-    cbDataEx = cbData + sizeof(pj.f) + sizeof(pj.c);
+    int const metadata = sizeof(g_pvp_sh) - sizeof(g_pvp_sh.timestamp) - sizeof(g_pvp_sh.pose);
+    DWORD cbDataEx = cbData + metadata;
 
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
+    pack_buffer(wsaBuf, 0, &g_pvp_sh.timestamp, sizeof(g_pvp_sh.timestamp));
     pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
     pack_buffer(wsaBuf, 2, pBytes, cbData);
-    pack_buffer(wsaBuf, 3, &pj.f, sizeof(pj.f));
-    pack_buffer(wsaBuf, 4, &pj.c, sizeof(pj.c));
+    pack_buffer(wsaBuf, 3, &g_pvp_sh, metadata);
 
     if constexpr (ENABLE_LOCATION)
     {
-    pack_buffer(wsaBuf, 5, &pj.pose, sizeof(pj.pose));
+    pack_buffer(wsaBuf, 4, &g_pvp_sh.pose, sizeof(g_pvp_sh.pose));
     }
 
-    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
 
     pBuffer->Unlock();
     pBuffer->Release();
+
+    if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
 }
 
 // OK
@@ -150,12 +175,13 @@ void EV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 
     g_counter = 0;
     g_divisor = format.divisor;
+    memset(&g_pvp_sh, 0, sizeof(g_pvp_sh));
 
-    g_reader_status = true;
+    ReleaseSRWLockExclusive(&g_lock);
     reader.StartAsync().get();
     WaitForSingleObject(clientevent, INFINITE);
-    g_reader_status = false;
     reader.StopAsync().get();
+    AcquireSRWLockExclusive(&g_lock);
 
     g_pSinkWriter->Flush(g_dwVideoIndex);
     g_pSinkWriter->Release();
@@ -167,12 +193,11 @@ void EV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
 static void EV_DeviceQuery(SOCKET clientsocket)
 {
     winrt::hstring query;
-    uint32_t bytes;
     WSABUF wsaBuf[2];
 
     ExtendedVideo_QueryDevices(query);
 
-    bytes = query.size() * sizeof(wchar_t);
+    uint32_t bytes = query.size() * sizeof(wchar_t);
 
     pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
     pack_buffer(wsaBuf, 1, query.c_str(), bytes);
@@ -183,7 +208,6 @@ static void EV_DeviceQuery(SOCKET clientsocket)
 // OK
 static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
 {
-    MediaFrameReader videoFrameReader = nullptr;
     HANDLE clientevent; // CloseHandle
     VideoSubtype subtype;
     bool ok;
@@ -194,7 +218,7 @@ static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
     clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     ExtendedVideo_RegisterEvent(clientevent);
-    videoFrameReader = ExtendedVideo_CreateFrameReader();
+    auto const& videoFrameReader = ExtendedVideo_CreateFrameReader();
     videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
 
     switch (mode & 3)
@@ -212,6 +236,7 @@ static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
 // OK
 static void EV_Stream(SOCKET clientsocket)
 {
+    MRCVideoOptions options;
     H26xFormat format;
     uint8_t mode;    
     bool ok;
@@ -230,7 +255,6 @@ static void EV_Stream(SOCKET clientsocket)
 
     if (mode & 4)
     {
-    MRCVideoOptions options;
     ok = ReceiveMRCVideoOptions(clientsocket, options);
     if (!ok) { return; }
     if (ExtendedVideo_Status()) { ExtendedVideo_Close(); }
@@ -251,10 +275,15 @@ static DWORD WINAPI EV_EntryPoint(void *param)
 
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    int base_priority;
 
     listensocket = CreateSocket(PORT_NAME_EV);
 
     ShowMessage("EV: Listening at port %s", PORT_NAME_EV);
+
+    AcquireSRWLockExclusive(&g_lock);
+
+    base_priority = GetThreadPriority(GetCurrentThread());
 
     do
     {
@@ -265,7 +294,11 @@ static DWORD WINAPI EV_EntryPoint(void *param)
 
     ShowMessage("EV: Client connected");
 
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EV - PORT_NUMBER_BASE));
+
     EV_Stream(clientsocket);
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 
@@ -283,6 +316,7 @@ static DWORD WINAPI EV_EntryPoint(void *param)
 // OK
 void EV_Initialize()
 {
+    InitializeSRWLock(&g_lock);
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, EV_EntryPoint, NULL, 0, NULL);
 }

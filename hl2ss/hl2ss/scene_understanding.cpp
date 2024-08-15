@@ -130,7 +130,7 @@ static void SceneUnderstanding_AdvanceScene(std::shared_ptr<Scene> scene)
     g_result.selected.push_back(std::dynamic_pointer_cast<SceneObject>(component));
     }
 
-    for (auto& object : scene->GetSceneObjects()) { if ((SceneUnderstanding_KindToFlag(object->GetKind()) & g_query.kinds) && (check.count(object->GetId()) <= 0)) { g_result.selected.push_back(object); } }
+    for (auto const& object : scene->GetSceneObjects()) { if ((SceneUnderstanding_KindToFlag(object->GetKind()) & g_query.kinds) && (check.count(object->GetId()) <= 0)) { g_result.selected.push_back(object); } }
 }
 
 // OK

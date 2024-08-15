@@ -62,7 +62,9 @@ client.open()
 while (enable):
     data = client.get_next_packet()
 
-    print(f'Pose at time {data.timestamp}')
+    print(f'Frame captured at {data.timestamp}')
+    print(f'Sensor Ticks: {data.payload.sensor_ticks}')
+    print(f'Pose')
     print(data.pose)
     
     cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility

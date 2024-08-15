@@ -105,7 +105,7 @@ void SpatialMapping_GetObservedSurfaces(SpatialMapping_SurfaceInfo const*& data,
     g_observed = g_sso.GetObservedSurfaces();
     int i = 0;
     g_observed_ids.resize(g_observed.Size());
-    for (auto pair : g_observed) { g_observed_ids[i++] = { pair.Key(), pair.Value().UpdateTime().time_since_epoch().count() }; }
+    for (auto const& pair : g_observed) { g_observed_ids[i++] = { pair.Key(), pair.Value().UpdateTime().time_since_epoch().count() }; }
     data = g_observed_ids.data();
     size = g_observed_ids.size();
 }
@@ -113,7 +113,7 @@ void SpatialMapping_GetObservedSurfaces(SpatialMapping_SurfaceInfo const*& data,
 // OK
 static SpatialBoundingOrientedBox SpatialMapping_GetBounds(SpatialSurfaceInfo ssi, SpatialSurfaceMesh ssm)
 {
-    auto sbob = ssi.TryGetBounds(ssm.CoordinateSystem());
+    auto const& sbob = ssi.TryGetBounds(ssm.CoordinateSystem());
     return sbob ? sbob.Value() : SpatialBoundingOrientedBox{ {0, 0, 0}, {0, 0, 0}, {0, 0, 0, 0} };
 }
 

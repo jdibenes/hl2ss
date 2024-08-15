@@ -1,6 +1,7 @@
 
 #include <Windows.h>
 #include <combaseapi.h>
+#include "nfo.h"
 #include "log.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
@@ -32,7 +33,7 @@ void GetApplicationVersion(uint16_t data[4])
 // OK
 void GetLocalIPv4Address(std::vector<wchar_t> &address)
 {
-    for (auto hostname : NetworkInformation::GetHostNames())
+    for (auto const& hostname : NetworkInformation::GetHostNames())
     {
     if (hostname.Type() == HostNameType::Ipv4)
     {
@@ -70,12 +71,92 @@ void PrintSystemInfo()
 }
 
 // OK
+static void PrintVariant(winrt::hstring const& name, winrt::Windows::Foundation::IInspectable const& value)
+{
+    if (!value)
+    {
+        ShowMessage(L"%s : ? -> [NULL]", name.c_str());
+        return;
+    }
+
+    winrt::hstring type = winrt::get_class_name(value);
+    winrt::hstring text = L"[?]";
+
+    if (type == L"Windows.Foundation.IReferenceArray`1<UInt8>") // blob
+    {
+        auto const& w = value.try_as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>();
+        if (w)
+        { 
+            auto const& m = w.Value();
+            text = L"{" + winrt::to_hstring(m.size()) + L", [";
+            for (auto a = m.begin(); a != m.end(); a++) { text = text + winrt::hstring(a != m.begin() ? L", " : L"") + winrt::to_hstring(*a); }
+            text = text + L"]}";
+        };
+    }
+    if (type == L"Windows.Foundation.IReference`1<Boolean>")
+    {
+        auto const& w = value.try_as<bool>();
+        if (w) { text = w.value() ? L"true" : L"false"; }
+    }
+    if (type == L"Windows.Foundation.IReference`1<UInt32>")
+    {
+        auto const& w = value.try_as<uint32_t>();
+        if (w) { text = winrt::to_hstring(w.value()); }
+    }
+    if (type == L"Windows.Foundation.IReference`1<UInt64>")
+    {
+        auto const& w = value.try_as<uint64_t>();
+        if (w) { text = winrt::to_hstring(w.value()); }
+    }
+    if (type == L"Windows.Foundation.IReference`1<Guid>")
+    {
+        auto const& w = value.try_as<winrt::guid>();
+        if (w) { text = winrt::to_hstring(w.value()); }
+    }
+    if (type == L"Windows.Foundation.IReference`1<String>")
+    {
+        auto const& w = value.try_as<winrt::hstring>();
+        if (w) { text = w.value(); }
+    }
+    if (type == L"Windows.Foundation.Collections.IMapView`2<Guid, Object>")
+    {
+        auto const& w = value.try_as<winrt::Windows::Foundation::Collections::IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable>>();
+        if (w)
+        {
+            ShowMessage(L"SET %s BEGIN", name.c_str());
+            PrintProperties(w);
+            ShowMessage(L"SET %s END", name.c_str());
+        }
+    }
+
+    ShowMessage(L"%s : %s -> %s", name.c_str(), type.c_str(), text.c_str());
+}
+
+// OK
+void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::hstring, winrt::Windows::Foundation::IInspectable> const& p)
+{
+    if (p) { for (auto const& kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
+}
+
+// OK
+void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable> const& p)
+{
+    if (p) { for (auto const& kv : p) { PrintVariant(winrt::to_hstring(kv.Key()), kv.Value()); } }
+}
+
+// OK
+void PrintProperties(winrt::Windows::Foundation::Collections::IPropertySet const& p)
+{
+    if (p) { for (auto const& kv : p) { PrintVariant(kv.Key(), kv.Value()); } }
+}
+
+// OK
 void PrintDeviceList(DeviceClass dc)
 {
-    auto list = DeviceInformation::FindAllAsync(dc).get();
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
 
     ShowMessage("Items of DeviceClass %d", (int)dc);
-    for (auto item : list)
+    for (auto const& item : list)
     {
     ShowMessage(L"Name: %s", item.Name().c_str());
     ShowMessage(L"Id: %s", item.Id().c_str());
@@ -84,7 +165,7 @@ void PrintDeviceList(DeviceClass dc)
     ShowMessage("IsEnabled: %d", (int)item.IsEnabled());
     ShowMessage("Kind: %d", (int)item.Kind());
 
-    auto el = item.EnclosureLocation();
+    auto const& el = item.EnclosureLocation();
 
     if (el)
     {
@@ -94,7 +175,7 @@ void PrintDeviceList(DeviceClass dc)
     ShowMessage("RotationAngleInDegreesClockwise: %d", (int)el.RotationAngleInDegreesClockwise());
     }
         
-    auto pa = item.Pairing();
+    auto const& pa = item.Pairing();
 
     if (pa)
     {
@@ -104,42 +185,7 @@ void PrintDeviceList(DeviceClass dc)
     }
 
     ShowMessage("Properties:");
-    auto p = item.Properties();
-    if (p)
-    {
-    for (auto y : p)
-    {
-    auto s = y.Value().try_as<winrt::hstring>();
-    if (s)
-    {
-    ShowMessage(L"%s: %s", y.Key().c_str(), s.value().c_str());
-    continue;
-    }
-    auto i = y.Value().try_as<int>();
-    if (i)
-    {
-    ShowMessage(L"%s: %d", y.Key().c_str(), i.value());
-    continue;
-    }
-    auto b = y.Value().try_as<bool>();
-    if (b)
-    {
-    ShowMessage(L"%s: %d", y.Key().c_str(), (int)b.value());
-    continue;
-    }
-    auto g = y.Value().try_as<winrt::guid>();
-    if (g)
-    {
-    wchar_t buffer[39];
-    memset(buffer, 0, sizeof(buffer));
-    StringFromGUID2(g.value(), buffer, sizeof(buffer) / sizeof(wchar_t));
-    buffer[38] = L'\0';
-    ShowMessage(L"%s: %s", y.Key().c_str(), buffer);
-    continue;
-    }
-    ShowMessage(L"%s: %s", y.Key().c_str(), L"[?]");
-    }
-    }
+    PrintProperties(item.Properties());
     }
 }
 
@@ -160,16 +206,16 @@ winrt::hstring GetBuiltInId(DeviceClass dc)
 {
     winrt::hstring const key = L"System.Devices.ContainerId";
 
-    auto list = DeviceInformation::FindAllAsync(dc).get();
-    for (auto item : list)
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto const& item : list)
     {
-    auto p = item.Properties();
+    auto const& p = item.Properties();
     if (!p) { continue; }
     if (!p.HasKey(key)) { continue; }
-    auto v = p.Lookup(key);
-    auto g = v.try_as<winrt::guid>();
+    auto const& v = p.Lookup(key);
+    auto const& g = v.try_as<winrt::guid>();
     if (!g) { continue; }
-    auto d = g.value();
+    auto const& d = g.value();
     if ((d.Data1 != 0) || (d.Data2 != 0) || (d.Data3 != 0) || ((*(uint64_t*)d.Data4) != 0xFFFFFFFFFFFFFFFFULL)) { continue; }
     return item.Id();
     }
@@ -192,8 +238,8 @@ winrt::hstring GetBuiltInAudioCaptureId()
 // OK
 void GetDeviceIds(DeviceClass dc, std::vector<winrt::hstring>& ids)
 {
-    auto list = DeviceInformation::FindAllAsync(dc).get();
-    for (auto item : list)
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto const& item : list)
     {
     ids.push_back(item.Id());
     }
@@ -202,8 +248,8 @@ void GetDeviceIds(DeviceClass dc, std::vector<winrt::hstring>& ids)
 // OK
 void GetDeviceIdsAndNames(DeviceClass dc, std::vector<winrt::hstring>& ids, std::vector<winrt::hstring>& names)
 {
-    auto list = DeviceInformation::FindAllAsync(dc).get();
-    for (auto item : list)
+    auto const& list = DeviceInformation::FindAllAsync(dc).get();
+    for (auto const& item : list)
     {
     ids.push_back(item.Id());
     names.push_back(item.Name());

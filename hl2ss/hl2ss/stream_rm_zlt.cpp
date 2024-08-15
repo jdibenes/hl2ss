@@ -55,7 +55,7 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     BitmapPropertySet pngProperties;
     ZABFormat zabFormat;
     uint32_t streamSize;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 4 : 3];
+    WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];
     HRESULT hr;
     H26xFormat format;
     bool ok;
@@ -84,35 +84,38 @@ void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLoca
     pDepthFrame->GetBuffer(&pDepth, &nDepthCount);
     pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
 
-    auto softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Straight);
+    auto const& softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Straight);
     {
-    auto bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
-    auto spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
+    auto const& bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
+    auto const& spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
     spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
     Neon_ZLTToBGRA8(pSigma, pDepth, pAbImage, (u32*)pixelBufferData);
     }
 
-    auto stream = InMemoryRandomAccessStream();
-    auto encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, pngProperties).get();
+    auto const& stream = InMemoryRandomAccessStream();
+    auto const& encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, pngProperties).get();
 
     encoder.SetSoftwareBitmap(softwareBitmap);
     encoder.FlushAsync().get();
 
     streamSize = (uint32_t)stream.Size();
-    auto streamBuf = Buffer(streamSize);
+    auto const& streamBuf = Buffer(streamSize);
 
     stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
 
+    DWORD streamSizeEx = streamSize + sizeof(timestamp.SensorTicks);
+
     pack_buffer(wsaBuf, 0, &timestamp.HostTicks, sizeof(timestamp.HostTicks));
-    pack_buffer(wsaBuf, 1, &streamSize, sizeof(streamSize));
+    pack_buffer(wsaBuf, 1, &streamSizeEx, sizeof(streamSizeEx));
     pack_buffer(wsaBuf, 2, streamBuf.data(), streamSize);
+    pack_buffer(wsaBuf, 3, &timestamp.SensorTicks, sizeof(timestamp.SensorTicks));
 
     if constexpr (ENABLE_LOCATION)
     {
     ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
     pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
 
-    pack_buffer(wsaBuf, 3, &pose, sizeof(pose));
+    pack_buffer(wsaBuf, 4, &pose, sizeof(pose));
     }
 
     ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));

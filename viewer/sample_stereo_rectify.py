@@ -94,7 +94,7 @@ if (__name__ == '__main__'):
         sink_left.acquire()
 
         # Get frames ----------------------------------------------------------
-        _, data_left = sink_left.get_most_recent_frame()
+        _, _, data_left = sink_left.get_buffered_frame(-6)
         if (data_left is None):
             continue
 
@@ -103,8 +103,8 @@ if (__name__ == '__main__'):
             continue
 
         # Undistort and rectify frames ----------------------------------------
-        lf_u = cv2.remap(data_left.payload, calibration_lf.undistort_map[:, :, 0], calibration_lf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
-        rf_u = cv2.remap(data_right.payload, calibration_rf.undistort_map[:, :, 0], calibration_rf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        lf_u = cv2.remap(data_left.payload.image, calibration_lf.undistort_map[:, :, 0], calibration_lf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        rf_u = cv2.remap(data_right.payload.image, calibration_rf.undistort_map[:, :, 0], calibration_rf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
 
         lf_ru = hl2ss_3dcv.rm_vlc_rotate_image(lf_u, rotation_lf)
         rf_ru = hl2ss_3dcv.rm_vlc_rotate_image(rf_u, rotation_rf)
