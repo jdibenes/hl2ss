@@ -1016,6 +1016,15 @@ uint32_t const Unknown = 0;
 uint32_t const Face    = 1;
 }
 
+namespace interface_priority
+{
+int32_t const LOWEST       = -2;
+int32_t const BELOW_NORMAL = -1;
+int32_t const NORMAL       = 0;
+int32_t const ABOVE_NORMAL = 1;
+int32_t const HIGHEST      = 2;
+}
+
 struct version
 {
     uint16_t field[4];
@@ -1053,6 +1062,7 @@ public:
     void set_pv_optical_image_stabilization(uint32_t mode);
     void set_pv_hdr_video(uint32_t mode);
     void set_pv_regions_of_interest(bool clear, bool set, bool auto_exposure, bool auto_focus, bool bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h);
+    void set_interface_priority(uint16_t port, int32_t priority);
 };
 
 //------------------------------------------------------------------------------

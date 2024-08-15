@@ -1311,6 +1311,7 @@ uint8_t const SET_PV_PRIMARY_USE                 = 0x10;
 uint8_t const SET_PV_OPTICAL_IMAGE_STABILIZATION = 0x11;
 uint8_t const SET_PV_HDR_VIDEO                   = 0x12;
 uint8_t const SET_PV_REGIONS_OF_INTEREST         = 0x13;
+uint8_t const SET_INTERFACE_PRIORITY             = 0x14;
 };
 
 ipc_rc::ipc_rc(char const* host, uint16_t port) : ipc(host, port)
@@ -1443,6 +1444,11 @@ void ipc_rc::set_pv_regions_of_interest(bool clear, bool set, bool auto_exposure
 {
     uint32_t mode = (0x1000 * clear) | (0x0800 * set) | (0x0400 * auto_exposure) | (0x0200 * auto_focus) | (0x0100 * bounds_normalized) | ((type & 1) << 7) | (weight & 0x7F);
     send(cmd_ipc_rc::SET_PV_REGIONS_OF_INTEREST, {mode, *(uint32_t*)&x, *(uint32_t*)&y, *(uint32_t*)&w, *(uint32_t*)&h});
+}
+
+void ipc_rc::set_interface_priority(uint16_t port, int32_t priority)
+{
+    send(cmd_ipc_rc::SET_INTERFACE_PRIORITY, { (uint32_t)port, *(uint32_t*)&priority });
 }
 
 //------------------------------------------------------------------------------
