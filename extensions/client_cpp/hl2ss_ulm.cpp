@@ -41,11 +41,12 @@ struct sm_mesh
     uint64_t vertex_positions_size;
     uint64_t triangle_indices_size;
     uint64_t vertex_normals_size;
-    matrix_4x4* pose;    
+    matrix_4x4* pose;
     uint8_t* bounds_data;
     uint8_t* vertex_positions_data;
     uint8_t* triangle_indices_data;
     uint8_t* vertex_normals_data;
+    void* _reserved;
 };
 
 struct su_mesh
@@ -53,14 +54,14 @@ struct su_mesh
     uint64_t vertex_positions_size;
     uint64_t triangle_indices_size;
     uint8_t* vertex_positions_data;
-    uint8_t* triangle_indices_data;   
+    uint8_t* triangle_indices_data;
 };
 
 struct su_item
 {
     guid id;
     int32_t kind;
-    uint32_t _reserved;
+    uint32_t _reserved_0;
     quaternion orientation;
     vector_3 position;
     int32_t alignment;
@@ -70,6 +71,7 @@ struct su_item
     matrix_4x4* location;
     void* meshes;
     void* collider_meshes;
+    void* _reserved_1;
 };
 
 struct su_result_header
@@ -94,11 +96,12 @@ struct su_task
     bool get_position;
     bool get_location_matrix;
     bool get_quad;
-    bool get_meshes; 
+    bool get_meshes;
     bool get_collider_meshes;
-    uint32_t _reserved;
+    uint32_t _reserved_0;
     uint64_t guid_list_size;
     guid* guid_list_data;
+    void* _reserved_1;
 };
 
 struct gmq_message
@@ -106,6 +109,7 @@ struct gmq_message
     uint32_t command;
     uint32_t size;
     uint8_t* data;
+    void* _reserved;
 };
 
 //-----------------------------------------------------------------------------
