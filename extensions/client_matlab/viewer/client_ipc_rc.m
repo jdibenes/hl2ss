@@ -33,6 +33,7 @@ client.set_pv_primary_use(hl2ss.pv_capture_use.Video);
 client.set_pv_optical_image_stabilization(hl2ss.pv_optical_stabilization_mode.On);
 client.set_pv_hdr_video(hl2ss.pv_hdr_video_mode.Off);
 client.set_pv_regions_of_interest(true, true, true, true, true, hl2ss.pv_region_of_interest_type.Unknown, 100, 0, 0, 1, 1);
+client.set_interface_priority(hl2ss.stream_port.PERSONAL_VIDEO, hl2ss.interface_priority.ABOVE_NORMAL);
 catch ME
     disp(ME.message);
 end

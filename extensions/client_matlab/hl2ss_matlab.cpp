@@ -1110,6 +1110,12 @@ public:
         float    h                 = get_argument<float>(inputs);
         ipc_rc->set_pv_regions_of_interest(clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h);
         }
+        else if (f == "set_interface_priority")
+        {
+        uint16_t port     = get_argument<uint16_t>(inputs);
+        int32_t  priority = get_argument<int32_t>(inputs);
+        ipc_rc->set_interface_priority(port, priority);
+        }
         else
         {
         throw std::runtime_error("Unknown method");

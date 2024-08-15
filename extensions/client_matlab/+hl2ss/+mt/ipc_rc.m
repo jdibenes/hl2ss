@@ -106,5 +106,9 @@ methods
     function set_pv_regions_of_interest(self, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h)
         self.module('ipc_call', self.port, 'set_pv_regions_of_interest', logical(clear), logical(set), logical(auto_exposure), logical(auto_focus), logical(bounds_normalized), uint32(type), uint32(weight), single(x), single(y), single(w), single(h));
     end
+
+    function set_interface_priority(self, port, priority)
+        self.module('ipc_call', self.port, 'set_interface_priority', uint16(port), int32(priority));
+    end
 end
 end
