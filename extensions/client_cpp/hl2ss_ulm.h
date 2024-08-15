@@ -663,6 +663,15 @@ uint32_t const Unknown = 0;
 uint32_t const Face    = 1;
 }
 
+namespace interface_priority
+{
+int32_t const LOWEST       = -2;
+int32_t const BELOW_NORMAL = -1;
+int32_t const NORMAL       = 0;
+int32_t const ABOVE_NORMAL = 1;
+int32_t const HIGHEST      = 2;
+}
+
 struct version
 {
     uint16_t field[4];
@@ -1443,6 +1452,9 @@ int32_t rc_set_pv_hdr_video(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
 int32_t rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h);
+
+HL2SS_CLIENT_IMPORT
+int32_t rc_set_interface_priority(void* ipc, uint16_t port, int32_t priority);
 
 //------------------------------------------------------------------------------
 // Spatial Mapping

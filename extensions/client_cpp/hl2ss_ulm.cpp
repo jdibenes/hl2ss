@@ -686,6 +686,15 @@ HL2SS_ULM_BEGIN
 }
 HL2SS_ULM_END(-1)
 
+HL2SS_CLIENT_EXPORT
+int32_t rc_set_interface_priority(void* ipc, uint16_t port, int32_t priority)
+HL2SS_ULM_BEGIN
+{
+    ((hl2ss::ipc_rc*)ipc)->set_interface_priority(port, priority);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
