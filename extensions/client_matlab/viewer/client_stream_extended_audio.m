@@ -13,6 +13,10 @@ length = 20;
 %%
 
 client = hl2ss.mt.sink_extended_audio(host, hl2ss.stream_port.EXTENDED_AUDIO);
+
+media_group = client.download_calibration();
+disp(native2unicode(media_group.device_list, "UTF-16LE").');
+
 client.open();
 
 packet_duration = hl2ss.parameters_extended_audio.GROUP_SIZE_AAC / hl2ss.parameters_extended_audio.SAMPLE_RATE;

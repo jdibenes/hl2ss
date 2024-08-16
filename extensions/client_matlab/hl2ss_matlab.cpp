@@ -964,6 +964,28 @@ public:
         outputs[0] = std::move(o);
     }
 
+    void download_devicelist_extended_audio(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_audio(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "device_list" });
+
+        o[0]["device_list"] = unpack_payload<uint8_t>(data->data(), 0, data->size(), { data->size() });
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_devicelist_extended_video(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_video(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "device_list" });
+
+        o[0]["device_list"] = unpack_payload<uint8_t>(data->data(), 0, data->size(), { data->size() });
+
+        outputs[0] = std::move(o);
+    }
+
     void download_calibration(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         std::string host = get_argument_string(inputs);
@@ -980,7 +1002,9 @@ public:
         case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   download_calibration_rm_depth_longthrow(host.c_str(), port, outputs, inputs); break;
         case hl2ss::stream_port::RM_IMU_ACCELEROMETER: 
         case hl2ss::stream_port::RM_IMU_GYROSCOPE:     download_calibration_rm_imu(            host.c_str(), port, outputs, inputs); break;
-        case hl2ss::stream_port::PERSONAL_VIDEO:       download_calibration_pv(                host.c_str(), port, outputs, inputs); break;               
+        case hl2ss::stream_port::PERSONAL_VIDEO:       download_calibration_pv(                host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_AUDIO:       download_devicelist_extended_audio(     host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_VIDEO:       download_devicelist_extended_video(     host.c_str(), port, outputs, inputs); break;
         default:                                       throw std::runtime_error("Unsupported port");
         }
     }

@@ -22,6 +22,9 @@ framerate = 30;
 
 client = hl2ss.mt.sink_pv(host, hl2ss.stream_port.EXTENDED_VIDEO, width, height, framerate);
 
+media_group = client.download_calibration();
+disp(native2unicode(media_group.device_list, "UTF-16LE").');
+
 client.start_subsystem(false, false, false, false, false, false, false, group_index, source_index, profile_index, 0, 0);
 client.open();
 
