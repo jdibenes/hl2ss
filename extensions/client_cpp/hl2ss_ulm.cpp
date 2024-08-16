@@ -307,7 +307,7 @@ HL2SS_ULM_BEGIN
         bool decoded = true;
         rx = hl2ss::lnm::rx_rm_depth_longthrow(host, port, p.chunk, p.mode, p.divisor, p.png_filter, decoded);
         break;
-    }        
+    }
     case hl2ss::stream_port::RM_IMU_ACCELEROMETER:
     case hl2ss::stream_port::RM_IMU_GYROSCOPE:
     case hl2ss::stream_port::RM_IMU_MAGNETOMETER:
