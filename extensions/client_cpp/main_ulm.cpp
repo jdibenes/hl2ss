@@ -1,206 +1,69 @@
 
 #include <iostream>
+#include <chrono>
+#include <thread>
 #include <opencv2/highgui.hpp>
 #include "hl2ss_ulm.h"
 
-hl2ss::calibration_rm_vlc calibration_rm_vlc[4];
-hl2ss::calibration_rm_depth_ahat calibration_rm_depth_ahat;
-hl2ss::calibration_rm_depth_longthrow calibration_rm_depth_longthrow;
-hl2ss::calibration_rm_imu calibration_rm_imu[2];
-hl2ss::calibration_pv calibration_pv;
+
 
 void test_sources(char const* host)
 {
-    hl2ss::ulm::initialize();
+    hl2ss::svc::start_subsystem_pv(host, hl2ss::stream_port::PERSONAL_VIDEO);
+    hl2ss::ulm::configuration_pv cfg_pv;
+    hl2ss::ulm::configuration_rm_vlc cfg_vlc;
+    hl2ss::svc::create_configuration_pv(cfg_pv);
+    hl2ss::svc::create_configuration_rm_vlc(cfg_vlc);
+    
+    int const x= sizeof(hl2ss::ulm::configuration_pv);
 
-    uint16_t source_ports[] = 
-    {
-        //hl2ss::stream_port::RM_VLC_LEFTFRONT,
-        //hl2ss::stream_port::RM_VLC_LEFTLEFT,
-        //hl2ss::stream_port::RM_VLC_RIGHTFRONT,
-        //hl2ss::stream_port::RM_VLC_RIGHTRIGHT,
-        //hl2ss::stream_port::RM_DEPTH_AHAT,
-        //hl2ss::stream_port::RM_DEPTH_LONGTHROW,
-        //hl2ss::stream_port::RM_IMU_ACCELEROMETER,
-        //hl2ss::stream_port::RM_IMU_GYROSCOPE,
-        //hl2ss::stream_port::RM_IMU_MAGNETOMETER,
-        hl2ss::stream_port::PERSONAL_VIDEO,
-        //hl2ss::stream_port::MICROPHONE,
-        //hl2ss::stream_port::SPATIAL_INPUT,
-        //hl2ss::stream_port::EXTENDED_EYE_TRACKER,
-        //hl2ss::stream_port::EXTENDED_AUDIO,
-        //hl2ss::stream_port::EXTENDED_VIDEO,
-    };
+    std::unique_ptr<hl2ss::svc::source> source_pv = hl2ss::svc::open_stream(host, hl2ss::stream_port::PERSONAL_VIDEO, 300, &cfg_pv);
 
-    constexpr int source_count = sizeof(source_ports) / sizeof(uint16_t);
-    void* source_objects[source_count];
+    std::shared_ptr<hl2ss::svc::device_list> dev_list = hl2ss::svc::download_device_list(host, hl2ss::stream_port::EXTENDED_AUDIO);
+    std::shared_ptr<hl2ss::svc::calibration<hl2ss::calibration_rm_vlc>> calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_vlc>(host, hl2ss::stream_port::RM_VLC_LEFTFRONT, &cfg_vlc);
 
-    for (int i = 0; i < source_count; ++i)
-    {
-        switch (source_ports[i])
-        {
-        case hl2ss::stream_port::RM_VLC_LEFTFRONT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[0]);
-            source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_VLC_LEFTLEFT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[1]);
-            source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_VLC_RIGHTFRONT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[2]);  
-            source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:
-            hl2ss::ulm::download_calibration_rm_vlc(host, source_ports[i], calibration_rm_vlc[3]);
-            source_objects[i] = hl2ss::ulm::open_rm_vlc(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_DEPTH_AHAT:
-            hl2ss::ulm::download_calibration_rm_depth_ahat(host, source_ports[i], calibration_rm_depth_ahat);
-            source_objects[i] = hl2ss::ulm::open_rm_depth_ahat(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_DEPTH_LONGTHROW:
-            hl2ss::ulm::download_calibration_rm_depth_longthrow(host, source_ports[i], calibration_rm_depth_longthrow);
-            source_objects[i] = hl2ss::ulm::open_rm_depth_longthrow(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_IMU_ACCELEROMETER:
-            hl2ss::ulm::download_calibration_rm_imu(host, source_ports[i], calibration_rm_imu[0]);
-            source_objects[i] = hl2ss::ulm::open_rm_imu(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_IMU_GYROSCOPE:
-            hl2ss::ulm::download_calibration_rm_imu(host, source_ports[i], calibration_rm_imu[1]); 
-            source_objects[i] = hl2ss::ulm::open_rm_imu(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  
-            source_objects[i] = hl2ss::ulm::open_rm_imu(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::PERSONAL_VIDEO:
-            hl2ss::ulm::start_subsystem_pv(host, source_ports[i]);
-            hl2ss::ulm::download_calibration_pv(host, source_ports[i], 640, 360, 30, calibration_pv);
-            source_objects[i] = hl2ss::ulm::open_pv(host, source_ports[i], 640, 360, 30);
-            break;
-        case hl2ss::stream_port::MICROPHONE:           
-            source_objects[i] = hl2ss::ulm::open_microphone(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::SPATIAL_INPUT:        
-            source_objects[i] = hl2ss::ulm::open_si(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::EXTENDED_EYE_TRACKER: 
-            source_objects[i] = hl2ss::ulm::open_eet(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::EXTENDED_AUDIO:       
-            source_objects[i] = hl2ss::ulm::open_extended_audio(host, source_ports[i]); 
-            break;
-        case hl2ss::stream_port::EXTENDED_VIDEO:
-            hl2ss::ulm::start_subsystem_pv(host, source_ports[i], 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 0, 1);
-            source_objects[i] = hl2ss::ulm::open_pv(host, source_ports[i], 640, 360, 30); 
-            break;
-        }
-    }
+    std::cout << calibration->data->intrinsics[0] << ", " << calibration->data->intrinsics[1] << std::endl;
 
-    cv::namedWindow("CONTROL");
+    //std::shared_ptr<hl2ss::svc::ipc_rc> ipc_rc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_rc>(host, hl2ss::ipc_port::REMOTE_CONFIGURATION);
+    //ipc_rc->set_pv_exposure(hl2ss::pv_exposure_mode::Manual, hl2ss::pv_exposure_value::Min);
+    //ipc_rc.reset();
+
 
     while (true)
     {
-        if ((cv::waitKey(1) & 0xFF) == 27) { break; }
-
-        int64_t frame_stamp = -1;
-        int32_t status;
-        void* frame;
-        uint64_t timestamp;
-        uint32_t payload_size;
-        uint8_t* payload;
-        hl2ss::matrix_4x4* pose;
-        uint64_t target_timestamp;
-        int32_t result;
-
-        uint8_t* pv_image;
-        hl2ss::pv_intrinsics* pv_intrinsics;
-
-        for (int i = 0; i < source_count; ++i)
+        std::shared_ptr<hl2ss::svc::packet> packet_pv = source_pv->get_by_index(-1);
+        if (packet_pv->status != 0)
         {
-            result = hl2ss::ulm::get_by_index(source_objects[i], frame_stamp, status, frame, timestamp, payload_size, payload, pose);
-            if (result < 0) { continue; } // fatal error (network error, decode error, ...), must close and open anew
-            if (status != 0) { continue; } // status < 0: frame has been dropped, status == 0: OK, status > 0: frame has not arrived yet
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+        else
+        {
+            uint8_t* image;
+            hl2ss::pv_metadata* metadata;
+            hl2ss::unpack_pv(packet_pv->payload, packet_pv->sz_payload, image, metadata);
 
-            switch (source_ports[i])
-            {
-            case hl2ss::stream_port::PERSONAL_VIDEO:
-            case hl2ss::stream_port::EXTENDED_VIDEO:
-                hl2ss::unpack_pv(payload, payload_size, pv_image, pv_intrinsics);
-                cv::imshow(hl2ss::get_port_name(source_ports[i]), cv::Mat(360, 640, CV_8UC3, pv_image));
-                break;
-            }
-
-            hl2ss::ulm::release_frame(frame); // all pointers from hl2ss::ulm::get_by_[...] and hl2ss::unpack_[...] are now "invalid"
-
-            target_timestamp = timestamp;
-
-            result = hl2ss::ulm::get_by_timestamp(source_objects[i], target_timestamp, hl2ss::mt::time_preference::PREFER_NEAREST, false, frame_stamp, status, frame, timestamp, payload_size, payload, pose);
-            if (result < 0) { continue; } // fatal error (network error, decode error, ...), must close and open anew
-            if (status != 0) { continue; } // status != 0: buffer is empty, status == 0: OK
-
-            hl2ss::ulm::release_frame(frame);
+            cv::Mat mat_image = cv::Mat(cfg_pv.height, cfg_pv.width, CV_8UC3, image);
+            cv::imshow("Video", mat_image);
+            if ((cv::waitKey(1) & 0xFF) == 27) { break; }
         }
     }
 
-    for (int i = 0; i < source_count; ++i)
-    {
-        switch (source_ports[i])
-        {
-        case hl2ss::stream_port::RM_VLC_LEFTFRONT:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_VLC_LEFTLEFT:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_VLC_RIGHTFRONT:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_DEPTH_AHAT:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_DEPTH_LONGTHROW:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_IMU_ACCELEROMETER:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_IMU_GYROSCOPE:
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::PERSONAL_VIDEO:
-            hl2ss::ulm::close_source(source_objects[i]);
-            hl2ss::ulm::stop_subsystem_pv(host, source_ports[i]);
-            break;
-        case hl2ss::stream_port::MICROPHONE:           
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::SPATIAL_INPUT:        
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::EXTENDED_EYE_TRACKER: 
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::EXTENDED_AUDIO:       
-            hl2ss::ulm::close_source(source_objects[i]);
-            break;
-        case hl2ss::stream_port::EXTENDED_VIDEO:
-            hl2ss::ulm::close_source(source_objects[i]);
-            hl2ss::ulm::stop_subsystem_pv(host, source_ports[i]);
-            break;
-        }
-    }
+    hl2ss::svc::stop_subsystem_pv(host, hl2ss::stream_port::PERSONAL_VIDEO);
 }
+
 
 int main()
 {
-    test_sources("192.168.1.7");
+    try
+    {
+        hl2ss::ulm::initialize();
+        test_sources("192.168.1.7");
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
+    //test_ipc("192.168.1.7");
     return 0;
 }

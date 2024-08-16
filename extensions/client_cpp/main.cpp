@@ -53,9 +53,13 @@ void test_rm_vlc(char const* host, uint16_t port)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
-        hl2ss::unpack_rm_vlc(data->payload.get(), image);
+        hl2ss::rm_vlc_metadata* metadata;
+        hl2ss::unpack_rm_vlc(data->payload.get(), image, metadata);
 
         print_packet_metadata(data->timestamp, data->pose.get());
+        std::cout << "Sensor Ticks: " << metadata->sensor_ticks << std::endl;
+        std::cout << "Exposure: " << metadata->exposure << std::endl;
+        std::cout << "Gain: " << metadata->gain << std::endl;
 
         cv::Mat mat_image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, image);
         cv::imshow(port_name, mat_image);
@@ -87,9 +91,11 @@ void test_rm_depth_ahat(char const* host)
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint16_t* depth;
         uint16_t* ab;
-        hl2ss::unpack_rm_depth_ahat(data->payload.get(), depth, ab);
+        hl2ss::rm_depth_ahat_metadata* metadata;
+        hl2ss::unpack_rm_depth_ahat(data->payload.get(), depth, ab, metadata);
 
         print_packet_metadata(data->timestamp, data->pose.get());
+        std::cout << "Sensor Ticks: " << metadata->sensor_ticks << std::endl;
 
         cv::Mat mat_depth = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, depth);
         cv::Mat mat_ab    = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, ab);
@@ -123,9 +129,11 @@ void test_rm_depth_longthrow(char const* host)
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint16_t* depth;
         uint16_t* ab;
-        hl2ss::unpack_rm_depth_longthrow(data->payload.get(), depth, ab);
+        hl2ss::rm_depth_longthrow_metadata* metadata;
+        hl2ss::unpack_rm_depth_longthrow(data->payload.get(), depth, ab, metadata);
 
         print_packet_metadata(data->timestamp, data->pose.get());
+        std::cout << "Sensor Ticks: " << metadata->sensor_ticks << std::endl;
 
         cv::Mat mat_depth = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, depth);
         cv::Mat mat_ab    = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, ab);
@@ -190,13 +198,22 @@ void test_pv(char const* host, uint16_t width, uint16_t height, uint8_t framerat
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
-        hl2ss::pv_intrinsics* intrinsics;
-        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, intrinsics);
+        hl2ss::pv_metadata* metadata;
+        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, metadata);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
-        std::cout << "Focal length: "    << intrinsics->fx << ", " << intrinsics->fy << std::endl;
-        std::cout << "Principal point: " << intrinsics->cx << ", " << intrinsics->cy << std::endl;
+        std::cout << "Focal length: "    << metadata->f.x << ", " << metadata->f.y << std::endl;
+        std::cout << "Principal point: " << metadata->c.x << ", " << metadata->c.y << std::endl;
+
+        std::cout << "exposure_time: " << metadata->exposure_time << std::endl;
+        std::cout << "exposure_compensation: " << metadata->exposure_compensation.val[0] << "," << metadata->exposure_compensation.val[1] << std::endl;
+        std::cout << "lens_position: " << metadata->lens_position << std::endl;
+        std::cout << "focus_state: " << metadata->focus_state << std::endl;
+        std::cout << "iso_speed: " << metadata->iso_speed << std::endl;
+        std::cout << "white_balance: " << metadata->white_balance << std::endl;
+        std::cout << "iso_gains: " << metadata->iso_gains.x << "," << metadata->iso_gains.y << std::endl;
+        std::cout << "white_balance_gains: " << metadata->white_balance_gains.x << "," << metadata->white_balance_gains.y << "," << metadata->white_balance_gains.z << std::endl;
 
         cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, image);
         cv::imshow(port_name, mat_image);
@@ -340,7 +357,7 @@ void test_sm(char const* host)
     hl2ss::sm_mesh_task task;
     std::vector<hl2ss::sm_mesh> meshes;
 
-    volumes.add_box({0.0f, 0.0f, 0.0f}, {5.0f, 5.0f, 5.0f});
+    volumes.add_box({0.0f, 0.0f, 0.0f, 8.0f, 8.0f, 8.0f});
     client->open();
     client->create_observer();
     client->set_volumes(volumes);
@@ -545,8 +562,8 @@ void test_mt(char const* host)
 
             // Unpack PV image and show
             uint8_t* pv_image;
-            hl2ss::pv_intrinsics* pv_intrinsics;
-            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_intrinsics);
+            hl2ss::pv_metadata* pv_metadata;
+            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_metadata);
             cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
             cv::imshow(pv_name, pv_mat);
 
@@ -571,7 +588,8 @@ void test_mt(char const* host)
                 // Unpack depth image and show
                 uint16_t* lt_depth;
                 uint16_t* lt_ab;
-                hl2ss::unpack_rm_depth_longthrow(data_lt->payload.get(), lt_depth, lt_ab);                
+                hl2ss::rm_depth_longthrow_metadata* lt_metadata;
+                hl2ss::unpack_rm_depth_longthrow(data_lt->payload.get(), lt_depth, lt_ab, lt_metadata);                
                 cv::Mat lt_depth_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_depth);
                 cv::Mat lt_ab_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_ab);
                 cv::imshow(lt_depth_name, lt_depth_mat * 8); // Scaled for visibility otherwise image will be too dark
@@ -679,8 +697,8 @@ void test_pv_umq(char const* host)
             // Show video frame
             // Note that the unpacked pointers are only valid as long as data_pv exists
             uint8_t* pv_image;
-            hl2ss::pv_intrinsics* pv_intrinsics;            
-            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_intrinsics);
+            hl2ss::pv_metadata* pv_metadata;            
+            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_metadata);
             cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
             cv::imshow("PV", pv_mat);
 
@@ -724,13 +742,13 @@ void test_extended_video(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
         uint8_t* image;
-        hl2ss::pv_intrinsics* intrinsics;
-        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, intrinsics);
+        hl2ss::pv_metadata* pv_metadata;
+        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, pv_metadata);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
-        std::cout << "Focal length: "    << intrinsics->fx << ", " << intrinsics->fy << std::endl;
-        std::cout << "Principal point: " << intrinsics->cx << ", " << intrinsics->cy << std::endl;
+        std::cout << "Focal length: "    << pv_metadata->f.x << ", " << pv_metadata->f.y << std::endl;
+        std::cout << "Principal point: " << pv_metadata->c.x << ", " << pv_metadata->c.y << std::endl;
 
         cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, image);
         cv::imshow(port_name, mat_image);
