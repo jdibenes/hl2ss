@@ -1910,64 +1910,63 @@ void ipc_gmq::push(uint32_t const* response, uint32_t count)
 // * Unpacking
 //------------------------------------------------------------------------------
 
-void unpack_rm_vlc(uint8_t* payload, uint8_t*& image, rm_vlc_metadata*& metadata)
+map_rm_vlc unpack_rm_vlc(uint8_t* payload)
 {
-    image    =                    payload;
-    metadata = (rm_vlc_metadata*)(payload + parameters_rm_vlc::PIXELS);
+    return { payload, (rm_vlc_metadata*)(payload + parameters_rm_vlc::PIXELS) };
 }
 
-void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_ahat_metadata*& metadata)
+map_rm_depth_ahat unpack_rm_depth_ahat(uint8_t* payload)
 {
-    depth    = (uint16_t*)              (payload);
-    ab       = (uint16_t*)              (payload + (    parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
-    metadata = (rm_depth_ahat_metadata*)(payload + (2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
+    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))), (rm_depth_ahat_metadata*)(payload + (2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))) };
 }
 
-void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_longthrow_metadata*& metadata)
+map_rm_depth_longthrow unpack_rm_depth_longthrow(uint8_t* payload)
 {
-    depth    = (uint16_t*)                   (payload);
-    ab       = (uint16_t*)                   (payload + (    parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
-    metadata = (rm_depth_longthrow_metadata*)(payload + (2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
+    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))), (rm_depth_longthrow_metadata*)(payload + (2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))) };
 }
 
-void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples)
+map_rm_imu unpack_rm_imu(uint8_t* payload)
 {
-    samples = (rm_imu_sample*)payload;
+    return { (rm_imu_sample*)payload };
 }
 
-void unpack_pv(uint8_t* payload, uint32_t size, uint8_t*& image, pv_metadata*& metadata)
+map_pv unpack_pv(uint8_t* payload, uint32_t size)
 {
-    image    =                payload;
-    metadata = (pv_metadata*)(payload + size - sizeof(pv_metadata));
+    return { payload, (pv_metadata*)(payload + size - sizeof(pv_metadata)) };
 }
 
-void unpack_microphone_raw(uint8_t* payload, int16_t*& samples)
+map_microphone_raw unpack_microphone_raw(uint8_t* payload)
 {
-    samples = (int16_t*)payload;
+    return { (int16_t*)payload };
 }
 
-void unpack_microphone_aac(uint8_t* payload, float*& samples)
+map_microphone_aac unpack_microphone_aac(uint8_t* payload)
 {
-    samples = (float*)payload;
+    return { (float*)payload };
 }
 
-void unpack_si(uint8_t* payload, si_frame*& si)
+map_microphone_array unpack_microphone_array(uint8_t* payload)
 {
-    si = (si_frame*)payload;
+    return { (float*)payload };
 }
 
-void unpack_eet(uint8_t* payload, eet_frame*& eet)
+map_si unpack_si(uint8_t* payload)
 {
-    eet = (eet_frame*)payload;
+    return { (si_frame*)payload };
 }
 
-void unpack_extended_audio_raw(uint8_t* payload, int16_t*& samples)
+map_eet unpack_eet(uint8_t* payload)
 {
-    samples = (int16_t*)payload;
+    return { (eet_frame*)payload };
 }
 
-void unpack_extended_audio_aac(uint8_t* payload, float*& samples)
+map_extended_audio_raw unpack_extended_audio_raw(uint8_t* payload)
 {
-    samples = (float*)payload;
+    return { (int16_t*)payload };
+}
+
+map_extended_audio_aac unpack_extended_audio_aac(uint8_t* payload)
+{
+    return { (float*)payload };
 }
 }
