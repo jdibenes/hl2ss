@@ -1275,10 +1275,10 @@ struct configuration_rm_depth_ahat
     uint8_t level;
     uint8_t _reserved_0[3];
     uint32_t bitrate;
-    uint32_t reserved_1;
+    uint32_t _reserved_1;
     int64_t options_size;
     uint64_t const* options_data;
-    void* _reserved_1;
+    void* _reserved_2;
 };
 
 struct configuration_rm_depth_longthrow
