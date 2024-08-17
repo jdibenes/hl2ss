@@ -1082,76 +1082,142 @@ struct eet_frame
     uint32_t valid;
 };
 
-constexpr
-void unpack_rm_vlc(uint8_t* payload, uint8_t*& image, rm_vlc_metadata*& metadata)
+struct map_rm_vlc
 {
-    image    =                    payload;
-    metadata = (rm_vlc_metadata*)(payload + parameters_rm_vlc::PIXELS);
+    uint8_t* image;
+    rm_vlc_metadata* metadata;
+};
+
+struct map_rm_depth_ahat
+{
+    uint16_t* depth;
+    uint16_t* ab;
+    rm_depth_ahat_metadata* metadata;
+};
+
+struct map_rm_depth_longthrow
+{
+    uint16_t* depth;
+    uint16_t* ab;
+    rm_depth_longthrow_metadata* metadata;
+};
+
+struct map_rm_imu
+{
+    hl2ss::rm_imu_sample* samples;
+};
+
+struct map_pv
+{
+    uint8_t* image;
+    pv_metadata* metadata;
+};
+
+struct map_microphone_raw
+{
+    int16_t* samples;
+};
+
+struct map_microphone_aac
+{
+    float* samples;
+};
+
+struct map_microphone_array
+{
+    float* samples;
+};
+
+struct map_si
+{
+    hl2ss::si_frame* tracking;
+};
+
+struct map_eet
+{
+    hl2ss::eet_frame* tracking;
+};
+
+struct map_extended_audio_raw
+{
+    int16_t* samples;
+};
+
+struct map_extended_audio_aac
+{
+    float* samples;
+};
+
+constexpr
+map_rm_vlc unpack_rm_vlc(uint8_t* payload)
+{
+    return { payload, (rm_vlc_metadata*)(payload + parameters_rm_vlc::PIXELS) };
 }
 
 constexpr
-void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_ahat_metadata*& metadata)
+map_rm_depth_ahat unpack_rm_depth_ahat(uint8_t* payload)
 {
-    depth    = (uint16_t*)              (payload);
-    ab       = (uint16_t*)              (payload + (    parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
-    metadata = (rm_depth_ahat_metadata*)(payload + (2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t)));
+    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))), (rm_depth_ahat_metadata*)(payload + (2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))) };
 }
 
 constexpr
-void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_longthrow_metadata*& metadata)
+map_rm_depth_longthrow unpack_rm_depth_longthrow(uint8_t* payload)
 {
-    depth    = (uint16_t*)                   (payload);
-    ab       = (uint16_t*)                   (payload + (    parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
-    metadata = (rm_depth_longthrow_metadata*)(payload + (2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t)));
+    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))), (rm_depth_longthrow_metadata*)(payload + (2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))) };
 }
 
 constexpr
-void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples)
+map_rm_imu unpack_rm_imu(uint8_t* payload)
 {
-    samples = (rm_imu_sample*)payload;
+    return { (rm_imu_sample*)payload };
 }
 
 constexpr
-void unpack_pv(uint8_t* payload, uint32_t size, uint8_t*& image, pv_metadata*& metadata)
+map_pv unpack_pv(uint8_t* payload, uint32_t size)
 {
-    image    =                payload;
-    metadata = (pv_metadata*)(payload + size - sizeof(pv_metadata));
+    return { payload, (pv_metadata*)(payload + size - sizeof(pv_metadata)) };
 }
 
 constexpr
-void unpack_microphone_raw(uint8_t* payload, int16_t*& samples)
+map_microphone_raw unpack_microphone_raw(uint8_t* payload)
 {
-    samples = (int16_t*)payload;
+    return { (int16_t*)payload };
 }
 
 constexpr
-void unpack_microphone_aac(uint8_t* payload, float*& samples)
+map_microphone_aac unpack_microphone_aac(uint8_t* payload)
 {
-    samples = (float*)payload;
+    return { (float*)payload };
 }
 
 constexpr
-void unpack_si(uint8_t* payload, si_frame*& si)
+map_microphone_array unpack_microphone_array(uint8_t* payload)
 {
-    si = (si_frame*)payload;
+    return { (float*)payload };
 }
 
 constexpr
-void unpack_eet(uint8_t* payload, eet_frame*& eet)
+map_si unpack_si(uint8_t* payload)
 {
-    eet = (eet_frame*)payload;
+    return { (si_frame*)payload };
 }
 
 constexpr
-void unpack_extended_audio_raw(uint8_t* payload, int16_t*& samples)
+map_eet unpack_eet(uint8_t* payload)
 {
-    samples = (int16_t*)payload;
+    return { (eet_frame*)payload };
 }
 
 constexpr
-void unpack_extended_audio_aac(uint8_t* payload, float*& samples)
+map_extended_audio_raw unpack_extended_audio_raw(uint8_t* payload)
 {
-    samples = (float*)payload;
+    return { (int16_t*)payload };
+}
+
+constexpr
+map_extended_audio_aac unpack_extended_audio_aac(uint8_t* payload)
+{
+    return { (float*)payload };
 }
 
 }
@@ -1649,6 +1715,123 @@ public:
 };
 
 template<typename T>
+class payload_map : public T
+{
+public:
+    payload_map(uint8_t* payload, uint32_t)
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_rm_vlc> : public hl2ss::map_rm_vlc
+{
+public:
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_rm_vlc{ hl2ss::unpack_rm_vlc(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_rm_depth_ahat> : public hl2ss::map_rm_depth_ahat
+{
+public:
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_rm_depth_ahat{ hl2ss::unpack_rm_depth_ahat(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_rm_depth_longthrow> : public hl2ss::map_rm_depth_longthrow
+{
+public:
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_rm_depth_longthrow{ hl2ss::unpack_rm_depth_longthrow(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_rm_imu> : public hl2ss::map_rm_imu
+{
+public:
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_rm_imu{ hl2ss::unpack_rm_imu(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_pv> : public hl2ss::map_pv
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_pv{ hl2ss::unpack_pv(payload, size) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_microphone_raw> : public hl2ss::map_microphone_raw
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_microphone_raw{ hl2ss::unpack_microphone_raw(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_microphone_aac> : public hl2ss::map_microphone_aac
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_microphone_aac{ hl2ss::unpack_microphone_aac(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_microphone_array> : public hl2ss::map_microphone_array
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_microphone_array{ hl2ss::unpack_microphone_array(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_si> : public hl2ss::map_si
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_si{ hl2ss::unpack_si(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_eet> : public hl2ss::map_eet
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_eet{ hl2ss::unpack_eet(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_extended_audio_raw> : public hl2ss::map_extended_audio_raw
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_extended_audio_raw{ hl2ss::unpack_extended_audio_raw(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_extended_audio_aac> : public hl2ss::map_extended_audio_aac
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_extended_audio_aac{ hl2ss::unpack_extended_audio_aac(payload) }
+    {
+    }
+};
+
+template<typename T>
 class calibration : protected handle, public buffer<T>
 {
 public:
@@ -1664,87 +1847,6 @@ public:
     device_list(char const* host, uint16_t port) : handle(hl2ss::ulm::download_device_list(host, port, size, data))
     {
     }
-};
-
-struct map_rm_vlc
-{
-    uint8_t* image;
-    rm_vlc_metadata* metadata;
-
-    map_rm_vlc(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_vlc(payload, image, metadata); }
-};
-
-struct map_rm_depth_ahat
-{
-    uint16_t* depth;
-    uint16_t* ab;
-    rm_depth_ahat_metadata* metadata;
-
-    map_rm_depth_ahat(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_depth_ahat(payload, depth, ab, metadata); }
-};
-
-struct map_rm_depth_longthrow
-{
-    uint16_t* depth;
-    uint16_t* ab;
-    rm_depth_longthrow_metadata* metadata;
-
-    map_rm_depth_longthrow(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_depth_longthrow(payload, depth, ab, metadata); }
-};
-
-struct map_rm_imu
-{
-    hl2ss::rm_imu_sample* samples;
-
-    map_rm_imu(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_imu(payload, samples); }
-};
-
-struct map_pv
-{
-    uint8_t* image;
-    pv_metadata* metadata;
-
-    map_pv(uint8_t* payload, uint32_t size) { hl2ss::unpack_pv(payload, size, image, metadata); }
-};
-
-struct map_microphone_raw
-{
-    int16_t* samples;
-
-    map_microphone_raw(uint8_t* payload, uint32_t) { hl2ss::unpack_microphone_raw(payload, samples); }
-};
-
-struct map_microphone_aac
-{
-    float* samples;
-
-    map_microphone_aac(uint8_t* payload, uint32_t) { hl2ss::unpack_microphone_aac(payload, samples); }
-};
-
-struct map_si
-{
-    hl2ss::si_frame* tracking;
-    map_si(uint8_t* payload, uint32_t) { hl2ss::unpack_si(payload, tracking); }
-};
-
-struct map_eet
-{
-    hl2ss::eet_frame* tracking;
-    map_eet(uint8_t* payload, uint32_t) { hl2ss::unpack_eet(payload, tracking); }
-};
-
-struct map_extended_audio_raw
-{
-    int16_t* samples;
-
-    map_extended_audio_raw(uint8_t* payload, uint32_t) { hl2ss::unpack_extended_audio_raw(payload, samples); }
-};
-
-struct map_extended_audio_aac
-{
-    float* samples;
-
-    map_extended_audio_aac(uint8_t* payload, uint32_t) { hl2ss::unpack_extended_audio_aac(payload, samples); }
 };
 
 //-----------------------------------------------------------------------------
@@ -2233,7 +2335,7 @@ std::unique_ptr<T> open_ipc(char const* host, uint16_t port)
 }
 
 template<typename T>
-T unpack(packet& packet)
+payload_map<T> unpack(packet& packet)
 {
     return { packet.payload, packet.sz_payload };
 }
