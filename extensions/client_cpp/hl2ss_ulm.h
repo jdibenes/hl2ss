@@ -1886,7 +1886,7 @@ public:
         return status;
     }
 
-    void wait_for_pv_subsystem(uint32_t status)
+    void wait_for_pv_subsystem(bool status)
     {
         check_result(hl2ss::ulm::rc_wait_for_pv_subsystem(m_handle, status));
     }
@@ -1906,7 +1906,7 @@ public:
         check_result(hl2ss::ulm::rc_set_pv_white_balance_preset(m_handle, preset));
     }
 
-    void pv_white_balance_value(uint32_t value)
+    void set_pv_white_balance_value(uint32_t value)
     {
         check_result(hl2ss::ulm::rc_set_pv_white_balance_value(m_handle, value));
     }
@@ -1936,12 +1936,12 @@ public:
         check_result(hl2ss::ulm::rc_set_pv_scene_mode(m_handle, mode));
     }
 
-    void set_flat_mode(uint32_t mode)
+    void set_flat_mode(bool mode)
     {
         check_result(hl2ss::ulm::rc_set_flat_mode(m_handle, mode));
     }
 
-    void set_rm_eye_selection(uint32_t enable)
+    void set_rm_eye_selection(bool enable)
     {
         check_result(hl2ss::ulm::rc_set_rm_eye_selection(m_handle, enable));
     }
@@ -1966,7 +1966,7 @@ public:
         check_result(hl2ss::ulm::rc_set_pv_hdr_video(m_handle, mode));
     }
 
-    void set_pv_regions_of_interest(uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h)
+    void set_pv_regions_of_interest(bool clear, bool set, bool auto_exposure, bool auto_focus, bool bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h)
     {
         check_result(hl2ss::ulm::rc_set_pv_regions_of_interest(m_handle, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h));
     }
