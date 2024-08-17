@@ -1488,15 +1488,82 @@ struct eet_frame
     uint32_t valid;
 };
 
-void unpack_rm_vlc(uint8_t* payload, uint8_t*& image, rm_vlc_metadata*& metadata);
-void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_ahat_metadata*& metadata);
-void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_longthrow_metadata*& metadata);
-void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples);
-void unpack_pv(uint8_t* payload, uint32_t size, uint8_t*& image, pv_metadata*& metadata);
-void unpack_microphone_raw(uint8_t* payload, int16_t*& samples);
-void unpack_microphone_aac(uint8_t* payload, float*& samples);
-void unpack_si(uint8_t* payload, si_frame*& si);
-void unpack_eet(uint8_t* payload, eet_frame*& eet);
-void unpack_extended_audio_raw(uint8_t* payload, int16_t*& samples);
-void unpack_extended_audio_aac(uint8_t* payload, float*& samples);
+struct map_rm_vlc
+{
+    uint8_t* image;
+    rm_vlc_metadata* metadata;
+};
+
+struct map_rm_depth_ahat
+{
+    uint16_t* depth;
+    uint16_t* ab;
+    rm_depth_ahat_metadata* metadata;
+};
+
+struct map_rm_depth_longthrow
+{
+    uint16_t* depth;
+    uint16_t* ab;
+    rm_depth_longthrow_metadata* metadata;
+};
+
+struct map_rm_imu
+{
+    hl2ss::rm_imu_sample* samples;
+};
+
+struct map_pv
+{
+    uint8_t* image;
+    pv_metadata* metadata;
+};
+
+struct map_microphone_raw
+{
+    int16_t* samples;
+};
+
+struct map_microphone_aac
+{
+    float* samples;
+};
+
+struct map_microphone_array
+{
+    float* samples;
+};
+
+struct map_si
+{
+    hl2ss::si_frame* tracking;
+};
+
+struct map_eet
+{
+    hl2ss::eet_frame* tracking;
+};
+
+struct map_extended_audio_raw
+{
+    int16_t* samples;
+};
+
+struct map_extended_audio_aac
+{
+    float* samples;
+};
+
+map_rm_vlc unpack_rm_vlc(uint8_t* payload);
+map_rm_depth_ahat unpack_rm_depth_ahat(uint8_t* payload);
+map_rm_depth_longthrow unpack_rm_depth_longthrow(uint8_t* payload);
+map_rm_imu unpack_rm_imu(uint8_t* payload);
+map_pv unpack_pv(uint8_t* payload, uint32_t size);
+map_microphone_raw unpack_microphone_raw(uint8_t* payload);
+map_microphone_aac unpack_microphone_aac(uint8_t* payload);
+map_microphone_array unpack_microphone_array(uint8_t* payload);
+map_si unpack_si(uint8_t* payload);
+map_eet unpack_eet(uint8_t* payload);
+map_extended_audio_raw unpack_extended_audio_raw(uint8_t* payload);
+map_extended_audio_aac unpack_extended_audio_aac(uint8_t* payload);
 }
