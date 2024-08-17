@@ -355,14 +355,12 @@ public:
         o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        uint8_t* image;
-        hl2ss::rm_vlc_metadata* metadata;
-        hl2ss::unpack_rm_vlc(packet->payload.get(), image, metadata);
+        hl2ss::map_rm_vlc region = hl2ss::unpack_rm_vlc(packet->payload.get());
 
-        o[0]["image"]        = unpack_payload<uint8_t>(image, 0, size, { hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
-        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(metadata->sensor_ticks);
-        o[0]["exposure"]     = m_factory.createScalar<uint64_t>(metadata->exposure);
-        o[0]["gain"]         = m_factory.createScalar<uint32_t>(metadata->gain);
+        o[0]["image"]        = unpack_payload<uint8_t>(region.image, 0, size, { hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(region.metadata->sensor_ticks);
+        o[0]["exposure"]     = m_factory.createScalar<uint64_t>(region.metadata->exposure);
+        o[0]["gain"]         = m_factory.createScalar<uint32_t>(region.metadata->gain);
         }
         if (packet->pose)
         {
@@ -387,14 +385,11 @@ public:
         o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        uint16_t* depth;
-        uint16_t* ab;
-        hl2ss::rm_depth_ahat_metadata* metadata;
-        hl2ss::unpack_rm_depth_ahat(packet->payload.get(), depth, ab, metadata);
+        hl2ss::map_rm_depth_ahat region = hl2ss::unpack_rm_depth_ahat(packet->payload.get());
 
-        o[0]["depth"]        = unpack_payload<uint16_t>(depth, 0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
-        o[0]["ab"]           = unpack_payload<uint16_t>(ab,    0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
-        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(metadata->sensor_ticks);
+        o[0]["depth"]        = unpack_payload<uint16_t>(region.depth, 0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["ab"]           = unpack_payload<uint16_t>(region.ab,    0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(region.metadata->sensor_ticks);
         }
         if (packet->pose)
         {
@@ -418,14 +413,11 @@ public:
         o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        uint16_t* depth;
-        uint16_t* ab;
-        hl2ss::rm_depth_longthrow_metadata* metadata;
-        hl2ss::unpack_rm_depth_longthrow(packet->payload.get(), depth, ab, metadata);
+        hl2ss::map_rm_depth_longthrow region = hl2ss::unpack_rm_depth_longthrow(packet->payload.get());
 
-        o[0]["depth"]        = unpack_payload<uint16_t>(depth, 0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
-        o[0]["ab"]           = unpack_payload<uint16_t>(ab,    0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
-        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(metadata->sensor_ticks);
+        o[0]["depth"]        = unpack_payload<uint16_t>(region.depth, 0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["ab"]           = unpack_payload<uint16_t>(region.ab,    0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(region.metadata->sensor_ticks);
         }
         if (packet->pose)
         {
@@ -457,17 +449,16 @@ public:
         matlab::data::TypedArray<float>    z                = m_factory.createArray<float>({ samples });
         matlab::data::TypedArray<float>    temperature      = m_factory.createArray<float>({ samples });
 
-        hl2ss::rm_imu_sample* base;
-        hl2ss::unpack_rm_imu(packet->payload.get(), base);
+        hl2ss::map_rm_imu region = hl2ss::unpack_rm_imu(packet->payload.get());
 
         for (uint32_t i = 0; i < samples; ++i)
         {
-        sensor_timestamp[i] = base[i].sensor_timestamp;
-        host_timestamp[i]   = base[i].timestamp;
-        x[i]                = base[i].x;
-        y[i]                = base[i].y;
-        z[i]                = base[i].z;
-        temperature[i]      = base[i].temperature;
+        sensor_timestamp[i] = region.samples[i].sensor_timestamp;
+        host_timestamp[i]   = region.samples[i].timestamp;
+        x[i]                = region.samples[i].x;
+        y[i]                = region.samples[i].y;
+        z[i]                = region.samples[i].z;
+        temperature[i]      = region.samples[i].temperature;
         }
 
         o[0]["sensor_timestamp"] = std::move(sensor_timestamp);
@@ -499,15 +490,13 @@ public:
         if (packet->payload)
         {
         uint32_t image_size = packet->sz_payload - hl2ss::decoder_pv::METADATA_SIZE;
-        uint8_t* image;
-        hl2ss::pv_metadata* metadata;
-        hl2ss::unpack_pv(packet->payload.get(), packet->sz_payload, image, metadata);
+        hl2ss::map_pv region = hl2ss::unpack_pv(packet->payload.get(), packet->sz_payload);
 
-        o[0]["image"]       = unpack_payload<uint8_t>(  image,                   0, image_size,           { height, width, channels });
-        o[0]["intrinsics"]  = unpack_payload<float>(   &metadata->f,             0, 4 * sizeof(float),    { 4 });
-        o[0]["exposure"]    = unpack_payload<uint64_t>(&metadata->exposure_time, 0, 3 * sizeof(uint64_t), { 3 });
-        o[0]["imaging"]     = unpack_payload<uint32_t>(&metadata->lens_position, 0, 4 * sizeof(uint32_t), { 4 });
-        o[0]["gains"]       = unpack_payload<float>   (&metadata->iso_gains,     0, 5 * sizeof(float),    { 5 });
+        o[0]["image"]       = unpack_payload<uint8_t>(  region.image,                   0, image_size,           { height, width, channels });
+        o[0]["intrinsics"]  = unpack_payload<float>(   &region.metadata->f,             0, 4 * sizeof(float),    { 4 });
+        o[0]["exposure"]    = unpack_payload<uint64_t>(&region.metadata->exposure_time, 0, 3 * sizeof(uint64_t), { 3 });
+        o[0]["imaging"]     = unpack_payload<uint32_t>(&region.metadata->lens_position, 0, 4 * sizeof(uint32_t), { 4 });
+        o[0]["gains"]       = unpack_payload<float>   (&region.metadata->iso_gains,     0, 5 * sizeof(float),    { 5 });
         }
         if (packet->pose)
         {
@@ -560,14 +549,13 @@ public:
         o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::si_frame* base;
-        hl2ss::unpack_si(packet->payload.get(), base);
+        hl2ss::map_si region = hl2ss::unpack_si(packet->payload.get());
 
-        o[0]["valid"]       = m_factory.createScalar<uint32_t>({ base->valid });
-        o[0]["head_pose"]   = to_typed_array<float>(&base->head_pose,  sizeof(base->head_pose),  { 3, 3 });
-        o[0]["eye_ray"]     = to_typed_array<float>(&base->eye_ray,    sizeof(base->eye_ray),    { 6 });
-        o[0]["left_hand"]   = to_typed_array<float>(&base->left_hand,  sizeof(base->left_hand),  { 9, 26 });
-        o[0]["right_hand"]  = to_typed_array<float>(&base->right_hand, sizeof(base->right_hand), { 9, 26 });
+        o[0]["valid"]       = m_factory.createScalar<uint32_t>({ region.tracking->valid });
+        o[0]["head_pose"]   = to_typed_array<float>(&region.tracking->head_pose,  sizeof(region.tracking->head_pose),  { 3, 3 });
+        o[0]["eye_ray"]     = to_typed_array<float>(&region.tracking->eye_ray,    sizeof(region.tracking->eye_ray),    { 6 });
+        o[0]["left_hand"]   = to_typed_array<float>(&region.tracking->left_hand,  sizeof(region.tracking->left_hand),  { 9, 26 });
+        o[0]["right_hand"]  = to_typed_array<float>(&region.tracking->right_hand, sizeof(region.tracking->right_hand), { 9, 26 });
         } 
         }
 
@@ -586,16 +574,15 @@ public:
         o[0]["timestamp"]         = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::eet_frame* base;
-        hl2ss::unpack_eet(packet->payload.get(), base);
+        hl2ss::map_eet region = hl2ss::unpack_eet(packet->payload.get());
 
-        o[0]["combined_ray"]      = to_typed_array<float>(&base->combined_ray, sizeof(base->combined_ray), { 6 });
-        o[0]["left_ray"]          = to_typed_array<float>(&base->left_ray,     sizeof(base->left_ray),     { 6 });
-        o[0]["right_ray"]         = to_typed_array<float>(&base->right_ray,    sizeof(base->right_ray),    { 6 });
-        o[0]["left_openness"]     = m_factory.createScalar<float>(base->left_openness);
-        o[0]["right_openness"]    = m_factory.createScalar<float>(base->right_openness);
-        o[0]["vergence_distance"] = m_factory.createScalar<float>(base->vergence_distance);
-        o[0]["valid"]             = m_factory.createScalar<uint32_t>(base->valid);
+        o[0]["combined_ray"]      = to_typed_array<float>(&region.tracking->combined_ray, sizeof(region.tracking->combined_ray), { 6 });
+        o[0]["left_ray"]          = to_typed_array<float>(&region.tracking->left_ray,     sizeof(region.tracking->left_ray),     { 6 });
+        o[0]["right_ray"]         = to_typed_array<float>(&region.tracking->right_ray,    sizeof(region.tracking->right_ray),    { 6 });
+        o[0]["left_openness"]     = m_factory.createScalar<float>(region.tracking->left_openness);
+        o[0]["right_openness"]    = m_factory.createScalar<float>(region.tracking->right_openness);
+        o[0]["vergence_distance"] = m_factory.createScalar<float>(region.tracking->vergence_distance);
+        o[0]["valid"]             = m_factory.createScalar<uint32_t>(region.tracking->valid);
         }
         if (packet->pose)
         {
