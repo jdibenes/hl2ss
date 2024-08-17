@@ -906,6 +906,25 @@ int32_t const World              = 248;
 int32_t const CompletelyInferred = 249;
 }
 
+struct su_task 
+{
+    bool enable_quads;
+    bool enable_meshes;
+    bool enable_only_observed;
+    bool enable_world_mesh;
+    uint32_t mesh_lod;
+    float query_radius;
+    uint8_t create_mode;
+    uint8_t kind_flags;
+    bool get_orientation;
+    bool get_position;
+    bool get_location_matrix;
+    bool get_quad;
+    bool get_meshes; 
+    bool get_collider_meshes;
+    std::vector<guid> guid_list;
+};
+
 //------------------------------------------------------------------------------
 // Voice Input
 //------------------------------------------------------------------------------
@@ -1424,7 +1443,7 @@ struct su_task
     bool get_collider_meshes;
     uint32_t _reserved_0;
     uint64_t guid_list_size;
-    guid* guid_list_data;
+    guid const* guid_list_data;
     void* _reserved_1;
 };
 
@@ -2074,9 +2093,28 @@ public:
     {
     }
 
-    std::shared_ptr<su_result> query(hl2ss::ulm::su_task const& task)
+    std::shared_ptr<su_result> query(hl2ss::su_task const& task)
     {
-        return std::make_shared<su_result>(m_handle, task);
+        hl2ss::ulm::su_task t;
+
+        t.enable_quads         = task.enable_quads;
+        t.enable_meshes        = task.enable_meshes;
+        t.enable_only_observed = task.enable_only_observed;
+        t.enable_world_mesh    = task.enable_world_mesh;
+        t.mesh_lod             = task.mesh_lod;
+        t.query_radius         = task.query_radius;
+        t.create_mode          = task.create_mode;
+        t.kind_flags           = task.kind_flags;
+        t.get_orientation      = task.get_orientation;
+        t.get_position         = task.get_position;
+        t.get_location_matrix  = task.get_location_matrix;
+        t.get_quad             = task.get_quad;
+        t.get_meshes           = task.get_meshes;
+        t.get_collider_meshes  = task.get_collider_meshes;
+        t.guid_list_size       = task.guid_list.size();
+        t.guid_list_data       = task.guid_list.data();
+
+        return std::make_shared<su_result>(m_handle, t);
     }
 };
 
