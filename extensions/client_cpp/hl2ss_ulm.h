@@ -380,7 +380,7 @@ void push_double(std::vector<uint8_t>& sc, double d)
 }
 
 HL2SS_INLINE
-void push(std::vector<uint8_t>& sc, void const* data, size_t size)
+void push(std::vector<uint8_t>& sc, void const* data, uint64_t size)
 {
     sc.insert(sc.end(), (uint8_t*)data, ((uint8_t*)data) + size);
 }
@@ -768,7 +768,7 @@ public:
         m_count = 0;
     }
 
-    sm_bounding_volume(uint32_t count, uint8_t const* data, size_t size)
+    sm_bounding_volume(uint32_t count, uint8_t const* data, uint64_t size)
     {
         m_count = count;
         m_data  = { data, data + size };
@@ -812,7 +812,7 @@ public:
         return m_data.data();
     }
 
-    size_t get_size() const
+    uint64_t get_size() const
     {
         return m_data.size();
     }
@@ -830,7 +830,7 @@ public:
         m_count = 0;
     }
 
-    sm_mesh_task(uint32_t count, uint8_t const* data, size_t size)
+    sm_mesh_task(uint32_t count, uint8_t const* data, uint64_t size)
     {
         m_count = count;
         m_data  = { data, data + size };
@@ -858,7 +858,7 @@ public:
         return m_data.data();
     }
 
-    size_t get_size() const
+    uint64_t get_size() const
     {
         return m_data.size();
     }
@@ -943,7 +943,7 @@ public:
         m_count = 0;
     }
 
-    void add(uint32_t id, void const* data, size_t size)
+    void add(uint32_t id, void const* data, uint64_t size)
     {
         push_u32(m_buffer, id);
         push_u32(m_buffer, (uint32_t)size);
@@ -962,7 +962,7 @@ public:
         return m_buffer.data();
     }
 
-    size_t size()
+    uint64_t size()
     {
         return m_buffer.size();
     }
@@ -1112,7 +1112,7 @@ void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples)
 }
 
 constexpr
-void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_metadata*& metadata)
+void unpack_pv(uint8_t* payload, uint32_t size, uint8_t*& image, pv_metadata*& metadata)
 {
     image    =                payload;
     metadata = (pv_metadata*)(payload + size - sizeof(pv_metadata));
@@ -1666,6 +1666,87 @@ public:
     }
 };
 
+struct map_rm_vlc
+{
+    uint8_t* image;
+    rm_vlc_metadata* metadata;
+
+    map_rm_vlc(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_vlc(payload, image, metadata); }
+};
+
+struct map_rm_depth_ahat
+{
+    uint16_t* depth;
+    uint16_t* ab;
+    rm_depth_ahat_metadata* metadata;
+
+    map_rm_depth_ahat(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_depth_ahat(payload, depth, ab, metadata); }
+};
+
+struct map_rm_depth_longthrow
+{
+    uint16_t* depth;
+    uint16_t* ab;
+    rm_depth_longthrow_metadata* metadata;
+
+    map_rm_depth_longthrow(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_depth_longthrow(payload, depth, ab, metadata); }
+};
+
+struct map_rm_imu
+{
+    hl2ss::rm_imu_sample* samples;
+
+    map_rm_imu(uint8_t* payload, uint32_t) { hl2ss::unpack_rm_imu(payload, samples); }
+};
+
+struct map_pv
+{
+    uint8_t* image;
+    pv_metadata* metadata;
+
+    map_pv(uint8_t* payload, uint32_t size) { hl2ss::unpack_pv(payload, size, image, metadata); }
+};
+
+struct map_microphone_raw
+{
+    int16_t* samples;
+
+    map_microphone_raw(uint8_t* payload, uint32_t) { hl2ss::unpack_microphone_raw(payload, samples); }
+};
+
+struct map_microphone_aac
+{
+    float* samples;
+
+    map_microphone_aac(uint8_t* payload, uint32_t) { hl2ss::unpack_microphone_aac(payload, samples); }
+};
+
+struct map_si
+{
+    hl2ss::si_frame* tracking;
+    map_si(uint8_t* payload, uint32_t) { hl2ss::unpack_si(payload, tracking); }
+};
+
+struct map_eet
+{
+    hl2ss::eet_frame* tracking;
+    map_eet(uint8_t* payload, uint32_t) { hl2ss::unpack_eet(payload, tracking); }
+};
+
+struct map_extended_audio_raw
+{
+    int16_t* samples;
+
+    map_extended_audio_raw(uint8_t* payload, uint32_t) { hl2ss::unpack_extended_audio_raw(payload, samples); }
+};
+
+struct map_extended_audio_aac
+{
+    float* samples;
+
+    map_extended_audio_aac(uint8_t* payload, uint32_t) { hl2ss::unpack_extended_audio_aac(payload, samples); }
+};
+
 //-----------------------------------------------------------------------------
 // Remote Configuration
 //-----------------------------------------------------------------------------
@@ -2012,8 +2093,10 @@ void initialize()
 }
 
 HL2SS_INLINE
-void create_configuration_rm_vlc(hl2ss::ulm::configuration_rm_vlc& c)
+hl2ss::ulm::configuration_rm_vlc create_configuration_rm_vlc()
 {
+    hl2ss::ulm::configuration_rm_vlc c;
+
     c.chunk = hl2ss::chunk_size::RM_VLC;
     c.mode = hl2ss::stream_mode::MODE_1;
     c.divisor = 1;
@@ -2022,11 +2105,15 @@ void create_configuration_rm_vlc(hl2ss::ulm::configuration_rm_vlc& c)
     c.bitrate = 0;
     c.options_data = nullptr;
     c.options_size = -1;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_rm_depth_ahat(hl2ss::ulm::configuration_rm_depth_ahat& c)
+hl2ss::ulm::configuration_rm_depth_ahat create_configuration_rm_depth_ahat()
 {
+    hl2ss::ulm::configuration_rm_depth_ahat c;
+
     c.chunk = hl2ss::chunk_size::RM_DEPTH_AHAT;
     c.mode = hl2ss::stream_mode::MODE_1;
     c.divisor = 1;
@@ -2036,27 +2123,39 @@ void create_configuration_rm_depth_ahat(hl2ss::ulm::configuration_rm_depth_ahat&
     c.bitrate = 0;
     c.options_data = nullptr;
     c.options_size = -1;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_rm_depth_longthrow(hl2ss::ulm::configuration_rm_depth_longthrow& c)
+hl2ss::ulm::configuration_rm_depth_longthrow create_configuration_rm_depth_longthrow()
 {
+    hl2ss::ulm::configuration_rm_depth_longthrow c;
+
     c.chunk = hl2ss::chunk_size::RM_DEPTH_LONGTHROW;
     c.mode = hl2ss::stream_mode::MODE_1;
     c.divisor = 1;
     c.png_filter = hl2ss::png_filter_mode::PAETH;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_rm_imu(hl2ss::ulm::configuration_rm_imu& c)
+hl2ss::ulm::configuration_rm_imu create_configuration_rm_imu()
 {
+    hl2ss::ulm::configuration_rm_imu c;
+
     c.chunk = hl2ss::chunk_size::RM_IMU;
     c.mode = hl2ss::stream_mode::MODE_1;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_pv(hl2ss::ulm::configuration_pv& c)
+hl2ss::ulm::configuration_pv create_configuration_pv()
 {
+    hl2ss::ulm::configuration_pv c;
+
     c.width = 1920;
     c.height = 1080;
     c.framerate = 30;
@@ -2069,38 +2168,56 @@ void create_configuration_pv(hl2ss::ulm::configuration_pv& c)
     c.options_data = nullptr;
     c.options_size = -1;
     c.decoded_format = hl2ss::pv_decoded_format::BGR;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_microphone(hl2ss::ulm::configuration_microphone& c)
+hl2ss::ulm::configuration_microphone create_configuration_microphone()
 {
+    hl2ss::ulm::configuration_microphone c;
+
     c.chunk = hl2ss::chunk_size::MICROPHONE;
     c.profile = hl2ss::audio_profile::AAC_24000;
     c.level = hl2ss::aac_level::L2;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_si(hl2ss::ulm::configuration_si& c)
+hl2ss::ulm::configuration_si create_configuration_si()
 {
+    hl2ss::ulm::configuration_si c;
+
     c.chunk = hl2ss::chunk_size::SPATIAL_INPUT;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_eet(hl2ss::ulm::configuration_eet& c)
+hl2ss::ulm::configuration_eet create_configuration_eet()
 {
+    hl2ss::ulm::configuration_eet c;
+
     c.chunk = hl2ss::chunk_size::EXTENDED_EYE_TRACKER;
     c.framerate = hl2ss::eet_framerate::FPS_30;
+
+    return c;
 }
 
 HL2SS_INLINE
-void create_configuration_extended_audio(hl2ss::ulm::configuration_extended_audio& c)
+hl2ss::ulm::configuration_extended_audio create_configuration_extended_audio()
 {
+    hl2ss::ulm::configuration_extended_audio c;
+
     c.chunk = hl2ss::chunk_size::EXTENDED_AUDIO;
     c.mixer_mode = hl2ss::mixer_mode::BOTH;
     c.loopback_gain = 1.0f;
     c.microphone_gain = 1.0f;
     c.profile = hl2ss::audio_profile::AAC_24000;
     c.level = hl2ss::aac_level::L2;
+
+    return c;
 }
 
 HL2SS_INLINE
@@ -2113,6 +2230,12 @@ template<typename T>
 std::unique_ptr<T> open_ipc(char const* host, uint16_t port)
 {
     return std::make_unique<T>(host, port);
+}
+
+template<typename T>
+T unpack(packet& packet)
+{
+    return { packet.payload, packet.sz_payload };
 }
 
 HL2SS_INLINE
