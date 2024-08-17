@@ -1984,7 +1984,7 @@ public:
 class sm_surface_info_collection : protected handle, public buffer<hl2ss::sm_surface_info>
 {
 public:
-    sm_surface_info_collection(void* ipc) : handle(hl2ss::ulm::sm_get_observed_surfaces(m_handle, size, data))
+    sm_surface_info_collection(void* ipc) : handle(hl2ss::ulm::sm_get_observed_surfaces(ipc, size, data))
     {
     }
 };
@@ -2161,7 +2161,7 @@ public:
 class gmq_message : protected handle, public hl2ss::ulm::gmq_message
 {
 public:
-    gmq_message(void* ipc) : handle(hl2ss::ulm::gmq_pull(m_handle, *this))
+    gmq_message(void* ipc) : handle(hl2ss::ulm::gmq_pull(ipc, *this))
     {
     }
 };
