@@ -2,14 +2,16 @@
 
 ## client_cpp
 
-C++ client library. Requires [OpenCV](https://opencv.org/releases/) and [FFmpeg](https://ffmpeg.org/download.html). See `main.cpp` for examples.
+C++ client library. Requires [OpenCV](https://opencv.org/releases/) and [FFmpeg](https://ffmpeg.org/download.html).
 
 **Build**
 
 Add `hl2ss.cpp`, `hl2ss.h`, `hl2ss_lnm.cpp`, `hl2ss_lnm.h`, `hl2ss_mt.cpp`, and `hl2ss_mt.h` to your C++ project.
+See `main.cpp` for examples.
 The `tasks_[...].json` files are provided as a reference for building with `cl.exe` (Windows) and `g++` (Linux).
 
 Alternatively, you can build `hl2ss_ulm.cpp` as a shared library (.dll, .so, ...) and include `hl2ss_ulm.h` in your C++ project.
+See `main_ulm.cpp` for examples.
 
 If you build `main.cpp` on Windows, you may need to copy the FFmpeg and OpenCV DLLs to the client_cpp folder.
 
