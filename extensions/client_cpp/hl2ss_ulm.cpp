@@ -880,7 +880,7 @@ HL2SS_CLIENT_EXPORT
 int32_t su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm::su_mesh& mesh)
 HL2SS_ULM_BEGIN
 {
-    std::vector<hl2ss::su_mesh>& v = *typed_handle<std::vector<hl2ss::su_mesh>>::get(meshes);
+    std::vector<hl2ss::su_mesh>& v = *(std::vector<hl2ss::su_mesh>*)meshes;
     hl2ss::su_mesh& m = v[index];
 
     mesh.vertex_positions_data = m.vertex_positions.data();
