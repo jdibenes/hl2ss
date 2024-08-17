@@ -1935,7 +1935,7 @@ void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples)
     samples = (rm_imu_sample*)payload;
 }
 
-void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_metadata*& metadata)
+void unpack_pv(uint8_t* payload, uint32_t size, uint8_t*& image, pv_metadata*& metadata)
 {
     image    =                payload;
     metadata = (pv_metadata*)(payload + size - sizeof(pv_metadata));
