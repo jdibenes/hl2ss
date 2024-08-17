@@ -52,16 +52,14 @@ void test_rm_vlc(char const* host, uint16_t port)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        uint8_t* image;
-        hl2ss::rm_vlc_metadata* metadata;
-        hl2ss::unpack_rm_vlc(data->payload.get(), image, metadata);
+        hl2ss::map_rm_vlc region = hl2ss::unpack_rm_vlc(data->payload.get());
 
         print_packet_metadata(data->timestamp, data->pose.get());
-        std::cout << "Sensor Ticks: " << metadata->sensor_ticks << std::endl;
-        std::cout << "Exposure: " << metadata->exposure << std::endl;
-        std::cout << "Gain: " << metadata->gain << std::endl;
+        std::cout << "Sensor Ticks: " << region.metadata->sensor_ticks << std::endl;
+        std::cout << "Exposure: " << region.metadata->exposure << std::endl;
+        std::cout << "Gain: " << region.metadata->gain << std::endl;
 
-        cv::Mat mat_image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, image);
+        cv::Mat mat_image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, region.image);
         cv::imshow(port_name, mat_image);
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
     }
@@ -89,16 +87,13 @@ void test_rm_depth_ahat(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        uint16_t* depth;
-        uint16_t* ab;
-        hl2ss::rm_depth_ahat_metadata* metadata;
-        hl2ss::unpack_rm_depth_ahat(data->payload.get(), depth, ab, metadata);
+        hl2ss::map_rm_depth_ahat region = hl2ss::unpack_rm_depth_ahat(data->payload.get());
 
         print_packet_metadata(data->timestamp, data->pose.get());
-        std::cout << "Sensor Ticks: " << metadata->sensor_ticks << std::endl;
+        std::cout << "Sensor Ticks: " << region.metadata->sensor_ticks << std::endl;
 
-        cv::Mat mat_depth = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, depth);
-        cv::Mat mat_ab    = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, ab);
+        cv::Mat mat_depth = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, region.depth);
+        cv::Mat mat_ab    = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, region.ab);
         cv::imshow(name_depth, mat_depth * 16); // scaled for visibility
         cv::imshow(name_ab,    mat_ab);
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
@@ -127,16 +122,13 @@ void test_rm_depth_longthrow(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        uint16_t* depth;
-        uint16_t* ab;
-        hl2ss::rm_depth_longthrow_metadata* metadata;
-        hl2ss::unpack_rm_depth_longthrow(data->payload.get(), depth, ab, metadata);
+        hl2ss::map_rm_depth_longthrow region = hl2ss::unpack_rm_depth_longthrow(data->payload.get());
 
         print_packet_metadata(data->timestamp, data->pose.get());
-        std::cout << "Sensor Ticks: " << metadata->sensor_ticks << std::endl;
+        std::cout << "Sensor Ticks: " << region.metadata->sensor_ticks << std::endl;
 
-        cv::Mat mat_depth = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, depth);
-        cv::Mat mat_ab    = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, ab);
+        cv::Mat mat_depth = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, region.depth);
+        cv::Mat mat_ab    = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, region.ab);
         cv::imshow(name_depth, mat_depth * 8); // scaled for visibility
         cv::imshow(name_ab,    mat_ab);
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
@@ -166,12 +158,11 @@ void test_rm_imu(char const* host, uint16_t port)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        hl2ss::rm_imu_sample *samples;
-        hl2ss::unpack_rm_imu(data->payload.get(), samples);
+        hl2ss::map_rm_imu region = hl2ss::unpack_rm_imu(data->payload.get());
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
-        std::cout << "First sample: " << samples[0].sensor_timestamp << ", " << samples[0].timestamp << ", " << samples[0].x << ", " << samples[0].y << ", " << samples[0].z << ", " << samples[0].temperature << std::endl;
+        std::cout << "First sample: " << region.samples[0].sensor_timestamp << ", " << region.samples[0].timestamp << ", " << region.samples[0].x << ", " << region.samples[0].y << ", " << region.samples[0].z << ", " << region.samples[0].temperature << std::endl;
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
     }
     client->close();
@@ -197,25 +188,23 @@ void test_pv(char const* host, uint16_t width, uint16_t height, uint8_t framerat
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        uint8_t* image;
-        hl2ss::pv_metadata* metadata;
-        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, metadata);
+        hl2ss::map_pv region = hl2ss::unpack_pv(data->payload.get(), data->sz_payload);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
-        std::cout << "Focal length: "    << metadata->f.x << ", " << metadata->f.y << std::endl;
-        std::cout << "Principal point: " << metadata->c.x << ", " << metadata->c.y << std::endl;
+        std::cout << "Focal length: "    << region.metadata->f.x << ", " << region.metadata->f.y << std::endl;
+        std::cout << "Principal point: " << region.metadata->c.x << ", " << region.metadata->c.y << std::endl;
 
-        std::cout << "exposure_time: " << metadata->exposure_time << std::endl;
-        std::cout << "exposure_compensation: " << metadata->exposure_compensation.val[0] << "," << metadata->exposure_compensation.val[1] << std::endl;
-        std::cout << "lens_position: " << metadata->lens_position << std::endl;
-        std::cout << "focus_state: " << metadata->focus_state << std::endl;
-        std::cout << "iso_speed: " << metadata->iso_speed << std::endl;
-        std::cout << "white_balance: " << metadata->white_balance << std::endl;
-        std::cout << "iso_gains: " << metadata->iso_gains.x << "," << metadata->iso_gains.y << std::endl;
-        std::cout << "white_balance_gains: " << metadata->white_balance_gains.x << "," << metadata->white_balance_gains.y << "," << metadata->white_balance_gains.z << std::endl;
+        std::cout << "exposure_time: " << region.metadata->exposure_time << std::endl;
+        std::cout << "exposure_compensation: " << region.metadata->exposure_compensation.val[0] << "," << region.metadata->exposure_compensation.val[1] << std::endl;
+        std::cout << "lens_position: " << region.metadata->lens_position << std::endl;
+        std::cout << "focus_state: " << region.metadata->focus_state << std::endl;
+        std::cout << "iso_speed: " << region.metadata->iso_speed << std::endl;
+        std::cout << "white_balance: " << region.metadata->white_balance << std::endl;
+        std::cout << "iso_gains: " << region.metadata->iso_gains.x << "," << region.metadata->iso_gains.y << std::endl;
+        std::cout << "white_balance_gains: " << region.metadata->white_balance_gains.x << "," << region.metadata->white_balance_gains.y << "," << region.metadata->white_balance_gains.z << std::endl;
 
-        cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, image);
+        cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, region.image);
         cv::imshow(port_name, mat_image);
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
     }
@@ -240,8 +229,8 @@ void test_microphone(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        float* samples;
-        hl2ss::unpack_microphone_aac(data->payload.get(), samples);
+        hl2ss::map_microphone_aac region = hl2ss::unpack_microphone_aac(data->payload.get());
+        //region.samples
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -266,12 +255,11 @@ void test_si(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        hl2ss::si_frame* si;
-        hl2ss::unpack_si(data->payload.get(), si);
+        hl2ss::map_si region = hl2ss::unpack_si(data->payload.get());
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
-        std::cout << "Head position: " << si->head_pose.position.x << ", " << si->head_pose.position.y << ", " << si->head_pose.position.z << std::endl;
+        std::cout << "Head position: " << region.tracking->head_pose.position.x << ", " << region.tracking->head_pose.position.y << ", " << region.tracking->head_pose.position.z << std::endl;
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
     }
     client->close();
@@ -293,12 +281,11 @@ void test_eet(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        hl2ss::eet_frame* eet;
-        hl2ss::unpack_eet(data->payload.get(), eet);
+        hl2ss::map_eet region = hl2ss::unpack_eet(data->payload.get());
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
-        std::cout << "Valid: " << eet->valid << std::endl;
+        std::cout << "Valid: " << region.tracking->valid << std::endl;
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
     }
     client->close();
@@ -320,8 +307,7 @@ void test_extended_audio(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        float* samples;
-        hl2ss::unpack_extended_audio_aac(data->payload.get(), samples);
+        hl2ss::map_extended_audio_aac region = hl2ss::unpack_extended_audio_aac(data->payload.get());
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
@@ -393,11 +379,11 @@ void test_su(char const* host)
     task.create_mode = hl2ss::su_create::New;
     task.kind_flags = 0xFF;
     task.get_orientation = true;
-    task.get_position = true;;
-    task.get_location_matrix = true;;
-    task.get_quad = true;;
-    task.get_meshes = true;; 
-    task.get_collider_meshes = true;;
+    task.get_position = true;
+    task.get_location_matrix = true;
+    task.get_quad = true;
+    task.get_meshes = true;
+    task.get_collider_meshes = true;
 
     std::cout << "SU" << std::endl;
 
@@ -561,10 +547,8 @@ void test_mt(char const* host)
             pv_frame_index++;
 
             // Unpack PV image and show
-            uint8_t* pv_image;
-            hl2ss::pv_metadata* pv_metadata;
-            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_metadata);
-            cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
+            hl2ss::map_pv region = hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload);
+            cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, region.image);
             cv::imshow(pv_name, pv_mat);
 
             // Get depth frame closest (in time) to the PV frame
@@ -586,12 +570,9 @@ void test_mt(char const* host)
             if (data_lt)
             {
                 // Unpack depth image and show
-                uint16_t* lt_depth;
-                uint16_t* lt_ab;
-                hl2ss::rm_depth_longthrow_metadata* lt_metadata;
-                hl2ss::unpack_rm_depth_longthrow(data_lt->payload.get(), lt_depth, lt_ab, lt_metadata);                
-                cv::Mat lt_depth_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_depth);
-                cv::Mat lt_ab_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, lt_ab);
+                hl2ss::map_rm_depth_longthrow region = hl2ss::unpack_rm_depth_longthrow(data_lt->payload.get());                
+                cv::Mat lt_depth_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, region.depth);
+                cv::Mat lt_ab_mat = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, region.ab);
                 cv::imshow(lt_depth_name, lt_depth_mat * 8); // Scaled for visibility otherwise image will be too dark
                 cv::imshow(lt_ab_name, lt_ab_mat * 4); // Scaled for visibility, might overflow
             }
@@ -695,11 +676,9 @@ void test_pv_umq(char const* host)
         if (data_pv)
         {
             // Show video frame
-            // Note that the unpacked pointers are only valid as long as data_pv exists
-            uint8_t* pv_image;
-            hl2ss::pv_metadata* pv_metadata;            
-            hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload, pv_image, pv_metadata);
-            cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, pv_image);
+            // Note that the unpacked pointers are only valid as long as data_pv exists    
+            hl2ss::map_pv region = hl2ss::unpack_pv(data_pv->payload.get(), data_pv->sz_payload);
+            cv::Mat pv_mat = cv::Mat(pv_height, pv_width, CV_8UC3, region.image);
             cv::imshow("PV", pv_mat);
 
             // Send test message to the HoloLens app
@@ -741,16 +720,14 @@ void test_extended_video(char const* host)
     for (;;)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
-        uint8_t* image;
-        hl2ss::pv_metadata* pv_metadata;
-        hl2ss::unpack_pv(data->payload.get(), data->sz_payload, image, pv_metadata);
+        hl2ss::map_pv region = hl2ss::unpack_pv(data->payload.get(), data->sz_payload);
 
         print_packet_metadata(data->timestamp, data->pose.get());
 
-        std::cout << "Focal length: "    << pv_metadata->f.x << ", " << pv_metadata->f.y << std::endl;
-        std::cout << "Principal point: " << pv_metadata->c.x << ", " << pv_metadata->c.y << std::endl;
+        std::cout << "Focal length: "    << region.metadata->f.x << ", " << region.metadata->f.y << std::endl;
+        std::cout << "Principal point: " << region.metadata->c.x << ", " << region.metadata->c.y << std::endl;
 
-        cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, image);
+        cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, region.image);
         cv::imshow(port_name, mat_image);
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
     }
