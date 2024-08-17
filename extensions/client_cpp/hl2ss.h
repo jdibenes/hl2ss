@@ -1492,7 +1492,7 @@ void unpack_rm_vlc(uint8_t* payload, uint8_t*& image, rm_vlc_metadata*& metadata
 void unpack_rm_depth_ahat(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_ahat_metadata*& metadata);
 void unpack_rm_depth_longthrow(uint8_t* payload, uint16_t*& depth, uint16_t*& ab, rm_depth_longthrow_metadata*& metadata);
 void unpack_rm_imu(uint8_t* payload, rm_imu_sample*& samples);
-void unpack_pv(uint8_t* payload, size_t size, uint8_t*& image, pv_metadata*& metadata);
+void unpack_pv(uint8_t* payload, uint32_t size, uint8_t*& image, pv_metadata*& metadata);
 void unpack_microphone_raw(uint8_t* payload, int16_t*& samples);
 void unpack_microphone_aac(uint8_t* payload, float*& samples);
 void unpack_si(uint8_t* payload, si_frame*& si);
