@@ -1703,36 +1703,6 @@ struct buffer
 // Stream
 //-----------------------------------------------------------------------------
 
-class packet : protected handle, public hl2ss::ulm::packet
-{
-public:
-    packet(void* source_handle, int64_t frame_stamp) : handle(hl2ss::ulm::get_by_index(source_handle, frame_stamp, *this))
-    {
-    }
-
-    packet(void* source_handle, uint64_t timestamp, int32_t time_preference, bool tiebreak_right) : handle(hl2ss::ulm::get_by_timestamp(source_handle, timestamp, time_preference, tiebreak_right, *this))
-    {
-    }
-};
-
-class source : protected handle
-{
-public:
-    source(char const* host, uint16_t port, uint64_t buffer_size, void const* configuration) : handle(hl2ss::ulm::open_stream(host, port, buffer_size, configuration))
-    {
-    }
-
-    std::shared_ptr<packet> get_by_index(int64_t frame_stamp)
-    {
-        return std::make_shared<packet>(m_handle, frame_stamp);
-    }
-
-    std::shared_ptr<packet> get_by_timestamp(uint64_t timestamp, int32_t time_preference, bool tiebreak_right)
-    {
-        return std::make_shared<packet>(m_handle, timestamp, time_preference, tiebreak_right);
-    }
-};
-
 template<typename T>
 class payload_map : public T
 {
@@ -1847,6 +1817,42 @@ class payload_map<hl2ss::map_extended_audio_aac> : public hl2ss::map_extended_au
 public:
     payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_extended_audio_aac{ hl2ss::unpack_extended_audio_aac(payload) }
     {
+    }
+};
+
+class packet : protected handle, public hl2ss::ulm::packet
+{
+public:
+    packet(void* source_handle, int64_t frame_stamp) : handle(hl2ss::ulm::get_by_index(source_handle, frame_stamp, *this))
+    {
+    }
+
+    packet(void* source_handle, uint64_t timestamp, int32_t time_preference, bool tiebreak_right) : handle(hl2ss::ulm::get_by_timestamp(source_handle, timestamp, time_preference, tiebreak_right, *this))
+    {
+    }
+
+    template<typename T>
+    payload_map<T> unpack()
+    {
+        return { payload, sz_payload };
+    }
+};
+
+class source : protected handle
+{
+public:
+    source(char const* host, uint16_t port, uint64_t buffer_size, void const* configuration) : handle(hl2ss::ulm::open_stream(host, port, buffer_size, configuration))
+    {
+    }
+
+    std::shared_ptr<packet> get_by_index(int64_t frame_stamp)
+    {
+        return std::make_shared<packet>(m_handle, frame_stamp);
+    }
+
+    std::shared_ptr<packet> get_by_timestamp(uint64_t timestamp, int32_t time_preference, bool tiebreak_right)
+    {
+        return std::make_shared<packet>(m_handle, timestamp, time_preference, tiebreak_right);
     }
 };
 
@@ -2370,12 +2376,6 @@ template<typename T>
 std::unique_ptr<T> open_ipc(char const* host, uint16_t port)
 {
     return std::make_unique<T>(host, port);
-}
-
-template<typename T>
-payload_map<T> unpack(packet& packet)
-{
-    return { packet.payload, packet.sz_payload };
 }
 
 HL2SS_INLINE
