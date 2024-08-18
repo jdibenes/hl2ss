@@ -1,4 +1,5 @@
 
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 public class viewer : MonoBehaviour
@@ -68,6 +69,17 @@ public class viewer : MonoBehaviour
         hl2ss.svc.packet packet = source_pv.get_by_index(-1);
         if (packet.status != 0) { return; }
         packet.unpack(out hl2ss.map_pv region);
+
+        hl2ss.pv_metadata metadata = Marshal.PtrToStructure<hl2ss.pv_metadata>(region.metadata);
+        hl2ss.matrix_4x4 pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
+
+        Debug.Log(packet.timestamp);
+        Debug.Log(metadata.f.x);
+        Debug.Log(metadata.lens_position);
+        Debug.Log(metadata.focus_state);
+        Debug.Log(metadata.white_balance_gains.x);
+        Debug.Log(metadata.white_balance_gains.y);
+        Debug.Log(metadata.white_balance_gains.z);
 
         tex_pv.LoadRawTextureData(region.image, pv_frame_size);
         tex_pv.Apply();
