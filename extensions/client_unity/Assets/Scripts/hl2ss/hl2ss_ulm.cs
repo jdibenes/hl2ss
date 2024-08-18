@@ -344,13 +344,13 @@ public static partial class hl2ss
         public static extern int sm_create_observer(IntPtr ipc);
 
         [DllImport("hl2ss_ulm")]
-        public static extern int sm_set_volumes(IntPtr ipc, uint count, IntPtr data, ulong size);
+        public static extern int sm_set_volumes(IntPtr ipc, uint count, byte[] data, ulong size);
 
         [DllImport("hl2ss_ulm")]
         public static extern IntPtr sm_get_observed_surfaces(IntPtr ipc, out ulong size, out IntPtr data);
 
         [DllImport("hl2ss_ulm")]
-        public static extern IntPtr sm_get_meshes(IntPtr ipc, uint count, IntPtr data, ulong size, uint threads);
+        public static extern IntPtr sm_get_meshes(IntPtr ipc, uint count, byte[] data, ulong size, uint threads);
 
         [DllImport("hl2ss_ulm")]
         public static extern int sm_unpack_mesh(IntPtr reference, uint index, sm_mesh mesh);
@@ -360,7 +360,7 @@ public static partial class hl2ss
         //------------------------------------------------------------------------------
 
         [DllImport("hl2ss_ulm")]
-        public static extern IntPtr su_query(IntPtr ipc, ref su_task task, su_result_header header);
+        public static extern IntPtr su_query(IntPtr ipc, su_task task, su_result_header header);
 
         [DllImport("hl2ss_ulm")]
         public static extern int su_unpack_item(IntPtr reference, uint index, su_item item);
@@ -395,10 +395,10 @@ public static partial class hl2ss
         //------------------------------------------------------------------------------
 
         [DllImport("hl2ss_ulm")]
-        public static extern int umq_push(IntPtr ipc, IntPtr data, ulong size);
+        public static extern int umq_push(IntPtr ipc, byte[] data, ulong size);
 
         [DllImport("hl2ss_ulm")]
-        public static extern int umq_pull(IntPtr ipc, IntPtr data, uint count);
+        public static extern int umq_pull(IntPtr ipc, uint[] data, uint count);
 
         //-----------------------------------------------------------------------------
         // Guest Message Queue
@@ -408,6 +408,6 @@ public static partial class hl2ss
         public static extern IntPtr gmq_pull(IntPtr ipc, gmq_message result);
 
         [DllImport("hl2ss_ulm")]
-        public static extern int gmq_push(IntPtr ipc, IntPtr response, uint count);
+        public static extern int gmq_push(IntPtr ipc, uint[] response, uint count);
     }
 }

@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 public static partial class hl2ss
@@ -326,75 +327,45 @@ public static partial class hl2ss
     // Packer
     //------------------------------------------------------------------------------
 
-/*
-    union v8 { uint8_t b; int8_t c; };
-    union v16 { struct { v8 b0, b1; }
-    b; uint16_t w; int16_t s;
-};
-union v32 { struct { v16 w0, w1; }
-w; uint32_t d; int32_t i; };
-union v64 { struct { v32 d0, d1; }
-d; uint64_t q; int64_t l; };
+    public class byte_buffer
+    {
+        protected List<byte> m_buffer;
 
-HL2SS_INLINE
-void push_u8(std::vector<uint8_t>& sc, uint8_t byte)
-{
-    sc.push_back(byte);
-}
+        public byte_buffer()
+        {
+            m_buffer = new List<byte>();
+        }
 
-HL2SS_INLINE
-void push_u16(std::vector<uint8_t>& sc, uint16_t word)
-{
-    v16 data;
-data.w = word;
+        public void push_u8(byte v) { m_buffer.Add(v); }
+        public void push_s8(char v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_u16(ushort v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_s16(short v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_u32(uint v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_s32(int v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_u64(ulong v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_s64(long v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_float(float v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
+        public void push_double(double v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
 
-push_u8(sc, data.b.b0.b);
-push_u8(sc, data.b.b1.b);
-}
+        public void push(IntPtr data, ulong size)
+        {
+            byte[] a = new byte[size];
+            Marshal.Copy(data, a, 0, (int)size);
+            m_buffer.AddRange(a);
+        }
 
-HL2SS_INLINE
-void push_u32(std::vector<uint8_t>& sc, uint32_t dword)
-{
-    v32 data;
-data.d = dword;
-
-push_u16(sc, data.w.w0.w);
-push_u16(sc, data.w.w1.w);
-}
-
-HL2SS_INLINE
-void push_u64(std::vector<uint8_t>& sc, uint64_t qword)
-{
-    v64 data;
-data.q = qword;
-
-push_u32(sc, data.d.d0.d);
-push_u32(sc, data.d.d1.d);
-}
-
-HL2SS_INLINE
-void push_float(std::vector<uint8_t>& sc, float f)
-{
-    push_u32(sc, *(uint32_t*)&f);
-}
-
-HL2SS_INLINE
-void push_double(std::vector<uint8_t>& sc, double d)
-{
-    push_u64(sc, *(uint64_t*)&d);
-}
-
-HL2SS_INLINE
-void push(std::vector<uint8_t>& sc, void const* data, uint64_t size)
-{
-    sc.insert(sc.end(), (uint8_t *)data, ((uint8_t*)data) + size);
-}
-*/
+        public void push<T>(T v) where T : class
+        {
+            GCHandle h = GCHandle.Alloc(v, GCHandleType.Pinned);
+            push(h.AddrOfPinnedObject(), (ulong)Marshal.SizeOf(typeof(T)));
+            h.Free();
+        }
+    }
 
     //------------------------------------------------------------------------------
     // Stream Configuration
     //------------------------------------------------------------------------------
-    
+
     public static uint extended_audio_device_mixer_mode(uint mixer_mode, uint device)
     {
         const uint DEVICE_BASE = 0x00000004;
@@ -798,118 +769,111 @@ void push(std::vector<uint8_t>& sc, void const* data, uint64_t size)
         public ulong update_time;
     }
 
-    /*
-class sm_bounding_volume
-{
-    private:
-    std.vector<byte> m_data;
-    uint m_count;
-
-    public:
-    sm_bounding_volume()
+    // NO LAYOUT
+    public class sm_bounding_volume : byte_buffer
     {
-        m_count = 0;
+        private uint m_count;
+
+        public sm_bounding_volume()
+        {
+            m_count = 0;
+        }
+
+        public sm_bounding_volume(uint count, byte[] data, ulong size)
+        {
+            m_count = count;
+            m_buffer.Clear();
+            m_buffer.AddRange(data);
+        }
+
+        public void add_box(sm_box box)
+        {
+            m_count++;
+            push_u32(sm_volume_type.Box);
+            push(box);
+        }
+
+        public void add_frustum(sm_frustum frustum)
+        {
+            m_count++;
+            push_u32(sm_volume_type.Frustum);
+            push(frustum);
+        }
+
+        public void add_oriented_box(sm_oriented_box oriented_box)
+        {
+            m_count++;
+            push_u32(sm_volume_type.OrientedBox);
+            push(oriented_box);
+        }
+
+        public void add_sphere(sm_sphere sphere)
+        {
+            m_count++;
+            push_u32(sm_volume_type.Sphere);
+            push(sphere);
+        }
+
+        public uint get_count()
+        {
+            return m_count;
+        }
+
+        public byte[] get_data()
+        {
+            return m_buffer.ToArray();
+        }
+
+        public ulong get_size()
+        {
+            return (ulong)m_buffer.Count;
+        }
     }
 
-    sm_bounding_volume(uint count, const byte* data, ulong size)
+    // NO LAYOUT
+    public class sm_mesh_task : byte_buffer
     {
-        m_count = count;
-        m_data  = { data, data + size
-}
+        private uint m_count;
+
+        public sm_mesh_task()
+        {
+            m_count = 0;
+        }
+
+        public sm_mesh_task(uint count, byte[] data, ulong size)
+        {
+            m_count = count;
+            m_buffer.Clear();
+            m_buffer.AddRange(data);
+        }
+
+        public void add_task(guid id, double max_triangles_per_cubic_meter, uint vertex_position_format, uint triangle_index_format, uint vertex_normal_format, bool include_vertex_normals, bool include_bounds)
+        {
+            m_count++;
+            push_u64(id.l);
+            push_u64(id.h);
+            push_double(max_triangles_per_cubic_meter);
+            push_u32(vertex_position_format);
+            push_u32(triangle_index_format);
+            push_u32(vertex_normal_format);
+            push_u32((include_vertex_normals ? 1U : 0U) | (include_bounds ? 2U : 0U));
+        }
+
+        public uint get_count()
+        {
+            return m_count;
+        }
+
+        public byte[] get_data()
+        {
+            return m_buffer.ToArray();
+        }
+
+        public ulong get_size()
+        {
+            return (ulong)m_buffer.Count;
+        }
     }
-
-    void add_box(sm_box box)
-{
-    m_count++;
-    push_u32(m_data, sm_volume_type.Box);
-    push(m_data, &box, sizeof(box));
-}
-
-void add_frustum(sm_frustum frustum)
-{
-    m_count++;
-    push_u32(m_data, sm_volume_type.Frustum);
-    push(m_data, &frustum, sizeof(frustum));
-}
-
-void add_oriented_box(sm_oriented_box oriented_box)
-{
-    m_count++;
-    push_u32(m_data, sm_volume_type.OrientedBox);
-    push(m_data, &oriented_box, sizeof(oriented_box));
-}
-
-void add_sphere(sm_sphere sphere)
-{
-    m_count++;
-    push_u32(m_data, sm_volume_type.Sphere);
-    push(m_data, &sphere, sizeof(sphere));
-}
-
-uint get_count() const
-    {
-        return m_count;
-    }
-
-    const byte* get_data() const
-    {
-        return m_data.data();
-    }
-
-    ulong get_size() const
-    {
-        return m_data.size();
-    }
-}
-*/
-/*
-    class sm_mesh_task
-{
-    private:
-    std.vector<byte> m_data;
-    uint m_count;
-
-    public:
-    sm_mesh_task()
-    {
-        m_count = 0;
-    }
-
-    sm_mesh_task(uint count, const byte* data, ulong size)
-    {
-        m_count = count;
-        m_data  = { data, data + size
-}
-    }
-
-    void add_task(guid id, double max_triangles_per_cubic_meter, uint vertex_position_format, uint triangle_index_format, uint vertex_normal_format, bool include_vertex_normals, bool include_bounds)
-{
-    m_count++;
-    push_u64(m_data, id.l);
-    push_u64(m_data, id.h);
-    push_double(m_data, max_triangles_per_cubic_meter);
-    push_u32(m_data, vertex_position_format);
-    push_u32(m_data, triangle_index_format);
-    push_u32(m_data, vertex_normal_format);
-    push_u32(m_data, (1 * include_vertex_normals) | (2 * include_bounds));
-}
-
-uint get_count() const
-    {
-        return m_count;
-    }
-
-    const byte* get_data() const
-    {
-        return m_data.data();
-    }
-
-    ulong get_size() const
-    {
-        return m_data.size();
-    }
-}
-*/
 
     //------------------------------------------------------------------------------
     // Scene Understanding
@@ -998,49 +962,46 @@ uint get_count() const
     //------------------------------------------------------------------------------
     // Unity Message Queue
     //------------------------------------------------------------------------------
-    /*
-    class umq_command_buffer
+    
+    // NO LAYOUT
+    public class umq_command_buffer : byte_buffer
     {
-        private:
-        std.vector<byte> m_buffer;
-        uint m_count;
+        private uint m_count;
 
-        public:
-        umq_command_buffer()
+        public umq_command_buffer()
         {
             m_count = 0;
         }
 
-        void add(uint id, void const* data, ulong size)
+        public void add(uint id, IntPtr data, ulong size)
         {
-            push_u32(m_buffer, id);
-        push_u32(m_buffer, (uint) size);
-        push(m_buffer, data, size);
-        m_count++;
+            push_u32(id);
+            push_u32((uint)size);
+            push(data, size);
+            m_count++;
         }
 
-    void clear()
-    {
-        m_buffer.clear();
-        m_count = 0;
-    }
-
-    const byte* data()
+        public void clear()
         {
-            return m_buffer.data();
+            m_buffer.Clear();
+            m_count = 0;
         }
 
-        ulong size()
-    {
-        return m_buffer.size();
-    }
+        public byte[] data()
+        {
+            return m_buffer.ToArray();
+        }
 
-    uint count()
-    {
-        return m_count;
+        public ulong size()
+        {
+            return (ulong)m_buffer.Count;
+        }
+
+        public uint count()
+        {
+            return m_count;
+        }
     }
-    }
-    */
 
     //------------------------------------------------------------------------------
     // Unpacking

@@ -1,6 +1,31 @@
 
 using System;
 using System.Runtime.InteropServices;
+using UnityEditor.Experimental.GraphView;
+using static hl2ss.ulm;
+
+/*
+"Structs" 
+[hl2ss.ulm]
+configuration_rm_depth_ahat
+configuration_rm_depth_longthrow
+configuration_rm_imu
+configuration_microphone
+configuration_eet
+configuration_extended_audio
+
+[hl2ss]
+matrix_4x4
+uint64x2
+calibration_rm_vlc
+calibration_rm_depth_ahat
+calibration_rm_depth_longthrow
+calibration_rm_imu
+calibration_pv
+version
+si_frame
+*/
+
 
 public static partial class hl2ss
 {
@@ -203,37 +228,405 @@ public static partial class hl2ss
         // Remote Configuration
         //-----------------------------------------------------------------------------
 
-        // TODO:
+        public class ipc_rc : handle
+        {
+            public ipc_rc(string host, ushort port) : base(hl2ss.ulm.open_ipc(host, port))
+            {
+            }
+
+            public hl2ss.version get_application_version()
+            {
+                hl2ss.version version = new hl2ss.version();
+                check_result(hl2ss.ulm.rc_get_application_version(m_handle, version));
+                return version;
+            }
+
+            public ulong get_utc_offset(uint samples)
+            {
+                ulong offset;
+                check_result(hl2ss.ulm.rc_get_utc_offset(m_handle, samples, out offset));
+                return offset;
+            }
+
+            public void set_hs_marker_state(uint state)
+            {
+                check_result(hl2ss.ulm.rc_set_hs_marker_state(m_handle, state));
+            }
+
+            public uint get_pv_subsystem_status()
+            {
+                uint status;
+                check_result(hl2ss.ulm.rc_get_pv_subsystem_status(m_handle, out status));
+                return status;
+            }
+
+            public void wait_for_pv_subsystem(bool status)
+            {
+                check_result(hl2ss.ulm.rc_wait_for_pv_subsystem(m_handle, Convert.ToByte(status)));
+            }
+
+            public void set_pv_focus(uint mode, uint range, uint distance, uint value, uint driver_fallback)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_focus(m_handle, mode, range, distance, value, driver_fallback));
+            }
+
+            public void set_pv_video_temporal_denoising(uint mode)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_video_temporal_denoising(m_handle, mode));
+            }
+
+            public void set_pv_white_balance_preset(uint preset)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_white_balance_preset(m_handle, preset));
+            }
+
+            public void set_pv_white_balance_value(uint value)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_white_balance_value(m_handle, value));
+            }
+
+            public void set_pv_exposure(uint mode, uint value)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_exposure(m_handle, mode, value));
+            }
+
+            public void set_pv_exposure_priority_video(uint enabled)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_exposure_priority_video(m_handle, enabled));
+            }
+
+            public void set_pv_iso_speed(uint mode, uint value)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_iso_speed(m_handle, mode, value));
+            }
+
+            public void set_pv_backlight_compensation(uint state)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_backlight_compensation(m_handle, state));
+            }
+
+            public void set_pv_scene_mode(uint mode)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_scene_mode(m_handle, mode));
+            }
+
+            public void set_flat_mode(bool mode)
+            {
+                check_result(hl2ss.ulm.rc_set_flat_mode(m_handle, Convert.ToByte(mode)));
+            }
+
+            public void set_rm_eye_selection(bool enable)
+            {
+                check_result(hl2ss.ulm.rc_set_rm_eye_selection(m_handle, Convert.ToByte(enable)));
+            }
+
+            public void set_pv_desired_optimization(uint mode)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_desired_optimization(m_handle, mode));
+            }
+
+            public void set_pv_primary_use(uint mode)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_primary_use(m_handle, mode));
+            }
+
+            public void set_pv_optical_image_stabilization(uint mode)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_optical_image_stabilization(m_handle, mode));
+            }
+
+            public void set_pv_hdr_video(uint mode)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_hdr_video(m_handle, mode));
+            }
+
+            public void set_pv_regions_of_interest(bool clear, bool set, bool auto_exposure, bool auto_focus, bool bounds_normalized, uint type, uint weight, float x, float y, float w, float h)
+            {
+                check_result(hl2ss.ulm.rc_set_pv_regions_of_interest(m_handle, Convert.ToByte(clear), Convert.ToByte(set), Convert.ToByte(auto_exposure), Convert.ToByte(auto_focus), Convert.ToByte(bounds_normalized), type, weight, x, y, w, h));
+            }
+
+            public void set_interface_priority(ushort port, int priority)
+            {
+                check_result(hl2ss.ulm.rc_set_interface_priority(m_handle, port, priority));
+            }
+        }
 
         //-----------------------------------------------------------------------------
         // Spatial Mapping
         //-----------------------------------------------------------------------------
 
-        // TODO:
+        public class sm_surface_info_collection : handle, buffer
+        {
+            protected IntPtr data;
+            protected ulong size;
+
+            public sm_surface_info_collection(IntPtr ipc) : base(hl2ss.ulm.sm_get_observed_surfaces(ipc, out ulong s, out IntPtr p))
+            {
+            }
+
+            public IntPtr address { get { return data; } }
+
+            public ulong length { get { return size; } }
+        }
+
+        public class sm_mesh_collection : handle
+        {
+            public hl2ss.ulm.sm_mesh[] meshes;
+
+            public sm_mesh_collection(IntPtr ipc, uint count, byte[] data, ulong size, uint threads) : base(hl2ss.ulm.sm_get_meshes(ipc, count, data, size, threads))
+            {
+                meshes = new hl2ss.ulm.sm_mesh[count];
+                for (uint i = 0; i < count; ++i)
+                {
+                    meshes[i] = new hl2ss.ulm.sm_mesh();
+                    check_result(hl2ss.ulm.sm_unpack_mesh(m_handle, i, meshes[i]));
+                }
+            }
+        }
+
+        public class ipc_sm : handle
+        {
+            public ipc_sm(string host, ushort port) : base(hl2ss.ulm.open_ipc(host, port))
+            {
+            }
+
+            public void create_observer()
+            {
+                check_result(hl2ss.ulm.sm_create_observer(m_handle));
+            }
+
+            public void set_volumes(hl2ss.sm_bounding_volume volumes)
+            {
+                check_result(hl2ss.ulm.sm_set_volumes(m_handle, volumes.get_count(), volumes.get_data(), volumes.get_size()));
+            }
+
+            public sm_surface_info_collection get_observed_surfaces()
+            {
+                return new sm_surface_info_collection(m_handle);
+            }
+
+            public sm_mesh_collection get_meshes(hl2ss.sm_mesh_task tasks, uint threads)
+            {
+                return new sm_mesh_collection(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size(), threads);
+            }
+        }
 
         //-----------------------------------------------------------------------------
         // Scene Understanding
         //-----------------------------------------------------------------------------
 
-        // TODO:
+        public class su_item
+        {
+            public hl2ss.ulm.su_item content;
+            public hl2ss.ulm.su_mesh[] unpacked_meshes;
+            public hl2ss.ulm.su_mesh[] unpacked_collider_meshes;
+        }
+
+        public class su_result : handle
+        {
+            public hl2ss.ulm.su_result_header header;
+            public su_item[] items;
+
+            protected void unpack_meshes(IntPtr meshes, uint count, out hl2ss.ulm.su_mesh[] o)
+            {
+                o = new hl2ss.ulm.su_mesh[count];
+                for (uint i = 0; i < count; ++i)
+                {
+                    o[i] = new hl2ss.ulm.su_mesh();
+                    check_result(hl2ss.ulm.su_unpack_item_mesh(meshes, i, o[i]));
+                }
+            }
+
+            protected void unpack_item(uint index)
+            {
+                su_item item = items[index];
+                unpack_meshes(item.content.meshes, item.content.meshes_count, out item.unpacked_meshes);
+                unpack_meshes(item.content.collider_meshes, item.content.collider_meshes_count, out item.unpacked_collider_meshes);
+            }
+
+            protected su_result(IntPtr ipc, hl2ss.ulm.su_task task, hl2ss.ulm.su_result_header h) : base(hl2ss.ulm.su_query(ipc, task, h))
+            {
+                header = h;
+                if (header.status != 0) { return; }
+                items = new su_item[header.count];
+                for (uint i = 0; i < header.count; ++i)
+                {
+                    items[i] = new su_item();
+                    items[i].content = new hl2ss.ulm.su_item();
+                    check_result(hl2ss.ulm.su_unpack_item(m_handle, i, items[i].content));
+                    unpack_item(i);
+                }
+            }
+
+            public su_result(IntPtr ipc, hl2ss.ulm.su_task task) : this(ipc, task, new hl2ss.ulm.su_result_header())
+            {
+            }
+        }
+
+        public class ipc_su : handle
+        {
+            public ipc_su(string host, ushort port) : base(hl2ss.ulm.open_ipc(host, port))
+            {
+            }
+
+            public su_result query(hl2ss.su_task task)
+            {
+                hl2ss.ulm.su_task t = new hl2ss.ulm.su_task();
+
+                t.enable_quads = Convert.ToByte(task.enable_quads);
+                t.enable_meshes = Convert.ToByte(task.enable_meshes);
+                t.enable_only_observed = Convert.ToByte(task.enable_only_observed);
+                t.enable_world_mesh = Convert.ToByte(task.enable_world_mesh);
+                t.mesh_lod = task.mesh_lod;
+                t.query_radius = task.query_radius;
+                t.create_mode = task.create_mode;
+                t.kind_flags = task.kind_flags;
+                t.get_orientation = Convert.ToByte(task.get_orientation);
+                t.get_position = Convert.ToByte(task.get_position);
+                t.get_location_matrix = Convert.ToByte(task.get_location_matrix);
+                t.get_quad = Convert.ToByte(task.get_quad);
+                t.get_meshes = Convert.ToByte(task.get_meshes);
+                t.get_collider_meshes = Convert.ToByte(task.get_collider_meshes);
+                t.guid_list_size = (ulong)task.guid_list.Length;
+
+                GCHandle h = GCHandle.Alloc(task.guid_list, GCHandleType.Pinned);
+                t.guid_list_data = h.AddrOfPinnedObject();
+
+                su_result r;
+
+                try
+                {
+                    r = new su_result(m_handle, t);
+                }
+                finally
+                {
+                    h.Free();
+                }
+
+                return r;
+            }
+        }
 
         //-----------------------------------------------------------------------------
         // Voice Input
         //-----------------------------------------------------------------------------
 
-        // TODO:
+        public class vi_result : handle, buffer
+        {
+            protected IntPtr data;
+            protected ulong size;
+
+            public vi_result(IntPtr ipc) : base(hl2ss.ulm.vi_pop(ipc, out ulong s, out IntPtr p))
+            {
+                size = s;
+                data = p;
+            }
+
+            public IntPtr address { get { return data; } }
+
+            public ulong length { get { return size; } }
+        }
+
+        public class ipc_vi : handle
+        {
+            public ipc_vi(string host, ushort port) : base(hl2ss.ulm.open_ipc(host, port))
+            {
+            }
+
+            public void create_recognizer()
+            {
+                check_result(hl2ss.ulm.vi_create_recognizer(m_handle));
+            }
+
+            public bool register_commands(bool clear, string utf8_array)
+            {
+                uint status;
+                check_result(hl2ss.ulm.vi_register_commands(m_handle, Convert.ToByte(clear), utf8_array, out status));
+                return status != 0;
+            }
+
+            public void start()
+            {
+                check_result(hl2ss.ulm.vi_start(m_handle));
+            }
+
+            public vi_result pop()
+            {
+                return new vi_result(m_handle);
+            }
+
+            public void clear()
+            {
+                check_result(hl2ss.ulm.vi_clear(m_handle));
+            }
+
+            public void stop()
+            {
+                check_result(hl2ss.ulm.vi_stop(m_handle));
+            }
+        }
 
         //-----------------------------------------------------------------------------
         // Unity Message Queue
         //-----------------------------------------------------------------------------
 
-        // TODO:
+        public class ipc_umq : handle
+        {
+            public ipc_umq(string host, ushort port) : base(hl2ss.ulm.open_ipc(host, port))
+            {
+            }
+
+            public void push(byte[] data, ulong size)
+            {
+                check_result(hl2ss.ulm.umq_push(m_handle, data, size));
+            }
+
+            public void pull(uint[] data, uint count)
+            {
+                check_result(hl2ss.ulm.umq_pull(m_handle, data, count));
+            }
+        }
 
         //-----------------------------------------------------------------------------
         // Guest Message Queue
         //-----------------------------------------------------------------------------
 
-        // TODO:
+        public class gmq_message : handle
+        {
+            hl2ss.ulm.gmq_message message;
+
+            protected gmq_message(IntPtr ipc, hl2ss.ulm.gmq_message p) : base(hl2ss.ulm.gmq_pull(ipc, p))
+            {
+                message = p;
+            }
+
+            public gmq_message(IntPtr ipc) : this(ipc, new hl2ss.ulm.gmq_message())
+            {
+            }
+
+            public uint command { get { return message.command; } }
+
+            public uint size { get { return message.size; } }
+
+            public IntPtr data { get { return message.data; } }
+        }
+
+        public class ipc_gmq : handle
+        {
+            public ipc_gmq(string host, ushort port) : base(hl2ss.ulm.open_ipc(host, port))
+            {
+            }
+
+            public gmq_message pull()
+            {
+                return new gmq_message(m_handle);
+            }
+
+            public void push(uint[] response, uint count)
+            {
+                check_result(hl2ss.ulm.gmq_push(m_handle, response, count));
+            }
+        }
 
         //-----------------------------------------------------------------------------
         // API
@@ -371,11 +764,39 @@ public static partial class hl2ss
             return s;
         }
 
-        // TODO: IPC support
-
-        public static void start_subsystem_pv(string host, ushort port, byte enable_mrc = 0, byte hologram_composition = 1, byte recording_indicator = 0, byte video_stabilization = 0, byte blank_protected = 0, byte show_mesh = 0, byte shared = 0, float global_opacity = 0.9f, float output_width = 0.0f, float output_height = 0.0f, uint video_stabilization_length = 0, uint hologram_perspective = hl2ss.hologram_perspective.PV)
+        public static void open_ipc(string host, ushort port, out ipc_rc ipc)
         {
-            handle.check_result(hl2ss.ulm.start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective));
+            ipc = new ipc_rc(host, port);
+        }
+
+        public static void open_ipc(string host, ushort port, out ipc_sm ipc)
+        {
+            ipc = new ipc_sm(host, port);
+        }
+
+        public static void open_ipc(string host, ushort port, out ipc_su ipc)
+        {
+            ipc = new ipc_su(host, port);
+        }
+
+        public static void open_ipc(string host, ushort port, out ipc_vi ipc)
+        {
+            ipc = new ipc_vi(host, port);
+        }
+
+        public static void open_ipc(string host, ushort port, out ipc_umq ipc)
+        {
+            ipc = new ipc_umq(host, port);
+        }
+
+        public static void open_ipc(string host, ushort port, out ipc_gmq ipc)
+        {
+            ipc = new ipc_gmq(host, port);
+        }
+
+        public static void start_subsystem_pv(string host, ushort port, bool enable_mrc = false, bool hologram_composition = true, bool recording_indicator = false, bool video_stabilization = false, bool blank_protected = false, bool show_mesh = false, bool shared = false, float global_opacity = 0.9f, float output_width = 0.0f, float output_height = 0.0f, uint video_stabilization_length = 0, uint hologram_perspective = hl2ss.hologram_perspective.PV)
+        {
+            handle.check_result(hl2ss.ulm.start_subsystem_pv(host, port, Convert.ToByte(enable_mrc), Convert.ToByte(hologram_composition), Convert.ToByte(recording_indicator), Convert.ToByte(video_stabilization), Convert.ToByte(blank_protected), Convert.ToByte(show_mesh), Convert.ToByte(shared), global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective));
         }
 
         public static void stop_subsystem_pv(string host, ushort port)
