@@ -71,6 +71,8 @@ public class viewer : MonoBehaviour
 
         tex_pv.LoadRawTextureData(region.image, pv_frame_size);
         tex_pv.Apply();
+
+        packet.destroy();
     }
 
     void OnApplicationQuit()
