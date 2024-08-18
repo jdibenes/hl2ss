@@ -85,6 +85,16 @@ public static partial class hl2ss
             public IntPtr payload { get { return data.payload; } }
 
             public IntPtr pose { get { return data.pose; } }
+
+            public void unpack(out hl2ss.map_rm_vlc region)
+            {
+                region = hl2ss.unpack_rm_vlc(payload);
+            }
+
+            public void unpack(out hl2ss.map_pv region)
+            {
+                region = hl2ss.unpack_pv(payload, sz_payload);
+            }
         }
 
         public class source : handle
