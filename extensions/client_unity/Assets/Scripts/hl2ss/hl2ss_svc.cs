@@ -43,7 +43,11 @@ public static partial class hl2ss
             }
         }
 
-        // BLOCK
+        public interface buffer
+        {
+            public ulong length { get; }
+            public IntPtr address { get; }
+        }
 
         //-----------------------------------------------------------------------------
         // Stream
@@ -53,9 +57,9 @@ public static partial class hl2ss
         {
             protected hl2ss.ulm.packet data;
 
-            protected packet(IntPtr h, hl2ss.ulm.packet data) : base(h)
+            protected packet(IntPtr h, hl2ss.ulm.packet p) : base(h)
             {
-                this.data = data;
+                data = p;
             }
 
             protected packet(IntPtr source, long frame_stamp, hl2ss.ulm.packet data) : this(hl2ss.ulm.get_by_index(source, frame_stamp, data), data)
@@ -91,9 +95,59 @@ public static partial class hl2ss
                 region = hl2ss.unpack_rm_vlc(payload);
             }
 
+            public void unpack(out hl2ss.map_rm_depth_ahat region)
+            {
+                region = hl2ss.unpack_rm_depth_ahat(payload);
+            }
+
+            public void unpack(out hl2ss.map_rm_depth_longthrow region)
+            {
+                region = hl2ss.unpack_rm_depth_longthrow(payload);
+            }
+
+            public void unpack(out hl2ss.map_rm_imu region)
+            {
+                region = hl2ss.unpack_rm_imu(payload);
+            }
+
             public void unpack(out hl2ss.map_pv region)
             {
                 region = hl2ss.unpack_pv(payload, sz_payload);
+            }
+
+            public void unpack(out hl2ss.map_microphone_aac region)
+            {
+                region = hl2ss.unpack_microphone_aac(payload);
+            }
+
+            public void unpack(out hl2ss.map_microphone_raw region)
+            {
+                region = hl2ss.unpack_microphone_raw(payload);
+            }
+
+            public void unpack(out hl2ss.map_microphone_array region)
+            {
+                region = hl2ss.unpack_microphone_array(payload);
+            }
+
+            public void unpack(out hl2ss.map_si region)
+            {
+                region = hl2ss.unpack_si(payload);
+            }
+
+            public void unpack(out hl2ss.map_eet region)
+            {
+                region = hl2ss.unpack_eet(payload);
+            }
+
+            public void unpack(out hl2ss.map_extended_audio_aac region)
+            {
+                region = hl2ss.unpack_extended_audio_aac(payload);
+            }
+
+            public void unpack(out hl2ss.map_extended_audio_raw region)
+            {
+                region = hl2ss.unpack_extended_audio_raw(payload);
             }
         }
 
@@ -114,7 +168,72 @@ public static partial class hl2ss
             }
         }
 
-        // BLOCK
+        public class calibration : handle, buffer
+        {
+            protected IntPtr data;
+            protected ulong size;
+
+            public calibration(string host, ushort port, IntPtr configuration) : base(hl2ss.ulm.download_calibration(host, port, configuration, out IntPtr p))
+            {
+                size = 1;
+                data = p;                
+            }
+
+            public IntPtr address { get { return data; } }
+            public ulong length { get { return size; } }
+        }
+
+        public class device_list : handle, buffer
+        {
+            protected IntPtr data;
+            protected ulong size;
+
+            public device_list(string host, ushort port) : base(hl2ss.ulm.download_device_list(host, port, out ulong s, out IntPtr p))
+            {
+                size = s;
+                data = p;
+            }
+
+            public IntPtr address { get { return data; } }
+            
+            public ulong length { get { return size; } }
+        }
+
+        //-----------------------------------------------------------------------------
+        // Remote Configuration
+        //-----------------------------------------------------------------------------
+
+        // TODO:
+
+        //-----------------------------------------------------------------------------
+        // Spatial Mapping
+        //-----------------------------------------------------------------------------
+
+        // TODO:
+
+        //-----------------------------------------------------------------------------
+        // Scene Understanding
+        //-----------------------------------------------------------------------------
+
+        // TODO:
+
+        //-----------------------------------------------------------------------------
+        // Voice Input
+        //-----------------------------------------------------------------------------
+
+        // TODO:
+
+        //-----------------------------------------------------------------------------
+        // Unity Message Queue
+        //-----------------------------------------------------------------------------
+
+        // TODO:
+
+        //-----------------------------------------------------------------------------
+        // Guest Message Queue
+        //-----------------------------------------------------------------------------
+
+        // TODO:
 
         //-----------------------------------------------------------------------------
         // API
@@ -252,7 +371,7 @@ public static partial class hl2ss
             return s;
         }
 
-        // BLOCK
+        // TODO: IPC support
 
         public static void start_subsystem_pv(string host, ushort port, byte enable_mrc = 0, byte hologram_composition = 1, byte recording_indicator = 0, byte video_stabilization = 0, byte blank_protected = 0, byte show_mesh = 0, byte shared = 0, float global_opacity = 0.9f, float output_width = 0.0f, float output_height = 0.0f, uint video_stabilization_length = 0, uint hologram_perspective = hl2ss.hologram_perspective.PV)
         {
@@ -264,8 +383,17 @@ public static partial class hl2ss
             handle.check_result(hl2ss.ulm.stop_subsystem_pv(host, port));
         }
 
+        public static calibration download_calibration<T>(string host, ushort port, T configuration)
+        {
+            GCHandle h = GCHandle.Alloc(configuration, GCHandleType.Pinned);
+            calibration c = new calibration(host, port, h.AddrOfPinnedObject());
+            h.Free();
+            return c;
+        }
 
-
-
-}
+        public static device_list download_device_list(string host, ushort port)
+        {
+            return new device_list(host, port);
+        }
+    }
 }
