@@ -269,14 +269,14 @@ public static partial class hl2ss
     //------------------------------------------------------------------------------
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class vector_2
+    public struct vector_2
     {
         public float x;
         public float y;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class vector_3
+    public struct vector_3
     {
         public float x;
         public float y;
@@ -284,7 +284,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class vector_4
+    public struct vector_4
     {
         public float x;
         public float y;
@@ -293,40 +293,81 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class quaternion : vector_4
+    public struct quaternion
     {
+        public float x;
+        public float y;
+        public float z;
+        public float w;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class plane : vector_4
+    public struct plane
     {
+        public float x;
+        public float y;
+        public float z;
+        public float w;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class matrix_4x4
+    [StructLayout(LayoutKind.Sequential)]
+    public struct matrix_4x4
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[,] m;
+        public float[] m;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class ray
+    public struct ray
     {
         public vector_3 origin;
         public vector_3 direction;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class uint64x2
+    public struct uint64x2
     {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-        public ulong[] val;
+        public ulong val_0;
+        public ulong val_1;
     }
 
     //------------------------------------------------------------------------------
     // Packer
     //------------------------------------------------------------------------------
 
+    // NO LAYOUT
+    public class pointer
+    {
+        protected GCHandle h;
+        protected IntPtr p;
+
+        protected pointer(GCHandle o)
+        {
+            h = o;
+            p = h.AddrOfPinnedObject();
+        }
+
+        public static pointer get<T>(T o)
+        {
+            return new pointer(GCHandle.Alloc(o, GCHandleType.Pinned));
+        }
+
+        public IntPtr value { get { return p; } }
+
+        public void destroy()
+        {
+            if (p == IntPtr.Zero) { return; }
+            p = IntPtr.Zero;
+            h.Free();
+        }
+
+        ~pointer()
+        {
+            destroy();
+        }
+    }
+
+    // NO LAYOUT
     public class byte_buffer
     {
         protected List<byte> m_buffer;
@@ -356,9 +397,8 @@ public static partial class hl2ss
 
         public void push<T>(T v) where T : class
         {
-            GCHandle h = GCHandle.Alloc(v, GCHandleType.Pinned);
-            push(h.AddrOfPinnedObject(), (ulong)Marshal.SizeOf(typeof(T)));
-            h.Free();
+            pointer p = pointer.get(v);
+            try { push(p.value, (ulong)Marshal.SizeOf(typeof(T))); } finally { p.destroy(); }
         }
     }
 
@@ -377,7 +417,7 @@ public static partial class hl2ss
     //------------------------------------------------------------------------------
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class rm_vlc_metadata
+    public struct rm_vlc_metadata
     {
         public ulong sensor_ticks;
         public ulong exposure;
@@ -386,19 +426,19 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class rm_depth_ahat_metadata
+    public struct rm_depth_ahat_metadata
     {
         public ulong sensor_ticks;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class rm_depth_longthrow_metadata
+    public struct rm_depth_longthrow_metadata
     {
         public ulong sensor_ticks;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class pv_metadata
+    public struct pv_metadata
     {
         public vector_2 f;
         public vector_2 c;
@@ -418,56 +458,56 @@ public static partial class hl2ss
     //------------------------------------------------------------------------------
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class calibration_rm_vlc
+    public struct calibration_rm_vlc
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2 * parameters_rm_vlc.HEIGHT * parameters_rm_vlc.WIDTH)]
-        public float[,,] uv2xy;
+        public float[] uv2xy;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[,] extrinsics;
+        public float[] extrinsics;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2 * parameters_rm_vlc.HEIGHT * parameters_rm_vlc.WIDTH)]
-        public float[,,] undistort_map;
+        public float[] undistort_map;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
         public float[] intrinsics;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class calibration_rm_depth_ahat
+    public struct calibration_rm_depth_ahat
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2 * parameters_rm_depth_ahat.HEIGHT * parameters_rm_depth_ahat.WIDTH)]
-        public float[,,] uv2xy;
+        public float[] uv2xy;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[,] extrinsics;
+        public float[] extrinsics;
         public float scale;
         public float alias;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2 * parameters_rm_depth_ahat.HEIGHT * parameters_rm_depth_ahat.WIDTH)]
-        public float[,,] undistort_map;
+        public float[] undistort_map;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
         public float[] intrinsics;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class calibration_rm_depth_longthrow
+    public struct calibration_rm_depth_longthrow
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2 * parameters_rm_depth_longthrow.HEIGHT * parameters_rm_depth_longthrow.WIDTH)]
-        public float[,,] uv2xy;
+        public float[] uv2xy;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[,] extrinsics;
+        public float[] extrinsics;
         public float scale;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2 * parameters_rm_depth_longthrow.HEIGHT * parameters_rm_depth_longthrow.WIDTH)]
-        public float[,,] undistort_map;
+        public float[] undistort_map;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
         public float[] intrinsics;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class calibration_rm_imu
+    public struct calibration_rm_imu
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[,] extrinsics;
+        public float[] extrinsics;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class calibration_pv
+    public struct calibration_pv
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
         public float[] focal_length;
@@ -478,9 +518,9 @@ public static partial class hl2ss
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
         public float[] tangential_distortion;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[,] projection;
+        public float[] projection;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[,] extrinsics;
+        public float[] extrinsics;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
         public float[] intrinsics_mf;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
@@ -688,8 +728,10 @@ public static partial class hl2ss
     [StructLayout(LayoutKind.Sequential, Pack = 2)]
     public class version
     {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-        public ushort[] field;
+        ushort field_0;
+        ushort field_1;
+        ushort field_2;
+        ushort field_3;
     }
 
     //------------------------------------------------------------------------------
@@ -756,14 +798,14 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class guid
+    public struct guid
     {
         public ulong l;
         public ulong h;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class sm_surface_info
+    public struct sm_surface_info
     {
         public guid id;
         public ulong update_time;
@@ -950,7 +992,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class vi_result
+    public struct vi_result
     {
         public uint index;
         public uint confidence;
@@ -1008,7 +1050,7 @@ public static partial class hl2ss
     //------------------------------------------------------------------------------
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public class rm_imu_sample
+    public struct rm_imu_sample
     {
         public ulong sensor_timestamp;
         public ulong timestamp;
@@ -1036,7 +1078,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class si_head_pose
+    public struct si_head_pose
     {
         public vector_3 position;
         public vector_3 forward;
@@ -1075,7 +1117,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class si_hand_joint
+    public struct si_hand_joint
     {
         public quaternion orientation;
         public vector_3 position;
@@ -1084,7 +1126,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class si_frame
+    public struct si_frame
     {
         public uint valid;
         public si_head_pose head_pose;
@@ -1107,7 +1149,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class eet_frame
+    public struct eet_frame
     {
         public uint _reserved;
         public ray combined_ray;
