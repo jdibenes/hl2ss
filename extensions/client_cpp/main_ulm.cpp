@@ -108,7 +108,7 @@ void test_rm_vlc(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_rm_vlc>(*data);
+        auto region = data->unpack<hl2ss::map_rm_vlc>();
         
         cv::Mat image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, region.image);
         cv::imshow(window_name, image);
@@ -146,7 +146,7 @@ void test_rm_depth_ahat(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_rm_depth_ahat>(*data);
+        auto region = data->unpack<hl2ss::map_rm_depth_ahat>();
 
         cv::Mat depth = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, region.depth);
         cv::Mat ab = cv::Mat(hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH, CV_16UC1, region.ab);
@@ -187,7 +187,7 @@ void test_rm_depth_longthrow(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_rm_depth_longthrow>(*data);
+        auto region = data->unpack<hl2ss::map_rm_depth_longthrow>();
 
         cv::Mat depth = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, region.depth);
         cv::Mat ab = cv::Mat(hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH, CV_16UC1, region.ab);
@@ -230,7 +230,7 @@ void test_rm_imu(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_rm_imu>(*data);
+        auto region = data->unpack<hl2ss::map_rm_imu>();
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         std::cout << "received " << (data->sz_payload / sizeof(hl2ss::rm_imu_sample)) << " samples, first sample is" << std::endl;
@@ -283,7 +283,7 @@ void test_pv(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_pv>(*data);
+        auto region = data->unpack<hl2ss::map_pv>();
 
         cv::Mat image = cv::Mat(configuration.height, configuration.width, cv_type, region.image);
         cv::imshow(window_name, image);
@@ -319,7 +319,7 @@ void test_microphone(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_microphone_aac>(*data);
+        auto region = data->unpack<hl2ss::map_microphone_aac>();
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         std::cout << "samples: " << (data->sz_payload / sizeof(float)) << std::endl;
@@ -349,7 +349,7 @@ void test_si(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_si>(*data);
+        auto region = data->unpack<hl2ss::map_si>();
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         std::cout << "valid: " << region.tracking->valid << std::endl;
@@ -386,7 +386,7 @@ void test_eet(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_eet>(*data);
+        auto region = data->unpack<hl2ss::map_eet>();
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         std::cout << "valid: " << region.tracking->valid << std::endl;
@@ -424,7 +424,7 @@ void test_extended_audio(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_microphone_aac>(*data);
+        auto region = data->unpack<hl2ss::map_microphone_aac>();
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         std::cout << "samples: " << (data->sz_payload / sizeof(float)) << std::endl;
@@ -478,7 +478,7 @@ void test_extended_video(char const* host)
             continue;
         }
 
-        auto region = hl2ss::svc::unpack<hl2ss::map_pv>(*data);
+        auto region = data->unpack<hl2ss::map_pv>();
 
         cv::Mat image = cv::Mat(configuration.height, configuration.width, cv_type, region.image);
         cv::imshow(window_name, image);
@@ -693,7 +693,7 @@ void test_gmq(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 15;
+    int test_id = 4;
 
     try
     {
