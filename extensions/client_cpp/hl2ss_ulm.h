@@ -2238,8 +2238,14 @@ void initialize()
     handle::check_result(hl2ss::ulm::initialize());
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_rm_vlc create_configuration_rm_vlc()
+template<typename T>
+T create_configuration()
+{
+    return T();
+}
+
+template<>
+hl2ss::ulm::configuration_rm_vlc create_configuration()
 {
     hl2ss::ulm::configuration_rm_vlc c;
 
@@ -2255,8 +2261,8 @@ hl2ss::ulm::configuration_rm_vlc create_configuration_rm_vlc()
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_rm_depth_ahat create_configuration_rm_depth_ahat()
+template<>
+hl2ss::ulm::configuration_rm_depth_ahat create_configuration()
 {
     hl2ss::ulm::configuration_rm_depth_ahat c;
 
@@ -2273,8 +2279,8 @@ hl2ss::ulm::configuration_rm_depth_ahat create_configuration_rm_depth_ahat()
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_rm_depth_longthrow create_configuration_rm_depth_longthrow()
+template<>
+hl2ss::ulm::configuration_rm_depth_longthrow create_configuration()
 {
     hl2ss::ulm::configuration_rm_depth_longthrow c;
 
@@ -2286,8 +2292,8 @@ hl2ss::ulm::configuration_rm_depth_longthrow create_configuration_rm_depth_longt
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_rm_imu create_configuration_rm_imu()
+template<>
+hl2ss::ulm::configuration_rm_imu create_configuration()
 {
     hl2ss::ulm::configuration_rm_imu c;
 
@@ -2297,8 +2303,8 @@ hl2ss::ulm::configuration_rm_imu create_configuration_rm_imu()
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_pv create_configuration_pv()
+template<>
+hl2ss::ulm::configuration_pv create_configuration()
 {
     hl2ss::ulm::configuration_pv c;
 
@@ -2318,8 +2324,8 @@ hl2ss::ulm::configuration_pv create_configuration_pv()
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_microphone create_configuration_microphone()
+template<>
+hl2ss::ulm::configuration_microphone create_configuration()
 {
     hl2ss::ulm::configuration_microphone c;
 
@@ -2330,8 +2336,8 @@ hl2ss::ulm::configuration_microphone create_configuration_microphone()
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_si create_configuration_si()
+template<>
+hl2ss::ulm::configuration_si create_configuration()
 {
     hl2ss::ulm::configuration_si c;
 
@@ -2340,8 +2346,8 @@ hl2ss::ulm::configuration_si create_configuration_si()
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_eet create_configuration_eet()
+template<>
+hl2ss::ulm::configuration_eet create_configuration()
 {
     hl2ss::ulm::configuration_eet c;
 
@@ -2351,8 +2357,8 @@ hl2ss::ulm::configuration_eet create_configuration_eet()
     return c;
 }
 
-HL2SS_INLINE
-hl2ss::ulm::configuration_extended_audio create_configuration_extended_audio()
+template<>
+hl2ss::ulm::configuration_extended_audio create_configuration()
 {
     hl2ss::ulm::configuration_extended_audio c;
 
