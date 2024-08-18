@@ -202,24 +202,24 @@ public static partial class hl2ss
     {
         public const ushort WIDTH  = 640;
         public const ushort HEIGHT = 480;
-        public const byte FPS    = 30;
-        public const uint PIXELS = WIDTH * HEIGHT;
+        public const byte   FPS    = 30;
+        public const uint   PIXELS = WIDTH * HEIGHT;
     }
 
     public static class parameters_rm_depth_ahat
     {
         public const ushort WIDTH  = 512;
         public const ushort HEIGHT = 512;
-        public const byte FPS    = 45;
-        public const uint PIXELS = WIDTH * HEIGHT;
+        public const byte   FPS    = 45;
+        public const uint   PIXELS = WIDTH * HEIGHT;
     }
 
     public static class parameters_rm_depth_longthrow
     {
         public const ushort WIDTH  = 320;
         public const ushort HEIGHT = 288;
-        public const byte FPS    = 5;
-        public const uint PIXELS = WIDTH * HEIGHT;
+        public const byte   FPS    = 5;
+        public const uint   PIXELS = WIDTH * HEIGHT;
     }
 
     public static class parameters_rm_imu_accelerometer
@@ -246,8 +246,8 @@ public static partial class hl2ss
         public const byte ARRAY_BOTTOM_LEFT  = 3;
         public const byte ARRAY_BOTTOM_RIGHT = 4;
 
-        public const uint SAMPLE_RATE    = 48000;
-        public const byte CHANNELS       = 2;
+        public const uint   SAMPLE_RATE    = 48000;
+        public const byte   CHANNELS       = 2;
         public const ushort GROUP_SIZE_RAW = 768;
         public const ushort GROUP_SIZE_AAC = 1024;
     }
@@ -259,8 +259,8 @@ public static partial class hl2ss
 
     public static class parameters_extended_audio
     {
-        public const uint SAMPLE_RATE    = 48000;
-        public const byte CHANNELS       = 2;
+        public const uint   SAMPLE_RATE    = 48000;
+        public const byte   CHANNELS       = 2;
         public const ushort GROUP_SIZE_AAC = 1024;
     }
 
@@ -310,7 +310,7 @@ public static partial class hl2ss
         public float w;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
     public struct matrix_4x4
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
