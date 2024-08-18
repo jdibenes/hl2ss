@@ -187,20 +187,20 @@ public static partial class hl2ss
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
         public class su_task
         {
-            public bool enable_quads;
-            public bool enable_meshes;
-            public bool enable_only_observed;
-            public bool enable_world_mesh;
+            public byte enable_quads;
+            public byte enable_meshes;
+            public byte enable_only_observed;
+            public byte enable_world_mesh;
             public uint mesh_lod;
             public float query_radius;
             public byte create_mode;
             public byte kind_flags;
-            public bool get_orientation;
-            public bool get_position;
-            public bool get_location_matrix;
-            public bool get_quad;
-            public bool get_meshes;
-            public bool get_collider_meshes;
+            public byte get_orientation;
+            public byte get_position;
+            public byte get_location_matrix;
+            public byte get_quad;
+            public byte get_meshes;
+            public byte get_collider_meshes;
             public uint _reserved_0;
             public ulong guid_list_size;
             public IntPtr guid_list_data;
