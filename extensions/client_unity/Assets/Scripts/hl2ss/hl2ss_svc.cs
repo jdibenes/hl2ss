@@ -1,28 +1,16 @@
 
 using System;
 using System.Runtime.InteropServices;
-using UnityEditor.Experimental.GraphView;
-using static hl2ss.ulm;
 
 /*
 "Structs" 
-[hl2ss.ulm]
-configuration_rm_depth_ahat
-configuration_rm_depth_longthrow
-configuration_rm_imu
-configuration_microphone
-configuration_eet
-configuration_extended_audio
-
 [hl2ss]
 matrix_4x4
-uint64x2
 calibration_rm_vlc
 calibration_rm_depth_ahat
 calibration_rm_depth_longthrow
 calibration_rm_imu
 calibration_pv
-version
 si_frame
 */
 
@@ -71,6 +59,7 @@ public static partial class hl2ss
         public interface buffer
         {
             public ulong length { get; }
+
             public IntPtr address { get; }
         }
 
@@ -487,23 +476,13 @@ public static partial class hl2ss
                 t.get_quad = Convert.ToByte(task.get_quad);
                 t.get_meshes = Convert.ToByte(task.get_meshes);
                 t.get_collider_meshes = Convert.ToByte(task.get_collider_meshes);
+
+                pointer p = pointer.get(task.guid_list);
+
                 t.guid_list_size = (ulong)task.guid_list.Length;
+                t.guid_list_data = p.value;
 
-                GCHandle h = GCHandle.Alloc(task.guid_list, GCHandleType.Pinned);
-                t.guid_list_data = h.AddrOfPinnedObject();
-
-                su_result r;
-
-                try
-                {
-                    r = new su_result(m_handle, t);
-                }
-                finally
-                {
-                    h.Free();
-                }
-
-                return r;
+                try { return new su_result(m_handle, t); } finally { p.destroy(); }
             }
         }
 
@@ -758,10 +737,8 @@ public static partial class hl2ss
 
         public static source open_stream<T>(string host, ushort port, ulong buffer_size, T configuration)
         {
-            GCHandle h = GCHandle.Alloc(configuration, GCHandleType.Pinned);
-            source s = new source(host, port, buffer_size, h.AddrOfPinnedObject());
-            h.Free();
-            return s;
+            pointer p = pointer.get(configuration);
+            try { return new source(host, port, buffer_size, p.value); } finally { p.destroy(); }
         }
 
         public static void open_ipc(string host, ushort port, out ipc_rc ipc)
@@ -806,10 +783,8 @@ public static partial class hl2ss
 
         public static calibration download_calibration<T>(string host, ushort port, T configuration)
         {
-            GCHandle h = GCHandle.Alloc(configuration, GCHandleType.Pinned);
-            calibration c = new calibration(host, port, h.AddrOfPinnedObject());
-            h.Free();
-            return c;
+            pointer p = pointer.get(configuration);
+            try { return new calibration(host, port, p.value); } finally { p.destroy(); }
         }
 
         public static device_list download_device_list(string host, ushort port)
