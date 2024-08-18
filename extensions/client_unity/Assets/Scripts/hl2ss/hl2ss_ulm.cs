@@ -33,8 +33,8 @@ public static partial class hl2ss
             public byte profile_z;
             public byte profile_ab;
             public byte level;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-            public byte[] _reserved_0;
+            public byte _reserved_0;
+            public ushort _reserved_3;
             public uint bitrate;
             public uint _reserved_1;
             public long options_size;
@@ -49,8 +49,8 @@ public static partial class hl2ss
             public byte mode;
             public byte divisor;
             public byte png_filter;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 5)]
-            public byte[] _reserved;
+            public byte _reserved_0;
+            public uint _reserved_1;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -58,8 +58,9 @@ public static partial class hl2ss
         {
             public ulong chunk;
             public byte mode;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
-            public byte[] _reserved;
+            public byte _reserved_0;
+            public ushort _reserved_1;
+            public uint _reserved_2;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -88,8 +89,8 @@ public static partial class hl2ss
             public ulong chunk;
             public byte profile;
             public byte level;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
-            public byte[] _reserved;
+            public ushort _reserved_0;
+            public uint _reserved_1;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -103,8 +104,9 @@ public static partial class hl2ss
         {
             public ulong chunk;
             public byte framerate;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
-            public byte[] _reserved;
+            public byte _reserved_0;
+            public ushort _reserved_1;
+            public uint _reserved_2;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -116,8 +118,7 @@ public static partial class hl2ss
             public float microphone_gain;
             public byte profile;
             public byte level;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-            public byte[] _reserved;
+            public ushort _reserved_0;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
