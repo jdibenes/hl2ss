@@ -2,19 +2,6 @@
 using System;
 using System.Runtime.InteropServices;
 
-/*
-"Structs" 
-[hl2ss]
-matrix_4x4
-calibration_rm_vlc
-calibration_rm_depth_ahat
-calibration_rm_depth_longthrow
-calibration_rm_imu
-calibration_pv
-si_frame
-*/
-
-
 public static partial class hl2ss
 {
     public class svc
