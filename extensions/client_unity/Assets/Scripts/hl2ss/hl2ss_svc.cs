@@ -617,7 +617,7 @@ public static partial class hl2ss
             c.options_size = -1;
         }
 
-        public static void create_configuration_rm_depth_ahat(out hl2ss.ulm.configuration_rm_depth_ahat c)
+        public static void create_configuration(out hl2ss.ulm.configuration_rm_depth_ahat c)
         {
             c = new hl2ss.ulm.configuration_rm_depth_ahat();
 
@@ -632,7 +632,7 @@ public static partial class hl2ss
             c.options_size = -1;
         }
 
-        public static void create_configuration_rm_depth_longthrow(out hl2ss.ulm.configuration_rm_depth_longthrow c)
+        public static void create_configuration(out hl2ss.ulm.configuration_rm_depth_longthrow c)
         {
             c = new hl2ss.ulm.configuration_rm_depth_longthrow();
 
@@ -642,7 +642,7 @@ public static partial class hl2ss
             c.png_filter = hl2ss.png_filter_mode.PAETH;
         }
 
-        public static void create_configuration_rm_imu(out hl2ss.ulm.configuration_rm_imu c)
+        public static void create_configuration(out hl2ss.ulm.configuration_rm_imu c)
         {
             c = new hl2ss.ulm.configuration_rm_imu();
 
@@ -650,7 +650,7 @@ public static partial class hl2ss
             c.mode = hl2ss.stream_mode.MODE_1;
         }
 
-        public static void create_configuration_pv(out hl2ss.ulm.configuration_pv c)
+        public static void create_configuration(out hl2ss.ulm.configuration_pv c)
         {
             c = new hl2ss.ulm.configuration_pv();
 
@@ -668,7 +668,7 @@ public static partial class hl2ss
             c.decoded_format = hl2ss.pv_decoded_format.BGR;
         }
 
-        public static void create_configuration_microphone(out hl2ss.ulm.configuration_microphone c)
+        public static void create_configuration(out hl2ss.ulm.configuration_microphone c)
         {
             c = new hl2ss.ulm.configuration_microphone();
 
@@ -677,14 +677,14 @@ public static partial class hl2ss
             c.level = hl2ss.aac_level.L2;
         }
 
-        public static void create_configuration_si(out hl2ss.ulm.configuration_si c)
+        public static void create_configuration(out hl2ss.ulm.configuration_si c)
         {
             c = new hl2ss.ulm.configuration_si();
 
             c.chunk = hl2ss.chunk_size.SPATIAL_INPUT;
         }
 
-        public static void create_configuration_eet(out hl2ss.ulm.configuration_eet c)
+        public static void create_configuration(out hl2ss.ulm.configuration_eet c)
         {
             c = new hl2ss.ulm.configuration_eet();
 
@@ -692,7 +692,7 @@ public static partial class hl2ss
             c.framerate = hl2ss.eet_framerate.FPS_30;
         }
 
-        public static void create_configuration_extended_audio(out hl2ss.ulm.configuration_extended_audio c)
+        public static void create_configuration(out hl2ss.ulm.configuration_extended_audio c)
         {
             c = new hl2ss.ulm.configuration_extended_audio();
 
