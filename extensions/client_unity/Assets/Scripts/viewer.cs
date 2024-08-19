@@ -16,7 +16,7 @@ public class viewer : MonoBehaviour
     {
         host = run_once.host_address;
 
-        hl2ss.svc.create_configuration_pv(out hl2ss.ulm.configuration_pv configuration);
+        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv configuration);
 
         configuration.width = 1280;
         configuration.height = 720;
