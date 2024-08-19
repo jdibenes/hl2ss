@@ -15,7 +15,7 @@ public class test_rm_vlc : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        var configuration = hl2ss.svc.create_configuration_rm_vlc();
+        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_rm_vlc configuration);
 
         var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration);
         var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_vlc>(calibration_handle.address);

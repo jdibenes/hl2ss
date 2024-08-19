@@ -603,9 +603,9 @@ public static partial class hl2ss
             handle.check_result(hl2ss.ulm.initialize());
         }
 
-        public static hl2ss.ulm.configuration_rm_vlc create_configuration_rm_vlc()
+        public static void create_configuration(out hl2ss.ulm.configuration_rm_vlc c)
         {
-            hl2ss.ulm.configuration_rm_vlc c = new hl2ss.ulm.configuration_rm_vlc();
+            c = new hl2ss.ulm.configuration_rm_vlc();
 
             c.chunk = hl2ss.chunk_size.RM_VLC;
             c.mode = hl2ss.stream_mode.MODE_1;
@@ -615,13 +615,11 @@ public static partial class hl2ss
             c.bitrate = 0;
             c.options_data = IntPtr.Zero;
             c.options_size = -1;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_rm_depth_ahat create_configuration_rm_depth_ahat()
+        public static void create_configuration_rm_depth_ahat(out hl2ss.ulm.configuration_rm_depth_ahat c)
         {
-            hl2ss.ulm.configuration_rm_depth_ahat c = new hl2ss.ulm.configuration_rm_depth_ahat();
+            c = new hl2ss.ulm.configuration_rm_depth_ahat();
 
             c.chunk = hl2ss.chunk_size.RM_DEPTH_AHAT;
             c.mode = hl2ss.stream_mode.MODE_1;
@@ -632,35 +630,29 @@ public static partial class hl2ss
             c.bitrate = 0;
             c.options_data = IntPtr.Zero;
             c.options_size = -1;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_rm_depth_longthrow create_configuration_rm_depth_longthrow()
+        public static void create_configuration_rm_depth_longthrow(out hl2ss.ulm.configuration_rm_depth_longthrow c)
         {
-            hl2ss.ulm.configuration_rm_depth_longthrow c = new hl2ss.ulm.configuration_rm_depth_longthrow();
+            c = new hl2ss.ulm.configuration_rm_depth_longthrow();
 
             c.chunk = hl2ss.chunk_size.RM_DEPTH_LONGTHROW;
             c.mode = hl2ss.stream_mode.MODE_1;
             c.divisor = 1;
             c.png_filter = hl2ss.png_filter_mode.PAETH;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_rm_imu create_configuration_rm_imu()
+        public static void create_configuration_rm_imu(out hl2ss.ulm.configuration_rm_imu c)
         {
-            hl2ss.ulm.configuration_rm_imu c = new hl2ss.ulm.configuration_rm_imu();
+            c = new hl2ss.ulm.configuration_rm_imu();
 
             c.chunk = hl2ss.chunk_size.RM_IMU;
             c.mode = hl2ss.stream_mode.MODE_1;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_pv create_configuration_pv()
+        public static void create_configuration_pv(out hl2ss.ulm.configuration_pv c)
         {
-            hl2ss.ulm.configuration_pv c = new hl2ss.ulm.configuration_pv();
+            c = new hl2ss.ulm.configuration_pv();
 
             c.width = 1920;
             c.height = 1080;
@@ -674,43 +666,35 @@ public static partial class hl2ss
             c.options_data = IntPtr.Zero;
             c.options_size = -1;
             c.decoded_format = hl2ss.pv_decoded_format.BGR;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_microphone create_configuration_microphone()
+        public static void create_configuration_microphone(out hl2ss.ulm.configuration_microphone c)
         {
-            hl2ss.ulm.configuration_microphone c = new hl2ss.ulm.configuration_microphone();
+            c = new hl2ss.ulm.configuration_microphone();
 
             c.chunk = hl2ss.chunk_size.MICROPHONE;
             c.profile = hl2ss.audio_profile.AAC_24000;
             c.level = hl2ss.aac_level.L2;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_si create_configuration_si()
+        public static void create_configuration_si(out hl2ss.ulm.configuration_si c)
         {
-            hl2ss.ulm.configuration_si c = new hl2ss.ulm.configuration_si();
+            c = new hl2ss.ulm.configuration_si();
 
             c.chunk = hl2ss.chunk_size.SPATIAL_INPUT;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_eet create_configuration_eet()
+        public static void create_configuration_eet(out hl2ss.ulm.configuration_eet c)
         {
-            hl2ss.ulm.configuration_eet c = new hl2ss.ulm.configuration_eet();
+            c = new hl2ss.ulm.configuration_eet();
 
             c.chunk = hl2ss.chunk_size.EXTENDED_EYE_TRACKER;
             c.framerate = hl2ss.eet_framerate.FPS_30;
-
-            return c;
         }
 
-        public static hl2ss.ulm.configuration_extended_audio create_configuration_extended_audio()
+        public static void create_configuration_extended_audio(out hl2ss.ulm.configuration_extended_audio c)
         {
-            hl2ss.ulm.configuration_extended_audio c = new hl2ss.ulm.configuration_extended_audio();
+            c = new hl2ss.ulm.configuration_extended_audio();
 
             c.chunk = hl2ss.chunk_size.EXTENDED_AUDIO;
             c.mixer_mode = hl2ss.mixer_mode.BOTH;
@@ -718,8 +702,6 @@ public static partial class hl2ss
             c.microphone_gain = 1.0f;
             c.profile = hl2ss.audio_profile.AAC_24000;
             c.level = hl2ss.aac_level.L2;
-
-            return c;
         }
 
         public static source open_stream<T>(string host, ushort port, ulong buffer_size, T configuration)
