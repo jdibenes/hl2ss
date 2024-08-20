@@ -774,6 +774,12 @@ public:
         m_data  = { data, data + size };
     }
 
+    void clear()
+    {
+        m_count = 0;
+        m_data.clear();
+    }
+
     void add_box(sm_box box)
     {
         m_count++;
@@ -834,6 +840,12 @@ public:
     {
         m_count = count;
         m_data  = { data, data + size };
+    }
+
+    void clear()
+    {
+        m_count = 0;
+        m_data.clear();        
     }
 
     void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds)
@@ -962,6 +974,18 @@ public:
         m_count = 0;
     }
 
+    umq_command_buffer(uint32_t count, uint8_t const* data, uint64_t size)
+    {
+        m_count = count;
+        m_buffer  = { data, data + size };
+    }
+
+    void clear()
+    {
+        m_count = 0;
+        m_buffer.clear();
+    }
+
     void add(uint32_t id, void const* data, uint64_t size)
     {
         push_u32(m_buffer, id);
@@ -970,25 +994,19 @@ public:
         m_count++;
     }
 
-    void clear()
+    uint32_t get_count()
     {
-        m_buffer.clear();
-        m_count = 0;
+        return m_count;
     }
 
-    uint8_t const* data()
+    uint8_t const* get_data()
     {
         return m_buffer.data();
     }
 
-    uint64_t size()
+    uint64_t get_size()
     {
         return m_buffer.size();
-    }
-
-    uint32_t count()
-    {
-        return m_count;
     }
 };
 

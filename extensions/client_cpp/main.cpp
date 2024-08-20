@@ -465,10 +465,10 @@ void test_umq(char const* host)
     buffer.add( 1, data.data(), data.size());
 
     client->open();
-    client->push(buffer.data(), buffer.size());
+    client->push(buffer.get_data(), buffer.get_size());
     std::vector<uint32_t> response;
-    response.resize(buffer.count());
-    client->pull(response.data(), buffer.count());
+    response.resize(buffer.get_count());
+    client->pull(response.data(), buffer.get_count());
     client->close();
 }
 
@@ -649,7 +649,7 @@ void test_pv_umq(char const* host)
     hl2ss::umq_command_buffer buffer;
     std::vector<uint32_t> response;
     buffer.add(command_id, command_data, sizeof(command_data));
-    response.resize(buffer.count());
+    response.resize(buffer.get_count());
 
     // Initialize PV camera
     hl2ss::lnm::start_subsystem_pv(host, hl2ss::stream_port::PERSONAL_VIDEO);
@@ -682,8 +682,8 @@ void test_pv_umq(char const* host)
             cv::imshow("PV", pv_mat);
 
             // Send test message to the HoloLens app
-            client_umq->push(buffer.data(), buffer.size());
-            client_umq->pull(response.data(), buffer.count());
+            client_umq->push(buffer.get_data(), buffer.get_size());
+            client_umq->pull(response.data(), buffer.get_count());
             std::cout << "Response from HoloLens app: " << response[0] << std::endl;
         }
 

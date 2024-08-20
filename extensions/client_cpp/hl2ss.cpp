@@ -1512,6 +1512,12 @@ sm_bounding_volume::sm_bounding_volume(uint32_t count, uint8_t const* data, size
     m_data  = { data, data + size };
 }
 
+void sm_bounding_volume::clear()
+{
+    m_count = 0;
+    m_data.clear();
+}
+
 void sm_bounding_volume::add_box(sm_box box)
 {
     m_count++;
@@ -1564,6 +1570,12 @@ sm_mesh_task::sm_mesh_task(uint32_t count, uint8_t const* data, size_t size)
 {
     m_count = count;
     m_data  = { data, data + size };
+}
+
+void sm_mesh_task::clear()
+{
+    m_count = 0;
+    m_data.clear();
 }
 
 void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds)
@@ -1839,6 +1851,18 @@ umq_command_buffer::umq_command_buffer()
     m_count = 0;
 }
 
+umq_command_buffer::umq_command_buffer(uint32_t count, uint8_t const* data, size_t size)
+{
+    m_count = count;
+    m_buffer = { data, data + size };
+}
+
+void umq_command_buffer::clear()
+{
+    m_count = 0;
+    m_buffer.clear();
+}
+
 void umq_command_buffer::add(uint32_t id, void const* data, size_t size)
 {
     push_u32(m_buffer, id);
@@ -1847,25 +1871,19 @@ void umq_command_buffer::add(uint32_t id, void const* data, size_t size)
     m_count++;
 }
 
-void umq_command_buffer::clear()
+uint32_t umq_command_buffer::get_count()
 {
-    m_buffer.clear();
-    m_count = 0;
+    return m_count;
 }
 
-uint8_t const* umq_command_buffer::data()
+uint8_t const* umq_command_buffer::get_data()
 {
     return m_buffer.data();
 }
 
-size_t umq_command_buffer::size()
+size_t umq_command_buffer::get_size()
 {
     return m_buffer.size();
-}
-
-uint32_t umq_command_buffer::count()
-{
-    return m_count;
 }
 
 ipc_umq::ipc_umq(char const* host, uint16_t port) : ipc(host, port)

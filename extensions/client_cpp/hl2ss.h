@@ -1136,6 +1136,7 @@ public:
     sm_bounding_volume();
     sm_bounding_volume(uint32_t count, uint8_t const* data, size_t size);
 
+    void clear();
     void add_box(sm_box box);
     void add_frustum(sm_frustum frustum);
     void add_oriented_box(sm_oriented_box oriented_box);
@@ -1168,6 +1169,7 @@ public:
     sm_mesh_task();
     sm_mesh_task(uint32_t count, uint8_t const* data, size_t size);
 
+    void clear();
     void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds);
 
     uint32_t get_count() const;
@@ -1342,12 +1344,14 @@ private:
 
 public:
     umq_command_buffer();
+    umq_command_buffer(uint32_t count, uint8_t const* data, uint64_t size);
 
-    void add(uint32_t id, void const* data, size_t size);
     void clear();
-    uint8_t const* data();
-    size_t size();
-    uint32_t count();
+    void add(uint32_t id, void const* data, size_t size);
+    
+    uint32_t get_count();
+    uint8_t const* get_data();
+    size_t get_size();    
 };
 
 class ipc_umq : public ipc

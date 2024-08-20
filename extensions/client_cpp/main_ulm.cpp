@@ -655,7 +655,7 @@ void test_umq(char const* host)
 
     buffer.add(0xFFFFFFFE, text, sizeof(text));
 
-    ipc->push(buffer.data(), buffer.size());
+    ipc->push(buffer.get_data(), buffer.get_size());
     ipc->pull(response, sizeof(response) / sizeof(uint32_t));
 
     std::cout << "response: " << response[0] << std::endl;
