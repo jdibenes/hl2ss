@@ -1,10 +1,15 @@
 
+using System.Text;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-public class test_pv : MonoBehaviour
+public class test_ev : MonoBehaviour
 {
     public GameObject quad_pv;
+    public float group_index = 0.0f;
+    public float source_index = 2.0f;
+    public float profile_index = 4.0f;
+
     private string host;
     private hl2ss.svc.source source_pv;
     private int pv_frame_size;
@@ -53,13 +58,15 @@ public class test_pv : MonoBehaviour
 
         pv_frame_size = configuration.width * configuration.height * bpp;
 
-        hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO);
+        hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.EXTENDED_VIDEO, false, false, false, false, false, false, false, group_index, source_index, profile_index, 0, 0); ;
 
-        var calibration_handle = hl2ss.svc.download_calibration(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration);
-        var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.data);
-        calibration_handle.destroy();
+        var device_list_handle = hl2ss.svc.download_device_list(host, hl2ss.stream_port.EXTENDED_VIDEO);
+        var string_bytes = new byte[device_list_handle.size];
+        Marshal.Copy(device_list_handle.data, string_bytes, 0, (int)device_list_handle.size);
+        Debug.Log(Encoding.Unicode.GetString(string_bytes));
+        device_list_handle.destroy();
 
-        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration);
+        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_VIDEO, 300, configuration);
 
         tex_pv = new Texture2D(configuration.width, configuration.height, texture_format, false);
 
@@ -73,9 +80,6 @@ public class test_pv : MonoBehaviour
         if (packet.status != 0) { return; }
         packet.unpack(out hl2ss.map_pv region);
 
-        hl2ss.pv_metadata metadata = Marshal.PtrToStructure<hl2ss.pv_metadata>(region.metadata);
-        hl2ss.matrix_4x4 pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
-
         tex_pv.LoadRawTextureData(region.image, pv_frame_size);
         tex_pv.Apply();
 
@@ -87,6 +91,6 @@ public class test_pv : MonoBehaviour
         if (source_pv == null) { return; }
 
         source_pv.destroy();
-        hl2ss.svc.stop_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO);
+        hl2ss.svc.stop_subsystem_pv(host, hl2ss.stream_port.EXTENDED_VIDEO);
     }
 }

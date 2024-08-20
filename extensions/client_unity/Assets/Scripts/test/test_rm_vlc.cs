@@ -1,15 +1,18 @@
 
 using System.Runtime.InteropServices;
 using UnityEngine;
-using static hl2ss.ulm;
 
 public class test_rm_vlc : MonoBehaviour
 {
     public GameObject quad_rm_vlc;
     public ushort port = hl2ss.stream_port.RM_VLC_LEFTFRONT;
+    public Shader shader_vlc;
 
-    private hl2ss.svc.source source_rm_vlc;
-    private Texture2D texture_rm_vlc;
+    private Texture2D tex_vlc;
+    private RenderTexture texr_vlc;
+    private Material mat_vlc;
+
+    private hl2ss.svc.source source_rm_vlc;    
 
     // Start is called before the first frame update
     void Start()
@@ -24,8 +27,12 @@ public class test_rm_vlc : MonoBehaviour
 
         source_rm_vlc = hl2ss.svc.open_stream(host, port, 300, configuration);
 
-        texture_rm_vlc = new Texture2D(hl2ss.parameters_rm_vlc.WIDTH, hl2ss.parameters_rm_vlc.HEIGHT, TextureFormat.R8, false);
-        quad_rm_vlc.GetComponent<Renderer>().material.mainTexture = texture_rm_vlc;
+        tex_vlc = new Texture2D(hl2ss.parameters_rm_vlc.WIDTH, hl2ss.parameters_rm_vlc.HEIGHT, TextureFormat.R8, false);
+        texr_vlc = new RenderTexture(hl2ss.parameters_rm_vlc.WIDTH, hl2ss.parameters_rm_vlc.HEIGHT, 0, RenderTextureFormat.BGRA32);
+
+        quad_rm_vlc.GetComponent<Renderer>().material.mainTexture = texr_vlc;
+
+        mat_vlc = new Material(shader_vlc);
     }
 
     // Update is called once per frame
@@ -39,8 +46,10 @@ public class test_rm_vlc : MonoBehaviour
         var metadata = Marshal.PtrToStructure<hl2ss.rm_vlc_metadata>(region.metadata);
         var pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
 
-        texture_rm_vlc.LoadRawTextureData(region.image, (int)hl2ss.parameters_rm_vlc.PIXELS * sizeof(byte));
-        texture_rm_vlc.Apply();
+        tex_vlc.LoadRawTextureData(region.image, (int)hl2ss.parameters_rm_vlc.PIXELS * sizeof(byte));
+        tex_vlc.Apply();
+
+        Graphics.Blit(tex_vlc, texr_vlc, mat_vlc);
 
         packet.destroy();
     }
