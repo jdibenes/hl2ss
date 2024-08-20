@@ -25,6 +25,14 @@ Run `hl2ss_build_[...].m` to generate the MEX file. Add the client_matlab folder
 
 On Windows, set the `ffmpeg_path` and `opencv_path` variables in the build script to the folders containing the FFmpeg and OpenCV libraries. After building the MEX file, copy the FFmpeg and OpenCV DLLs to the client_matlab folder.
 
+## client_unity
+
+C# wrapper for the hl2ss_ulm shared library. Has the same requirements as client_cpp. See the scripts in the Assets/Scripts/test folder for examples.
+
+**Build**
+
+Build the hl2ss_ulm shared library and copy it to the appropriate subfolder in Assets/Plugins. Also, copy the shared libraries for OpenCV and FFmpeg if necessary (e.g., `hl2ss_ulm.dll` for Windows requires `avcodec-60.dll`, `avutil-58.dll`, `opencv_world480.dll`, and `swresample-4.dll`). Finally, build the Unity project.
+
 ## pyzdepth 
 
 Zdepth wrapper for Python. Required to decompress RM Depth AHAT data configured with `hl2ss.DepthProfile.ZDEPTH`.
