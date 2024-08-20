@@ -57,7 +57,7 @@ public class viewer : MonoBehaviour
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO);
 
         var calibration_handle = hl2ss.svc.download_calibration(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration);
-        var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.address);
+        var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.data);
         calibration_handle.destroy();
 
         source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration);
