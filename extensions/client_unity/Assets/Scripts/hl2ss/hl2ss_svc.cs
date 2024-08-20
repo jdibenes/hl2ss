@@ -611,7 +611,7 @@ public static partial class hl2ss
             c.profile = hl2ss.video_profile.H265_MAIN;
             c.level = hl2ss.h26x_level.DEFAULT;
             c.bitrate = 0;
-            c.options_data = IntPtr.Zero;
+            c.options_data = null;
             c.options_size = -1;
         }
 
@@ -626,7 +626,7 @@ public static partial class hl2ss
             c.profile_ab = hl2ss.video_profile.H265_MAIN;
             c.level = hl2ss.h26x_level.DEFAULT;
             c.bitrate = 0;
-            c.options_data = IntPtr.Zero;
+            c.options_data = null;
             c.options_size = -1;
         }
 
@@ -661,7 +661,7 @@ public static partial class hl2ss
             c.profile = hl2ss.video_profile.H265_MAIN;
             c.level = hl2ss.h26x_level.DEFAULT;
             c.bitrate = 0;
-            c.options_data = IntPtr.Zero;
+            c.options_data = null;
             c.options_size = -1;
             c.decoded_format = hl2ss.pv_decoded_format.BGR;
         }

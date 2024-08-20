@@ -1,6 +1,7 @@
 
 using System.Runtime.InteropServices;
 using UnityEngine;
+using static hl2ss.ulm;
 
 public class test_rm_vlc : MonoBehaviour
 {
@@ -46,6 +47,8 @@ public class test_rm_vlc : MonoBehaviour
 
     void OnApplicationQuit()
     {
+        if (source_rm_vlc == null) { return; }
+
         source_rm_vlc.destroy();
     }
 }

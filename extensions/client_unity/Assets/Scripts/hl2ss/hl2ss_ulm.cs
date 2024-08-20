@@ -20,7 +20,7 @@ public static partial class hl2ss
             public byte level;
             public uint bitrate;
             public long options_size;
-            public IntPtr options_data;
+            public ulong[] options_data;
             public IntPtr _reserved;
         }
 
@@ -38,7 +38,7 @@ public static partial class hl2ss
             public uint bitrate;
             public uint _reserved_1;
             public long options_size;
-            public IntPtr options_data;
+            public ulong[] options_data;
             public IntPtr _reserved_2;
         }
 
@@ -79,7 +79,7 @@ public static partial class hl2ss
             public byte decoded_format;
             public uint bitrate;
             public long options_size;
-            public IntPtr options_data;
+            public ulong[] options_data;
             public IntPtr _reserved_2;
         }
 
