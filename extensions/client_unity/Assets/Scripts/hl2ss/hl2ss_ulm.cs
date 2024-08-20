@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 public static partial class hl2ss
 {
-    public class ulm
+    public static class ulm
     {
         //-----------------------------------------------------------------------------
         // Adapters
@@ -204,7 +204,7 @@ public static partial class hl2ss
             public byte get_collider_meshes;
             public uint _reserved_0;
             public ulong guid_list_size;
-            public IntPtr guid_list_data;
+            public guid[] guid_list_data;
             public IntPtr _reserved_1;
         }
 
@@ -377,7 +377,7 @@ public static partial class hl2ss
         public static extern int vi_create_recognizer(IntPtr ipc);
 
         [DllImport("hl2ss_ulm")]
-        public static extern int vi_register_commands(IntPtr ipc, uint clear, string utf8_array, out uint status);
+        public static extern int vi_register_commands(IntPtr ipc, uint clear, byte[] utf8_array, out uint status);
 
         [DllImport("hl2ss_ulm")]
         public static extern int vi_start(IntPtr ipc);

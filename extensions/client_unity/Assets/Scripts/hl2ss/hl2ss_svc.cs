@@ -1,10 +1,12 @@
 
 using System;
+using System.Text;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 public static partial class hl2ss
 {
-    public class svc
+    public static class svc
     {
         //-----------------------------------------------------------------------------
         // Handle
@@ -45,9 +47,9 @@ public static partial class hl2ss
 
         public interface buffer
         {
-            public ulong length { get; }
+            public ulong size { get; }
 
-            public IntPtr address { get; }
+            public IntPtr data { get; }
         }
 
         //-----------------------------------------------------------------------------
@@ -171,33 +173,28 @@ public static partial class hl2ss
 
         public class calibration : handle, buffer
         {
-            protected IntPtr data;
-            protected ulong size;
-
             public calibration(string host, ushort port, IntPtr configuration) : base(hl2ss.ulm.download_calibration(host, port, configuration, out IntPtr p))
             {
                 size = 1;
-                data = p;                
+                data = p;
             }
 
-            public IntPtr address { get { return data; } }
-            public ulong length { get { return size; } }
+            public IntPtr data { get; private set; }
+
+            public ulong size { get; private set; }
         }
 
         public class device_list : handle, buffer
         {
-            protected IntPtr data;
-            protected ulong size;
-
             public device_list(string host, ushort port) : base(hl2ss.ulm.download_device_list(host, port, out ulong s, out IntPtr p))
             {
                 size = s;
                 data = p;
             }
 
-            public IntPtr address { get { return data; } }
-            
-            public ulong length { get { return size; } }
+            public IntPtr data { get; private set; }
+
+            public ulong size { get; private set; }
         }
 
         //-----------------------------------------------------------------------------
@@ -229,11 +226,11 @@ public static partial class hl2ss
                 check_result(hl2ss.ulm.rc_set_hs_marker_state(m_handle, state));
             }
 
-            public uint get_pv_subsystem_status()
+            public bool get_pv_subsystem_status()
             {
                 uint status;
                 check_result(hl2ss.ulm.rc_get_pv_subsystem_status(m_handle, out status));
-                return status;
+                return status != 0;
             }
 
             public void wait_for_pv_subsystem(bool status)
@@ -333,16 +330,15 @@ public static partial class hl2ss
 
         public class sm_surface_info_collection : handle, buffer
         {
-            protected IntPtr data;
-            protected ulong size;
-
             public sm_surface_info_collection(IntPtr ipc) : base(hl2ss.ulm.sm_get_observed_surfaces(ipc, out ulong s, out IntPtr p))
             {
+                size = s;
+                data = p;                
             }
 
-            public IntPtr address { get { return data; } }
+            public IntPtr data { get; private set; }
 
-            public ulong length { get { return size; } }
+            public ulong size { get; private set; }
         }
 
         public class sm_mesh_collection : handle
@@ -464,12 +460,10 @@ public static partial class hl2ss
                 t.get_meshes = Convert.ToByte(task.get_meshes);
                 t.get_collider_meshes = Convert.ToByte(task.get_collider_meshes);
 
-                pointer p = pointer.get(task.guid_list);
-
                 t.guid_list_size = (ulong)task.guid_list.Length;
-                t.guid_list_data = p.value;
+                t.guid_list_data = task.guid_list;
 
-                try { return new su_result(m_handle, t); } finally { p.destroy(); }
+                return new su_result(m_handle, t);
             }
         }
 
@@ -479,18 +473,15 @@ public static partial class hl2ss
 
         public class vi_result : handle, buffer
         {
-            protected IntPtr data;
-            protected ulong size;
-
             public vi_result(IntPtr ipc) : base(hl2ss.ulm.vi_pop(ipc, out ulong s, out IntPtr p))
             {
                 size = s;
                 data = p;
             }
 
-            public IntPtr address { get { return data; } }
+            public IntPtr data { get; private set; }
 
-            public ulong length { get { return size; } }
+            public ulong size { get; private set; }
         }
 
         public class ipc_vi : handle
@@ -504,10 +495,17 @@ public static partial class hl2ss
                 check_result(hl2ss.ulm.vi_create_recognizer(m_handle));
             }
 
-            public bool register_commands(bool clear, string utf8_array)
+            public bool register_commands(bool clear, string[] commands)
             {
+                List<byte> data = new List<byte>();
+                foreach (var s in commands)
+                {
+                    data.AddRange(Encoding.UTF8.GetBytes(s));
+                    data.Add(0);
+                }
+                data.Add(0);
                 uint status;
-                check_result(hl2ss.ulm.vi_register_commands(m_handle, Convert.ToByte(clear), utf8_array, out status));
+                check_result(hl2ss.ulm.vi_register_commands(m_handle, Convert.ToByte(clear), data.ToArray(), out status));
                 return status != 0;
             }
 

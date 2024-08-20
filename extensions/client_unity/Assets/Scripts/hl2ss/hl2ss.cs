@@ -377,6 +377,11 @@ public static partial class hl2ss
             m_buffer = new List<byte>();
         }
 
+        public void clear()
+        {
+            m_buffer.Clear();
+        }
+
         public void push_u8(byte v) { m_buffer.Add(v); }
         public void push_s8(char v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
         public void push_u16(ushort v) { m_buffer.AddRange(BitConverter.GetBytes(v)); }
@@ -390,15 +395,31 @@ public static partial class hl2ss
 
         public void push(IntPtr data, ulong size)
         {
+            if (size <= 0) { return; }
             byte[] a = new byte[size];
             Marshal.Copy(data, a, 0, (int)size);
             m_buffer.AddRange(a);
         }
 
-        public void push<T>(T v) where T : class
+        public void push<T>(T v) where T : struct
         {
             pointer p = pointer.get(v);
-            try { push(p.value, (ulong)Marshal.SizeOf(typeof(T))); } finally { p.destroy(); }
+            try { push(p.value, (ulong)Marshal.SizeOf<T>()); } finally { p.destroy(); }
+        }
+
+        public void push(byte[] v)
+        {
+            m_buffer.AddRange(v);
+        }
+
+        public byte[] get_data()
+        {
+            return m_buffer.ToArray();
+        }
+
+        public ulong get_size()
+        {
+            return (ulong)m_buffer.Count;
         }
     }
 
@@ -728,10 +749,10 @@ public static partial class hl2ss
     [StructLayout(LayoutKind.Sequential, Pack = 2)]
     public class version
     {
-        ushort field_0;
-        ushort field_1;
-        ushort field_2;
-        ushort field_3;
+        public ushort field_0;
+        public ushort field_1;
+        public ushort field_2;
+        public ushort field_3;
     }
 
     //------------------------------------------------------------------------------
@@ -765,14 +786,14 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class sm_box
+    public struct sm_box
     {
         public vector_3 center;
         public vector_3 extents;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class sm_frustum
+    public struct sm_frustum
     {
         public plane p_near;
         public plane p_far;
@@ -783,7 +804,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class sm_oriented_box
+    public struct sm_oriented_box
     {
         public vector_3 center;
         public vector_3 extents;
@@ -791,7 +812,7 @@ public static partial class hl2ss
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public class sm_sphere
+    public struct sm_sphere
     {
         public vector_3 center;
         public float radius;
@@ -812,48 +833,56 @@ public static partial class hl2ss
     }
 
     // NO LAYOUT
-    public class sm_bounding_volume : byte_buffer
+    public class sm_bounding_volume
     {
+        private byte_buffer m_b;
         private uint m_count;
 
         public sm_bounding_volume()
         {
             m_count = 0;
+            m_b = new byte_buffer();
         }
 
-        public sm_bounding_volume(uint count, byte[] data, ulong size)
+        public sm_bounding_volume(uint count, byte[] data)
         {
             m_count = count;
-            m_buffer.Clear();
-            m_buffer.AddRange(data);
+            m_b = new byte_buffer();
+            m_b.push(data);
+        }
+
+        public void clear()
+        {
+            m_count = 0;
+            m_b.clear();
         }
 
         public void add_box(sm_box box)
         {
             m_count++;
-            push_u32(sm_volume_type.Box);
-            push(box);
+            m_b.push_u32(sm_volume_type.Box);
+            m_b.push(box);
         }
 
         public void add_frustum(sm_frustum frustum)
         {
             m_count++;
-            push_u32(sm_volume_type.Frustum);
-            push(frustum);
+            m_b.push_u32(sm_volume_type.Frustum);
+            m_b.push(frustum);
         }
 
         public void add_oriented_box(sm_oriented_box oriented_box)
         {
             m_count++;
-            push_u32(sm_volume_type.OrientedBox);
-            push(oriented_box);
+            m_b.push_u32(sm_volume_type.OrientedBox);
+            m_b.push(oriented_box);
         }
 
         public void add_sphere(sm_sphere sphere)
         {
             m_count++;
-            push_u32(sm_volume_type.Sphere);
-            push(sphere);
+            m_b.push_u32(sm_volume_type.Sphere);
+            m_b.push(sphere);
         }
 
         public uint get_count()
@@ -863,42 +892,50 @@ public static partial class hl2ss
 
         public byte[] get_data()
         {
-            return m_buffer.ToArray();
+            return m_b.get_data();
         }
 
         public ulong get_size()
         {
-            return (ulong)m_buffer.Count;
+            return m_b.get_size();
         }
     }
 
     // NO LAYOUT
-    public class sm_mesh_task : byte_buffer
+    public class sm_mesh_task
     {
+        private byte_buffer m_b;
         private uint m_count;
 
         public sm_mesh_task()
         {
             m_count = 0;
+            m_b = new byte_buffer();
         }
 
-        public sm_mesh_task(uint count, byte[] data, ulong size)
+        public sm_mesh_task(uint count, byte[] data)
         {
             m_count = count;
-            m_buffer.Clear();
-            m_buffer.AddRange(data);
+            m_b = new byte_buffer();            
+            m_b.push(data);
+        }
+
+        public void clear()
+        {
+            m_count = 0;
+            m_b.clear();
         }
 
         public void add_task(guid id, double max_triangles_per_cubic_meter, uint vertex_position_format, uint triangle_index_format, uint vertex_normal_format, bool include_vertex_normals, bool include_bounds)
         {
             m_count++;
-            push_u64(id.l);
-            push_u64(id.h);
-            push_double(max_triangles_per_cubic_meter);
-            push_u32(vertex_position_format);
-            push_u32(triangle_index_format);
-            push_u32(vertex_normal_format);
-            push_u32((include_vertex_normals ? 1U : 0U) | (include_bounds ? 2U : 0U));
+            m_b.push_u64(id.l);
+            m_b.push_u64(id.h);
+            m_b.push_double(max_triangles_per_cubic_meter);
+            m_b.push_u32(vertex_position_format);
+            m_b.push_u32(triangle_index_format);
+            m_b.push_u32(vertex_normal_format);
+            m_b.push_u32((include_vertex_normals ? 1U : 0U) | (include_bounds ? 2U : 0U));
         }
 
         public uint get_count()
@@ -908,12 +945,12 @@ public static partial class hl2ss
 
         public byte[] get_data()
         {
-            return m_buffer.ToArray();
+            return m_b.get_data();
         }
 
         public ulong get_size()
         {
-            return (ulong)m_buffer.Count;
+            return m_b.get_size();
         }
     }
 
@@ -1006,42 +1043,51 @@ public static partial class hl2ss
     //------------------------------------------------------------------------------
     
     // NO LAYOUT
-    public class umq_command_buffer : byte_buffer
+    public class umq_command_buffer
     {
+        private byte_buffer m_b;
         private uint m_count;
 
         public umq_command_buffer()
         {
+            m_b = new byte_buffer();
             m_count = 0;
         }
 
-        public void add(uint id, IntPtr data, ulong size)
+        public umq_command_buffer(uint count, byte[] data)
         {
-            push_u32(id);
-            push_u32((uint)size);
-            push(data, size);
-            m_count++;
+            m_count = count;
+            m_b = new byte_buffer();
+            m_b.push(data);
         }
 
         public void clear()
         {
-            m_buffer.Clear();
             m_count = 0;
+            m_b.clear();            
         }
 
-        public byte[] data()
+        public void add(uint id, byte[] data)
         {
-            return m_buffer.ToArray();
+            m_b.push_u32(id);
+            m_b.push_u32((uint)data.Length);
+            m_b.push(data);
+            m_count++;
         }
 
-        public ulong size()
-        {
-            return (ulong)m_buffer.Count;
-        }
-
-        public uint count()
+        public uint get_count()
         {
             return m_count;
+        }
+
+        public byte[] get_data()
+        {
+            return m_b.get_data();
+        }
+
+        public ulong get_size()
+        {
+            return m_b.get_size();
         }
     }
 
@@ -1276,7 +1322,7 @@ public static partial class hl2ss
     {
         var r = new map_pv();
         r.image = payload;
-        r.metadata = IntPtr.Add(payload, (int)size - Marshal.SizeOf(typeof(pv_metadata)));
+        r.metadata = IntPtr.Add(payload, (int)size - Marshal.SizeOf<pv_metadata>());
         return r;
     }
 
