@@ -121,6 +121,25 @@ public static partial class hl2ss
             public ushort _reserved_0;
         }
 
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public class configuration_pv_subsystem
+        {
+            public byte enable_mrc;
+            public byte hologram_composition;
+            public byte recording_indicator;
+            public byte video_stabilization;
+            public byte blank_protected;
+            public byte show_mesh;
+            public byte shared;
+            public byte _reserved_0;
+            public float global_opacity;
+            public float output_width;
+            public float output_height;
+            public uint video_stabilization_length;
+            public uint hologram_perspective;
+            public uint _reserved_1;
+        };
+
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
         public class packet
         {
@@ -252,7 +271,7 @@ public static partial class hl2ss
         //-----------------------------------------------------------------------------
 
         [DllImport("hl2ss_ulm")]
-        public static extern int start_subsystem_pv(string host, ushort port, byte enable_mrc = 0, byte hologram_composition = 1, byte recording_indicator = 0, byte video_stabilization = 0, byte blank_protected = 0, byte show_mesh = 0, byte shared = 0, float global_opacity = 0.9f, float output_width = 0.0f, float output_height = 0.0f, uint video_stabilization_length = 0, uint hologram_perspective = hl2ss.hologram_perspective.PV);
+        public static extern int start_subsystem_pv(string host, ushort port, configuration_pv_subsystem c);
 
         [DllImport("hl2ss_ulm")]
         public static extern int stop_subsystem_pv(string host, ushort port);
