@@ -460,10 +460,12 @@ public static partial class hl2ss
                 t.get_meshes = Convert.ToByte(task.get_meshes);
                 t.get_collider_meshes = Convert.ToByte(task.get_collider_meshes);
 
-                t.guid_list_size = (ulong)task.guid_list.Length;
-                t.guid_list_data = task.guid_list;
+                pointer p = pointer.get(task.guid_list);
 
-                return new su_result(m_handle, t);
+                t.guid_list_size = (ulong)task.guid_list.Length;
+                t.guid_list_data = p.value;
+
+                try { return new su_result(m_handle, t); } finally { p.destroy(); }
             }
         }
 
@@ -611,7 +613,7 @@ public static partial class hl2ss
             c.profile = hl2ss.video_profile.H265_MAIN;
             c.level = hl2ss.h26x_level.DEFAULT;
             c.bitrate = 0;
-            c.options_data = null;
+            c.options_data = IntPtr.Zero;
             c.options_size = -1;
         }
 
@@ -626,7 +628,7 @@ public static partial class hl2ss
             c.profile_ab = hl2ss.video_profile.H265_MAIN;
             c.level = hl2ss.h26x_level.DEFAULT;
             c.bitrate = 0;
-            c.options_data = null;
+            c.options_data = IntPtr.Zero;
             c.options_size = -1;
         }
 
@@ -661,7 +663,7 @@ public static partial class hl2ss
             c.profile = hl2ss.video_profile.H265_MAIN;
             c.level = hl2ss.h26x_level.DEFAULT;
             c.bitrate = 0;
-            c.options_data = null;
+            c.options_data = IntPtr.Zero;
             c.options_size = -1;
             c.decoded_format = hl2ss.pv_decoded_format.BGR;
         }
