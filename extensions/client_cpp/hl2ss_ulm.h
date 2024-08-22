@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <vector>
 #include <exception>
+#include <stdexcept>
 #include <memory>
 
 #ifdef WIN32
@@ -1384,6 +1385,24 @@ struct configuration_extended_audio
     uint8_t _reserved[2];
 };
 
+struct configuration_pv_subsystem
+{
+    uint8_t enable_mrc;
+    uint8_t hologram_composition;
+    uint8_t recording_indicator;
+    uint8_t video_stabilization;
+    uint8_t blank_protected;
+    uint8_t show_mesh;
+    uint8_t shared;
+    uint8_t _reserved_0;
+    float global_opacity;
+    float output_width;
+    float output_height;
+    uint32_t video_stabilization_length;
+    uint32_t hologram_perspective;
+    uint32_t _reserved_1;
+};
+
 struct packet
 {
     int64_t frame_stamp;
@@ -1508,7 +1527,7 @@ void* get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t start_subsystem_pv(char const* host, uint16_t port, uint8_t enable_mrc=false, uint8_t hologram_composition=true, uint8_t recording_indicator=false, uint8_t video_stabilization=false, uint8_t blank_protected=false, uint8_t show_mesh=false, uint8_t shared=false, float global_opacity=0.9f, float output_width=0.0f, float output_height=0.0f, uint32_t video_stabilization_length=0, uint32_t hologram_perspective=hl2ss::hologram_perspective::PV);
+int32_t start_subsystem_pv(char const* host, uint16_t port, configuration_pv_subsystem const& c);
 
 HL2SS_CLIENT_IMPORT
 int32_t stop_subsystem_pv(char const* host, uint16_t port);
@@ -2390,6 +2409,27 @@ hl2ss::ulm::configuration_extended_audio create_configuration()
     return c;
 }
 
+template<>
+hl2ss::ulm::configuration_pv_subsystem create_configuration()
+{
+    hl2ss::ulm::configuration_pv_subsystem c;
+
+    c.enable_mrc = false;
+    c.hologram_composition = true;
+    c.recording_indicator = false;
+    c.video_stabilization = false;
+    c.blank_protected = false;
+    c.show_mesh = false;
+    c.shared = false;
+    c.global_opacity = 0.9f;
+    c.output_width = 0.0f;
+    c.output_height = 0.0f;
+    c.video_stabilization_length = 0;
+    c.hologram_perspective = hl2ss::hologram_perspective::PV;
+
+    return c;
+}
+
 HL2SS_INLINE
 std::unique_ptr<source> open_stream(char const* host, uint16_t port, uint64_t buffer_size, void const* configuration)
 {
@@ -2403,9 +2443,9 @@ std::unique_ptr<T> open_ipc(char const* host, uint16_t port)
 }
 
 HL2SS_INLINE
-void start_subsystem_pv(char const* host, uint16_t port, uint8_t enable_mrc=false, uint8_t hologram_composition=true, uint8_t recording_indicator=false, uint8_t video_stabilization=false, uint8_t blank_protected=false, uint8_t show_mesh=false, uint8_t shared=false, float global_opacity=0.9f, float output_width=0.0f, float output_height=0.0f, uint32_t video_stabilization_length=0, uint32_t hologram_perspective=hl2ss::hologram_perspective::PV)
+void start_subsystem_pv(char const* host, uint16_t port, hl2ss::ulm::configuration_pv_subsystem const& c)
 {
-    handle::check_result(hl2ss::ulm::start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective));
+    handle::check_result(hl2ss::ulm::start_subsystem_pv(host, port, c));
 }
 
 HL2SS_INLINE
