@@ -168,6 +168,24 @@ struct configuration_extended_audio
     uint8_t _reserved[2];
 };
 
+struct configuration_pv_subsystem
+{
+    uint8_t enable_mrc;
+    uint8_t hologram_composition;
+    uint8_t recording_indicator;
+    uint8_t video_stabilization;
+    uint8_t blank_protected;
+    uint8_t show_mesh;
+    uint8_t shared;
+    uint8_t _reserved_0;
+    float global_opacity;
+    float output_width;
+    float output_height;
+    uint32_t video_stabilization_length;
+    uint32_t hologram_perspective;
+    uint32_t _reserved_1;
+};
+
 struct packet
 {
     int64_t frame_stamp;
@@ -456,10 +474,10 @@ HL2SS_ULM_END(nullptr)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t start_subsystem_pv(char const* host, uint16_t port, uint8_t enable_mrc, uint8_t hologram_composition, uint8_t recording_indicator, uint8_t video_stabilization, uint8_t blank_protected, uint8_t show_mesh, uint8_t shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
+int32_t start_subsystem_pv(char const* host, uint16_t port, configuration_pv_subsystem const& c)
 HL2SS_ULM_BEGIN
 {
-    hl2ss::lnm::start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
+    hl2ss::lnm::start_subsystem_pv(host, port, c.enable_mrc, c.hologram_composition, c.recording_indicator, c.video_stabilization, c.blank_protected, c.show_mesh, c.shared, c.global_opacity, c.output_width, c.output_height, c.video_stabilization_length, c.hologram_perspective);
     return 0;
 }
 HL2SS_ULM_END(-1)
