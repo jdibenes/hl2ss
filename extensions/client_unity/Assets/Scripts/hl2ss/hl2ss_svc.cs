@@ -702,6 +702,24 @@ public static partial class hl2ss
             c.level = hl2ss.aac_level.L2;
         }
 
+        public static void create_configuration(out hl2ss.ulm.configuration_pv_subsystem c)
+        {
+            c = new hl2ss.ulm.configuration_pv_subsystem();
+
+            c.enable_mrc = 0;
+            c.hologram_composition = 1;
+            c.recording_indicator = 0;
+            c.video_stabilization = 0;
+            c.blank_protected = 0;
+            c.show_mesh = 0;
+            c.shared = 0;
+            c.global_opacity = 0.9f;
+            c.output_width = 0.0f;
+            c.output_height = 0.0f;
+            c.video_stabilization_length = 0;
+            c.hologram_perspective = hl2ss.hologram_perspective.PV;
+        }
+
         public static source open_stream<T>(string host, ushort port, ulong buffer_size, T configuration)
         {
             pointer p = pointer.get(configuration);
@@ -738,9 +756,9 @@ public static partial class hl2ss
             ipc = new ipc_gmq(host, port);
         }
 
-        public static void start_subsystem_pv(string host, ushort port, bool enable_mrc = false, bool hologram_composition = true, bool recording_indicator = false, bool video_stabilization = false, bool blank_protected = false, bool show_mesh = false, bool shared = false, float global_opacity = 0.9f, float output_width = 0.0f, float output_height = 0.0f, uint video_stabilization_length = 0, uint hologram_perspective = hl2ss.hologram_perspective.PV)
+        public static void start_subsystem_pv(string host, ushort port, hl2ss.ulm.configuration_pv_subsystem c)
         {
-            handle.check_result(hl2ss.ulm.start_subsystem_pv(host, port, Convert.ToByte(enable_mrc), Convert.ToByte(hologram_composition), Convert.ToByte(recording_indicator), Convert.ToByte(video_stabilization), Convert.ToByte(blank_protected), Convert.ToByte(show_mesh), Convert.ToByte(shared), global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective));
+            handle.check_result(hl2ss.ulm.start_subsystem_pv(host, port, c));
         }
 
         public static void stop_subsystem_pv(string host, ushort port)
