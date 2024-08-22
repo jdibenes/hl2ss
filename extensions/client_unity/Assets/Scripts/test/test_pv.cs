@@ -53,7 +53,9 @@ public class test_pv : MonoBehaviour
 
         pv_frame_size = configuration.width * configuration.height * bpp;
 
-        hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO);
+        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv_subsystem configuration_subsystem);
+
+        hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration_subsystem);
 
         var calibration_handle = hl2ss.svc.download_calibration(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration);
         var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.data);
