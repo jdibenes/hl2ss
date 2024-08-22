@@ -243,8 +243,8 @@ void test_pv(char const* host)
 {
     uint16_t port = hl2ss::stream_port::PERSONAL_VIDEO;
     uint64_t buffer_size = 300;
-    bool enable_mrc = false;
 
+    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
     auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
 
     configuration.width = 1920;
@@ -263,7 +263,7 @@ void test_pv(char const* host)
     default: throw std::runtime_error("Invalid PV decoded format");
     }
 
-    hl2ss::svc::start_subsystem_pv(host, port, enable_mrc);
+    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
 
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_pv>(host, port, &configuration);
     auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
@@ -435,10 +435,15 @@ void test_extended_video(char const* host)
 {
     uint16_t port = hl2ss::stream_port::EXTENDED_VIDEO;
     uint64_t buffer_size = 100;
-    bool shared = false;
     float group_index = 0;
     float source_index = 2;
     float profile_index = 4;
+
+    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
+
+    configuration_subsystem.global_opacity = group_index;
+    configuration_subsystem.output_width = source_index;
+    configuration_subsystem.output_height = profile_index;
 
     auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
 
@@ -458,7 +463,7 @@ void test_extended_video(char const* host)
     default: throw std::runtime_error("Invalid PV decoded format");
     }
 
-    hl2ss::svc::start_subsystem_pv(host, port, 0, 0, 0, 0, 0, 0, shared, group_index, source_index, profile_index, 0, 0);
+    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
 
     auto device_list = hl2ss::svc::download_device_list(host, port);
     auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
@@ -693,7 +698,7 @@ void test_gmq(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 4;
+    int test_id = 9;
 
     try
     {
