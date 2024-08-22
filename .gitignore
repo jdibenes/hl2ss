@@ -31,3 +31,7 @@ extensions/client_unity/Assets/Plugins/x64/opencv_world480.dll
 extensions/client_unity/Assets/Plugins/x64/opencv_world480.dll.meta
 extensions/client_unity/Assets/Plugins/x64/swresample-4.dll
 extensions/client_unity/Assets/Plugins/x64/swresample-4.dll.meta
+extensions/client_labview/avcodec-60.dll
+extensions/client_labview/avutil-58.dll
+extensions/client_labview/opencv_world480.dll
+extensions/client_labview/swresample-4.dll
