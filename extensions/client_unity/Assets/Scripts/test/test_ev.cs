@@ -58,7 +58,13 @@ public class test_ev : MonoBehaviour
 
         pv_frame_size = configuration.width * configuration.height * bpp;
 
-        hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.EXTENDED_VIDEO, false, false, false, false, false, false, false, group_index, source_index, profile_index, 0, 0); ;
+        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv_subsystem configuration_subsystem);
+
+        configuration_subsystem.global_opacity = group_index;
+        configuration_subsystem.output_width   = source_index;
+        configuration_subsystem.output_height  = profile_index;
+
+        hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.EXTENDED_VIDEO, configuration_subsystem);
 
         var device_list_handle = hl2ss.svc.download_device_list(host, hl2ss.stream_port.EXTENDED_VIDEO);
         var string_bytes = new byte[device_list_handle.size];
