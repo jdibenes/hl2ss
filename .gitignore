@@ -35,3 +35,7 @@ extensions/client_labview/avcodec-60.dll
 extensions/client_labview/avutil-58.dll
 extensions/client_labview/opencv_world480.dll
 extensions/client_labview/swresample-4.dll
+extensions/client_labview/hl2ss_labview/avcodec-60.dll
+extensions/client_labview/hl2ss_labview/avutil-58.dll
+extensions/client_labview/hl2ss_labview/swresample-4.dll
+extensions/client_labview/hl2ss_labview/opencv_world480.dll
