@@ -13,7 +13,8 @@ The `tasks_[...].json` files are provided as a reference for building with `cl.e
 Alternatively, you can build `hl2ss_ulm.cpp` as a shared library (.dll, .so, ...) and include `hl2ss_ulm.h` in your C++ project.
 See `main_ulm.cpp` for examples.
 
-If you build `main.cpp` or `main_ulm.cpp` on Windows, you may need to copy the FFmpeg and OpenCV DLLs to the client_cpp folder.
+If you build `main.cpp` or `main_ulm.cpp` on Windows, you may need to copy the FFmpeg (e.g., `avcodec-60.dll`, `avutil-58.dll`, `swresample-4.dll`) and OpenCV (e.g., `opencv_world480.dll`)
+ DLLs to the client_cpp folder.
 
 ## client_matlab
 
@@ -31,7 +32,15 @@ C# wrapper for the hl2ss_ulm shared library. Has the same requirements as client
 
 **Build**
 
-Build the hl2ss_ulm shared library and copy it to the appropriate subfolder in Assets/Plugins. Also, copy the shared libraries for OpenCV and FFmpeg if necessary (e.g., `hl2ss_ulm.dll` for Windows requires `avcodec-60.dll`, `avutil-58.dll`, `opencv_world480.dll`, and `swresample-4.dll`). Finally, build the Unity project.
+Build the hl2ss_ulm shared library and copy it to the appropriate subfolder in Assets/Plugins. Also, copy the shared libraries for OpenCV and FFmpeg if necessary. Finally, build the Unity project.
+
+## client_labview
+
+Collection of LabVIEW VIs for streaming HoloLens 2 sensor data using the hl2ss_ulm shared library. Has the same requirements as client_cpp. See the `test_[...].vi` VIs for examples.
+
+**Build**
+
+Build the hl2ss_ulm shared library and copy it to the hl2ss_labview folder. Also, copy the shared libraries for OpenCV and FFmpeg if necessary.
 
 ## pyzdepth 
 
