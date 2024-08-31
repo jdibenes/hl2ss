@@ -5,6 +5,7 @@
 
 from pynput import keyboard
 
+import numpy as np
 import multiprocessing as mp
 import open3d as o3d
 import cv2
@@ -86,7 +87,7 @@ if __name__ == '__main__':
         color = cv2.remap(data_depth.payload.ab, calibration_lt.undistort_map[:, :, 0], calibration_lt.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         
         # Convert to Open3D RGBD image ----------------------------------------
-        color = hl2ss_3dcv.rm_depth_to_uint8(color)
+        color = np.sqrt(color).astype(dtype=np.uint8)
         color = hl2ss_3dcv.rm_depth_to_rgb(color)
         color_image = o3d.geometry.Image(color)
         depth_image = o3d.geometry.Image(depth)

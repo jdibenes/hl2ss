@@ -112,7 +112,7 @@ if (__name__ == '__main__'):
             continue
 
         # Undistort and rectify frames ----------------------------------------
-        lf_u = cv2.remap(data_left.payload, calibration_lf.undistort_map[:, :, 0], calibration_lf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        lf_u = cv2.remap(data_left.payload.image, calibration_lf.undistort_map[:, :, 0], calibration_lf.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         lf_ru = hl2ss_3dcv.rm_vlc_rotate_image(lf_u, rotation_lf)
         rf_ru = data_right.payload.image
 

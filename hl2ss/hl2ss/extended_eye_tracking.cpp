@@ -68,7 +68,7 @@ void ExtendedEyeTracking_QueryCapabilities()
     ShowMessage("IsRestrictedModeSupported: %d", g_tracker.IsRestrictedModeSupported());
     ShowMessage("IsVergenceDistanceSupported: %d", g_tracker.IsVergenceDistanceSupported());
     ShowMessage("SupportedTargetFrameRates");
-    for (auto stfr : g_tracker.SupportedTargetFrameRates()) { ShowMessage("%d FPS", stfr.FramesPerSecond()); }
+    for (auto const& stfr : g_tracker.SupportedTargetFrameRates()) { ShowMessage("%d FPS", stfr.FramesPerSecond()); }
 }
 
 // OK
@@ -80,7 +80,7 @@ SpatialLocator ExtendedEyeTracking_CreateLocator()
 // OK
 void ExtendedEyeTracking_SetTargetFrameRate(int index)
 {
-    auto stfrs = g_tracker.SupportedTargetFrameRates();
+    auto const& stfrs = g_tracker.SupportedTargetFrameRates();
     g_tracker.SetTargetFrameRate(stfrs.GetAt(index));
 }
 

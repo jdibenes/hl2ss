@@ -58,16 +58,16 @@ void ExtendedVideo_QueryDevices(winrt::hstring& out)
     JsonObject root = JsonObject();
     for (uint32_t i = 0; i < ids.size(); ++i)
     {
-    auto sourceGroup = MediaFrameSourceGroup::FromIdAsync(ids[i]).get();
+    auto const& sourceGroup = MediaFrameSourceGroup::FromIdAsync(ids[i]).get();
     
     JsonObject jsourceinfos = JsonObject();
     uint32_t sourceInfo = 0;
-    for (auto source : sourceGroup.SourceInfos())
+    for (auto const& source : sourceGroup.SourceInfos())
     {   
     JsonObject jvpmd = JsonObject();
     uint32_t description = 0;
 
-    for (auto md : source.VideoProfileMediaDescription())
+    for (auto const& md : source.VideoProfileMediaDescription())
     {
     JsonObject jmd = JsonObject();
     jmd.Insert(L"Width", JsonValue::CreateNumberValue(md.Width()));
@@ -90,12 +90,12 @@ void ExtendedVideo_QueryDevices(winrt::hstring& out)
 
     JsonObject jvideoprofiles = JsonObject();
     uint32_t profileIndex = 0;
-    for (auto profile : MediaCapture::FindAllVideoProfiles(sourceGroup.Id()))
+    for (auto const& profile : MediaCapture::FindAllVideoProfiles(sourceGroup.Id()))
     {
     JsonObject jdescription = JsonObject();
     uint32_t description = 0;
 
-    for (auto md : profile.SupportedRecordMediaDescription())
+    for (auto const& md : profile.SupportedRecordMediaDescription())
     {
     JsonObject jmd = JsonObject();
     jmd.Insert(L"Width", JsonValue::CreateNumberValue(md.Width()));
@@ -134,11 +134,11 @@ static bool ExtendedVideo_FindMediaSourceGroup(uint32_t indexGroup, uint32_t ind
     if (indexGroup >= ids.size()) { return false; }
     sourceGroup = MediaFrameSourceGroup::FromIdAsync(ids[indexGroup]).get();
 
-    auto sources = sourceGroup.SourceInfos();
+    auto const& sources = sourceGroup.SourceInfos();
     if (indexSource >= sources.Size()) { return false; }
     sourceId = sources.GetAt(indexSource).Id();
 
-    auto profiles = MediaCapture::FindAllVideoProfiles(sourceGroup.Id());
+    auto const& profiles = MediaCapture::FindAllVideoProfiles(sourceGroup.Id());
     if (profiles.Size() <= 0)
     {
     profile     = nullptr;
@@ -148,7 +148,7 @@ static bool ExtendedVideo_FindMediaSourceGroup(uint32_t indexGroup, uint32_t ind
     {
     if (indexProfile >= profiles.Size()) { return false; }
     profile = profiles.GetAt(indexProfile);
-    auto descriptions = profile.SupportedRecordMediaDescription();
+    auto const& descriptions = profile.SupportedRecordMediaDescription();
     if (descriptions.Size() <= 0) { return false; }
     description = descriptions.GetAt(0);
     }
@@ -159,7 +159,7 @@ static bool ExtendedVideo_FindMediaSourceGroup(uint32_t indexGroup, uint32_t ind
 // OK
 static bool ExtendedVideo_FindVideoSource(MediaCapture const& mediaCapture, winrt::hstring const& sourceId, MediaFrameSource& videoSource)
 {
-    auto sources = mediaCapture.FrameSources();
+    auto const& sources = mediaCapture.FrameSources();
     if (!sources.HasKey(sourceId)) { return false; }
     videoSource = sources.Lookup(sourceId);
     return true;

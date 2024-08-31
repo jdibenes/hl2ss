@@ -45,8 +45,13 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization [[example](viewer/client_ipc_rc.py)].
 - Client can exchange messages with a Unity, Unreal, or native UWP application using the plugin [[example](viewer/client_ipc_umq.py)].
 - Server application can run in background (alongside other applications) when running in flat mode [[example](viewer/client_ipc_rc.py)].
+
+**Integrations**
+
 - [C++ client library](extensions).
-- [MATLAB client (MEX)](extensions).
+- [MATLAB and Simulink client library](extensions).
+- [Unity client plugin](extensions).
+- [LabVIEW client](extensions).
 - [hl2da plugin](https://github.com/jdibenes/hl2da): access sensor data from Unity, Unreal, and native UWP applications running on the HoloLens.
 
 **Technical Report** 
@@ -232,9 +237,10 @@ Building the server application and the plugin requires a Windows 10 machine.
 1. [Install the tools](https://docs.microsoft.com/en-us/windows/mixed-reality/develop/install-the-tools).
 2. Open the Visual Studio solution (sln file in the [hl2ss](hl2ss) folder) in Visual Studio 2022.
 3. Set build configuration to Release ARM64. Building for x86 and x64 (HoloLens emulator), and ARM is not supported.
-4. Right click the hl2ss project and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
-5. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](etc) into the hl2ss\ARM64\Release\hl2ss folder.
-6. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device) first. 
+4. Disable winrt::hresult_error in Debug -> Windows -> Exception Settings -> C++ Exceptions.
+5. Right click the hl2ss project and select Properties. Navigate to Configuration Properties -> Debugging and set Machine Name to your HoloLens IP address.
+6. Build (Build -> Build Solution). If you get an error saying that hl2ss.winmd does not exist, copy the hl2ss.winmd file from [etc](etc) into the hl2ss\ARM64\Release\hl2ss folder.
+7. Run (Remote Machine). You may need to [pair your HoloLens](https://learn.microsoft.com/en-us/windows/mixed-reality/develop/advanced-concepts/using-visual-studio?tabs=hl2#pairing-your-device) first. 
 
 The server application will remain installed on the HoloLens even after power off. The plugin is in the hl2ss\ARM64\Release\plugin folder.
 If you wish to create the server application appxbundle, right click the hl2ss project and select Publish -> Create App Packages.

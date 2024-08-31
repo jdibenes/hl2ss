@@ -4,6 +4,7 @@
 // directory.
 //******************************************************************************
 
+using System.Text;
 using UnityEngine;
 
 public class IPCSkeleton : MonoBehaviour
@@ -61,7 +62,7 @@ public class IPCSkeleton : MonoBehaviour
     uint MSG_DebugMessage(byte[] data)
     {
         string str;
-        try { str = System.Text.Encoding.UTF8.GetString(data); } catch { return 0; } // Decode string and return 0 to the client if decode failed
+        try { str = Encoding.UTF8.GetString(data); } catch { return 0; } // Decode string and return 0 to the client if decode failed
         hl2ss.Print(str); // Send string to debugger
         return 1; // Return 1 to the client to indicate success
     }

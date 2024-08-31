@@ -89,7 +89,7 @@ methods
             output_width               = 0.0
             output_height              = 0.0
             video_stabilization_length = 0
-            hologram_perspective       = 1
+            hologram_perspective       = hl2ss.hologram_perspective.PV
         end
     
         self.module('start_subsystem_pv', self.host, self.port, logical(enable_mrc), logical(hologram_composition), logical(recording_indicator), logical(video_stabilization), logical(blank_protected), logical(show_mesh), logical(shared), single(global_opacity), single(output_width), single(output_height), uint32(video_stabilization_length), uint32(hologram_perspective));

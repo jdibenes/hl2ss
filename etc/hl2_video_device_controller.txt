@@ -83,3 +83,109 @@ Supported Presets
 7
 8
 Value: 0
+
+PersonalVideo_SetBrightness
+Supported 0
+AutoModeSupported 0
+Min 0
+Max 0
+Default 0
+Step 0
+
+PersonalVideo_SetContrast
+Supported 0
+AutoModeSupported 0
+Min 0
+Max 0
+Default 0
+Step 0
+
+PersonalVideo_ExposureCompensationControl
+Supported 1
+Min 0
+Max 0
+Value 0
+Step 1610612736
+
+PersonalVideo_Pan
+Supported 0
+AutoModeSupported 0
+Min 0
+Max 0
+Default 0
+Step 0
+
+PersonalVideo_Roll
+Supported 0
+AutoModeSupported 0
+Min 0
+Max 0
+Default 0
+Step 0
+
+PersonalVideo_Tilt
+Supported 0
+AutoModeSupported 0
+Min 0
+Max 0
+Default 0
+Step 0
+
+PersonalVideo_SetDesiredOptimization
+Value 0
+
+PersonalVideo_SetPrimaryUse
+Value 1
+
+PersonalVideo_SetZoom
+Supported 1
+Supported Modes
+0
+1
+2
+Mode 0
+Min 0
+Max 0
+Value 0
+Step 0
+
+PersonalVideo_SetOpticalImageStabilization
+Supported 1
+Supported Modes
+0
+1
+Mode 1
+
+PersonalVideo_SetHue
+Supported 0
+AutoModeSupported 0
+Min 0
+Max 0
+Default 0
+Step 0
+
+PersonalVideo_SetHdrVideo
+Supported 1
+Supported Modes
+0
+1
+2
+Mode 0
+
+PersonalVideo_SetFlashControl
+Supported 0
+
+PersonalVideo_SetTorchControl
+Supported 0
+
+PersonalVideo_SetInfraredTorch
+Supported 0
+
+PersonalVideo_SetPanelBasedOptimization
+Supported 0
+
+PersonalVideo_SetRegionsOfInterest
+AutoExposureSupported 1
+AutoWhiteBalanceSupported 0
+AutoFocusSupported 1
+Max Regions 1

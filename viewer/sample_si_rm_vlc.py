@@ -109,7 +109,7 @@ if __name__ == '__main__':
         if (data_si is None):
             continue
 
-        image = cv2.remap(data_vlc.payload, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        image = cv2.remap(data_vlc.payload.image, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         image = np.dstack((image, image, image))
         si = hl2ss.unpack_si(data_si.payload)
 

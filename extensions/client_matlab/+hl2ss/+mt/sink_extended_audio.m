@@ -51,6 +51,10 @@ methods
     function response = get_packet_by_timestamp(self, timestamp, time_preference, tiebreak_right)
         response = self.module('get_packet', self.port, hl2ss.grab_mode.BY_TIMESTAMP, uint64(timestamp), int32(time_preference), int32(tiebreak_right));
     end
+
+    function response = download_calibration(self)
+        response = self.module('download_calibration', self.host, self.port);
+    end
     
     function close(self)
         self.module('close', self.port);

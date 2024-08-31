@@ -1,6 +1,7 @@
 
 #include "research_mode.h"
 #include "server.h"
+#include "extended_execution.h"
 #include "stream_rm_vlc.h"
 #include "stream_rm_imu.h"
 #include "stream_rm_zht.h"
@@ -69,6 +70,7 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     SOCKET clientsocket; // closesocket
     IResearchModeSensor* sensor;
     ResearchModeSensorType type;
+    int base_priority;
     char const* port;
     bool ok;
 
@@ -85,6 +87,8 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     listensocket = CreateSocket(port);
 
     ShowMessage("RM%d: Listening at port %s", type, port);
+
+    base_priority = GetThreadPriority(GetCurrentThread());
     
     do
     {
@@ -94,6 +98,8 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     if (clientsocket == INVALID_SOCKET) { break; }
 
     ShowMessage("RM%d: Client connected", type);
+
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(type));
 
     switch (type)
     {
@@ -107,6 +113,8 @@ static DWORD WINAPI RM_EntryPoint(void* param)
     case ResearchModeSensorType::IMU_GYRO:         RM_Stream<RM_GYR_Mode0, RM_GYR_Mode1, RM_GYR_Mode2>(sensor, clientsocket, locator); break;
     case ResearchModeSensorType::IMU_MAG:          RM_Stream<RM_MAG_Mode0, RM_MAG_Mode1, RM_MAG_Mode2>(sensor, clientsocket, locator); break;
     }
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 
@@ -144,7 +152,7 @@ void RM_Cleanup()
 {
     WaitForMultipleObjects((DWORD)g_threads.size(), g_threads.data(), TRUE, INFINITE);
 
-    for (auto thread : g_threads) { CloseHandle(thread); }
+    for (auto const& thread : g_threads) { CloseHandle(thread); }
     CloseHandle(g_event_quit);
 
     g_threads.clear();

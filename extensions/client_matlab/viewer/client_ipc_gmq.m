@@ -16,6 +16,7 @@ try
 [command, data] = client.pull(); % get command
 if (command == 0xFFFFFFFE)
     text = native2unicode(data, "UTF-8").';
+    client.push(1)
     disp(text);
 end
 catch ME

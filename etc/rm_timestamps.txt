@@ -1,0 +1,17 @@
+            SensorTicksPerSecond HostTicksPerSecond Source  DELTA_SensorTicks DELTA_HostTicks SensorClockGroup
+rm vlc lf:              62976000           62976000      0      ~32999000  ns     ~324442 hns                1
+rm vlc ll:              62976000           62976000      1      ~32999016  ns     ~329289 hns                1
+rm vlc rf:              62976000           62976000      2      ~32998999  ns     ~329913 hns                1
+rm vlc rr:              62976000           62976000      3      ~32999015  ns     ~328793 hns                1
+rm zht:                 62976000           10000000      4       ~1385454 clk     ~220003 hns                1
+rm zlt:                 62976000           19200000      5      ~12595200 clk    ~2000029 hns                1
+rm imu acc:             62976000           10000000      6      ~84244188  ns     ~850840 hns                1
+rm imu gyr:             62976000           10000000      7      ~48118521  ns     ~476755 hns                1
+rm imu mag:             62976000           10000000      8     ~220003081  ns    ~2198189 hns                1
+
+Source should be in [0, 2] according to Research Mode header, appears to contain garbage (sensor id?)
+HostTicks should be in FILETIME units according to Research Mode docs, appears to be in QPC units
+HostTicksPerSecond should be 10000000 according to Research Mode docs
+SensorTicks should be in ns according to Research Mode docs, appears to be in ns for some sensors and in ticks for others
+SensorTicksPerSecond should be 1000000000 according to Research Mode docs
+RM VLC timestamps appear to be offset by ~ +125000 hns (~3/8 @ 30 Hz)

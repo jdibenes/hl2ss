@@ -3,6 +3,7 @@
 #include "server.h"
 #include "locator.h"
 #include "spatial_input.h"
+#include "extended_execution.h"
 #include "ports.h"
 #include "timestamps.h"
 #include "log.h"
@@ -82,6 +83,7 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    int base_priority;
 
     ShowMessage("SI: Waiting for consent");
 
@@ -90,6 +92,8 @@ static DWORD WINAPI SI_EntryPoint(void *param)
     listensocket = CreateSocket(PORT_NAME_SI);
 
     ShowMessage("SI: Listening at port %s", PORT_NAME_SI);
+
+    base_priority = GetThreadPriority(GetCurrentThread());
 
     do
     {
@@ -100,7 +104,11 @@ static DWORD WINAPI SI_EntryPoint(void *param)
 
     ShowMessage("SI: Client connected");
 
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_SI - PORT_NUMBER_BASE));
+
     SI_Stream(clientsocket);
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 

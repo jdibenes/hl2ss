@@ -36,7 +36,7 @@ void VoiceInput_Initialize()
 static uint32_t VoiceInput_FindID(winrt::hstring const& query)
 {
     uint32_t index = 0;
-    for (auto& command : g_commands) { if (command == query) { return index; } else { ++index; } }
+    for (auto const& command : g_commands) { if (command == query) { return index; } else { ++index; } }
     return index;
 }
 

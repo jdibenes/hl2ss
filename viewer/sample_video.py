@@ -66,6 +66,14 @@ if __name__ == '__main__':
         hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Start streams -----------------------------------------------------------
+    client_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    client_rc.open()
+    client_rc.set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.InterfacePriority.HIGHEST)
+    client_rc.set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTLEFT, hl2ss.InterfacePriority.HIGHEST)
+    client_rc.set_interface_priority(hl2ss.StreamPort.RM_VLC_RIGHTFRONT, hl2ss.InterfacePriority.HIGHEST)
+    client_rc.set_interface_priority(hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, hl2ss.InterfacePriority.HIGHEST)
+    client_rc.close()
+
     producer = hl2ss_mp.producer()
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTFRONT))
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTLEFT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTLEFT))
@@ -99,9 +107,9 @@ if __name__ == '__main__':
         if (payload.image is not None and payload.image.size > 0):
             cv2.imshow(hl2ss.get_port_name(port), payload.image)
 
-    def display_basic(port, payload):
-        if (payload is not None and payload.size > 0):
-            cv2.imshow(hl2ss.get_port_name(port), payload)
+    def display_vlc(port, payload):
+        if (payload.image is not None and payload.image.size > 0):
+            cv2.imshow(hl2ss.get_port_name(port), payload.image)
 
     def display_depth_lt(port, payload):
         cv2.imshow(hl2ss.get_port_name(port) + '-depth', payload.depth * 8) # Scaled for visibility
@@ -117,10 +125,10 @@ if __name__ == '__main__':
         pass
 
     DISPLAY_MAP = {
-        hl2ss.StreamPort.RM_VLC_LEFTFRONT     : display_basic,
-        hl2ss.StreamPort.RM_VLC_LEFTLEFT      : display_basic,
-        hl2ss.StreamPort.RM_VLC_RIGHTFRONT    : display_basic,
-        hl2ss.StreamPort.RM_VLC_RIGHTRIGHT    : display_basic,
+        hl2ss.StreamPort.RM_VLC_LEFTFRONT     : display_vlc,
+        hl2ss.StreamPort.RM_VLC_LEFTLEFT      : display_vlc,
+        hl2ss.StreamPort.RM_VLC_RIGHTFRONT    : display_vlc,
+        hl2ss.StreamPort.RM_VLC_RIGHTRIGHT    : display_vlc,
         hl2ss.StreamPort.RM_DEPTH_AHAT        : display_depth_ahat,
         hl2ss.StreamPort.RM_DEPTH_LONGTHROW   : display_depth_lt,
         hl2ss.StreamPort.PERSONAL_VIDEO       : display_pv,

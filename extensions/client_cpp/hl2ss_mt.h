@@ -162,7 +162,7 @@ namespace time_preference
 int32_t const PREFER_PAST    = -1;
 int32_t const PREFER_NEAREST =  0;
 int32_t const PREFER_FUTURE  =  1;
-};
+}
 
 class source
 {

@@ -4,6 +4,6 @@ properties (Constant)
     WIDTH  = 512;
     HEIGHT = 512;
     FPS    = 45;
-    PIXELS = WIDTH * HEIGHT;
+    PIXELS = 512 * 512;
 end
 end

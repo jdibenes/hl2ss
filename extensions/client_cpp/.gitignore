@@ -2,3 +2,5 @@
 *.exe
 *.obj
 *.pdb
+*.lib
+*.exp

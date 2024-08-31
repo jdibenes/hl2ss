@@ -48,14 +48,14 @@ void Locator_Initialize()
 // OK
 float4x4 Locator_Locate(PerceptionTimestamp const& timestamp, SpatialLocator const& locator, SpatialCoordinateSystem const& world)
 {
-    auto location = locator.TryLocateAtTimestamp(timestamp, world);
+    auto const& location = locator.TryLocateAtTimestamp(timestamp, world);
     return location ? (make_float4x4_from_quaternion(location.Orientation()) * make_float4x4_translation(location.Position())) : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 // OK
 float4x4 Locator_GetTransformTo(SpatialCoordinateSystem const& src, SpatialCoordinateSystem const& dst)
 {
-    auto location = src.TryGetTransformTo(dst);
+    auto const& location = src.TryGetTransformTo(dst);
     return location ? location.Value() : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 

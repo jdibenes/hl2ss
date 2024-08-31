@@ -67,7 +67,7 @@ int SpatialInput_GetHeadPoseAndEyeRay(SpatialCoordinateSystem const& world, Perc
 
     if (!pointer) { return ret; }
 
-    auto h = pointer.Head();
+    auto const& h = pointer.Head();
 
     head_pose.position = h.Position();
     head_pose.forward  = h.ForwardDirection();
@@ -75,13 +75,13 @@ int SpatialInput_GetHeadPoseAndEyeRay(SpatialCoordinateSystem const& world, Perc
 
     ret |= 1;
 
-    auto pose = pointer.Eyes();
+    auto const& pose = pointer.Eyes();
     if (!pose) { return ret; }
 
-    auto gaze = pose.Gaze();
+    auto const& gaze = pose.Gaze();
     if (!gaze) { return ret; }
 
-    auto spatialRay = gaze.Value();
+    auto const& spatialRay = gaze.Value();
 
     eye_ray.origin    = spatialRay.Origin;
     eye_ray.direction = spatialRay.Direction;
@@ -94,13 +94,13 @@ int SpatialInput_GetHeadPoseAndEyeRay(SpatialCoordinateSystem const& world, Perc
 // OK
 int SpatialInput_GetHandPose(SpatialCoordinateSystem const& world, PerceptionTimestamp const& ts, std::vector<JointPose>& left_poses, std::vector<JointPose>& right_poses)
 {
-    auto source_states = g_sim.GetDetectedSourcesAtTimestamp(ts);
+    auto const& source_states = g_sim.GetDetectedSourcesAtTimestamp(ts);
     int ret = 0;
     std::vector<JointPose>* target;
     int id;    
     bool ok;
 
-    for (auto source_state : source_states)
+    for (auto const& source_state : source_states)
     {
     if (source_state.Source().Kind() != SpatialInteractionSourceKind::Hand) { continue; }
 
@@ -111,7 +111,7 @@ int SpatialInput_GetHandPose(SpatialCoordinateSystem const& world, PerceptionTim
     default: continue;
     }
 
-    auto pose = source_state.TryGetHandPose();
+    auto const& pose = source_state.TryGetHandPose();
     if (!pose) { continue; }
 
     ok = pose.TryGetJoints(world, g_joints, *target);

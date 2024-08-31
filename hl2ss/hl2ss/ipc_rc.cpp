@@ -5,8 +5,10 @@
 #include "holographic_space.h"
 #include "personal_video.h"
 #include "extended_execution.h"
+#include "research_mode.h"
 #include "timestamps.h"
 #include "nfo.h"
+#include "types.h"
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -308,6 +310,166 @@ static void RC_MSG_SetFlatMode(SOCKET clientsocket)
 }
 
 // OK
+static void RC_MSG_SetRMEyeSelection(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t enable;
+
+    ok = recv_u32(clientsocket, enable);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ResearchMode_SetEyeSelection(enable != 0);
+}
+
+// OK
+static void RC_MSG_SetPVDesiredOptimization(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+    
+    PersonalVideo_SetDesiredOptimization(mode);
+}
+
+// OK
+static void RC_MSG_SetPVPrimaryUse(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    PersonalVideo_SetPrimaryUse(mode);
+}
+
+// OK
+static void RC_MSG_SetPVOpticalImageStabilization(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    PersonalVideo_SetOpticalImageStabilization(mode);
+}
+
+// OK 
+static void RC_MSG_SetPVHdrVideo(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    PersonalVideo_SetHdrVideo(mode);
+}
+
+// OK
+static void RC_MSG_SetRegionsOfInterest(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t mode;
+    float x;
+    float y;
+    float w;
+    float h;
+
+    ok = recv_u32(clientsocket, mode);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ok = recv_u32(clientsocket, (uint32_t&)x);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ok = recv_u32(clientsocket, (uint32_t&)y);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ok = recv_u32(clientsocket, (uint32_t&)w);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ok = recv_u32(clientsocket, (uint32_t&)h);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    bool     clear             = bit_test( mode, 12);
+    bool     set               = bit_test( mode, 11);
+    bool     auto_exposure     = bit_test( mode, 10);
+    bool     auto_focus        = bit_test( mode,  9);
+    bool     bounds_normalized = bit_test( mode,  8);
+    uint32_t type              = bit_field(mode,  7, 0x01);
+    uint32_t weight            = bit_field(mode,  0, 0x7F);
+
+    PersonalVideo_SetRegionsOfInterest(clear, set, auto_exposure, auto_focus, bounds_normalized, x, y, w, h, type, weight);
+}
+
+// OK
+static void RC_MSG_SetInterfacePriority(SOCKET clientsocket)
+{
+    bool ok;
+    uint32_t id;
+    uint32_t priority;
+
+    ok = recv_u32(clientsocket, id);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ok = recv_u32(clientsocket, priority);
+    if (!ok)
+    {
+        RC_TransferError();
+        return;
+    }
+
+    ExtendedExecution_SetInterfacePriority(id - PORT_NUMBER_BASE, priority);
+}
+
+// OK
 static void RC_Dispatch(SOCKET clientsocket)
 {
     uint8_t state;
@@ -322,20 +484,27 @@ static void RC_Dispatch(SOCKET clientsocket)
 
     switch (state)
     {
-    case 0x00: RC_MSG_GetApplicationVersion(clientsocket);       break;
-    case 0x01: RC_MSG_GetUTCOffset(clientsocket);                break;
-    case 0x02: RC_MSG_SetHSMarkerState(clientsocket);            break;
-    case 0x03: RC_MSG_GetPVSubsystemStatus(clientsocket);        break;
-    case 0x04: RC_MSG_SetPVFocus(clientsocket);                  break;
-    case 0x05: RC_MSG_SetPVVideoTemporalDenoising(clientsocket); break;
-    case 0x06: RC_MSG_SetPVWhiteBalancePreset(clientsocket);     break;
-    case 0x07: RC_MSG_SetPVWhiteBalanceValue(clientsocket);      break;
-    case 0x08: RC_MSG_SetPVExposure(clientsocket);               break;
-    case 0x09: RC_MSG_SetPVExposurePriorityVideo(clientsocket);  break;
-    case 0x0A: RC_MSG_SetPVIsoSpeed(clientsocket);               break;
-    case 0x0B: RC_MSG_SetPVBacklightCompensation(clientsocket);  break;
-    case 0x0C: RC_MSG_SetPVSceneMode(clientsocket);              break;
-    case 0x0D: RC_MSG_SetFlatMode(clientsocket);                 break;
+    case 0x00: RC_MSG_GetApplicationVersion(clientsocket);          break;
+    case 0x01: RC_MSG_GetUTCOffset(clientsocket);                   break;
+    case 0x02: RC_MSG_SetHSMarkerState(clientsocket);               break;
+    case 0x03: RC_MSG_GetPVSubsystemStatus(clientsocket);           break;
+    case 0x04: RC_MSG_SetPVFocus(clientsocket);                     break;
+    case 0x05: RC_MSG_SetPVVideoTemporalDenoising(clientsocket);    break;
+    case 0x06: RC_MSG_SetPVWhiteBalancePreset(clientsocket);        break;
+    case 0x07: RC_MSG_SetPVWhiteBalanceValue(clientsocket);         break;
+    case 0x08: RC_MSG_SetPVExposure(clientsocket);                  break;
+    case 0x09: RC_MSG_SetPVExposurePriorityVideo(clientsocket);     break;
+    case 0x0A: RC_MSG_SetPVIsoSpeed(clientsocket);                  break;
+    case 0x0B: RC_MSG_SetPVBacklightCompensation(clientsocket);     break;
+    case 0x0C: RC_MSG_SetPVSceneMode(clientsocket);                 break;
+    case 0x0D: RC_MSG_SetFlatMode(clientsocket);                    break;
+    case 0x0E: RC_MSG_SetRMEyeSelection(clientsocket);              break;
+    case 0x0F: RC_MSG_SetPVDesiredOptimization(clientsocket);       break;
+    case 0x10: RC_MSG_SetPVPrimaryUse(clientsocket);                break;
+    case 0x11: RC_MSG_SetPVOpticalImageStabilization(clientsocket); break;
+    case 0x12: RC_MSG_SetPVHdrVideo(clientsocket);                  break;
+    case 0x13: RC_MSG_SetRegionsOfInterest(clientsocket);           break;
+    case 0x14: RC_MSG_SetInterfacePriority(clientsocket);           break;
     default:
         RC_TransferError();
         return;

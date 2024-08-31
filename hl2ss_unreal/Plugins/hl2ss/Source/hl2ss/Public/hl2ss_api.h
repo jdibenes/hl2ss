@@ -29,6 +29,9 @@ private:
     static void* p_MQX_CI_Push;
     static void* p_MQX_Restart;
 
+    static void* p_PersonalVideo_RegisterNamedMutex;
+    static void* p_ExtendedVideo_RegisterNamedMutex;
+
     static int Load();
 
 public:
@@ -67,4 +70,6 @@ public:
     static void MQX_CO_Pop(uint32_t& id);
     static void MQX_CI_Push(uint32_t command, uint32_t size, uint8_t const* data);
     static void MQX_Restart();
+    static void PersonalVideo_RegisterNamedMutex(wchar_t const* name);
+    static void ExtendedVideo_RegisterNamedMutex(wchar_t const* name);
 };

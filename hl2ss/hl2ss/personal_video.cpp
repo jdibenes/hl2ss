@@ -48,7 +48,7 @@ static void PersonalVideo_OnFailed(MediaCapture const&, MediaCaptureFailedEventA
 // OK
 static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, double framerate, MediaFrameSourceGroup &sourceGroup, MediaCaptureVideoProfile &profile, MediaCaptureVideoProfileMediaDescription &description)
 {
-    auto mediaFrameSourceGroup = MediaFrameSourceGroup::FromIdAsync(GetBuiltInVideoCaptureId()).get();
+    auto const& mediaFrameSourceGroup = MediaFrameSourceGroup::FromIdAsync(GetBuiltInVideoCaptureId()).get();
 
     for (auto const& knownVideoProfile : MediaCapture::FindKnownVideoProfiles(mediaFrameSourceGroup.Id(), KnownVideoProfile::VideoConferencing))
     {
@@ -377,4 +377,69 @@ void PersonalVideo_SetBacklightCompensation(bool enable)
     CriticalSection cs(&g_lock);
     if (!g_ready || g_shared) { return; }
     g_mediaCapture.VideoDeviceController().BacklightCompensation().TrySetValue(enable ? 1.0 : 0.0);
+}
+
+// OK
+void PersonalVideo_SetDesiredOptimization(uint32_t mode)
+{
+    CriticalSection cs(&g_lock);
+    if (!g_ready || g_shared) { return; }
+    if (mode > 6) { return; }
+    g_mediaCapture.VideoDeviceController().DesiredOptimization((MediaCaptureOptimization)mode);
+}
+
+// OK
+void PersonalVideo_SetPrimaryUse(uint32_t mode)
+{
+    CriticalSection cs(&g_lock);
+    if (!g_ready || g_shared) { return; }
+    if (mode > 2) { return; }
+    g_mediaCapture.VideoDeviceController().PrimaryUse((CaptureUse)mode);
+}
+
+// OK
+void PersonalVideo_SetOpticalImageStabilization(uint32_t mode)
+{
+    CriticalSection cs(&g_lock);
+    if (!g_ready || g_shared) { return; }
+    if (mode > 1) { return; }
+    g_mediaCapture.VideoDeviceController().OpticalImageStabilizationControl().Mode((OpticalImageStabilizationMode)mode);
+}
+
+// OK
+void PersonalVideo_SetHdrVideo(uint32_t mode)
+{
+    CriticalSection cs(&g_lock);
+    if (!g_ready || g_shared) { return; }
+    if (mode > 2) { return; }
+    g_mediaCapture.VideoDeviceController().HdrVideoControl().Mode((HdrVideoMode)mode);
+}
+
+// OK
+void PersonalVideo_SetRegionsOfInterest(bool clear, bool set, bool auto_exposure, bool auto_focus, bool bounds_normalized, float x, float y, float w, float h, uint32_t type, uint32_t weight)
+{
+    RegionOfInterest roi;
+
+    CriticalSection cs(&g_lock);
+    if (!g_ready || g_shared) { return; }
+
+    auto const& mc = g_mediaCapture.VideoDeviceController().RegionsOfInterestControl();
+
+    if (clear)
+    {
+    mc.ClearRegionsAsync().get();
+    }
+
+    if (set)
+    {
+    roi.AutoExposureEnabled(auto_exposure);
+    roi.AutoFocusEnabled(auto_focus);
+    roi.AutoWhiteBalanceEnabled(false);
+    roi.Bounds({ x, y, w, h });
+    roi.BoundsNormalized(bounds_normalized);
+    roi.Type((RegionOfInterestType)(type & 1));
+    roi.Weight(weight % 101);
+
+    mc.SetRegionsAsync({ roi }).get();
+    }
 }

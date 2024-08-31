@@ -4,6 +4,6 @@ properties (Constant)
     WIDTH  = 640;
     HEIGHT = 480;
     FPS    = 30;
-    PIXELS = WIDTH * HEIGHT;
+    PIXELS = 640 * 480;
 end
 end

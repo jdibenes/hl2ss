@@ -96,6 +96,7 @@ public static class hl2ss
     private static void MQX_Restart()
     {
     }
+
     private static IntPtr NamedMutex_Create(string name)
     {
         return IntPtr.Zero;

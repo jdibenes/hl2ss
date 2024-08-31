@@ -2,6 +2,7 @@
 #include "server.h"
 #include "locator.h"
 #include "extended_eye_tracking.h"
+#include "extended_execution.h"
 #include "ports.h"
 #include "timestamps.h"
 #include "log.h"
@@ -36,7 +37,7 @@ struct EET_Packet
 {
     uint64_t  timestamp;
     uint32_t  size;
-    uint32_t  reserved;
+    uint32_t  _reserved;
     EET_Frame frame;
     float4x4  pose;
 };
@@ -92,7 +93,7 @@ static void EET_Stream(SOCKET clientsocket, SpatialLocator const &locator, uint6
     pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
 
     eet_packet.size = sizeof(uint32_t) + sizeof(EET_Frame);
-    eet_packet.reserved = 0;
+    eet_packet._reserved = 0;
 
     do
     {
@@ -139,6 +140,7 @@ static DWORD WINAPI EET_EntryPoint(void* param)
     uint64_t utc_offset;
     SOCKET listensocket; // closesocket
     SOCKET clientsocket; // closesocket
+    int base_priority;
 
     ShowMessage("EET: Waiting for consent");
 
@@ -150,6 +152,8 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 
     ShowMessage("EET: Listening at port %s", PORT_NAME_EET);
 
+    base_priority = GetThreadPriority(GetCurrentThread());
+
     do
     {
     ShowMessage("EET: Waiting for client");
@@ -159,7 +163,11 @@ static DWORD WINAPI EET_EntryPoint(void* param)
 
     ShowMessage("EET: Client connected");
 
+    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EET - PORT_NUMBER_BASE));
+
     EET_Stream(clientsocket, locator, utc_offset);
+
+    SetThreadPriority(GetCurrentThread(), base_priority);
 
     closesocket(clientsocket);
 

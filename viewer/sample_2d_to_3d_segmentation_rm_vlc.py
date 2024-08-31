@@ -113,7 +113,7 @@ if __name__ == '__main__':
             continue
 
         # Preprocess frames ---------------------------------------------------
-        frame = cv2.remap(data_vlc.payload, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        frame = cv2.remap(data_vlc.payload.image, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         frame = hl2ss_3dcv.rm_vlc_rotate_image(frame, rotation)
         frame = hl2ss_3dcv.rm_vlc_to_rgb(frame)
 

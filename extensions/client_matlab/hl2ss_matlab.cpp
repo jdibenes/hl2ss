@@ -39,6 +39,7 @@ private:
     std::unique_ptr<hl2ss::mt::source> source_si;
     std::unique_ptr<hl2ss::mt::source> source_eet;
     std::unique_ptr<hl2ss::mt::source> source_extended_audio;
+    std::unique_ptr<hl2ss::mt::source> source_ev;
     std::unique_ptr<hl2ss::ipc_rc>     ipc_rc;
     std::unique_ptr<hl2ss::ipc_sm>     ipc_sm;
     std::unique_ptr<hl2ss::ipc_su>     ipc_su;
@@ -201,7 +202,11 @@ public:
         uint8_t   decoded_format =               get_argument<uint8_t>(inputs) % 5;
         uint64_t  buffer_size    =               get_argument<uint64_t>(inputs);
 
-        (source_pv = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_pv(host, port, width, height, framerate, chunk, mode, divisor, profile, level, bitrate, &options, decoded_format)))->start();
+        switch (port)
+        {
+        case hl2ss::stream_port::PERSONAL_VIDEO: (source_pv = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_pv(host, port, width, height, framerate, chunk, mode, divisor, profile, level, bitrate, &options, decoded_format)))->start(); break;
+        case hl2ss::stream_port::EXTENDED_VIDEO: (source_ev = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_pv(host, port, width, height, framerate, chunk, mode, divisor, profile, level, bitrate, &options, decoded_format)))->start(); break;
+        }
     }
 
     void open_microphone(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
@@ -268,6 +273,7 @@ public:
         case hl2ss::stream_port::SPATIAL_INPUT:        open_si(                host.c_str(), port, inputs); break;
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: open_eet(               host.c_str(), port, inputs); break;
         case hl2ss::stream_port::EXTENDED_AUDIO:       open_extended_audio(    host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::EXTENDED_VIDEO:       open_pv(                host.c_str(), port, inputs); break;
         // IPC
         case hl2ss::ipc_port::REMOTE_CONFIGURATION:    (ipc_rc  = hl2ss::lnm::ipc_rc( host.c_str(), port))->open(); break;
         case hl2ss::ipc_port::SPATIAL_MAPPING:         (ipc_sm  = hl2ss::lnm::ipc_sm( host.c_str(), port))->open(); break;
@@ -304,6 +310,7 @@ public:
         case hl2ss::stream_port::SPATIAL_INPUT:        source_si                                                       = nullptr; break;
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: source_eet                                                      = nullptr; break;
         case hl2ss::stream_port::EXTENDED_AUDIO:       source_extended_audio                                           = nullptr; break;
+        case hl2ss::stream_port::EXTENDED_VIDEO:       source_ev                                                       = nullptr; break;
         // IPC
         case hl2ss::ipc_port::REMOTE_CONFIGURATION:    ipc_rc  = nullptr; break;
         case hl2ss::ipc_port::SPATIAL_MAPPING:         ipc_sm  = nullptr; break;
@@ -336,21 +343,28 @@ public:
 
     void pack_rm_vlc(int64_t frame_index, int32_t status, hl2ss::packet* packet, matlab::mex::ArgumentList outputs)
     {
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "pose" });
+        uint32_t size = hl2ss::parameters_rm_vlc::PIXELS * sizeof(uint8_t);
 
-        o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
-        o[0]["status"]      = m_factory.createScalar<int32_t>(status);
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "sensor_ticks", "exposure", "gain", "pose" });
+
+        o[0]["frame_index"]  = m_factory.createScalar<int64_t>(frame_index);
+        o[0]["status"]       = m_factory.createScalar<int32_t>(status);
 
         if (packet)
         {
-        o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
+        o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        o[0]["image"]       = unpack_payload<uint8_t>(packet->payload.get(), 0, packet->sz_payload, { hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        hl2ss::map_rm_vlc region = hl2ss::unpack_rm_vlc(packet->payload.get());
+
+        o[0]["image"]        = unpack_payload<uint8_t>(region.image, 0, size, { hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(region.metadata->sensor_ticks);
+        o[0]["exposure"]     = m_factory.createScalar<uint64_t>(region.metadata->exposure);
+        o[0]["gain"]         = m_factory.createScalar<uint32_t>(region.metadata->gain);
         }
         if (packet->pose)
         {
-        o[0]["pose"]        = unpack_pose(packet->pose.get());
+        o[0]["pose"]         = unpack_pose(packet->pose.get());
         }
         }
 
@@ -361,22 +375,25 @@ public:
     {
         uint32_t size = hl2ss::parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t);
 
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "depth", "ab", "pose" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "depth", "ab", "sensor_ticks", "pose" });
         
-        o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
-        o[0]["status"]      = m_factory.createScalar<int32_t>(status);
+        o[0]["frame_index"]  = m_factory.createScalar<int64_t>(frame_index);
+        o[0]["status"]       = m_factory.createScalar<int32_t>(status);
 
         if (packet)
         {
-        o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
+        o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        o[0]["depth"]       = unpack_payload<uint16_t>(packet->payload.get(),    0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
-        o[0]["ab"]          = unpack_payload<uint16_t>(packet->payload.get(), size, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        hl2ss::map_rm_depth_ahat region = hl2ss::unpack_rm_depth_ahat(packet->payload.get());
+
+        o[0]["depth"]        = unpack_payload<uint16_t>(region.depth, 0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["ab"]           = unpack_payload<uint16_t>(region.ab,    0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(region.metadata->sensor_ticks);
         }
         if (packet->pose)
         {
-        o[0]["pose"]        = unpack_pose(packet->pose.get());
+        o[0]["pose"]         = unpack_pose(packet->pose.get());
         }
         }
 
@@ -387,21 +404,24 @@ public:
     {
         uint32_t size = hl2ss::parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t);
 
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "depth", "ab", "pose" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "depth", "ab", "sensor_ticks", "pose" });
         
-        o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
-        o[0]["status"]      = m_factory.createScalar<int32_t>(status);
+        o[0]["frame_index"]  = m_factory.createScalar<int64_t>(frame_index);
+        o[0]["status"]       = m_factory.createScalar<int32_t>(status);
         if (packet)
         {
-        o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
+        o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        o[0]["depth"]       = unpack_payload<uint16_t>(packet->payload.get(),    0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
-        o[0]["ab"]          = unpack_payload<uint16_t>(packet->payload.get(), size, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        hl2ss::map_rm_depth_longthrow region = hl2ss::unpack_rm_depth_longthrow(packet->payload.get());
+
+        o[0]["depth"]        = unpack_payload<uint16_t>(region.depth, 0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["ab"]           = unpack_payload<uint16_t>(region.ab,    0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(region.metadata->sensor_ticks);
         }
         if (packet->pose)
         {
-        o[0]["pose"]        = unpack_pose(packet->pose.get());
+        o[0]["pose"]         = unpack_pose(packet->pose.get());
         }
         }
 
@@ -429,17 +449,16 @@ public:
         matlab::data::TypedArray<float>    z                = m_factory.createArray<float>({ samples });
         matlab::data::TypedArray<float>    temperature      = m_factory.createArray<float>({ samples });
 
-        hl2ss::rm_imu_sample* base;
-        hl2ss::unpack_rm_imu(packet->payload.get(), &base);
+        hl2ss::map_rm_imu region = hl2ss::unpack_rm_imu(packet->payload.get());
 
         for (uint32_t i = 0; i < samples; ++i)
         {
-        sensor_timestamp[i] = base[i].sensor_timestamp;
-        host_timestamp[i]   = base[i].timestamp;
-        x[i]                = base[i].x;
-        y[i]                = base[i].y;
-        z[i]                = base[i].z;
-        temperature[i]      = base[i].temperature;
+        sensor_timestamp[i] = region.samples[i].sensor_timestamp;
+        host_timestamp[i]   = region.samples[i].timestamp;
+        x[i]                = region.samples[i].x;
+        y[i]                = region.samples[i].y;
+        z[i]                = region.samples[i].z;
+        temperature[i]      = region.samples[i].temperature;
         }
 
         o[0]["sensor_timestamp"] = std::move(sensor_timestamp);
@@ -460,7 +479,7 @@ public:
 
     void pack_pv(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint16_t width, uint16_t height, uint8_t channels, matlab::mex::ArgumentList outputs)
     {
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "intrinsics", "pose" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "intrinsics", "exposure", "imaging", "gains", "pose" });
 
         o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
         o[0]["status"]      = m_factory.createScalar<int32_t>(status);
@@ -470,9 +489,14 @@ public:
         o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        uint32_t image_size = packet->sz_payload - hl2ss::decoder_pv::K_SIZE;
-        o[0]["image"]       = unpack_payload<uint8_t>(packet->payload.get(), 0,                         image_size, { height, width, channels });
-        o[0]["intrinsics"]  = unpack_payload<float>(  packet->payload.get(), image_size, hl2ss::decoder_pv::K_SIZE, { 4 });
+        uint32_t image_size = packet->sz_payload - hl2ss::decoder_pv::METADATA_SIZE;
+        hl2ss::map_pv region = hl2ss::unpack_pv(packet->payload.get(), packet->sz_payload);
+
+        o[0]["image"]       = unpack_payload<uint8_t>(  region.image,                   0, image_size,           { height, width, channels });
+        o[0]["intrinsics"]  = unpack_payload<float>(   &region.metadata->f,             0, 4 * sizeof(float),    { 4 });
+        o[0]["exposure"]    = unpack_payload<uint64_t>(&region.metadata->exposure_time, 0, 3 * sizeof(uint64_t), { 3 });
+        o[0]["imaging"]     = unpack_payload<uint32_t>(&region.metadata->lens_position, 0, 4 * sizeof(uint32_t), { 4 });
+        o[0]["gains"]       = unpack_payload<float>   (&region.metadata->iso_gains,     0, 5 * sizeof(float),    { 5 });
         }
         if (packet->pose)
         {
@@ -525,14 +549,13 @@ public:
         o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::si_frame* base;
-        hl2ss::unpack_si(packet->payload.get(), &base);
+        hl2ss::map_si region = hl2ss::unpack_si(packet->payload.get());
 
-        o[0]["valid"]       = m_factory.createScalar<uint32_t>({ base->valid });
-        o[0]["head_pose"]   = to_typed_array<float>(&base->head_pose,  sizeof(base->head_pose),  { 3, 3 });
-        o[0]["eye_ray"]     = to_typed_array<float>(&base->eye_ray,    sizeof(base->eye_ray),    { 6 });
-        o[0]["left_hand"]   = to_typed_array<float>(&base->left_hand,  sizeof(base->left_hand),  { 9, 26 });
-        o[0]["right_hand"]  = to_typed_array<float>(&base->right_hand, sizeof(base->right_hand), { 9, 26 });
+        o[0]["valid"]       = m_factory.createScalar<uint32_t>({ region.tracking->valid });
+        o[0]["head_pose"]   = to_typed_array<float>(&region.tracking->head_pose,  sizeof(region.tracking->head_pose),  { 3, 3 });
+        o[0]["eye_ray"]     = to_typed_array<float>(&region.tracking->eye_ray,    sizeof(region.tracking->eye_ray),    { 6 });
+        o[0]["left_hand"]   = to_typed_array<float>(&region.tracking->left_hand,  sizeof(region.tracking->left_hand),  { 9, 26 });
+        o[0]["right_hand"]  = to_typed_array<float>(&region.tracking->right_hand, sizeof(region.tracking->right_hand), { 9, 26 });
         } 
         }
 
@@ -551,16 +574,15 @@ public:
         o[0]["timestamp"]         = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::eet_frame* base;
-        hl2ss::unpack_eet(packet->payload.get(), &base);
+        hl2ss::map_eet region = hl2ss::unpack_eet(packet->payload.get());
 
-        o[0]["combined_ray"]      = to_typed_array<float>(&base->combined_ray, sizeof(base->combined_ray), { 6 });
-        o[0]["left_ray"]          = to_typed_array<float>(&base->left_ray,     sizeof(base->left_ray),     { 6 });
-        o[0]["right_ray"]         = to_typed_array<float>(&base->right_ray,    sizeof(base->right_ray),    { 6 });
-        o[0]["left_openness"]     = m_factory.createScalar<float>(base->left_openness);
-        o[0]["right_openness"]    = m_factory.createScalar<float>(base->right_openness);
-        o[0]["vergence_distance"] = m_factory.createScalar<float>(base->vergence_distance);
-        o[0]["valid"]             = m_factory.createScalar<uint32_t>(base->valid);
+        o[0]["combined_ray"]      = to_typed_array<float>(&region.tracking->combined_ray, sizeof(region.tracking->combined_ray), { 6 });
+        o[0]["left_ray"]          = to_typed_array<float>(&region.tracking->left_ray,     sizeof(region.tracking->left_ray),     { 6 });
+        o[0]["right_ray"]         = to_typed_array<float>(&region.tracking->right_ray,    sizeof(region.tracking->right_ray),    { 6 });
+        o[0]["left_openness"]     = m_factory.createScalar<float>(region.tracking->left_openness);
+        o[0]["right_openness"]    = m_factory.createScalar<float>(region.tracking->right_openness);
+        o[0]["vergence_distance"] = m_factory.createScalar<float>(region.tracking->vergence_distance);
+        o[0]["valid"]             = m_factory.createScalar<uint32_t>(region.tracking->valid);
         }
         if (packet->pose)
         {
@@ -673,9 +695,14 @@ public:
 
     void get_packet_pv(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        (void)port;
+        hl2ss::mt::source* source;
 
-        hl2ss::mt::source* source = source_pv.get();
+        switch (port)
+        {
+        case hl2ss::stream_port::PERSONAL_VIDEO: source = source_pv.get(); break;
+        case hl2ss::stream_port::EXTENDED_VIDEO: source = source_ev.get(); break;
+        default:                                 source = nullptr;         break;
+        }        
 
         int64_t frame_index;
         int32_t status;
@@ -766,13 +793,14 @@ public:
         case hl2ss::stream_port::RM_DEPTH_AHAT:        get_packet_rm_depth_ahat(     port, outputs, inputs); break;
         case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   get_packet_rm_depth_longthrow(port, outputs, inputs); break;
         case hl2ss::stream_port::RM_IMU_ACCELEROMETER: 
-        case hl2ss::stream_port::RM_IMU_GYROSCOPE:      
+        case hl2ss::stream_port::RM_IMU_GYROSCOPE:     
         case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  get_packet_rm_imu(            port, outputs, inputs); break;
-        case hl2ss::stream_port::PERSONAL_VIDEO:       get_packet_pv(                port, outputs, inputs); break;               
+        case hl2ss::stream_port::PERSONAL_VIDEO:       get_packet_pv(                port, outputs, inputs); break;
         case hl2ss::stream_port::MICROPHONE:           get_packet_microphone(        port, outputs, inputs); break;
         case hl2ss::stream_port::SPATIAL_INPUT:        get_packet_si(                port, outputs, inputs); break;
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: get_packet_eet(               port, outputs, inputs); break;
         case hl2ss::stream_port::EXTENDED_AUDIO:       get_packet_extended_audio(    port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_VIDEO:       get_packet_pv(                port, outputs, inputs); break;
         default:                                       throw std::runtime_error("Unsupported port");
         }
     }
@@ -783,8 +811,6 @@ public:
 
     void start_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        if (source_pv) { throw std::runtime_error("Cannot start subsystem while streaming"); }
-
         std::string host                       = get_argument_string(inputs);
         uint16_t    port                       = get_argument<uint16_t>(inputs);
         bool        enable_mrc                 = get_argument<bool>(inputs);
@@ -800,15 +826,27 @@ public:
         uint32_t    video_stabilization_length = get_argument<uint32_t>(inputs);
         uint32_t    hologram_perspective       = get_argument<uint32_t>(inputs);
 
+        switch (port)
+        {
+        case hl2ss::stream_port::PERSONAL_VIDEO: if (source_pv) { throw std::runtime_error("Cannot start subsystem while streaming"); } break;
+        case hl2ss::stream_port::EXTENDED_VIDEO: if (source_ev) { throw std::runtime_error("Cannot start subsystem while streaming"); } break;
+        default:                                                  throw std::runtime_error("Unsupported operation");
+        }
+
         hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
     }
 
     void stop_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        if (source_pv) { throw std::runtime_error("Cannot stop subsystem while streaming"); }
-
         std::string host = get_argument_string(inputs);
         uint16_t    port = get_argument<uint16_t>(inputs);
+
+        switch (port)
+        {
+        case hl2ss::stream_port::PERSONAL_VIDEO: if (source_pv) { throw std::runtime_error("Cannot stop subsystem while streaming"); } break;
+        case hl2ss::stream_port::EXTENDED_VIDEO: if (source_ev) { throw std::runtime_error("Cannot stop subsystem while streaming"); } break;
+        default:                                                  throw std::runtime_error("Unsupported operation");
+        }
 
         hl2ss::lnm::stop_subsystem_pv(host.c_str(), port);
     }
@@ -899,7 +937,7 @@ public:
 
         std::shared_ptr<hl2ss::calibration_pv> data = hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
 
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "focal_length", "principal_point", "radial_distortion", "tangential_distortion", "projection", "extrinsics" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "focal_length", "principal_point", "radial_distortion", "tangential_distortion", "projection", "extrinsics", "intrinsics_mf", "extrinsics_mf" });
 
         o[0]["focal_length"]          = to_typed_array<float>(data->focal_length,          { sizeof(data->focal_length)          / sizeof(float) });
         o[0]["principal_point"]       = to_typed_array<float>(data->principal_point,       { sizeof(data->principal_point)       / sizeof(float) });
@@ -907,6 +945,30 @@ public:
         o[0]["tangential_distortion"] = to_typed_array<float>(data->tangential_distortion, { sizeof(data->tangential_distortion) / sizeof(float) });
         o[0]["projection"]            = unpack_payload<float>(&data->projection, 0, sizeof(data->projection), { 4, 4 });
         o[0]["extrinsics"]            = unpack_payload<float>(&data->extrinsics, 0, sizeof(data->extrinsics), { 4, 4 });
+        o[0]["intrinsics_mf"]         = to_typed_array<float>(data->intrinsics_mf,         { sizeof(data->intrinsics_mf)         / sizeof(float) });
+        o[0]["extrinsics_mf"]         = to_typed_array<float>(data->extrinsics_mf,         { sizeof(data->extrinsics_mf)         / sizeof(float) });
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_devicelist_extended_audio(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_audio(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "device_list" });
+
+        o[0]["device_list"] = unpack_payload<uint8_t>(data->data(), 0, data->size(), { data->size() });
+
+        outputs[0] = std::move(o);
+    }
+
+    void download_devicelist_extended_video(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_video(host, port);
+
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "device_list" });
+
+        o[0]["device_list"] = unpack_payload<uint8_t>(data->data(), 0, data->size(), { data->size() });
 
         outputs[0] = std::move(o);
     }
@@ -927,7 +989,9 @@ public:
         case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   download_calibration_rm_depth_longthrow(host.c_str(), port, outputs, inputs); break;
         case hl2ss::stream_port::RM_IMU_ACCELEROMETER: 
         case hl2ss::stream_port::RM_IMU_GYROSCOPE:     download_calibration_rm_imu(            host.c_str(), port, outputs, inputs); break;
-        case hl2ss::stream_port::PERSONAL_VIDEO:       download_calibration_pv(                host.c_str(), port, outputs, inputs); break;               
+        case hl2ss::stream_port::PERSONAL_VIDEO:       download_calibration_pv(                host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_AUDIO:       download_devicelist_extended_audio(     host.c_str(), port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_VIDEO:       download_devicelist_extended_video(     host.c_str(), port, outputs, inputs); break;
         default:                                       throw std::runtime_error("Unsupported port");
         }
     }
@@ -1017,6 +1081,52 @@ public:
         uint32_t value = get_argument<uint32_t>(inputs);
         ipc_rc->set_flat_mode(value);
         }
+        else if (f == "set_rm_eye_selection")
+        {
+        uint32_t enable = get_argument<uint32_t>(inputs);
+        ipc_rc->set_rm_eye_selection(enable);
+        }
+        else if (f == "set_pv_desired_optimization")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_desired_optimization(mode);
+        }
+        else if (f == "set_pv_primary_use")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_primary_use(mode);
+        }
+        else if (f == "set_pv_optical_image_stabilization")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_optical_image_stabilization(mode);
+        }
+        else if (f == "set_pv_hdr_video")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->set_pv_hdr_video(mode);
+        }
+        else if (f == "set_pv_regions_of_interest")
+        {
+        bool     clear             = get_argument<bool>(inputs);
+        bool     set               = get_argument<bool>(inputs);
+        bool     auto_exposure     = get_argument<bool>(inputs);
+        bool     auto_focus        = get_argument<bool>(inputs);
+        bool     bounds_normalized = get_argument<bool>(inputs);
+        uint32_t type              = get_argument<uint32_t>(inputs);
+        uint32_t weight            = get_argument<uint32_t>(inputs);
+        float    x                 = get_argument<float>(inputs);
+        float    y                 = get_argument<float>(inputs);
+        float    w                 = get_argument<float>(inputs);
+        float    h                 = get_argument<float>(inputs);
+        ipc_rc->set_pv_regions_of_interest(clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h);
+        }
+        else if (f == "set_interface_priority")
+        {
+        uint16_t port     = get_argument<uint16_t>(inputs);
+        int32_t  priority = get_argument<int32_t>(inputs);
+        ipc_rc->set_interface_priority(port, priority);
+        }
         else
         {
         throw std::runtime_error("Unknown method");
@@ -1043,10 +1153,10 @@ public:
         {
         switch (get_field_scalar<uint32_t>(p[i]["type"]))
         {
-        case hl2ss::sm_volume_type::Box:         volumes.add_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"])); break;
-        case hl2ss::sm_volume_type::Frustum:     volumes.add_frustum(get_field_vector_4(p[i]["near"]), get_field_vector_4(p[i]["far"]), get_field_vector_4(p[i]["right"]), get_field_vector_4(p[i]["left"]), get_field_vector_4(p[i]["top"]), get_field_vector_4(p[i]["bottom"])); break;
-        case hl2ss::sm_volume_type::OrientedBox: volumes.add_oriented_box(get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"]), get_field_vector_4(p[i]["orientation"])); break;
-        case hl2ss::sm_volume_type::Sphere:      volumes.add_sphere(get_field_vector_3(p[i]["center"]), get_field_scalar<float>(p[i]["radius"])); break;
+        case hl2ss::sm_volume_type::Box:         volumes.add_box({ get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"]) }); break;
+        case hl2ss::sm_volume_type::Frustum:     volumes.add_frustum({ get_field_vector_4(p[i]["near"]), get_field_vector_4(p[i]["far"]), get_field_vector_4(p[i]["right"]), get_field_vector_4(p[i]["left"]), get_field_vector_4(p[i]["top"]), get_field_vector_4(p[i]["bottom"]) }); break;
+        case hl2ss::sm_volume_type::OrientedBox: volumes.add_oriented_box({ get_field_vector_3(p[i]["center"]), get_field_vector_3(p[i]["extents"]), get_field_vector_4(p[i]["orientation"]) }); break;
+        case hl2ss::sm_volume_type::Sphere:      volumes.add_sphere({ get_field_vector_3(p[i]["center"]), get_field_scalar<float>(p[i]["radius"]) }); break;
         default: break;
         }
         }
@@ -1325,8 +1435,8 @@ public:
         }
         else if (f == "push")
         {
-        uint32_t response = get_argument<uint32_t>(inputs);
-        ipc_gmq->push(response);
+        matlab::data::TypedArray<uint32_t> response = get_argument_array<uint32_t>(inputs);
+        ipc_gmq->push(get_pointer(response), response.getNumberOfElements());
         }
         else
         {
