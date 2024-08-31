@@ -362,11 +362,14 @@ class Hl2ssExt:
 			hl2ss.StreamPort.RM_VLC_RIGHTFRONT,
 			hl2ss.StreamPort.RM_VLC_RIGHTRIGHT
 			):
-			self.processImage(data.payload, targetComp.op('script_img1'))
+			self.processImage(data.payload.image, targetComp.op('script_img1'))
 			metadata = {
 				'framestamp': framestamp,
 				'timestamp': data.timestamp,
-				'pose': data.pose.tolist()
+				'pose': data.pose.tolist(),
+				'sensor_ticks': data.payload.sensor_ticks.tolist(),
+				'exposure': data.payload.exposure.tolist(),
+				'gain': data.payload.gain.tolist()
 			}
 
 		elif self.port == hl2ss.StreamPort.RM_DEPTH_AHAT or self.port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW:
@@ -375,7 +378,8 @@ class Hl2ssExt:
 			metadata = {
 				'framestamp': framestamp,
 				'timestamp': data.timestamp,
-				'pose': data.pose.tolist()
+				'pose': data.pose.tolist(),
+				'sensor_ticks': data.payload.sensor_ticks.tolist()
 			}
 
 		elif self.port in (
@@ -397,7 +401,15 @@ class Hl2ssExt:
 				'timestamp': data.timestamp,
 				'pose': data.pose.tolist(),
 				'focal_length': data.payload.focal_length.tolist(),
-				'principal_point': data.payload.principal_point.tolist()
+				'principal_point': data.payload.principal_point.tolist(),
+				'exposure_time': data.payload.exposure_time.tolist(),
+				'exposure_compensation': data.payload.exposure_compensation.tolist(),
+				'lens_position': data.payload.lens_position.tolist(),
+				'focus_state': data.payload.focus_state.tolist(),
+				'iso_speed': data.payload.iso_speed.tolist(),
+				'white_balance': data.payload.white_balance.tolist(),
+				'iso_gains': data.payload.iso_gains.tolist(),
+				'white_balance_gains': data.payload.white_balance_gains.tolist()
 			}
 
 		targetComp.op('metadata').text = json.dumps(metadata, indent=4)
@@ -482,7 +494,9 @@ class Hl2ssExt:
 				'tangential_distortion': self.calibration.tangential_distortion.tolist(),
 				'projection': self.calibration.projection.tolist(),
 				'intrinsics': self.calibration.intrinsics.tolist(),
-				'extrinsics': self.calibration.extrinsics.tolist()
+				'extrinsics': self.calibration.extrinsics.tolist(),
+				'intrinsics_mf': self.calibration.intrinsics_mf.tolist(),
+				'extrinsics_mf': self.calibration.extrinsics_mf.tolist()
 			}
 
 		op('calibration').text = json.dumps(calib, indent=4)
