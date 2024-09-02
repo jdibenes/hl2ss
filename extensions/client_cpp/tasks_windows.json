@@ -14,8 +14,6 @@
                 "/I",
                 "../../3rdparty/Zdepth/zstd/include",
                 "/D",
-                "WIN32",
-                "/D",
                 "HL2SS_ENABLE_ZDEPTH",
                 "/permissive-",
                 "/GS",

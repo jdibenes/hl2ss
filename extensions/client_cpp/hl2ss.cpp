@@ -1,5 +1,5 @@
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -25,7 +25,7 @@ union v64 { struct { v32 d0, d1; } d; uint64_t q; int64_t l; };
 
 void client::initialize()
 {
-#ifdef WIN32
+#ifdef _WIN32
     WSADATA wsaData;
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) { throw std::runtime_error("hl2ss::client::initialize : WSAStartup failed"); }
@@ -34,14 +34,14 @@ void client::initialize()
 
 void client::cleanup()
 {
-#ifdef WIN32
+#ifdef _WIN32
     WSACleanup();
 #endif
 }
 
 client::client()
 {
-#ifdef WIN32
+#ifdef _WIN32
     m_socket = INVALID_SOCKET;
 #else
     m_socket = -1;
@@ -56,7 +56,7 @@ client::~client()
 void client::open(char const* host, uint16_t port)
 {
     m_socket = socket(AF_INET, SOCK_STREAM, 0);
-#ifdef WIN32
+#ifdef _WIN32
     if (m_socket == INVALID_SOCKET)
 #else
     if (m_socket < 0)
@@ -108,7 +108,7 @@ void client::download(void* buffer, uint64_t total, uint64_t chunk)
 
 void client::close()
 {
-#ifdef WIN32
+#ifdef _WIN32
     if (m_socket == INVALID_SOCKET) { return; }
     closesocket(m_socket);
     m_socket = INVALID_SOCKET;

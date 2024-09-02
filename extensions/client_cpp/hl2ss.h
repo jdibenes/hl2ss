@@ -325,7 +325,7 @@ struct uint64x2
 class client
 {
 private:
-#ifdef WIN32
+#ifdef _WIN32
     uint64_t m_socket;
 #else
     int m_socket;

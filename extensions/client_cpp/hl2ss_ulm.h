@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <memory>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define HL2SS_CLIENT_IMPORT extern "C" __declspec(dllimport)
 #define HL2SS_CALL 
 #else

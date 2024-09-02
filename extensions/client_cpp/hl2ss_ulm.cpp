@@ -5,9 +5,13 @@
 #include "hl2ss_lnm.h"
 #include "hl2ss_mt.h"
 
-#ifdef WIN32
+#if defined(_WIN32)
 #define HL2SS_CLIENT_EXPORT extern "C" __declspec(dllexport)
 #define HL2SS_CALL 
+#elif defined(__ANDROID__)
+#include <jni.h>
+#define HL2SS_CLIENT_EXPORT extern "C" JNIEXPORT
+#define HL2SS_CALL JNICALL
 #else
 #define HL2SS_CLIENT_EXPORT extern "C"
 #define HL2SS_CALL 
