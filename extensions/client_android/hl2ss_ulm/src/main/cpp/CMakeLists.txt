@@ -26,6 +26,9 @@ set(OPENCV_LIB_DIR "C:/Users/jcds/SDK/Android/opencv")
 # HL2SS C++ library path
 set(HL2SS_CPP_DIR "../../../../../client_cpp")
 
+# Zdepth library path
+set(ZDEPTH_DIR "../../../../../../3rdparty/Zdepth")
+
 # ffmpeg
 add_library(avcodec             SHARED IMPORTED)
 add_library(avdevice            SHARED IMPORTED)
@@ -117,12 +120,42 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${HL2SS_CPP_DIR}/hl2ss_ulm.cpp
         ${HL2SS_CPP_DIR}/hl2ss.cpp
         ${HL2SS_CPP_DIR}/hl2ss_lnm.cpp
-        ${HL2SS_CPP_DIR}/hl2ss_mt.cpp)
+        ${HL2SS_CPP_DIR}/hl2ss_mt.cpp
+        ${ZDEPTH_DIR}/src/zdepth.cpp
+        ${ZDEPTH_DIR}/zstd/src/debug.c
+        ${ZDEPTH_DIR}/zstd/src/entropy_common.c
+        ${ZDEPTH_DIR}/zstd/src/error_private.c
+        ${ZDEPTH_DIR}/zstd/src/fse_compress.c
+        ${ZDEPTH_DIR}/zstd/src/fse_decompress.c
+        ${ZDEPTH_DIR}/zstd/src/hist.c
+        ${ZDEPTH_DIR}/zstd/src/huf_compress.c
+        ${ZDEPTH_DIR}/zstd/src/huf_decompress.c
+        ${ZDEPTH_DIR}/zstd/src/pool.c
+        ${ZDEPTH_DIR}/zstd/src/threading.c
+        ${ZDEPTH_DIR}/zstd/src/xxhash.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_common.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_compress.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_compress_literals.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_compress_sequences.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_ddict.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_decompress.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_decompress_block.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_double_fast.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_fast.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_lazy.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_ldm.c
+        ${ZDEPTH_DIR}/zstd/src/zstd_opt.c
+        ${ZDEPTH_DIR}/zstd/src/zstdmt_compress.c)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
         ${FFMPEG_INCLUDE_DIR}
         ${OPENCV_INCLUDE_DIR}
-        ${HL2SS_CPP_DIR})
+        ${HL2SS_CPP_DIR}
+        ${ZDEPTH_DIR}/include
+        ${ZDEPTH_DIR}/zstd/include
+        ${ZDEPTH_DIR}/zstd/src)
+
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE HL2SS_ENABLE_ZDEPTH)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
