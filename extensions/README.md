@@ -2,7 +2,7 @@
 
 ## client_cpp
 
-C++ client library. Requires [OpenCV](https://opencv.org/releases/) and [FFmpeg](https://ffmpeg.org/download.html).
+C++ client library. Requires [OpenCV](https://opencv.org/releases/) and [FFmpeg](https://ffmpeg.org/download.html). You can get prebuilt FFmpeg binaries from https://github.com/BtbN/FFmpeg-Builds and OpenCV binaries from https://opencv.org/releases/.
 
 **Build**
 
@@ -40,6 +40,14 @@ Collection of LabVIEW VIs for streaming HoloLens 2 sensor data using the hl2ss_u
 **Build**
 
 Build the hl2ss_ulm shared library and copy it to the hl2ss_labview folder. Also, copy the shared libraries for OpenCV and FFmpeg if necessary.
+
+## client_android
+
+Android Native Library for streaming HoloLens 2 sensor data to Android apps. The included Android Studio project builds the hl2ss_ulm shared library as an .aar file, which is compatible with client_unity and its C# wrapper. It has the same requirements as client_cpp. For Android, you can get prebuilt FFmpeg binaries from https://github.com/arthenica/ffmpeg-kit and OpenCV binaries from https://opencv.org/releases/.
+
+**Build**
+
+Open the project in Android Studio, set the paths to the FFmpeg and OpenCV headers and shared libraries in `CMakeLists.txt`, and build the hl2ss_ulm module. Import the output `hl2ss_ulm-release.aar` file into your Android project.
 
 ## pyzdepth 
 
