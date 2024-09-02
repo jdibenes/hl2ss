@@ -17,8 +17,8 @@ public class test_pv : MonoBehaviour
 
         hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv configuration);
 
-        configuration.width = 1280;
-        configuration.height = 720;
+        configuration.width = 640;
+        configuration.height = 360;
         configuration.framerate = 30;
         configuration.decoded_format = hl2ss.pv_decoded_format.RGB;
 
