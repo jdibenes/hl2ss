@@ -13,8 +13,7 @@ The `tasks_[...].json` files are provided as a reference for building with `cl.e
 Alternatively, you can build `hl2ss_ulm.cpp` as a shared library (.dll, .so, ...) and include `hl2ss_ulm.h` in your C++ project.
 See `main_ulm.cpp` for examples.
 
-If you build `main.cpp` or `main_ulm.cpp` on Windows, you may need to copy the FFmpeg (e.g., `avcodec-60.dll`, `avutil-58.dll`, `swresample-4.dll`) and OpenCV (e.g., `opencv_world480.dll`)
- DLLs to the client_cpp folder.
+If you build `main.cpp` or `main_ulm.cpp` on Windows, you may need to copy the FFmpeg and OpenCV DLLs to the client_cpp folder.
 
 ## client_matlab
 
