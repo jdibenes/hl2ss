@@ -11,6 +11,7 @@ import hl2ss
 import hl2ss_lnm
 import hl2ss_3dcv
 import hl2ss_mp
+import hl2ss_utilities
 import json
 
 class Hl2ssExt:
@@ -32,9 +33,16 @@ class Hl2ssExt:
 		self.producer = hl2ss_mp.producer()
 		self.sink = None
 
+		# audio
+		# used for re-framing audio samples
+		self.prevReadSamples = 0
+
 		# initial cleanup
 		op('metadata').text = op('default_metadata').text
 		op('calibration').text = op('default_calibration').text
+		op('script_chop').lock = True
+		op('script_chop').clear()
+		op('script_chop').lock = False
 		self.ownerComp.par.Stream = False
 
 	def __delTD__(self):
@@ -117,6 +125,10 @@ class Hl2ssExt:
 		# PV | Decoded format
 		decodedFormat = self.ownerComp.par.Colorformat.eval()
 
+		# audio settings
+		audioProfile = int( self.ownerComp.par.Audioprofile.eval() )
+		aacLevel = int( self.ownerComp.par.Aaclevel.eval() )
+
 		if self.port in (
 			hl2ss.StreamPort.RM_VLC_LEFTFRONT,
 			hl2ss.StreamPort.RM_VLC_LEFTLEFT,
@@ -141,11 +153,18 @@ class Hl2ssExt:
 		elif self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
 			client = hl2ss_lnm.rx_pv(host, self.port, mode=mode, width=width, height=height, framerate=framerate, divisor=divisor, profile=profile, decoded_format=decodedFormat)
 		
+		elif self.port == hl2ss.StreamPort.MICROPHONE:
+			client = hl2ss_lnm.rx_microphone(host, self.port, profile=audioProfile, level=aacLevel)
+
 		return client
 	
 	def GetCalibration(self):
 		host = self.ownerComp.par.Address.eval()
 		calibFolder = self.ownerComp.par.Calibfolder.evalFile().path
+
+		if self.port == hl2ss.StreamPort.MICROPHONE:
+			# has no calibration data
+			return
 
 		# store calibration for any downstream python-based cv
 		if self.port == hl2ss.StreamPort.PERSONAL_VIDEO:
@@ -192,6 +211,7 @@ class Hl2ssExt:
 		match self.threadMode:
 			case 'sync':
 				self.buffer = deque(maxlen = self.ownerComp.par.Bufferlen.eval())
+				self.prevReadSamples = 0
 				self.client = self.getClient()
 				try:
 					self.client.open()
@@ -249,7 +269,12 @@ class Hl2ssExt:
 		if self.threadMode == 'sync' and self.client is not None:
 			self.recvData(self.client)
 
-		return self.GetAndPresentFrame(extObj=self)
+		if self.port == hl2ss.StreamPort.MICROPHONE:
+			# Skips the frame picker pipeline in order to reliably read (and
+			# re-frame) all audio samples from queue.
+			return self.GetAndPresentAudio()
+		else:
+			return self.GetAndPresentFrame(extObj=self)
 			
 	def recvData(self, client):
 		"""Try to receive data from client using "semi-non-blocking" approach.
@@ -260,8 +285,17 @@ class Hl2ssExt:
 		"""
 		while self.socketSelect(client):
 			data = client.get_next_packet()
+			self.dataPreprocessor(data)
 			self.buffer.append(data)
 			self.framestamp += 1
+
+	def dataPreprocessor(self, data):
+		"""Pre-process data before adding them into buffer.
+		"""
+		if self.port == hl2ss.StreamPort.MICROPHONE and len(data.payload) > 1:
+			# convert planar channels (in case of AAC) into a unified packed data
+			data.payload = hl2ss_utilities.microphone_planar_to_packed(data.payload)
+		return data
 	
 	def socketSelect(self, client) -> bool:
 		"""Check if client's socket has some data available (non-blocking).
@@ -441,6 +475,99 @@ class Hl2ssExt:
 		scriptOp.copyNumpyArray(chopData, baseName='chan')
 		scriptOp.lock = False
 
+	def GetAndPresentAudio(self):
+		"""Read & re-frame audio samples from buffer, then push them into CHOPs.
+		Re-framing is required in order to match TD frame rate.
+
+		Returns:
+		    bool: Success of providing new data.
+		"""
+		if self.threadMode == 'sync' and (self.client is None or len(self.buffer) == 0):
+			return False
+		elif self.threadMode == 'mp' and self.sink is None:
+			raise ValueError("Multiprocessing isn't currently supported by audio pipeline.")
+		
+		audioProfile = int( self.ownerComp.par.Audioprofile.eval() )
+		aacLevel = int( self.ownerComp.par.Aaclevel.eval() )
+		targetCount = int( hl2ss.Parameters_MICROPHONE.SAMPLE_RATE / project.cookRate )
+		if audioProfile == hl2ss.AudioProfile.RAW:
+			channelCount = hl2ss.Parameters_MICROPHONE.ARRAY_CHANNELS if aacLevel == hl2ss.AACLevel.L5 else hl2ss.Parameters_MICROPHONE.CHANNELS
+		else:
+			channelCount = hl2ss.Parameters_MICROPHONE.CHANNELS
+
+		audioSamples = self.readAudioSamples(targetCount, channelCount)
+		if len(audioSamples) > 0:
+			# store data for any downstream python-based processing
+			# since original data likely won't be useful within TD workflows, store re-framed samples
+			self.data = audioSamples
+			# present data to TD
+			self.processAudio(audioSamples, channelCount, self.ownerComp.op('script_chop'))
+
+			callbacks = self.ownerComp.par.Callbacks.eval()
+			if callbacks is not None:
+				mod(callbacks.path).onData(self.ownerComp, audioSamples)
+			return True
+		return False
+	
+	def readAudioSamples(self, targetCount, channelCount) -> np.array:
+		"""Read specified number of audio samples from buffer.
+		If buffer doesn't have enough samples, empty array is returned.
+
+		Args:
+		    targetCount: Number of samples to read.
+			channelCount: Number of channels within a buffer.
+
+		Returns:
+		    Requested audio samples.
+		"""
+		samples = np.array([], self.buffer[-1].payload.dtype)
+		
+		if self.getAvailableAudioSamplesCount(channelCount) > targetCount:
+			groupSize = self.buffer[0].payload.shape[1] / channelCount
+			while targetCount > 0:
+				# read more samples
+
+				if targetCount >= groupSize - self.prevReadSamples:
+					# can read whole packet
+					data = self.buffer.popleft()
+					newSamples = data.payload.reshape(-1, channelCount)[self.prevReadSamples:]
+					self.prevReadSamples = 0 # reset to read next packet from the start
+				else:
+					# read only part of packet, leave it in the buffer (in order
+					# to read the rest of it in the future)
+					newSamples = self.buffer[0].payload.reshape(-1, channelCount)[self.prevReadSamples:self.prevReadSamples + targetCount]
+					self.prevReadSamples += targetCount # store how much of the packet was already read
+				
+				# add new samples
+				samples = np.append(samples, newSamples)
+				targetCount -= len(newSamples)
+		
+		return samples
+	
+	def getAvailableAudioSamplesCount(self, channelCount):
+		"""Get total number of available samples.
+
+		Args:
+			channelCount: Number of channels within a buffer.
+		"""
+		sampleCount = 0
+		for audioData in self.buffer:
+			sampleCount += audioData.payload.shape[1] / channelCount
+		return sampleCount - self.prevReadSamples
+
+	def processAudio(self, audioSamples, channelCount, scriptOp):
+		"""Push audio data into Script CHOP.
+		"""
+		if audioSamples.dtype == np.int16:
+			# RAW, L2 uses np.int16
+			audioSamples = (audioSamples / (65536 / 2)).astype(np.float32)
+		chopData = np.ascontiguousarray(audioSamples.reshape(-1, channelCount).transpose())
+		scriptOp.lock = True
+		scriptOp.copyNumpyArray(chopData, baseName='chan')
+		scriptOp.rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
+		scriptOp.start = ((scriptOp.time.frame - 2) * chopData.shape[1]) + 1
+		scriptOp.lock = False
+
 	def handleCalibration(self):
 		"""Push hl2ss calibration to TD.
 		"""
@@ -479,8 +606,7 @@ class Hl2ssExt:
 
 		elif self.port in (
 			hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
-			hl2ss.StreamPort.RM_IMU_GYROSCOPE,
-			hl2ss.StreamPort.RM_IMU_MAGNETOMETER
+			hl2ss.StreamPort.RM_IMU_GYROSCOPE
 			):
 			calib = {
 				'extrinsics': self.calibration.extrinsics.tolist(),

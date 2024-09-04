@@ -24,6 +24,6 @@ class Hl2ssFramePickerExt():
 		Returns:
 		    bool: Success of providing new data.
 		"""
-		if self.MainComp is not None:
+		if self.MainComp is not None and int(self.MainComp.par.Port.eval()) not in (3811, 3812, 3817, 3818):
 			return self.MainComp.GetAndPresentFrame(extObj=self)
 		return False
