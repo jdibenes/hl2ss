@@ -5,10 +5,16 @@
 #include "hl2ss_lnm.h"
 #include "hl2ss_mt.h"
 
-#ifdef WIN32
+#if defined(_WIN32)
 #define HL2SS_CLIENT_EXPORT extern "C" __declspec(dllexport)
+#define HL2SS_CALL 
+#elif defined(__ANDROID__)
+#include <jni.h>
+#define HL2SS_CLIENT_EXPORT extern "C" JNIEXPORT
+#define HL2SS_CALL JNICALL
 #else
 #define HL2SS_CLIENT_EXPORT extern "C"
+#define HL2SS_CALL 
 #endif
 
 #define HL2SS_ULM_BEGIN  try
@@ -280,7 +286,7 @@ struct gmq_message
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t initialize()
+int32_t HL2SS_CALL initialize()
 HL2SS_ULM_BEGIN
 {
     hl2ss::client::initialize();
@@ -293,7 +299,7 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-void* open_stream(char const* host, uint16_t port, uint64_t buffer_size, void const* configuration)
+void* HL2SS_CALL open_stream(char const* host, uint16_t port, uint64_t buffer_size, void const* configuration)
 HL2SS_ULM_BEGIN
 {
     std::unique_ptr<hl2ss::rx> rx;
@@ -380,7 +386,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void* open_ipc(char const* host, uint16_t port)
+void* HL2SS_CALL open_ipc(char const* host, uint16_t port)
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<hl2ss::ipc> ipc;
@@ -403,7 +409,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void close_handle(void* h)
+void HL2SS_CALL close_handle(void* h)
 HL2SS_ULM_BEGIN
 {
     delete (handle*)h;
@@ -439,7 +445,7 @@ static void* unpack_frame(std::shared_ptr<hl2ss::packet> data, int64_t frame_sta
 }
 
 HL2SS_CLIENT_EXPORT
-void* get_by_index(void* source, int64_t frame_stamp, hl2ss::ulm::packet& packet)
+void* HL2SS_CALL get_by_index(void* source, int64_t frame_stamp, hl2ss::ulm::packet& packet)
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<hl2ss::mt::source> s = typed_handle<hl2ss::mt::source>::get(source);
@@ -454,7 +460,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void* get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, hl2ss::ulm::packet& packet)
+void* HL2SS_CALL get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, hl2ss::ulm::packet& packet)
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<hl2ss::mt::source> s = typed_handle<hl2ss::mt::source>::get(source);
@@ -474,7 +480,7 @@ HL2SS_ULM_END(nullptr)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t start_subsystem_pv(char const* host, uint16_t port, configuration_pv_subsystem const& c)
+int32_t HL2SS_CALL start_subsystem_pv(char const* host, uint16_t port, configuration_pv_subsystem const& c)
 HL2SS_ULM_BEGIN
 {
     hl2ss::lnm::start_subsystem_pv(host, port, c.enable_mrc, c.hologram_composition, c.recording_indicator, c.video_stabilization, c.blank_protected, c.show_mesh, c.shared, c.global_opacity, c.output_width, c.output_height, c.video_stabilization_length, c.hologram_perspective);
@@ -483,7 +489,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t stop_subsystem_pv(char const* host, uint16_t port)
+int32_t HL2SS_CALL stop_subsystem_pv(char const* host, uint16_t port)
 HL2SS_ULM_BEGIN
 {
     hl2ss::lnm::stop_subsystem_pv(host, port);
@@ -496,7 +502,7 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-void* download_calibration(char const* host, uint16_t port, void const* configuration, void*& calibration)
+void* HL2SS_CALL download_calibration(char const* host, uint16_t port, void const* configuration, void*& calibration)
 HL2SS_ULM_BEGIN
 {
     switch (port)
@@ -543,7 +549,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void* download_device_list(char const* host, uint16_t port, uint64_t& size, uint8_t*& query)
+void* HL2SS_CALL download_device_list(char const* host, uint16_t port, uint64_t& size, uint8_t*& query)
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<std::vector<uint8_t>> data;
@@ -567,7 +573,7 @@ HL2SS_ULM_END(nullptr)
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_get_application_version(void* ipc, hl2ss::version& version)
+int32_t HL2SS_CALL rc_get_application_version(void* ipc, hl2ss::version& version)
 HL2SS_ULM_BEGIN
 {
     version = typed_handle<hl2ss::ipc_rc>::get(ipc)->get_application_version();
@@ -576,7 +582,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_get_utc_offset(void* ipc, uint32_t samples, uint64_t& offset)
+int32_t HL2SS_CALL rc_get_utc_offset(void* ipc, uint32_t samples, uint64_t& offset)
 HL2SS_ULM_BEGIN
 {
     offset = typed_handle<hl2ss::ipc_rc>::get(ipc)->get_utc_offset(samples);
@@ -585,7 +591,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_hs_marker_state(void* ipc, uint32_t state)
+int32_t HL2SS_CALL rc_set_hs_marker_state(void* ipc, uint32_t state)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_hs_marker_state(state);
@@ -594,7 +600,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_get_pv_subsystem_status(void* ipc, uint32_t& status)
+int32_t HL2SS_CALL rc_get_pv_subsystem_status(void* ipc, uint32_t& status)
 HL2SS_ULM_BEGIN
 {
     status = typed_handle<hl2ss::ipc_rc>::get(ipc)->get_pv_subsystem_status();
@@ -603,7 +609,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_wait_for_pv_subsystem(void* ipc, uint32_t status)
+int32_t HL2SS_CALL rc_wait_for_pv_subsystem(void* ipc, uint32_t status)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->wait_for_pv_subsystem(status);
@@ -612,7 +618,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_focus(void* ipc, uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback)
+int32_t HL2SS_CALL rc_set_pv_focus(void* ipc, uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_focus(mode, range, distance, value, driver_fallback);
@@ -621,7 +627,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_video_temporal_denoising(void* ipc, uint32_t mode)
+int32_t HL2SS_CALL rc_set_pv_video_temporal_denoising(void* ipc, uint32_t mode)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_video_temporal_denoising(mode);
@@ -630,7 +636,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_white_balance_preset(void* ipc, uint32_t preset)
+int32_t HL2SS_CALL rc_set_pv_white_balance_preset(void* ipc, uint32_t preset)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_white_balance_preset(preset);
@@ -639,7 +645,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_white_balance_value(void* ipc, uint32_t value)
+int32_t HL2SS_CALL rc_set_pv_white_balance_value(void* ipc, uint32_t value)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_white_balance_value(value);
@@ -648,7 +654,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_exposure(void* ipc, uint32_t mode, uint32_t value)
+int32_t HL2SS_CALL rc_set_pv_exposure(void* ipc, uint32_t mode, uint32_t value)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_exposure(mode, value);
@@ -657,7 +663,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_exposure_priority_video(void* ipc, uint32_t enabled)
+int32_t HL2SS_CALL rc_set_pv_exposure_priority_video(void* ipc, uint32_t enabled)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_exposure_priority_video(enabled);
@@ -666,7 +672,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_iso_speed(void* ipc, uint32_t mode, uint32_t value)
+int32_t HL2SS_CALL rc_set_pv_iso_speed(void* ipc, uint32_t mode, uint32_t value)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_iso_speed(mode, value);
@@ -675,7 +681,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_backlight_compensation(void* ipc, uint32_t state)
+int32_t HL2SS_CALL rc_set_pv_backlight_compensation(void* ipc, uint32_t state)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_backlight_compensation(state);
@@ -684,7 +690,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_scene_mode(void* ipc, uint32_t mode)
+int32_t HL2SS_CALL rc_set_pv_scene_mode(void* ipc, uint32_t mode)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_scene_mode(mode);
@@ -693,7 +699,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_flat_mode(void* ipc, uint32_t mode)
+int32_t HL2SS_CALL rc_set_flat_mode(void* ipc, uint32_t mode)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_flat_mode(mode);
@@ -702,7 +708,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_rm_eye_selection(void* ipc, uint32_t enable)
+int32_t HL2SS_CALL rc_set_rm_eye_selection(void* ipc, uint32_t enable)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_rm_eye_selection(enable);
@@ -711,7 +717,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_desired_optimization(void* ipc, uint32_t mode)
+int32_t HL2SS_CALL rc_set_pv_desired_optimization(void* ipc, uint32_t mode)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_desired_optimization(mode);
@@ -720,7 +726,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_primary_use(void* ipc, uint32_t mode)
+int32_t HL2SS_CALL rc_set_pv_primary_use(void* ipc, uint32_t mode)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_primary_use(mode);
@@ -729,7 +735,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_optical_image_stabilization(void* ipc, uint32_t mode)
+int32_t HL2SS_CALL rc_set_pv_optical_image_stabilization(void* ipc, uint32_t mode)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_optical_image_stabilization(mode);
@@ -738,7 +744,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_hdr_video(void* ipc, uint32_t mode)
+int32_t HL2SS_CALL rc_set_pv_hdr_video(void* ipc, uint32_t mode)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_hdr_video(mode);
@@ -747,7 +753,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h)
+int32_t HL2SS_CALL rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_pv_regions_of_interest(clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h);
@@ -756,7 +762,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t rc_set_interface_priority(void* ipc, uint16_t port, int32_t priority)
+int32_t HL2SS_CALL rc_set_interface_priority(void* ipc, uint16_t port, int32_t priority)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_rc>::get(ipc)->set_interface_priority(port, priority);
@@ -769,7 +775,7 @@ HL2SS_ULM_END(-1)
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t sm_create_observer(void* ipc)
+int32_t HL2SS_CALL sm_create_observer(void* ipc)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_sm>::get(ipc)->create_observer();
@@ -778,7 +784,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size)
+int32_t HL2SS_CALL sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size)
 HL2SS_ULM_BEGIN
 {
     hl2ss::sm_bounding_volume volumes(count, data, size);
@@ -788,7 +794,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-void* sm_get_observed_surfaces(void* ipc, uint64_t& size, hl2ss::sm_surface_info*& data)
+void* HL2SS_CALL sm_get_observed_surfaces(void* ipc, uint64_t& size, hl2ss::sm_surface_info*& data)
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<std::vector<hl2ss::sm_surface_info>> surfaces = std::make_shared<std::vector<hl2ss::sm_surface_info>>();
@@ -800,7 +806,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void* sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads)
+void* HL2SS_CALL sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads)
 HL2SS_ULM_BEGIN
 {
     hl2ss::sm_mesh_task tasks(count, data, size);
@@ -811,7 +817,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t sm_unpack_mesh(void* reference, uint32_t index, hl2ss::ulm::sm_mesh& mesh)
+int32_t HL2SS_CALL sm_unpack_mesh(void* reference, uint32_t index, hl2ss::ulm::sm_mesh& mesh)
 HL2SS_ULM_BEGIN
 {
     std::vector<hl2ss::sm_mesh>& meshes = *typed_handle<std::vector<hl2ss::sm_mesh>>::get(reference);
@@ -838,7 +844,7 @@ HL2SS_ULM_END(-1)
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-void* su_query(void* ipc, hl2ss::ulm::su_task const& task, hl2ss::ulm::su_result_header& header)
+void* HL2SS_CALL su_query(void* ipc, hl2ss::ulm::su_task const& task, hl2ss::ulm::su_result_header& header)
 HL2SS_ULM_BEGIN
 {
     hl2ss::su_task t;
@@ -872,7 +878,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t su_unpack_item(void* reference, uint32_t index, hl2ss::ulm::su_item& item)
+int32_t HL2SS_CALL su_unpack_item(void* reference, uint32_t index, hl2ss::ulm::su_item& item)
 HL2SS_ULM_BEGIN
 {
     std::vector<hl2ss::su_item>& items = typed_handle<hl2ss::su_result>::get(reference)->items;
@@ -895,7 +901,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm::su_mesh& mesh)
+int32_t HL2SS_CALL su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm::su_mesh& mesh)
 HL2SS_ULM_BEGIN
 {
     std::vector<hl2ss::su_mesh>& v = *(std::vector<hl2ss::su_mesh>*)meshes;
@@ -915,7 +921,7 @@ HL2SS_ULM_END(-1)
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t vi_create_recognizer(void* ipc)
+int32_t HL2SS_CALL vi_create_recognizer(void* ipc)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_vi>::get(ipc)->create_recognizer();
@@ -924,7 +930,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status)
+int32_t HL2SS_CALL vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status)
 HL2SS_ULM_BEGIN
 {
     char const* current = utf8_array;
@@ -944,7 +950,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t vi_start(void* ipc)
+int32_t HL2SS_CALL vi_start(void* ipc)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_vi>::get(ipc)->start();
@@ -953,7 +959,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-void* vi_pop(void* ipc, uint64_t& size, hl2ss::vi_result*& data)
+void* HL2SS_CALL vi_pop(void* ipc, uint64_t& size, hl2ss::vi_result*& data)
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<std::vector<hl2ss::vi_result>> results = std::make_shared<std::vector<hl2ss::vi_result>>();
@@ -967,7 +973,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t vi_clear(void* ipc)
+int32_t HL2SS_CALL vi_clear(void* ipc)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_vi>::get(ipc)->clear();
@@ -976,7 +982,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t vi_stop(void* ipc)
+int32_t HL2SS_CALL vi_stop(void* ipc)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_vi>::get(ipc)->stop();
@@ -989,7 +995,7 @@ HL2SS_ULM_END(-1)
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t umq_push(void* ipc, uint8_t const* data, uint64_t size)
+int32_t HL2SS_CALL umq_push(void* ipc, uint8_t const* data, uint64_t size)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_umq>::get(ipc)->push(data, size);
@@ -998,7 +1004,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t umq_pull(void* ipc, uint32_t* data, uint32_t count)
+int32_t HL2SS_CALL umq_pull(void* ipc, uint32_t* data, uint32_t count)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_umq>::get(ipc)->pull(data, count);
@@ -1011,7 +1017,7 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-void* gmq_pull(void *ipc, hl2ss::ulm::gmq_message& result)
+void* HL2SS_CALL gmq_pull(void *ipc, hl2ss::ulm::gmq_message& result)
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<hl2ss::gmq_message> message = std::make_shared<hl2ss::gmq_message>();
@@ -1026,7 +1032,7 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-int32_t gmq_push(void* ipc, uint32_t const* response, uint32_t count)
+int32_t HL2SS_CALL gmq_push(void* ipc, uint32_t const* response, uint32_t count)
 HL2SS_ULM_BEGIN
 {
     typed_handle<hl2ss::ipc_gmq>::get(ipc)->push(response, count);
@@ -1039,7 +1045,7 @@ HL2SS_ULM_END(-1)
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-void* pointer_passthrough(void *p)
+void* HL2SS_CALL pointer_passthrough(void *p)
 {
      return p;
 }

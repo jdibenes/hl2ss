@@ -40,6 +40,9 @@ extensions/client_labview/hl2ss_labview/avcodec-60.dll
 extensions/client_labview/hl2ss_labview/avutil-58.dll
 extensions/client_labview/hl2ss_labview/swresample-4.dll
 extensions/client_labview/hl2ss_labview/opencv_world480.dll
+extensions/client_unity/Assets/Plugins/Android/hl2ss_ulm.aar
+extensions/client_unity/Assets/Plugins/Android/hl2ss_ulm.aar.meta
+extensions/client_unity/user.keystore
 hl2ss_td/Backup/
 hl2ss_td/venv/
 hl2ss_td/calibration/*

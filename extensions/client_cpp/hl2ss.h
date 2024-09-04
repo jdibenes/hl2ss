@@ -50,16 +50,16 @@ uint16_t const GUEST_MESSAGE_QUEUE  = 3820;
 
 namespace chunk_size
 {
-size_t const RM_VLC               = 4096;
-size_t const RM_DEPTH_AHAT        = 4096;
-size_t const RM_DEPTH_LONGTHROW   = 4096;
-size_t const RM_IMU               = 4096;
-size_t const PERSONAL_VIDEO       = 4096;
-size_t const MICROPHONE           = 512;
-size_t const SPATIAL_INPUT        = 1024;
-size_t const EXTENDED_EYE_TRACKER = 256;
-size_t const EXTENDED_AUDIO       = 512;
-size_t const SINGLE_TRANSFER      = 4096;
+uint64_t const RM_VLC               = 4096;
+uint64_t const RM_DEPTH_AHAT        = 4096;
+uint64_t const RM_DEPTH_LONGTHROW   = 4096;
+uint64_t const RM_IMU               = 4096;
+uint64_t const PERSONAL_VIDEO       = 4096;
+uint64_t const MICROPHONE           = 512;
+uint64_t const SPATIAL_INPUT        = 1024;
+uint64_t const EXTENDED_EYE_TRACKER = 256;
+uint64_t const EXTENDED_AUDIO       = 512;
+uint64_t const SINGLE_TRANSFER      = 4096;
 }
 
 namespace stream_mode
@@ -325,7 +325,7 @@ struct uint64x2
 class client
 {
 private:
-#ifdef WIN32
+#ifdef _WIN32
     uint64_t m_socket;
 #else
     int m_socket;
@@ -339,9 +339,9 @@ public:
     ~client();
 
     void open(char const* host, uint16_t port);
-    void sendall(void const* data, size_t count);
-    size_t recv(void* buffer, size_t count);
-    void download(void* buffer, size_t total, size_t chunk);
+    void sendall(void const* data, uint64_t count);
+    uint64_t recv(void* buffer, uint64_t count);
+    void download(void* buffer, uint64_t total, uint64_t chunk);
     void close();
 };
 
@@ -352,7 +352,7 @@ public:
 class packet
 {
 public:
-    static size_t const SZ_POSE = sizeof(matrix_4x4); 
+    static uint64_t const SZ_POSE = sizeof(matrix_4x4); 
 
     uint64_t timestamp;
     uint32_t sz_payload;
@@ -374,12 +374,12 @@ class gatherer
 {
 private:
     client m_client;
-    size_t m_chunk;
+    uint64_t m_chunk;
     uint8_t m_mode;
 
 public:
-    void open(char const* host, uint16_t port, size_t chunk, uint8_t mode);
-    void sendall(void const* data, size_t count);
+    void open(char const* host, uint16_t port, uint64_t chunk, uint8_t mode);
+    void sendall(void const* data, uint64_t count);
     std::shared_ptr<packet> get_next_packet();
     void close();
 };
@@ -409,12 +409,12 @@ private:
 
 protected:
     virtual void create_configuration(std::vector<uint8_t>& sc) = 0;
-    rx(char const* host, uint16_t port, size_t chunk, uint8_t mode);
+    rx(char const* host, uint16_t port, uint64_t chunk, uint8_t mode);
 
 public:
     std::string host;
     uint16_t port;
-    size_t chunk;
+    uint64_t chunk;
     uint8_t mode;
 
     virtual ~rx();
@@ -436,7 +436,7 @@ public:
     uint32_t bitrate;
     std::vector<uint64_t> options;
 
-    rx_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+    rx_rm_vlc(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
 };
 
 class rx_rm_depth_ahat : public rx
@@ -452,7 +452,7 @@ public:
     uint32_t bitrate;
     std::vector<uint64_t> options;
 
-    rx_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+    rx_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
 };
 
 class rx_rm_depth_longthrow : public rx
@@ -464,7 +464,7 @@ public:
     uint8_t divisor;
     uint8_t png_filter;
 
-    rx_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter);
+    rx_rm_depth_longthrow(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter);
 };
 
 class rx_rm_imu : public rx
@@ -474,7 +474,7 @@ protected:
 
 public:
 
-    rx_rm_imu(char const* host, uint16_t port, size_t chunk, uint8_t mode);
+    rx_rm_imu(char const* host, uint16_t port, uint64_t chunk, uint8_t mode);
 };
 
 class rx_pv : public rx
@@ -492,7 +492,7 @@ public:
     uint32_t bitrate;
     std::vector<uint64_t> options;
 
-    rx_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+    rx_pv(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
 };
 
 class rx_microphone : public rx
@@ -504,7 +504,7 @@ public:
     uint8_t profile;
     uint8_t level;
 
-    rx_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level);
+    rx_microphone(char const* host, uint16_t port, uint64_t chunk, uint8_t profile, uint8_t level);
 };
 
 class rx_si : public rx
@@ -514,7 +514,7 @@ protected:
 
 public:
 
-    rx_si(char const* host, uint16_t port, size_t chunk);
+    rx_si(char const* host, uint16_t port, uint64_t chunk);
 };
 
 class rx_eet : public rx
@@ -525,7 +525,7 @@ protected:
 public:
     uint8_t framerate;
 
-    rx_eet(char const* host, uint16_t port, size_t chunk, uint8_t framerate);
+    rx_eet(char const* host, uint16_t port, uint64_t chunk, uint8_t framerate);
 };
 
 class rx_extended_audio : public rx
@@ -540,7 +540,7 @@ public:
     uint8_t profile;
     uint8_t level;
 
-    rx_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
+    rx_extended_audio(char const* host, uint16_t port, uint64_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
 };
 
 //------------------------------------------------------------------------------
@@ -705,7 +705,7 @@ protected:
     decoder_rm_vlc m_decoder;
 
 public:
-    rx_decoded_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+    rx_decoded_rm_vlc(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
     
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -718,7 +718,7 @@ protected:
     decoder_rm_depth_ahat m_decoder;
 
 public:
-    rx_decoded_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+    rx_decoded_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
 
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -731,7 +731,7 @@ protected:
     decoder_rm_depth_longthrow m_decoder;
 
 public:
-    rx_decoded_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter);
+    rx_decoded_rm_depth_longthrow(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter);
     
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -746,7 +746,7 @@ protected:
 public:
     uint8_t decoded_format;
 
-    rx_decoded_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options, uint8_t decoded_format);
+    rx_decoded_pv(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options, uint8_t decoded_format);
 
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -759,7 +759,7 @@ protected:
     decoder_microphone m_decoder;
 
 public:
-    rx_decoded_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level);
+    rx_decoded_microphone(char const* host, uint16_t port, uint64_t chunk, uint8_t profile, uint8_t level);
 
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -772,7 +772,7 @@ protected:
     decoder_microphone m_decoder;
 
 public:
-    rx_decoded_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
+    rx_decoded_extended_audio(char const* host, uint16_t port, uint64_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
 
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -1038,7 +1038,7 @@ protected:
     std::vector<uint8_t> m_sc;
 
     void send(uint8_t command, std::initializer_list<uint32_t> list);
-    void recv(void* buffer, size_t size);
+    void recv(void* buffer, uint64_t size);
 
 public:
     ipc_rc(char const* host, uint16_t port);
@@ -1134,7 +1134,7 @@ private:
 
 public:
     sm_bounding_volume();
-    sm_bounding_volume(uint32_t count, uint8_t const* data, size_t size);
+    sm_bounding_volume(uint32_t count, uint8_t const* data, uint64_t size);
 
     void clear();
     void add_box(sm_box box);
@@ -1144,7 +1144,7 @@ public:
 
     uint32_t get_count() const;
     uint8_t const* get_data() const;
-    size_t get_size() const;
+    uint64_t get_size() const;
 };
 
 struct guid
@@ -1167,14 +1167,14 @@ private:
     
 public:
     sm_mesh_task();
-    sm_mesh_task(uint32_t count, uint8_t const* data, size_t size);
+    sm_mesh_task(uint32_t count, uint8_t const* data, uint64_t size);
 
     void clear();
     void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds);
 
     uint32_t get_count() const;
     uint8_t const* get_data() const;
-    size_t get_size() const;
+    uint64_t get_size() const;
 };
 
 struct sm_mesh
@@ -1347,11 +1347,11 @@ public:
     umq_command_buffer(uint32_t count, uint8_t const* data, uint64_t size);
 
     void clear();
-    void add(uint32_t id, void const* data, size_t size);
+    void add(uint32_t id, void const* data, uint64_t size);
     
     uint32_t get_count();
     uint8_t const* get_data();
-    size_t get_size();    
+    uint64_t get_size();    
 };
 
 class ipc_umq : public ipc
@@ -1359,7 +1359,7 @@ class ipc_umq : public ipc
 public:
     ipc_umq(char const* host, uint16_t port);
 
-    void push(uint8_t const* data, size_t size);
+    void push(uint8_t const* data, uint64_t size);
     void pull(uint32_t* data, uint32_t count);
 };
 

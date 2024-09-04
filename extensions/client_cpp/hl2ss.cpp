@@ -1,5 +1,5 @@
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -25,7 +25,7 @@ union v64 { struct { v32 d0, d1; } d; uint64_t q; int64_t l; };
 
 void client::initialize()
 {
-#ifdef WIN32
+#ifdef _WIN32
     WSADATA wsaData;
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) { throw std::runtime_error("hl2ss::client::initialize : WSAStartup failed"); }
@@ -34,14 +34,14 @@ void client::initialize()
 
 void client::cleanup()
 {
-#ifdef WIN32
+#ifdef _WIN32
     WSACleanup();
 #endif
 }
 
 client::client()
 {
-#ifdef WIN32
+#ifdef _WIN32
     m_socket = INVALID_SOCKET;
 #else
     m_socket = -1;
@@ -56,7 +56,7 @@ client::~client()
 void client::open(char const* host, uint16_t port)
 {
     m_socket = socket(AF_INET, SOCK_STREAM, 0);
-#ifdef WIN32
+#ifdef _WIN32
     if (m_socket == INVALID_SOCKET)
 #else
     if (m_socket < 0)
@@ -75,7 +75,7 @@ void client::open(char const* host, uint16_t port)
     if (status < 0) { throw std::runtime_error("hl2ss::client::open : connect failed"); }
 }
 
-void client::sendall(void const* data, size_t count)
+void client::sendall(void const* data, uint64_t count)
 {
     int64_t sent = 0;
     while (count > 0)
@@ -87,20 +87,20 @@ void client::sendall(void const* data, size_t count)
     }
 }
 
-size_t client::recv(void* buffer, size_t count)
+uint64_t client::recv(void* buffer, uint64_t count)
 {
     int64_t bytes = ::recv(m_socket, (char*)buffer, (int)count, 0);
     if ((bytes <= 0) && (count > 0)) { throw std::runtime_error("hl2ss::client::recv : recv failed"); }
     return bytes;
 }
 
-void client::download(void* buffer, size_t total, size_t chunk)
+void client::download(void* buffer, uint64_t total, uint64_t chunk)
 {
-    size_t received = 0;
+    uint64_t received = 0;
     while (total > 0)
     {
     if (chunk > total) { chunk = total; }
-    size_t bytes = recv((char*)buffer + received, chunk);
+    uint64_t bytes = recv((char*)buffer + received, chunk);
     total    -= bytes;
     received += bytes;
     }
@@ -108,7 +108,7 @@ void client::download(void* buffer, size_t total, size_t chunk)
 
 void client::close()
 {
-#ifdef WIN32
+#ifdef _WIN32
     if (m_socket == INVALID_SOCKET) { return; }
     closesocket(m_socket);
     m_socket = INVALID_SOCKET;
@@ -152,14 +152,14 @@ void packet::init_pose()
 // * Packet Gatherer
 //------------------------------------------------------------------------------
 
-void gatherer::open(char const* host, uint16_t port, size_t chunk, uint8_t mode)
+void gatherer::open(char const* host, uint16_t port, uint64_t chunk, uint8_t mode)
 {
     m_client.open(host, port);
     m_chunk = chunk;
     m_mode = mode;
 }
 
-void gatherer::sendall(void const* data, size_t count)
+void gatherer::sendall(void const* data, uint64_t count)
 {
     m_client.sendall(data, count);
 }
@@ -235,7 +235,7 @@ void push_double(std::vector<uint8_t>& sc, double d)
     push_u64(sc, *(uint64_t*)&d);
 }
 
-void push(std::vector<uint8_t>& sc, void const* data, size_t size)
+void push(std::vector<uint8_t>& sc, void const* data, uint64_t size)
 {
     sc.insert(sc.end(), (uint8_t*)data, ((uint8_t*)data) + size);
 }
@@ -292,7 +292,7 @@ void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vecto
 {
     push_u8(sc, (uint8_t)(options.size() / 2));
 
-    for (size_t i = 0; i < (options.size() & ~1ULL); i += 2)
+    for (uint64_t i = 0; i < (options.size() & ~1ULL); i += 2)
     {
     push_u64(sc, options[i]);
     push_u64(sc, options[i+1]);
@@ -444,7 +444,7 @@ void stop_subsystem_pv(char const* host, uint16_t port)
 // * Modes 0, 1 Data Acquisition
 //------------------------------------------------------------------------------
 
-rx::rx(char const* host, uint16_t port, size_t chunk, uint8_t mode)
+rx::rx(char const* host, uint16_t port, uint64_t chunk, uint8_t mode)
 {
     this->host = host;
     this->port = port;
@@ -474,7 +474,7 @@ void rx::close()
     return m_client.close();
 }
 
-rx_rm_vlc::rx_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
+rx_rm_vlc::rx_rm_vlc(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
 {
     this->divisor = divisor;
     this->profile = profile;
@@ -488,7 +488,7 @@ void rx_rm_vlc::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_rm_vlc(sc, mode, divisor, profile, level, bitrate, options);
 }
 
-rx_rm_depth_ahat::rx_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
+rx_rm_depth_ahat::rx_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
 {
     this->divisor = divisor;
     this->profile_z = profile_z;
@@ -503,7 +503,7 @@ void rx_rm_depth_ahat::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_rm_depth_ahat(sc, mode, divisor, profile_z, profile_ab, level, bitrate, options);
 }
 
-rx_rm_depth_longthrow::rx_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx(host, port, chunk, mode)
+rx_rm_depth_longthrow::rx_rm_depth_longthrow(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx(host, port, chunk, mode)
 {
     this->divisor = divisor;
     this->png_filter = png_filter;
@@ -514,7 +514,7 @@ void rx_rm_depth_longthrow::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_rm_depth_longthrow(sc, mode, divisor, png_filter);
 }
 
-rx_rm_imu::rx_rm_imu(char const* host, uint16_t port, size_t chunk, uint8_t mode) : rx(host, port, chunk, mode)
+rx_rm_imu::rx_rm_imu(char const* host, uint16_t port, uint64_t chunk, uint8_t mode) : rx(host, port, chunk, mode)
 {
 }
 
@@ -523,7 +523,7 @@ void rx_rm_imu::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_rm_imu(sc, mode);
 }
 
-rx_pv::rx_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
+rx_pv::rx_pv(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
 {
     this->width = width;
     this->height = height;
@@ -540,7 +540,7 @@ void rx_pv::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_pv(sc, mode, width, height, framerate, divisor, profile, level, bitrate, options);
 }
 
-rx_microphone::rx_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level) : rx(host, port, chunk, stream_mode::MODE_0)
+rx_microphone::rx_microphone(char const* host, uint16_t port, uint64_t chunk, uint8_t profile, uint8_t level) : rx(host, port, chunk, stream_mode::MODE_0)
 {
     this->profile = profile;
     this->level = level;
@@ -551,7 +551,7 @@ void rx_microphone::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_microphone(sc, profile, level);
 }
 
-rx_si::rx_si(char const* host, uint16_t port, size_t chunk) : rx(host, port, chunk, stream_mode::MODE_0)
+rx_si::rx_si(char const* host, uint16_t port, uint64_t chunk) : rx(host, port, chunk, stream_mode::MODE_0)
 {
 }
 
@@ -560,7 +560,7 @@ void rx_si::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_si(sc);
 }
 
-rx_eet::rx_eet(char const* host, uint16_t port, size_t chunk, uint8_t framerate) : rx(host, port, chunk, stream_mode::MODE_1)
+rx_eet::rx_eet(char const* host, uint16_t port, uint64_t chunk, uint8_t framerate) : rx(host, port, chunk, stream_mode::MODE_1)
 {
     this->framerate = framerate;
 }
@@ -570,7 +570,7 @@ void rx_eet::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_eet(sc, framerate);
 }
 
-rx_extended_audio::rx_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level) : rx(host, port, chunk, stream_mode::MODE_0)
+rx_extended_audio::rx_extended_audio(char const* host, uint16_t port, uint64_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level) : rx(host, port, chunk, stream_mode::MODE_0)
 {
     this->mixer_mode = mixer_mode;
     this->loopback_gain = loopback_gain;
@@ -1002,7 +1002,7 @@ void decoder_microphone::close()
 // * Modes 0, 1 Data Acquisition (Decoded)
 //------------------------------------------------------------------------------
 
-rx_decoded_rm_vlc::rx_decoded_rm_vlc(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options)
+rx_decoded_rm_vlc::rx_decoded_rm_vlc(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, options)
 {
 }
 
@@ -1025,7 +1025,7 @@ void rx_decoded_rm_vlc::close()
     m_decoder.close();
 }
 
-rx_decoded_rm_depth_ahat::rx_decoded_rm_depth_ahat(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_depth_ahat(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options)
+rx_decoded_rm_depth_ahat::rx_decoded_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx_rm_depth_ahat(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options)
 {
 }
 
@@ -1048,7 +1048,7 @@ void rx_decoded_rm_depth_ahat::close()
     m_decoder.close();
 }
 
-rx_decoded_rm_depth_longthrow::rx_decoded_rm_depth_longthrow(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter)
+rx_decoded_rm_depth_longthrow::rx_decoded_rm_depth_longthrow(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter)
 {
 }
 
@@ -1071,7 +1071,7 @@ void rx_decoded_rm_depth_longthrow::close()
     m_decoder.close();
 }
 
-rx_decoded_pv::rx_decoded_pv(char const* host, uint16_t port, size_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options, uint8_t decoded_format) : rx_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
+rx_decoded_pv::rx_decoded_pv(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options, uint8_t decoded_format) : rx_pv(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
 {
     this->decoded_format = decoded_format;
 }
@@ -1097,7 +1097,7 @@ void rx_decoded_pv::close()
     m_decoder.close();
 }
 
-rx_decoded_microphone::rx_decoded_microphone(char const* host, uint16_t port, size_t chunk, uint8_t profile, uint8_t level) : rx_microphone(host, port, chunk, profile, level)
+rx_decoded_microphone::rx_decoded_microphone(char const* host, uint16_t port, uint64_t chunk, uint8_t profile, uint8_t level) : rx_microphone(host, port, chunk, profile, level)
 {
 }
 
@@ -1120,7 +1120,7 @@ void rx_decoded_microphone::close()
     m_decoder.close();
 }
 
-rx_decoded_extended_audio::rx_decoded_extended_audio(char const* host, uint16_t port, size_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level) : rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
+rx_decoded_extended_audio::rx_decoded_extended_audio(char const* host, uint16_t port, uint64_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level) : rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
 {
 }
 
@@ -1364,7 +1364,7 @@ void ipc_rc::send(uint8_t command, std::initializer_list<uint32_t> list)
     m_client.sendall(m_sc.data(), m_sc.size());
 }
 
-void ipc_rc::recv(void* buffer, size_t size)
+void ipc_rc::recv(void* buffer, uint64_t size)
 {
     m_client.download(buffer, size, chunk_size::SINGLE_TRANSFER);
 }
@@ -1506,7 +1506,7 @@ sm_bounding_volume::sm_bounding_volume()
     m_count = 0;
 }
 
-sm_bounding_volume::sm_bounding_volume(uint32_t count, uint8_t const* data, size_t size)
+sm_bounding_volume::sm_bounding_volume(uint32_t count, uint8_t const* data, uint64_t size)
 {
     m_count = count;
     m_data  = { data, data + size };
@@ -1556,7 +1556,7 @@ uint8_t const* sm_bounding_volume::get_data() const
     return m_data.data();
 }
 
-size_t sm_bounding_volume::get_size() const
+uint64_t sm_bounding_volume::get_size() const
 {
     return m_data.size();
 }
@@ -1566,7 +1566,7 @@ sm_mesh_task::sm_mesh_task()
     m_count = 0;
 }
 
-sm_mesh_task::sm_mesh_task(uint32_t count, uint8_t const* data, size_t size)
+sm_mesh_task::sm_mesh_task(uint32_t count, uint8_t const* data, uint64_t size)
 {
     m_count = count;
     m_data  = { data, data + size };
@@ -1600,7 +1600,7 @@ uint8_t const* sm_mesh_task::get_data() const
     return m_data.data();
 }
 
-size_t sm_mesh_task::get_size() const
+uint64_t sm_mesh_task::get_size() const
 {
     return m_data.size();
 }
@@ -1851,7 +1851,7 @@ umq_command_buffer::umq_command_buffer()
     m_count = 0;
 }
 
-umq_command_buffer::umq_command_buffer(uint32_t count, uint8_t const* data, size_t size)
+umq_command_buffer::umq_command_buffer(uint32_t count, uint8_t const* data, uint64_t size)
 {
     m_count = count;
     m_buffer = { data, data + size };
@@ -1863,7 +1863,7 @@ void umq_command_buffer::clear()
     m_buffer.clear();
 }
 
-void umq_command_buffer::add(uint32_t id, void const* data, size_t size)
+void umq_command_buffer::add(uint32_t id, void const* data, uint64_t size)
 {
     push_u32(m_buffer, id);
     push_u32(m_buffer, (uint32_t)size);
@@ -1881,7 +1881,7 @@ uint8_t const* umq_command_buffer::get_data()
     return m_buffer.data();
 }
 
-size_t umq_command_buffer::get_size()
+uint64_t umq_command_buffer::get_size()
 {
     return m_buffer.size();
 }
@@ -1890,7 +1890,7 @@ ipc_umq::ipc_umq(char const* host, uint16_t port) : ipc(host, port)
 {
 }
 
-void ipc_umq::push(uint8_t const* data, size_t size)
+void ipc_umq::push(uint8_t const* data, uint64_t size)
 {
     m_client.sendall(data, size);
 }

@@ -51,7 +51,8 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - [C++ client library](extensions).
 - [MATLAB and Simulink client library](extensions).
 - [Unity client plugin](extensions).
-- [LabVIEW client](extensions).
+- [LabVIEW client library](extensions).
+- [Android client library](extensions). (Experimental)
 - [hl2da plugin](https://github.com/jdibenes/hl2da): access sensor data from Unity, Unreal, and native UWP applications running on the HoloLens.
 
 **Technical Report** 

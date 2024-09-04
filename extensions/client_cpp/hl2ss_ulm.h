@@ -5,10 +5,12 @@
 #include <stdexcept>
 #include <memory>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define HL2SS_CLIENT_IMPORT extern "C" __declspec(dllimport)
+#define HL2SS_CALL 
 #else
 #define HL2SS_CLIENT_IMPORT extern "C"
+#define HL2SS_CALL
 #endif
 
 #define HL2SS_INLINE inline
@@ -1497,194 +1499,194 @@ struct gmq_message
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t initialize();
+int32_t HL2SS_CALL initialize();
 
 //-----------------------------------------------------------------------------
 // Interfaces
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void* open_stream(char const* host, uint16_t port, uint64_t buffer_size, void const* configuration);
+void* HL2SS_CALL open_stream(char const* host, uint16_t port, uint64_t buffer_size, void const* configuration);
 
 HL2SS_CLIENT_IMPORT
-void* open_ipc(char const* host, uint16_t port);
+void* HL2SS_CALL open_ipc(char const* host, uint16_t port);
 
 HL2SS_CLIENT_IMPORT
-void close_handle(void* h);
+void HL2SS_CALL close_handle(void* h);
 
 //-----------------------------------------------------------------------------
 // Grab
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void* get_by_index(void* source, int64_t frame_stamp, hl2ss::ulm::packet& packet);
+void* HL2SS_CALL get_by_index(void* source, int64_t frame_stamp, hl2ss::ulm::packet& packet);
 
 HL2SS_CLIENT_IMPORT
-void* get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, hl2ss::ulm::packet& packet);
+void* HL2SS_CALL get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, hl2ss::ulm::packet& packet);
 
 //-----------------------------------------------------------------------------
 // Control
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t start_subsystem_pv(char const* host, uint16_t port, configuration_pv_subsystem const& c);
+int32_t HL2SS_CALL start_subsystem_pv(char const* host, uint16_t port, configuration_pv_subsystem const& c);
 
 HL2SS_CLIENT_IMPORT
-int32_t stop_subsystem_pv(char const* host, uint16_t port);
+int32_t HL2SS_CALL stop_subsystem_pv(char const* host, uint16_t port);
 
 //-----------------------------------------------------------------------------
 // Calibration
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void* download_calibration(char const* host, uint16_t port, void const* configuration, void*& calibration);
+void* HL2SS_CALL download_calibration(char const* host, uint16_t port, void const* configuration, void*& calibration);
 
 HL2SS_CLIENT_IMPORT
-void* download_device_list(char const* host, uint16_t port, uint64_t& size, uint8_t*& query);
+void* HL2SS_CALL download_device_list(char const* host, uint16_t port, uint64_t& size, uint8_t*& query);
 
 //------------------------------------------------------------------------------
 // Remote Configuration
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_get_application_version(void* ipc, hl2ss::version& version);
+int32_t HL2SS_CALL rc_get_application_version(void* ipc, hl2ss::version& version);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_get_utc_offset(void* ipc, uint32_t samples, uint64_t& offset);
+int32_t HL2SS_CALL rc_get_utc_offset(void* ipc, uint32_t samples, uint64_t& offset);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_hs_marker_state(void* ipc, uint32_t state);
+int32_t HL2SS_CALL rc_set_hs_marker_state(void* ipc, uint32_t state);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_get_pv_subsystem_status(void* ipc, uint32_t& status);
+int32_t HL2SS_CALL rc_get_pv_subsystem_status(void* ipc, uint32_t& status);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_wait_for_pv_subsystem(void* ipc, uint32_t status);
+int32_t HL2SS_CALL rc_wait_for_pv_subsystem(void* ipc, uint32_t status);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_focus(void* ipc, uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback);
+int32_t HL2SS_CALL rc_set_pv_focus(void* ipc, uint32_t mode, uint32_t range, uint32_t distance, uint32_t value, uint32_t driver_fallback);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_video_temporal_denoising(void* ipc, uint32_t mode);
+int32_t HL2SS_CALL rc_set_pv_video_temporal_denoising(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_white_balance_preset(void* ipc, uint32_t preset);
+int32_t HL2SS_CALL rc_set_pv_white_balance_preset(void* ipc, uint32_t preset);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_white_balance_value(void* ipc, uint32_t value);
+int32_t HL2SS_CALL rc_set_pv_white_balance_value(void* ipc, uint32_t value);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_exposure(void* ipc, uint32_t mode, uint32_t value);
+int32_t HL2SS_CALL rc_set_pv_exposure(void* ipc, uint32_t mode, uint32_t value);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_exposure_priority_video(void* ipc, uint32_t enabled);
+int32_t HL2SS_CALL rc_set_pv_exposure_priority_video(void* ipc, uint32_t enabled);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_iso_speed(void* ipc, uint32_t mode, uint32_t value);
+int32_t HL2SS_CALL rc_set_pv_iso_speed(void* ipc, uint32_t mode, uint32_t value);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_backlight_compensation(void* ipc, uint32_t state);
+int32_t HL2SS_CALL rc_set_pv_backlight_compensation(void* ipc, uint32_t state);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_scene_mode(void* ipc, uint32_t mode);
+int32_t HL2SS_CALL rc_set_pv_scene_mode(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_flat_mode(void* ipc, uint32_t mode);
+int32_t HL2SS_CALL rc_set_flat_mode(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_rm_eye_selection(void* ipc, uint32_t enable);
+int32_t HL2SS_CALL rc_set_rm_eye_selection(void* ipc, uint32_t enable);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_desired_optimization(void* ipc, uint32_t mode);
+int32_t HL2SS_CALL rc_set_pv_desired_optimization(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_primary_use(void* ipc, uint32_t mode);
+int32_t HL2SS_CALL rc_set_pv_primary_use(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_optical_image_stabilization(void* ipc, uint32_t mode);
+int32_t HL2SS_CALL rc_set_pv_optical_image_stabilization(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_hdr_video(void* ipc, uint32_t mode);
+int32_t HL2SS_CALL rc_set_pv_hdr_video(void* ipc, uint32_t mode);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h);
+int32_t HL2SS_CALL rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint32_t set, uint32_t auto_exposure, uint32_t auto_focus, uint32_t bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h);
 
 HL2SS_CLIENT_IMPORT
-int32_t rc_set_interface_priority(void* ipc, uint16_t port, int32_t priority);
+int32_t HL2SS_CALL rc_set_interface_priority(void* ipc, uint16_t port, int32_t priority);
 
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t sm_create_observer(void* ipc);
+int32_t HL2SS_CALL sm_create_observer(void* ipc);
 
 HL2SS_CLIENT_IMPORT
-int32_t sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size);
+int32_t HL2SS_CALL sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size);
 
 HL2SS_CLIENT_IMPORT
-void* sm_get_observed_surfaces(void* ipc, uint64_t& size, hl2ss::sm_surface_info*& data);
+void* HL2SS_CALL sm_get_observed_surfaces(void* ipc, uint64_t& size, hl2ss::sm_surface_info*& data);
 
 HL2SS_CLIENT_IMPORT
-void* sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads);
+void* HL2SS_CALL sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads);
 
 HL2SS_CLIENT_IMPORT
-int32_t sm_unpack_mesh(void* reference, uint32_t index, hl2ss::ulm::sm_mesh& mesh);
+int32_t HL2SS_CALL sm_unpack_mesh(void* reference, uint32_t index, hl2ss::ulm::sm_mesh& mesh);
 
 //------------------------------------------------------------------------------
 // Scene Understanding
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void* su_query(void* ipc, hl2ss::ulm::su_task const& task, hl2ss::ulm::su_result_header& header);
+void* HL2SS_CALL su_query(void* ipc, hl2ss::ulm::su_task const& task, hl2ss::ulm::su_result_header& header);
 
 HL2SS_CLIENT_IMPORT
-int32_t su_unpack_item(void* reference, uint32_t index, hl2ss::ulm::su_item& item);
+int32_t HL2SS_CALL su_unpack_item(void* reference, uint32_t index, hl2ss::ulm::su_item& item);
 
 HL2SS_CLIENT_IMPORT
-int32_t su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm::su_mesh& mesh);
+int32_t HL2SS_CALL su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm::su_mesh& mesh);
 
 //------------------------------------------------------------------------------
 // Voice Input
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t vi_create_recognizer(void* ipc);
+int32_t HL2SS_CALL vi_create_recognizer(void* ipc);
 
 HL2SS_CLIENT_IMPORT
-int32_t vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status);
+int32_t HL2SS_CALL vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status);
 
 HL2SS_CLIENT_IMPORT
-int32_t vi_start(void* ipc);
+int32_t HL2SS_CALL vi_start(void* ipc);
 
 HL2SS_CLIENT_IMPORT
-void* vi_pop(void* ipc, uint64_t& size, hl2ss::vi_result*& data);
+void* HL2SS_CALL vi_pop(void* ipc, uint64_t& size, hl2ss::vi_result*& data);
 
 HL2SS_CLIENT_IMPORT
-int32_t vi_clear(void* ipc);
+int32_t HL2SS_CALL vi_clear(void* ipc);
 
 HL2SS_CLIENT_IMPORT
-int32_t vi_stop(void* ipc);
+int32_t HL2SS_CALL vi_stop(void* ipc);
 
 //------------------------------------------------------------------------------
 // Unity Message Queue
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t umq_push(void* ipc, uint8_t const* data, uint64_t size);
+int32_t HL2SS_CALL umq_push(void* ipc, uint8_t const* data, uint64_t size);
 
 HL2SS_CLIENT_IMPORT
-int32_t umq_pull(void* ipc, uint32_t* data, uint32_t count);
+int32_t HL2SS_CALL umq_pull(void* ipc, uint32_t* data, uint32_t count);
 
 //-----------------------------------------------------------------------------
 // Guest Message Queue
 //-----------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-void* gmq_pull(void *ipc, hl2ss::ulm::gmq_message& result);
+void* HL2SS_CALL gmq_pull(void *ipc, hl2ss::ulm::gmq_message& result);
 
 HL2SS_CLIENT_IMPORT
-int32_t gmq_push(void* ipc, uint32_t const* response, uint32_t count);
+int32_t HL2SS_CALL gmq_push(void* ipc, uint32_t const* response, uint32_t count);
 
 }
 }
