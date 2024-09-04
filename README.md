@@ -141,6 +141,14 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - [Open3D](http://www.open3d.org/) `pip install open3d`
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) `pip install PyAudio`
 
+## TouchDesigner client
+
+Provides set of TouchDesigner components for receiving and working with hl2ss data in real time. Main scene with all components and samples can be found in the [hl2ss_td](hl2ss_td) directory. Core component (*hl2ss_core*) is basically a wrapper around existing Python client - enabling its usage within TouchDesigner. User can easily build customized setup by using multiple *hl2ss_core* components, where each of them provides single data stream.
+
+Before using the component make sure to create venv in [hl2ss_td](hl2ss_td) directory and install packages from [requirements.txt](hl2ss_td/requirements.txt) using the same Python version as used by your TouchDesigner installation.
+
+Requires TouchDesigner 2023.11880+ (tested on Windows).
+
 ## Unity plugin
 
 For streaming sensor data from a Unity application.

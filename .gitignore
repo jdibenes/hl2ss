@@ -12,6 +12,7 @@ release/
 *.user
 viewer/__pycache__/
 viewer/data/
+viewer/venv/
 unity/__pycache__/
 client/__pycache__/
 tools/__pycache__/
@@ -42,3 +43,6 @@ extensions/client_labview/hl2ss_labview/opencv_world480.dll
 extensions/client_unity/Assets/Plugins/Android/hl2ss_ulm.aar
 extensions/client_unity/Assets/Plugins/Android/hl2ss_ulm.aar.meta
 extensions/client_unity/user.keystore
+hl2ss_td/Backup/
+hl2ss_td/venv/
+hl2ss_td/calibration/*
