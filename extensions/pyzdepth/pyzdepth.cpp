@@ -1,5 +1,6 @@
 
 #define PY_SSIZE_T_CLEAN
+
 #include <Python.h>
 #include <zdepth.hpp>
 
@@ -8,7 +9,7 @@ struct
 {
     PyObject_HEAD
     zdepth::DepthCompressor zddc;
-} 
+}
 DepthCompressor;
 
 PyObject *DepthCompressor_new(PyTypeObject *type, PyObject *, PyObject *)
