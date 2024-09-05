@@ -13,7 +13,7 @@ classdef sink_rm_vlc < matlab.System
         profile     = hl2ss.video_profile.H265_MAIN
         level       = hl2ss.h26x_level.DEFAULT
         bitrate     = 0
-        options     = [hl2ss.h26x_encoder_property.CODECAPI_AVEncMPVGOPSize, hl2ss.parameters_rm_vlc.FPS]
+        options     = [hl2ss.h26x_encoder_property.CODECAPI_AVEncMPVGOPSize, hl2ss.parameters_rm_vlc.FPS, hl2ss.h26x_encoder_property.HL2SSAPI_VLCHostTicksOffsetExposure, 0, hl2ss.h26x_encoder_property.HL2SSAPI_VLCHostTicksOffsetConstant, 0xFFFFFFFFFFFE17B8]
         buffer_size = hl2ss.parameters_rm_vlc.FPS * 10
         sample_time = 1 / hl2ss.parameters_rm_vlc.FPS
 

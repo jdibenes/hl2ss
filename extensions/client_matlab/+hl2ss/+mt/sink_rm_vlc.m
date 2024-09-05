@@ -25,7 +25,7 @@ methods
             profile     = hl2ss.video_profile.H265_MAIN
             level       = hl2ss.h26x_level.DEFAULT
             bitrate     = 0
-            options     = [hl2ss.h26x_encoder_property.CODECAPI_AVEncMPVGOPSize, 30]
+            options     = [hl2ss.h26x_encoder_property.CODECAPI_AVEncMPVGOPSize, 30, hl2ss.h26x_encoder_property.HL2SSAPI_VLCHostTicksOffsetExposure, 0, hl2ss.h26x_encoder_property.HL2SSAPI_VLCHostTicksOffsetConstant, 0xFFFFFFFFFFFE17B8]
             buffer_size = 300
             module      = @hl2ss_matlab
         end
