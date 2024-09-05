@@ -1884,14 +1884,14 @@ public:
     {
     }
 
-    std::shared_ptr<packet> get_by_index(int64_t frame_stamp)
+    std::unique_ptr<packet> get_by_index(int64_t frame_stamp)
     {
-        return std::make_shared<packet>(m_handle, frame_stamp);
+        return std::make_unique<packet>(m_handle, frame_stamp);
     }
 
-    std::shared_ptr<packet> get_by_timestamp(uint64_t timestamp, int32_t time_preference, bool tiebreak_right)
+    std::unique_ptr<packet> get_by_timestamp(uint64_t timestamp, int32_t time_preference, bool tiebreak_right)
     {
-        return std::make_shared<packet>(m_handle, timestamp, time_preference, tiebreak_right);
+        return std::make_unique<packet>(m_handle, timestamp, time_preference, tiebreak_right);
     }
 };
 
@@ -2081,14 +2081,14 @@ public:
         check_result(hl2ss::ulm::sm_set_volumes(m_handle, volumes.get_count(), volumes.get_data(), volumes.get_size()));
     }
 
-    std::shared_ptr<sm_surface_info_collection> get_observed_surfaces()
+    std::unique_ptr<sm_surface_info_collection> get_observed_surfaces()
     {
-        return std::make_shared<sm_surface_info_collection>(m_handle);
+        return std::make_unique<sm_surface_info_collection>(m_handle);
     }
 
-    std::shared_ptr<sm_mesh_collection> get_meshes(hl2ss::sm_mesh_task const& tasks, uint32_t threads)
+    std::unique_ptr<sm_mesh_collection> get_meshes(hl2ss::sm_mesh_task const& tasks, uint32_t threads)
     {
-        return std::make_shared<sm_mesh_collection>(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size(), threads);
+        return std::make_unique<sm_mesh_collection>(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size(), threads);
     }
 };
 
@@ -2138,7 +2138,7 @@ public:
     {
     }
 
-    std::shared_ptr<su_result> query(hl2ss::su_task const& task)
+    std::unique_ptr<su_result> query(hl2ss::su_task const& task)
     {
         hl2ss::ulm::su_task t;
 
@@ -2159,7 +2159,7 @@ public:
         t.guid_list_size       = task.guid_list.size();
         t.guid_list_data       = task.guid_list.data();
 
-        return std::make_shared<su_result>(m_handle, t);
+        return std::make_unique<su_result>(m_handle, t);
     }
 };
 
@@ -2199,9 +2199,9 @@ public:
         check_result(hl2ss::ulm::vi_start(m_handle));
     }
 
-    std::shared_ptr<vi_result> pop()
+    std::unique_ptr<vi_result> pop()
     {
-        return std::make_shared<vi_result>(m_handle);
+        return std::make_unique<vi_result>(m_handle);
     }
 
     void clear()
@@ -2256,9 +2256,9 @@ public:
     {
     }
 
-    std::shared_ptr<gmq_message> pull()
+    std::unique_ptr<gmq_message> pull()
     {
-        return std::make_shared<gmq_message>(m_handle);
+        return std::make_unique<gmq_message>(m_handle);
     }
 
     void push(uint32_t const* response, uint32_t count)
@@ -2457,15 +2457,15 @@ void stop_subsystem_pv(char const* host, uint16_t port)
 }
 
 template<typename T>
-std::shared_ptr<calibration<T>> download_calibration(char const* host, uint16_t port, void const* configuration)
+std::unique_ptr<calibration<T>> download_calibration(char const* host, uint16_t port, void const* configuration)
 {
-    return std::make_shared<calibration<T>>(host, port, configuration);
+    return std::make_unique<calibration<T>>(host, port, configuration);
 }
 
 HL2SS_INLINE
-std::shared_ptr<device_list> download_device_list(char const* host, uint16_t port)
+std::unique_ptr<device_list> download_device_list(char const* host, uint16_t port)
 {
-    return std::make_shared<device_list>(host, port);
+    return std::make_unique<device_list>(host, port);
 }
 
 }
