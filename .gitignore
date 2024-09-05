@@ -46,3 +46,4 @@ extensions/client_unity/user.keystore
 hl2ss_td/Backup/
 hl2ss_td/venv/
 hl2ss_td/calibration/*
+/extensions/client_python_mt/.vscode
