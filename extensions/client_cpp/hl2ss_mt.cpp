@@ -44,8 +44,9 @@ void source::start()
 
 bool source::status(std::exception& error)
 {
-    if (!m_enable) { error = m_error; }
-    return m_enable;
+    bool enable = m_enable;
+    if (!enable) { error = m_error; }
+    return enable;
 }
 
 void source::stop()
