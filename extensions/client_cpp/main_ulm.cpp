@@ -494,6 +494,68 @@ void test_extended_video(char const* host)
     hl2ss::svc::stop_subsystem_pv(host, port);
 }
 
+void test_pv_shared(char const* host)
+{
+    uint16_t port = hl2ss::stream_port::PERSONAL_VIDEO;
+    uint64_t buffer_size = 300;
+
+    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
+
+    configuration_subsystem.shared = true;
+
+    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
+
+    configuration.width = 1920;
+    configuration.height = 1080;
+    configuration.framerate = 30;
+    configuration.decoded_format = hl2ss::pv_decoded_format::BGR;
+
+    int cv_type;
+    switch (configuration.decoded_format)
+    {
+    case hl2ss::pv_decoded_format::BGR:  cv_type = CV_8UC3; break;
+    case hl2ss::pv_decoded_format::RGB:  cv_type = CV_8UC3; break;
+    case hl2ss::pv_decoded_format::BGRA: cv_type = CV_8UC4; break;
+    case hl2ss::pv_decoded_format::RGBA: cv_type = CV_8UC4; break;
+    case hl2ss::pv_decoded_format::GRAY: cv_type = CV_8UC1; break;
+    default: throw std::runtime_error("Invalid PV decoded format");
+    }
+
+    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
+
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+
+    std::string window_name = hl2ss::get_port_name(port);
+
+    cv::namedWindow(window_name);
+
+    while (true)
+    {
+        if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+
+        auto data = source->get_by_index(-1);
+        if (data->status != 0)
+        {
+            sleep(1000);
+            continue;
+        }
+
+        auto region = data->unpack<hl2ss::map_pv>();
+
+        source->get_pv_dimensions(configuration.width, configuration.height);
+        
+        cv::Mat image = cv::Mat(configuration.height, configuration.width, cv_type, region.image);
+        cv::imshow(window_name, image);
+
+        std::cout << "timestamp: " << data->timestamp << std::endl;
+        print(region.metadata);
+        print("pose", data->pose);
+        std::cout << "dimensions: " << configuration.width << " x " << configuration.height << std::endl;
+    }
+
+    hl2ss::svc::stop_subsystem_pv(host, port);
+}
+
 void test_rc(char const* host)
 {
     uint16_t port = hl2ss::ipc_port::REMOTE_CONFIGURATION;
@@ -698,7 +760,7 @@ void test_gmq(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 9;
+    int test_id = 16;
 
     try
     {
@@ -722,6 +784,7 @@ int main()
         case 13: test_vi(host); break;
         case 14: test_umq(host); break;
         case 15: test_gmq(host); break;
+        case 16: test_pv_shared(host); break;
         }
     }
     catch(const std::exception& e)
