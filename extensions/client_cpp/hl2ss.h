@@ -677,7 +677,7 @@ public:
     static void resolution_decoded(uint32_t payload_size, uint8_t decoded_format, uint16_t& width, uint16_t& height, uint8_t& channels);
 
     void open(uint16_t width, uint16_t height, uint8_t profile);
-    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size);
+    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size, uint16_t& width, uint16_t& height);
     void close();
 };
 

@@ -929,11 +929,9 @@ void decoder_pv::open(uint16_t width, uint16_t height, uint8_t profile)
     if (m_profile != video_profile::RAW) { m_codec.open(get_video_codec_id(m_profile)); }
 }
 
-std::unique_ptr<uint8_t[]> decoder_pv::decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size)
+std::unique_ptr<uint8_t[]> decoder_pv::decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size, uint16_t& width, uint16_t& height)
 {
     uint32_t const h26x_size = size - METADATA_SIZE;
-    uint16_t width;
-    uint16_t height;
     uint16_t stride;
     cv::Mat input; 
     int code;
@@ -1086,7 +1084,7 @@ std::shared_ptr<packet> rx_decoded_pv::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_pv::get_next_packet();
     uint32_t size;
-    std::unique_ptr<uint8_t[]> payload = m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format, size);
+    std::unique_ptr<uint8_t[]> payload = m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format, size, width, height);
     p->set_payload(size + decoder_pv::METADATA_SIZE, std::move(payload));
     return p;
 }
