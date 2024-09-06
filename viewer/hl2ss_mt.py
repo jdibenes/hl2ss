@@ -48,6 +48,7 @@ class _rx(hl2ss._context_manager):
         self._buffer_size = buffer_size
         self._configuration = dict(configuration)
         self._handle = None
+        self._pv_wxh = False
 
     def open(self):
         if (self._handle is not None):
@@ -169,8 +170,11 @@ class rx_decoded_pv(_rx):
     }
 
     def _unpack_payload(self, payload):
-        width, height = self._get_pv_dimensions()
-        return unpack_pv(payload, width, height, rx_decoded_pv._format_bpp[self._configuration['decoded_format'] % 5])
+        if (not self._pv_wxh):
+            self._width, self._height = self._get_pv_dimensions()
+            self._bpp = rx_decoded_pv._format_bpp[self._configuration['decoded_format'] % 5]
+            self._pv_wxh = True
+        return unpack_pv(payload, self._width, self._height, self._bpp)
 
 
 class rx_decoded_microphone(_rx):
