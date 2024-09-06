@@ -715,7 +715,10 @@ public:
         if (packet)
         {
         hl2ss::rx_decoded_pv const* p_rx = source->get_rx<hl2ss::rx_decoded_pv>();
-        hl2ss::decoder_pv::resolution_decoded(packet->sz_payload, p_rx->decoded_format, width, height, channels);
+        
+        width    = p_rx->width;
+        height   = p_rx->height;
+        channels = hl2ss::decoder_pv::decoded_bpp(p_rx->decoded_format);
         }
         else
         {
