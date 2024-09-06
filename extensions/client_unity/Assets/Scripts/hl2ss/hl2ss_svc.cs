@@ -169,6 +169,11 @@ public static partial class hl2ss
             {
                 return new packet(m_handle, timestamp, time_preference, tiebreak_right);
             }
+
+            public void get_pv_dimensions(out ushort width, out ushort height)
+            {
+                check_result(hl2ss.ulm.get_pv_dimensions(m_handle, out width, out height));
+            }
         }
 
         public class calibration : handle, buffer

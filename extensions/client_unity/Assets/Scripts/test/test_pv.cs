@@ -9,6 +9,8 @@ public class test_pv : MonoBehaviour
     private hl2ss.svc.source source_pv;
     private int pv_frame_size;
     private Texture2D tex_pv;
+    private TextureFormat texture_format;
+    private int bpp;
 
     // Start is called before the first frame update
     void Start()
@@ -21,9 +23,6 @@ public class test_pv : MonoBehaviour
         configuration.height = 360;
         configuration.framerate = 30;
         configuration.decoded_format = hl2ss.pv_decoded_format.RGB;
-
-        TextureFormat texture_format;
-        int bpp;
 
         switch (configuration.decoded_format)
         {
@@ -51,8 +50,6 @@ public class test_pv : MonoBehaviour
             throw new System.Exception("Unsupported decoded format");
         }
 
-        pv_frame_size = configuration.width * configuration.height * bpp;
-
         hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv_subsystem configuration_subsystem);
 
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration_subsystem);
@@ -62,10 +59,6 @@ public class test_pv : MonoBehaviour
         calibration_handle.destroy();
 
         source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration);
-
-        tex_pv = new Texture2D(configuration.width, configuration.height, texture_format, false);
-
-        quad_pv.GetComponent<Renderer>().material.mainTexture = tex_pv;
     }
 
     // Update is called once per frame
@@ -77,6 +70,15 @@ public class test_pv : MonoBehaviour
 
         hl2ss.pv_metadata metadata = Marshal.PtrToStructure<hl2ss.pv_metadata>(region.metadata);
         hl2ss.matrix_4x4 pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
+
+        if (!tex_pv)
+        {
+            source_pv.get_pv_dimensions(out ushort width, out ushort height);
+            Debug.Log(string.Format("pv dimensions: {0} x {1}", width, height));
+            pv_frame_size = width * height * bpp;
+            tex_pv = new Texture2D(width, height, texture_format, false);
+            quad_pv.GetComponent<Renderer>().material.mainTexture = tex_pv;
+        }
 
         tex_pv.LoadRawTextureData(region.image, pv_frame_size);
         tex_pv.Apply();

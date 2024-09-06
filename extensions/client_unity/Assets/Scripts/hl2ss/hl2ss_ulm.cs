@@ -266,6 +266,9 @@ public static partial class hl2ss
         [DllImport("hl2ss_ulm")]
         public static extern IntPtr get_by_timestamp(IntPtr source, ulong timestamp, int time_preference, int tiebreak_right, hl2ss.ulm.packet p);
 
+        [DllImport("hl2ss_ulm")]
+        public static extern int get_pv_dimensions(IntPtr source, out ushort width, out ushort height);
+
         //-----------------------------------------------------------------------------
         // Control
         //-----------------------------------------------------------------------------
