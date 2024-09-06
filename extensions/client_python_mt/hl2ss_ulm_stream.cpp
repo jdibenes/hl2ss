@@ -377,6 +377,21 @@ std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_eet>(c
     return hl2ss::svc::open_stream(host, port, buffer_size, &c);
 }
 
+template<>
+std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_extended_audio>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+{
+    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_audio>();
+
+    c.chunk           = dict_get_item(configuration, "chunk",           PyLong_AsUnsignedLongLong, c.chunk);
+    c.mixer_mode      = dict_get_item(configuration, "mixer_mode",      PyLong_AsUnsignedLong,     c.mixer_mode);
+    c.loopback_gain   = dict_get_item(configuration, "loopback_gain",   PyFloat_AsDouble,          c.loopback_gain);
+    c.microphone_gain = dict_get_item(configuration, "microphone_gain", PyFloat_AsDouble,          c.microphone_gain);
+    c.profile         = dict_get_item(configuration, "profile",         PyLong_AsUnsignedLong,     c.profile);
+    c.level           = dict_get_item(configuration, "level",           PyLong_AsUnsignedLong,     c.level);
+
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+}
+
 static PyObject* open_stream(PyObject *self, PyObject *args)
 HL2SS_ULM_BEGIN
 {
