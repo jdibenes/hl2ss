@@ -737,13 +737,63 @@ void test_extended_video(char const* host)
 }
 
 //-----------------------------------------------------------------------------
+// PV (shared)
+//-----------------------------------------------------------------------------
+
+void test_pv_shared(char const* host)
+{
+    uint16_t port = hl2ss::stream_port::PERSONAL_VIDEO;
+    uint16_t width = 1920;
+    uint16_t height = 1080;
+    uint8_t channels = hl2ss::decoder_pv::decoded_bpp(hl2ss::pv_decoded_format::BGR);
+    uint8_t framerate = 30;
+    bool enable_mrc = false;
+    bool shared = true;
+
+    std::unique_ptr<hl2ss::rx_pv> client = hl2ss::lnm::rx_pv(host, port, width, height, framerate);
+    std::string port_name = hl2ss::get_port_name(port);
+
+    hl2ss::lnm::start_subsystem_pv(host, port, enable_mrc, true, false, false, false, false, shared);
+
+    client->open();
+    for (;;)
+    {
+        std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
+        hl2ss::map_pv region = hl2ss::unpack_pv(data->payload.get(), data->sz_payload);
+
+        print_packet_metadata(data->timestamp, data->pose.get());
+
+        std::cout << "Focal length: "    << region.metadata->f.x << ", " << region.metadata->f.y << std::endl;
+        std::cout << "Principal point: " << region.metadata->c.x << ", " << region.metadata->c.y << std::endl;
+
+        std::cout << "exposure_time: " << region.metadata->exposure_time << std::endl;
+        std::cout << "exposure_compensation: " << region.metadata->exposure_compensation.val[0] << "," << region.metadata->exposure_compensation.val[1] << std::endl;
+        std::cout << "lens_position: " << region.metadata->lens_position << std::endl;
+        std::cout << "focus_state: " << region.metadata->focus_state << std::endl;
+        std::cout << "iso_speed: " << region.metadata->iso_speed << std::endl;
+        std::cout << "white_balance: " << region.metadata->white_balance << std::endl;
+        std::cout << "iso_gains: " << region.metadata->iso_gains.x << "," << region.metadata->iso_gains.y << std::endl;
+        std::cout << "white_balance_gains: " << region.metadata->white_balance_gains.x << "," << region.metadata->white_balance_gains.y << "," << region.metadata->white_balance_gains.z << std::endl;
+
+        std::cout << "dimensions: " << client->width << " x " << client->height << " x " << (int)channels << std::endl;
+
+        cv::Mat mat_image = cv::Mat(client->height, client->width, CV_8UC(channels), region.image);
+        cv::imshow(port_name, mat_image);
+        if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+    }
+    client->close();
+
+    hl2ss::lnm::stop_subsystem_pv(host, port);
+}
+
+//-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
 
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 23;
+    int test_id = 24;
 
     try
     {
@@ -775,6 +825,7 @@ int main()
         case 21: test_gmq(host); break; // OK
         case 22: test_pv_umq(host); break; // OK
         case 23: test_extended_video(host); break; // OK
+        case 24: test_pv_shared(host); break;
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }
