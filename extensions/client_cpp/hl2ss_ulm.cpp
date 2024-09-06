@@ -475,6 +475,19 @@ HL2SS_ULM_BEGIN
 }
 HL2SS_ULM_END(nullptr)
 
+HL2SS_CLIENT_EXPORT
+int32_t HL2SS_CALL get_pv_dimensions(void* source, uint16_t& width, uint16_t& height)
+HL2SS_ULM_BEGIN
+{
+    std::shared_ptr<hl2ss::mt::source> s = typed_handle<hl2ss::mt::source>::get(source);
+    hl2ss::rx_pv const* rx = s->get_rx<hl2ss::rx_pv>();
+    if (!rx) { throw std::runtime_error("hl2ss::ulm::get_pv_dimensions : source is not pv"); }
+    width = rx->width;
+    height = rx->height;
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
 //-----------------------------------------------------------------------------
 // Control
 //-----------------------------------------------------------------------------

@@ -1524,6 +1524,9 @@ void* HL2SS_CALL get_by_index(void* source, int64_t frame_stamp, hl2ss::ulm::pac
 HL2SS_CLIENT_IMPORT
 void* HL2SS_CALL get_by_timestamp(void* source, uint64_t timestamp, int32_t time_preference, int32_t tiebreak_right, hl2ss::ulm::packet& packet);
 
+HL2SS_CLIENT_IMPORT
+int32_t HL2SS_CALL get_pv_dimensions(void* source, uint16_t& width, uint16_t& height);
+
 //-----------------------------------------------------------------------------
 // Control
 //-----------------------------------------------------------------------------
@@ -1892,6 +1895,11 @@ public:
     std::unique_ptr<packet> get_by_timestamp(uint64_t timestamp, int32_t time_preference, bool tiebreak_right)
     {
         return std::make_unique<packet>(m_handle, timestamp, time_preference, tiebreak_right);
+    }
+
+    void get_pv_dimensions(uint16_t& width, uint16_t& height)
+    {
+        handle::check_result(hl2ss::ulm::get_pv_dimensions(m_handle, width, height));
     }
 };
 
