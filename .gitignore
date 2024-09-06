@@ -48,3 +48,4 @@ hl2ss_td/venv/
 hl2ss_td/calibration/*
 /extensions/client_python_mt/.vscode
 /extensions/client_python_mt/build
+/extensions/client_python_mt/__pycache__
