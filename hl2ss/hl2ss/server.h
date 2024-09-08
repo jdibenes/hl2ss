@@ -5,6 +5,7 @@
 
 bool   InitializeSockets();
 SOCKET CreateSocket(char const* port);
+SOCKET CreateSocket(char const* target, uint16_t port, uint32_t& max_msg_size, SOCKADDR_IN& mc_addr);
 void   CleanupSockets();
 
 bool recv_u8(SOCKET socket, uint8_t& byte);

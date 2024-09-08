@@ -1,5 +1,7 @@
 
 import numpy as np
+import os
+import select
 import socket
 import struct
 import cv2
@@ -301,6 +303,42 @@ class _client:
         return data
 
     def close(self):
+        self._socket.close()
+
+
+class _client_xsm:
+    if (os.name == 'nt'):
+        IP_ADD_SOURCE_MEMBERSHIP  = 15
+        IP_DROP_SOURCE_MEMBERSHIP = 16
+    else:
+        IP_ADD_SOURCE_MEMBERSHIP  = 39
+        IP_DROP_SOURCE_MEMBERSHIP = 40
+
+    def open(self, source, port):
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._socket.bind(('', port))
+
+        if (source is not None):
+            self._add  = _client_xsm.IP_ADD_SOURCE_MEMBERSHIP
+            self._drop = _client_xsm.IP_DROP_SOURCE_MEMBERSHIP
+            sb = socket.inet_aton(source)
+        else:
+            self._add  = socket.IP_ADD_MEMBERSHIP
+            self._drop = socket.IP_DROP_MEMBERSHIP
+            sb = b''
+
+        self._mreq = socket.inet_aton('238.0.38.1') + sb + struct.pack('L', socket.htonl(socket.INADDR_ANY))
+        self._socket.setsockopt(socket.IPPROTO_IP, self._add, self._mreq)
+
+    def recvfrom(self):
+        return self._socket.recvfrom(_RANGEOF.U16_MAX)
+    
+    def select(self, timeout):
+        return self._socket in select.select([self._socket], [], [], timeout)[0]
+    
+    def close(self):
+        self._socket.setsockopt(socket.IPPROTO_IP, self._drop, self._mreq)
         self._socket.close()
 
 
@@ -2069,6 +2107,31 @@ class ipc_rc(_context_manager):
         command = struct.pack('<BIi', ipc_rc._CMD_SET_INTERFACE_PRIORITY, port, priority)
         self._client.sendall(command)
     
+
+class ipc_rcx(_context_manager):
+    def __init__(self, port):
+        self.port = port
+
+    def open(self):
+        self._client = _client_xsm()
+        self._client.open(None, self.port)
+
+    def select(self, timeout):
+        return self._client.select(timeout)
+
+    def close(self):
+        self._client.close()
+
+    def get_beacon(self):
+        data, address = self._client.recvfrom()
+        message = data.decode('utf-16', 'ignore').split(';')
+        n = len(message)
+        if (n < 5):
+            return None
+        if (message[0] != 'hl2ss'):
+            return None
+        return [address[0], message[1], message[2], message[3]] + [message[i] for i in range(4, n)]
+
 
 #------------------------------------------------------------------------------
 # Spatial Mapping

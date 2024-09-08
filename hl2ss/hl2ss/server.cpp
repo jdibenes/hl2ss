@@ -120,3 +120,28 @@ void pack_buffer(WSABUF *dst, int index, void const *buffer, ULONG length)
 	dst[index].buf = (char*)buffer;
 	dst[index].len = length;
 }
+
+// OK
+SOCKET CreateSocket(char const* target, uint16_t port, uint32_t& max_msg_size, SOCKADDR_IN& mc_addr)
+{
+	int sizeofu32 = sizeof(uint32_t);
+	DWORD loop = 0;
+	DWORD ttl = 32;
+
+	SOCKET s;
+	IN_ADDR addr;
+
+	s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL,  (char*)&ttl,           sizeof(ttl));
+	setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char*)&loop,          sizeof(loop));
+	getsockopt(s, SOL_SOCKET, SO_MAX_MSG_SIZE,   (char*)&max_msg_size, &sizeofu32);
+
+	inet_pton(AF_INET, target, &addr);
+
+	mc_addr.sin_family = AF_INET;
+	mc_addr.sin_port = htons(port);
+	mc_addr.sin_addr = addr;
+
+	return s;
+}

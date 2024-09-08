@@ -92,9 +92,8 @@ void DebugMessage(char const* str)
 HL2SS_PLUGIN_EXPORT
 void GetLocalIPv4Address(wchar_t *buffer, int size)
 {
-    std::vector<wchar_t> address;
-    GetLocalIPv4Address(address);
-    wcscpy_s(buffer, size / sizeof(wchar_t), address.data());
+    winrt::hstring address = GetLocalIPv4Address();
+    wcscpy_s(buffer, size / sizeof(wchar_t), address.c_str());
 }
 
 // OK

@@ -10,11 +10,13 @@
 #include <winrt/Windows.Networking.Connectivity.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Devices.Enumeration.h>
+#include <winrt/Windows.Security.ExchangeActiveSyncProvisioning.h>
 
 using namespace winrt::Windows::ApplicationModel;
 using namespace winrt::Windows::Networking;
 using namespace winrt::Windows::Networking::Connectivity;
 using namespace winrt::Windows::Devices::Enumeration;
+using namespace winrt::Windows::Security::ExchangeActiveSyncProvisioning;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -31,18 +33,20 @@ void GetApplicationVersion(uint16_t data[4])
 }
 
 // OK
-void GetLocalIPv4Address(std::vector<wchar_t> &address)
+void GetLocalIPv4Address(std::vector<winrt::hstring>& address)
 {
     for (auto const& hostname : NetworkInformation::GetHostNames())
     {
-    if (hostname.Type() == HostNameType::Ipv4)
-    {
-    wchar_t const* str = hostname.ToString().c_str();
-    address.resize(wcslen(str) + 1);
-    wcscpy_s(address.data(), address.size(), str);
-    return;
+    if (hostname.Type() == HostNameType::Ipv4) { address.push_back(hostname.ToString()); }
     }
-    }
+}
+
+// OK
+winrt::hstring GetLocalIPv4Address()
+{
+    std::vector<winrt::hstring> address;
+    GetLocalIPv4Address(address);
+    return (address.size() > 0) ? address[0] : L"0.0.0.0";
 }
 
 // OK
@@ -272,4 +276,16 @@ void GetAudioCaptureIds(std::vector<winrt::hstring>& ids)
 void GetAudioCaptureIdsAndNames(std::vector<winrt::hstring>& ids, std::vector<winrt::hstring>& names)
 {
     GetDeviceIdsAndNames(DeviceClass::AudioCapture, ids, names);
+}
+
+// OK
+winrt::hstring GetFriendlyName()
+{
+    return EasClientDeviceInformation().FriendlyName();
+}
+
+// OK
+winrt::hstring GetSystemSku()
+{
+    return EasClientDeviceInformation().SystemSku();
 }

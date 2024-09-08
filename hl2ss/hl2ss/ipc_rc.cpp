@@ -15,8 +15,11 @@
 //-----------------------------------------------------------------------------
 
 static HANDLE g_thread = NULL; // CloseHandle
+static HANDLE g_thread_x = NULL; // CloseHandle
 static HANDLE g_event_quit = NULL; // CloseHandle
 static HANDLE g_event_client = NULL; // CloseHandle
+
+static winrt::hstring g_message;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -555,11 +558,64 @@ static DWORD WINAPI RC_EntryPoint(void *param)
 }
 
 // OK
+static DWORD WINAPI RCX_EntryPoint(void* param)
+{
+    (void)param;
+
+    DWORD const tx_interval = 1000;
+
+    uint32_t max_msg_size;
+    SOCKADDR_IN mc_addr;
+    SOCKET s;
+
+    s = CreateSocket("238.0.38.1", PORT_NUMBER_RC, max_msg_size, mc_addr);
+
+    ShowMessage("RCX: Broadcasting at port %d with SO_MAX_MSG_SIZE of %d", PORT_NUMBER_RC, max_msg_size);
+
+    do
+    {
+        Sleep(tx_interval);
+        sendto(s, (char*)g_message.c_str(), g_message.size() * sizeof(wchar_t), 0, (sockaddr*)&mc_addr, sizeof(mc_addr));
+    }
+    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
+
+    closesocket(s);
+
+    ShowMessage("RCX: Closed");
+
+    return 0;
+}
+
+// OK
+void RCX_InitializeMessage()
+{
+    std::vector<winrt::hstring> address;
+    uint16_t version[4];
+
+    GetLocalIPv4Address(address);
+    GetApplicationVersion(version);
+
+    winrt::hstring d = L";";
+    winrt::hstring a = L"hl2ss";
+    winrt::hstring v = winrt::to_hstring(version[0]) + L"." + winrt::to_hstring(version[1]) + L"." + winrt::to_hstring(version[2]) + L"." + winrt::to_hstring(version[3]);
+    winrt::hstring n = GetFriendlyName();
+    winrt::hstring s = GetSystemSku();
+    winrt::hstring i = L"";
+
+    for (winrt::hstring h : address) { i = i + h + d; }
+
+    g_message = a + d + v + d + n + d + s + d + i;
+}
+
+// OK
 void RC_Initialize()
 {
+    RCX_InitializeMessage();
+
     g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, RC_EntryPoint, NULL, 0, NULL);
+    g_thread_x = CreateThread(NULL, 0, RCX_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
@@ -572,12 +628,15 @@ void RC_Quit()
 void RC_Cleanup()
 {
     WaitForSingleObject(g_thread, INFINITE);
+    WaitForSingleObject(g_thread_x, INFINITE);
 
     CloseHandle(g_thread);
+    CloseHandle(g_thread_x);
     CloseHandle(g_event_client);
     CloseHandle(g_event_quit);
 
     g_thread = NULL;
+    g_thread_x = NULL;
     g_event_client = NULL;
     g_event_quit = NULL;
 }

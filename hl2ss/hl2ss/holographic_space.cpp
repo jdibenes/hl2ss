@@ -86,9 +86,8 @@ static void HolographicSpace_CreateHUDTextures()
 
     memset(data, 0, buffer_size);
 
-    std::vector<wchar_t> ipaddress;
-    GetLocalIPv4Address(ipaddress);    
-    DrawDigits(ipaddress.data(), iptext_x, iptext_y, iptext_side, iptext_size, iptext_side, iptext_size, iptext_size, buffer_width, buffer_height, iptext_color, (u32*)data);
+    winrt::hstring ipaddress = GetLocalIPv4Address();
+    DrawDigits(ipaddress.c_str(), iptext_x, iptext_y, iptext_side, iptext_size, iptext_side, iptext_size, iptext_size, buffer_width, buffer_height, iptext_color, (u32*)data);
 
     g_device->CreateTexture2D(&dtd, dsd, &g_texture_empty);
 
