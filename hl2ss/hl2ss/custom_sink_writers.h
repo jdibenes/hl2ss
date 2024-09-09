@@ -32,6 +32,10 @@ struct HookCallbackSocket
     SOCKET clientsocket;
     HANDLE clientevent;
     void*  format;
+    SOCKET clientsocket_xsm;
+    uint32_t* max_msg_size;
+    SOCKADDR_IN* mc_addr;
+    uint64_t mode;
 };
 
 void CreateSinkWriterAudio(CustomMediaSink** ppSink, IMFSinkWriter** ppSinkWriter, DWORD* pdwAudioIndex, AudioSubtype input_subtype, AACFormat  const& format, HOOK_SINK_PROC hookproc, void* hookparam);

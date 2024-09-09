@@ -193,6 +193,7 @@ void PV_SendSample(IMFSample* pSample, void* param)
     BYTE* pBytes;
     DWORD cbData;
     WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];
+    bool ok;
 
     HookCallbackSocket* user = (HookCallbackSocket*)param;
     H26xFormat* format = (H26xFormat*)user->format;
@@ -200,6 +201,9 @@ void PV_SendSample(IMFSample* pSample, void* param)
 
     pSample->GetSampleTime(&sampletime);
     pSample->ConvertToContiguousBuffer(&pBuffer);
+
+    UINT32 kf = 0xFFFFFFFF;
+    pSample->GetUINT32(MFSampleExtension_CleanPoint, &kf);
     
     if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
 
@@ -217,9 +221,17 @@ void PV_SendSample(IMFSample* pSample, void* param)
     {
     pack_buffer(wsaBuf, 4, &g_pvp_sh.pose, sizeof(g_pvp_sh.pose));
     }
-    
-    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+
+    if (!user->mode)
+    {
+    ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
     if (!ok) { SetEvent(user->clientevent); }
+    }
+    else
+    {
+    ok = send_multiple(user->clientsocket_xsm, *user->max_msg_size, (SOCKADDR*)user->mc_addr, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF), kf);
+    if (Select(user->clientsocket)) { SetEvent(user->clientevent); }
+    }
 
     pBuffer->Unlock();
     pBuffer->Release();
@@ -229,11 +241,13 @@ void PV_SendSample(IMFSample* pSample, void* param)
 
 // OK
 template<bool ENABLE_LOCATION>
-void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format)
+void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format, bool xsm)
 {
     CustomMediaSink* pSink; // Release
     std::vector<uint64_t> options;
     HookCallbackSocket user;
+    uint32_t max_msg_size;
+    SOCKADDR_IN mc_addr;
     bool ok;
 
     ok = ReceiveH26xFormat_Divisor(clientsocket, format);
@@ -245,9 +259,18 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     ok = ReceiveH26xEncoder_Options(clientsocket, options);
     if (!ok) { return; }
 
-    user.clientsocket = clientsocket;
+    user.clientsocket = clientsocket;    
     user.clientevent  = clientevent;
     user.format       = &format;
+
+    if (xsm)
+    {
+    user.clientsocket_xsm = CreateSocket("238.0.38.1", PORT_NUMBER_PV, max_msg_size, mc_addr);
+    user.max_msg_size = &max_msg_size;
+    user.mc_addr = &mc_addr;
+    }
+
+    user.mode = xsm;
 
     CreateSinkWriterVideo(&pSink, &g_pSinkWriter, &g_dwVideoIndex, VideoSubtype::VideoSubtype_NV12, format, options, PV_SendSample<ENABLE_LOCATION>, &user);
 
@@ -267,6 +290,8 @@ void PV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& 
     g_pSinkWriter->Release();
     pSink->Shutdown();
     pSink->Release();
+
+    if (xsm) { closesocket(user.clientsocket_xsm); }
 }
 
 // OK
@@ -325,8 +350,8 @@ static void PV_Stream(SOCKET clientsocket)
     
     switch (mode & 3)
     {
-    case 0: PV_Stream<false>(clientsocket, clientevent, videoFrameReader, format); break;
-    case 1: PV_Stream<true>( clientsocket, clientevent, videoFrameReader, format); break;
+    case 0: PV_Stream<false>(clientsocket, clientevent, videoFrameReader, format, mode & 0x80); break;
+    case 1: PV_Stream<true>( clientsocket, clientevent, videoFrameReader, format, mode & 0x80); break;
     case 2: PV_Intrinsics(   clientsocket, clientevent, videoFrameReader);         break;
     }
 

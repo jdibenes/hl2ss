@@ -61,6 +61,11 @@ class StreamMode:
     MODE_2 = 2
 
 
+class StreamProtocol:
+    TCP = 0
+    UDP_SSM = 0x80
+
+
 # Video Encoder Profile
 #   0: H264 base
 #   1: H264 main
@@ -425,7 +430,7 @@ class _gatherer:
         self._client = _client()
         self._unpacker = _unpacker()
         self._chunk_size = chunk_size
-        self._unpacker.reset(mode)
+        self._unpacker.reset(mode & 1)
         self._client.open(host, port)
         
     def sendall(self, data):
@@ -438,6 +443,39 @@ class _gatherer:
                 return self._unpacker.get()
 
     def close(self):
+        self._client.close()
+
+
+class _gatherer_xsm:
+    def open(self, host, port, chunk_size, mode):
+        self._client = _client()
+        self._client_xsm = _client_xsm()
+        self._unpacker = _unpacker()
+        self._chunk_size = chunk_size
+        self._unpacker.reset(mode & 1)
+        self._client.open(host, port)
+        self._client_xsm.open(host, port)
+        self._sync = False
+
+    def sendall(self, data):
+        self._client.sendall(data)
+
+    def get_next_packet(self):
+        while (True):
+            data = self._client_xsm.recvfrom()[0]
+            if (not self._sync):
+                header = struct.unpack_from('<Q', data, 0)[0]
+                if (((header >> 32) & 1) != 0):
+                    if ((header & 0xFFFF) == 0):
+                        self._sync = True
+            if (self._sync):
+                header = struct.unpack_from('<Q', data, 0)[0]
+                self._unpacker.extend(data[8:])
+                if (self._unpacker.unpack()):
+                    return self._unpacker.get()
+
+    def close(self):
+        self._client_xsm.close()
         self._client.close()
 
 
@@ -618,7 +656,7 @@ def _connect_client_rm_imu(host, port, chunk_size, mode):
 
 
 def _connect_client_pv(host, port, chunk_size, mode, width, height, framerate, divisor, profile, level, bitrate, options):
-    c = _gatherer()
+    c = _gatherer_xsm() if (mode & StreamProtocol.UDP_SSM) else _gatherer()
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_pv(mode, width, height, framerate, divisor, profile, level, bitrate, options))
     return c

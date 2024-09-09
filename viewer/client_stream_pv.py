@@ -24,7 +24,7 @@ host = "192.168.1.7"
 # 0: video
 # 1: video + camera pose
 # 2: query calibration (single transfer)
-mode = hl2ss.StreamMode.MODE_1
+mode = hl2ss.StreamMode.MODE_1 | hl2ss.StreamProtocol.UDP_SSM
 
 # Enable Mixed Reality Capture (Holograms)
 enable_mrc = False

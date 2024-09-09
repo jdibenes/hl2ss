@@ -1,7 +1,9 @@
 
+#include <vector>
 #include <ws2tcpip.h>
 #include "server.h"
 #include "types.h"
+#include "log.h"
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -144,4 +146,95 @@ SOCKET CreateSocket(char const* target, uint16_t port, uint32_t& max_msg_size, S
 	mc_addr.sin_addr = addr;
 
 	return s;
+}
+
+// OK
+bool Select(SOCKET s)
+{
+	timeval tv{ 0, 0 };
+	fd_set fs;
+
+	fs.fd_count    = 1;
+	fs.fd_array[0] = s;
+
+	return select(1, &fs, NULL, NULL, &tv) == 1;
+}
+
+// OK
+bool send_multiple(SOCKET s, uint32_t max_msg_size, SOCKADDR const* mc_addr, LPWSABUF buffers, DWORD dwBufferCount, BOOL clean_point)
+{
+	uint64_t header;
+
+	max_msg_size -= sizeof(header);
+
+	DWORD total_bytes = 0;
+	for (DWORD i = 0; i < dwBufferCount; ++i) { total_bytes += buffers[i].len; }
+	DWORD dgram_count = (total_bytes / max_msg_size) + ((total_bytes % max_msg_size) != 0);
+	
+	if (dgram_count <= 0) { return true; }
+
+	max_msg_size = (total_bytes / dgram_count) + ((total_bytes % dgram_count) != 0);
+
+	std::vector<WSABUF> block;
+	DWORD dwBytesSent;
+	int status;
+	
+	int32_t byte_count;
+	WSABUF source = { 0, 0 };
+	DWORD dgram_index = 0;
+	DWORD dwBufferIndex = 0;
+	int state = 0;
+	DWORD total_sent = 0;
+
+	while (dgram_index < dgram_count)
+	{
+		switch (state)
+		{
+		case 0:
+			header = ((uint64_t)(clean_point != 0) << 32) | (uint64_t)(((dgram_count & 0xFFFF) << 16) | (dgram_index & 0xFFFF));
+			byte_count = max_msg_size;
+			block.push_back({ sizeof(header), (char*)&header });
+			state = 1;
+			break;
+		case 1:
+			state = (source.len <= 0) ? 2 : 3;
+			break;
+		case 2:
+			if (dwBufferIndex < dwBufferCount)
+			{ 
+				source = buffers[dwBufferIndex++];
+				state = 3;
+			}
+			else
+			{
+				state = 6;
+			}
+			break;
+		case 3:
+			state = (source.len <= byte_count) ? 4 : 5;
+			break;
+		case 4:
+			block.push_back(source);
+			byte_count -= source.len;
+			source.len = 0;
+			state = (byte_count <= 0) ? 6 : 2;
+			break;
+		case 5:
+			block.push_back({ (ULONG)byte_count, source.buf });
+			source.buf += byte_count;
+			source.len -= byte_count;
+			state = 6;
+			break;
+		case 6:
+			status = WSASendTo(s, block.data(), block.size(), &dwBytesSent, 0, mc_addr, sizeof(SOCKADDR_IN), NULL, NULL);
+			total_sent += dwBytesSent;
+			if (status == SOCKET_ERROR) { return false; }
+			block.clear();
+			dgram_index++;			
+			state = 0;
+			break;
+		}
+	}
+
+	return true;
 }
