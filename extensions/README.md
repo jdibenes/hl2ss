@@ -49,6 +49,19 @@ Android Native Library for streaming HoloLens 2 sensor data to Android apps. The
 
 Open the project in Android Studio, set the paths to the FFmpeg and OpenCV headers and shared libraries in `CMakeLists.txt`, and build the hl2ss_ulm module. Import the output `hl2ss_ulm-release.aar` file into your Android project.
 
+## client_python_mt
+
+Multithreaded client extension for Python.
+
+**Build**
+
+Build the hl2ss_ulm shared library then run:
+
+`python3 extension_hl2ss_ulm_stream.py build`
+
+After building copy the `hl2ss_ulm_stream.[...].pyd` (or `hl2ss_ulm_stream.[...].so`) file in the `build/lib.[...]` folder to the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) folder.
+Also, copy the hl2ss_ulm shared library and the shared libraries for OpenCV and FFmpeg if necessary.
+
 ## pyzdepth 
 
 Zdepth wrapper for Python. Required to decompress RM Depth AHAT data configured with `hl2ss.DepthProfile.ZDEPTH`.
