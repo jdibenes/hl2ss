@@ -22,7 +22,7 @@ public class test_ipc_umq : MonoBehaviour
 
         Debug.Log(string.Format("Response {0}", response[0]));
 
-        ipc.destroy();
+        ipc.Dispose();
     }
 
     // Update is called once per frame

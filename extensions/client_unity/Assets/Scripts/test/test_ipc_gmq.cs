@@ -15,20 +15,20 @@ public class test_ipc_gmq : MonoBehaviour
 
         uint[] response = new uint[1] { 1 };
 
-        var msg = ipc.pull();
-
-        Debug.Log(string.Format("command id: {0} size: {1}", msg.command, msg.size));
-        if ((msg.command == 0xFFFFFFFE) && (msg.size > 0))
+        using (var msg = ipc.pull())
         {
-            byte[] data = new byte[msg.size];
-            Marshal.Copy(msg.data, data, 0, (int)msg.size);
-            Debug.Log(Encoding.UTF8.GetString(data));
+            Debug.Log(string.Format("command id: {0} size: {1}", msg.command, msg.size));
+            if ((msg.command == 0xFFFFFFFE) && (msg.size > 0))
+            {
+                byte[] data = new byte[msg.size];
+                Marshal.Copy(msg.data, data, 0, (int)msg.size);
+                Debug.Log(Encoding.UTF8.GetString(data));
+            }
+
+            ipc.push(response, (uint)response.Length);
         }
 
-        ipc.push(response, (uint)response.Length);
-
-        msg.destroy();
-        ipc.destroy();
+        ipc.Dispose();
     }
 
     // Update is called once per frame

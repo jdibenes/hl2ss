@@ -27,9 +27,10 @@ public class test_rm_depth_longthrow : MonoBehaviour
 
         hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_rm_depth_longthrow configuration);
 
-        var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration);
-        var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_depth_longthrow>(calibration_handle.data);
-        calibration_handle.destroy();
+        using (var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration))
+        {
+            var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_depth_longthrow>(calibration_handle.data);
+        }
 
         source_rm_depth_longthrow = hl2ss.svc.open_stream(host, port, 50, configuration);
 
@@ -53,30 +54,30 @@ public class test_rm_depth_longthrow : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        var packet = source_rm_depth_longthrow.get_by_index(-1);
-        if (packet.status != 0) { return; }
+        using (var packet = source_rm_depth_longthrow.get_by_index(-1))
+        {
+            if (packet.status != 0) { return; }
 
-        packet.unpack(out hl2ss.map_rm_depth_longthrow region);
+            packet.unpack(out hl2ss.map_rm_depth_longthrow region);
 
-        var metadata = Marshal.PtrToStructure<hl2ss.rm_depth_longthrow_metadata>(region.metadata);
-        var pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
+            var metadata = Marshal.PtrToStructure<hl2ss.rm_depth_longthrow_metadata>(region.metadata);
+            var pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
 
-        tex_z.LoadRawTextureData(region.depth, (int)hl2ss.parameters_rm_depth_longthrow.PIXELS * sizeof(ushort));
-        tex_z.Apply();
+            tex_z.LoadRawTextureData(region.depth, (int)hl2ss.parameters_rm_depth_longthrow.PIXELS * sizeof(ushort));
+            tex_z.Apply();
 
-        tex_ab.LoadRawTextureData(region.ab, (int)hl2ss.parameters_rm_depth_longthrow.PIXELS * sizeof(ushort));
-        tex_ab.Apply();
+            tex_ab.LoadRawTextureData(region.ab, (int)hl2ss.parameters_rm_depth_longthrow.PIXELS * sizeof(ushort));
+            tex_ab.Apply();
 
-        Graphics.Blit(tex_z, texr_z, mat_z);
-        Graphics.Blit(tex_ab, texr_ab, mat_ab);
-
-        packet.destroy();
+            Graphics.Blit(tex_z, texr_z, mat_z);
+            Graphics.Blit(tex_ab, texr_ab, mat_ab);
+        }
     }
 
     void OnApplicationQuit()
     {
         if (source_rm_depth_longthrow == null) { return; }
 
-        source_rm_depth_longthrow.destroy();
+        source_rm_depth_longthrow.Dispose();
     }
 }

@@ -26,13 +26,14 @@ public class test_ipc_vi : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        var result = ipc.pop();
-        for (ulong i = 0; i < result.size; ++i)
+        using (var result = ipc.pop())
         {
-            var value = Marshal.PtrToStructure<hl2ss.vi_result>(IntPtr.Add(result.data, (int)i * Marshal.SizeOf<hl2ss.vi_result>()));
-            Debug.Log(string.Format("VI: {0}, {1}, {2}, {3}, {4}", value.index, value.confidence, value.raw_confidence, value.phrase_start_time, value.phrase_duration));
+            for (ulong i = 0; i < result.size; ++i)
+            {
+                var value = Marshal.PtrToStructure<hl2ss.vi_result>(IntPtr.Add(result.data, (int)i * Marshal.SizeOf<hl2ss.vi_result>()));
+                Debug.Log(string.Format("VI: {0}, {1}, {2}, {3}, {4}", value.index, value.confidence, value.raw_confidence, value.phrase_start_time, value.phrase_duration));
+            }
         }
-        result.destroy();
     }
 
     void OnApplicationQuit()
@@ -41,6 +42,6 @@ public class test_ipc_vi : MonoBehaviour
 
         ipc.clear();
         ipc.stop();
-        ipc.destroy();
+        ipc.Dispose();
     }
 }

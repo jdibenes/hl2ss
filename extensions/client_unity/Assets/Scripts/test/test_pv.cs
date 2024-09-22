@@ -54,9 +54,10 @@ public class test_pv : MonoBehaviour
 
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration_subsystem);
 
-        var calibration_handle = hl2ss.svc.download_calibration(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration);
-        var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.data);
-        calibration_handle.destroy();
+        using (var calibration_handle = hl2ss.svc.download_calibration(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration))
+        {
+            var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.data);
+        }
 
         source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration);
     }
@@ -64,33 +65,33 @@ public class test_pv : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        hl2ss.svc.packet packet = source_pv.get_by_index(-1);
-        if (packet.status != 0) { return; }
-        packet.unpack(out hl2ss.map_pv region);
-
-        hl2ss.pv_metadata metadata = Marshal.PtrToStructure<hl2ss.pv_metadata>(region.metadata);
-        hl2ss.matrix_4x4 pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
-
-        if (!tex_pv)
+        using (hl2ss.svc.packet packet = source_pv.get_by_index(-1))
         {
-            source_pv.get_pv_dimensions(out ushort width, out ushort height);
-            Debug.Log(string.Format("pv dimensions: {0} x {1}", width, height));
-            pv_frame_size = width * height * bpp;
-            tex_pv = new Texture2D(width, height, texture_format, false);
-            quad_pv.GetComponent<Renderer>().material.mainTexture = tex_pv;
+            if (packet.status != 0) { return; }
+            packet.unpack(out hl2ss.map_pv region);
+
+            hl2ss.pv_metadata metadata = Marshal.PtrToStructure<hl2ss.pv_metadata>(region.metadata);
+            hl2ss.matrix_4x4 pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
+
+            if (!tex_pv)
+            {
+                source_pv.get_pv_dimensions(out ushort width, out ushort height);
+                Debug.Log(string.Format("pv dimensions: {0} x {1}", width, height));
+                pv_frame_size = width * height * bpp;
+                tex_pv = new Texture2D(width, height, texture_format, false);
+                quad_pv.GetComponent<Renderer>().material.mainTexture = tex_pv;
+            }
+
+            tex_pv.LoadRawTextureData(region.image, pv_frame_size);
+            tex_pv.Apply();
         }
-
-        tex_pv.LoadRawTextureData(region.image, pv_frame_size);
-        tex_pv.Apply();
-
-        packet.destroy();
     }
 
     void OnApplicationQuit()
     {
         if (source_pv == null) { return; }
 
-        source_pv.destroy();
+        source_pv.Dispose();
         hl2ss.svc.stop_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO);
     }
 }

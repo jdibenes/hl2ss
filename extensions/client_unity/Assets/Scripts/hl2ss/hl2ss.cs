@@ -336,7 +336,7 @@ public static partial class hl2ss
     //------------------------------------------------------------------------------
 
     // NO LAYOUT
-    public class pointer
+    public class pointer : IDisposable
     {
         protected GCHandle h;
         protected IntPtr p;
@@ -354,16 +354,22 @@ public static partial class hl2ss
 
         public IntPtr value { get { return p; } }
 
-        public void destroy()
+        protected virtual void Dispose(bool disposing)
         {
             if (p == IntPtr.Zero) { return; }
             p = IntPtr.Zero;
             h.Free();
         }
 
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(true);
+        }
+
         ~pointer()
         {
-            destroy();
+            Dispose(false);
         }
     }
 
@@ -403,8 +409,7 @@ public static partial class hl2ss
 
         public void push<T>(T v) where T : struct
         {
-            pointer p = pointer.get(v);
-            try { push(p.value, (ulong)Marshal.SizeOf<T>()); } finally { p.destroy(); }
+            using (pointer p = pointer.get(v)) { push(p.value, (ulong)Marshal.SizeOf<T>()); }
         }
 
         public void push(byte[] v)

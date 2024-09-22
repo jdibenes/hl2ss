@@ -30,32 +30,33 @@ public class test_ipc_sm : MonoBehaviour
         ipc.create_observer();
         ipc.set_volumes(volumes);
 
-        var surfaces = ipc.get_observed_surfaces();
-        Debug.Log(string.Format("got {0} surfaces", surfaces.size));
-
-        for (ulong i = 0; i < surfaces.size; ++i)
+        using (var surfaces = ipc.get_observed_surfaces())
         {
-            hl2ss.sm_surface_info info = Marshal.PtrToStructure<hl2ss.sm_surface_info>(IntPtr.Add(surfaces.data, (int)i * Marshal.SizeOf<hl2ss.sm_surface_info>()));
-            tasks.add_task(info.id, 1000.0f, hl2ss.sm_vertex_position_format.R32G32B32A32Float, hl2ss.sm_triangle_index_format.R32Uint, hl2ss.sm_vertex_normal_format.R32G32B32A32Float, true, false);
+            Debug.Log(string.Format("got {0} surfaces", surfaces.size));
+
+            for (ulong i = 0; i < surfaces.size; ++i)
+            {
+                hl2ss.sm_surface_info info = Marshal.PtrToStructure<hl2ss.sm_surface_info>(IntPtr.Add(surfaces.data, (int)i * Marshal.SizeOf<hl2ss.sm_surface_info>()));
+                tasks.add_task(info.id, 1000.0f, hl2ss.sm_vertex_position_format.R32G32B32A32Float, hl2ss.sm_triangle_index_format.R32Uint, hl2ss.sm_vertex_normal_format.R32G32B32A32Float, true, false);
+            }
+
+            using (var result = ipc.get_meshes(tasks, threads))
+            {
+                Debug.Log(string.Format("got {0} meshes", result.meshes.Length));
+
+                for (ulong i = 0; i < surfaces.size; ++i)
+                {
+                    Debug.Log(string.Format("mesh index: {0}", i));
+                    Debug.Log(string.Format("mesh status: {0}", result.meshes[i].status));
+                    Debug.Log(string.Format("mesh vertices: {0}", result.meshes[i].vertex_positions_size / (4 * sizeof(float))));
+                    Debug.Log(string.Format("mesh triangles: {0}", result.meshes[i].triangle_indices_size / (3 * sizeof(uint))));
+                    Debug.Log(string.Format("mesh normals: {0}", result.meshes[i].vertex_normals_size / (4 * sizeof(float))));
+                    Debug.Log(string.Format("mesh scale: [{0}, {1}, {2}]", result.meshes[i].vertex_position_scale.x, result.meshes[i].vertex_position_scale.y, result.meshes[i].vertex_position_scale.z));
+                }
+            }
         }
 
-        var result = ipc.get_meshes(tasks, threads);
-        Debug.Log(string.Format("got {0} meshes", result.meshes.Length));
-
-        for (ulong i = 0; i < surfaces.size; ++i)
-        {
-            Debug.Log(string.Format("mesh index: {0}", i));
-            Debug.Log(string.Format("mesh status: {0}", result.meshes[i].status));
-            Debug.Log(string.Format("mesh vertices: {0}", result.meshes[i].vertex_positions_size / (4 * sizeof(float))));
-            Debug.Log(string.Format("mesh triangles: {0}", result.meshes[i].triangle_indices_size / (3 * sizeof(uint))));
-            Debug.Log(string.Format("mesh normals: {0}", result.meshes[i].vertex_normals_size / (4 * sizeof(float))));
-            Debug.Log(string.Format("mesh scale: [{0}, {1}, {2}]", result.meshes[i].vertex_position_scale.x, result.meshes[i].vertex_position_scale.y, result.meshes[i].vertex_position_scale.z));
-        }
-
-        result.destroy();
-        surfaces.destroy();
-
-        ipc.destroy();
+        ipc.Dispose();
     }
 
     // Update is called once per frame

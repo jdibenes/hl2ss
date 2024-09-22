@@ -48,29 +48,29 @@ public class test_microphone : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        var packet = source_microphone.get_by_index(index);
-        if (packet.status < 0)
+        using (var packet = source_microphone.get_by_index(index))
         {
+            if (packet.status < 0)
+            {
+                index++;
+                return;
+            }
+            if (packet.status > 0)
+            {
+                return;
+            }
+
             index++;
-            return;
+
+            packet.unpack(out hl2ss.map_microphone_aac region);
+
+            float[] b = new float[packet.sz_payload / sizeof(float)];
+            Marshal.Copy(region.samples, b, 0, b.Length);
+            for (int i = 0; i < (b.Length / 2); ++i)
+            {
+                buffer.Add(b[i]);
+                buffer.Add(b[(b.Length / 2) + i]);
+            }
         }
-        if (packet.status > 0)
-        {
-            return;
-        }
-
-        index++;
-
-        packet.unpack(out hl2ss.map_microphone_aac region);
-
-        float[] b = new float[packet.sz_payload / sizeof(float)];
-        Marshal.Copy(region.samples, b, 0, b.Length);
-        for (int i = 0; i < (b.Length/2); ++i)
-        {
-            buffer.Add(b[i]);
-            buffer.Add(b[(b.Length / 2) + i]);
-        }        
-
-        packet.destroy();
     }
 }

@@ -12,7 +12,7 @@ public static partial class hl2ss
         // Handle
         //-----------------------------------------------------------------------------
 
-        public class handle
+        public class handle : IDisposable
         {
             protected IntPtr m_handle;
 
@@ -32,16 +32,22 @@ public static partial class hl2ss
                 if (v < 0) { throw new ExternalException("ULM operation error"); }
             }
 
-            public void destroy()
+            protected virtual void Dispose(bool disposing)
             {
                 if (m_handle == IntPtr.Zero) { return; }
                 hl2ss.ulm.close_handle(m_handle);
                 m_handle = IntPtr.Zero;
             }
 
+            public void Dispose()
+            {
+                Dispose(true);
+                GC.SuppressFinalize(true);
+            }
+
             ~handle()
             {
-                destroy();
+                Dispose(false);
             }
         }
 
@@ -465,12 +471,13 @@ public static partial class hl2ss
                 t.get_meshes = Convert.ToByte(task.get_meshes);
                 t.get_collider_meshes = Convert.ToByte(task.get_collider_meshes);
 
-                pointer p = pointer.get(task.guid_list);
-
+                using (pointer p = pointer.get(task.guid_list))
+                {
                 t.guid_list_size = (ulong)task.guid_list.Length;
                 t.guid_list_data = p.value;
 
-                try { return new su_result(m_handle, t); } finally { p.destroy(); }
+                return new su_result(m_handle, t);
+                }
             }
         }
 
@@ -729,8 +736,7 @@ public static partial class hl2ss
 
         public static source open_stream<T>(string host, ushort port, ulong buffer_size, T configuration)
         {
-            pointer p = pointer.get(configuration);
-            try { return new source(host, port, buffer_size, p.value); } finally { p.destroy(); }
+            using (pointer p = pointer.get(configuration)) { return new source(host, port, buffer_size, p.value); }
         }
 
         public static void open_ipc(string host, ushort port, out ipc_rc ipc)
@@ -775,8 +781,7 @@ public static partial class hl2ss
 
         public static calibration download_calibration<T>(string host, ushort port, T configuration)
         {
-            pointer p = pointer.get(configuration);
-            try { return new calibration(host, port, p.value); } finally { p.destroy(); }
+            using (pointer p = pointer.get(configuration)) { return new calibration(host, port, p.value); }
         }
 
         public static device_list download_device_list(string host, ushort port)

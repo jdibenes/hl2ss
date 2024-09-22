@@ -18,9 +18,10 @@ public class test_rm_imu : MonoBehaviour
 
         if (port != hl2ss.stream_port.RM_IMU_MAGNETOMETER)
         {
-            var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration);
-            var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_imu>(calibration_handle.data);
-            calibration_handle.destroy();
+            using (var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration))
+            {
+                var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_imu>(calibration_handle.data);
+            }
         }
 
         source_rm_imu = hl2ss.svc.open_stream(host, port, 1000, configuration);
@@ -29,26 +30,26 @@ public class test_rm_imu : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        var packet = source_rm_imu.get_by_index(-1);
-        if (packet.status != 0) { return; }
+        using (var packet = source_rm_imu.get_by_index(-1))
+        {
+            if (packet.status != 0) { return; }
 
-        packet.unpack(out hl2ss.map_rm_imu region);
+            packet.unpack(out hl2ss.map_rm_imu region);
 
-        var pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
+            var pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
 
-        Debug.Log(string.Format("got {0} samples", packet.sz_payload / Marshal.SizeOf<hl2ss.rm_imu_sample>()));
+            Debug.Log(string.Format("got {0} samples", packet.sz_payload / Marshal.SizeOf<hl2ss.rm_imu_sample>()));
 
-        var sample = Marshal.PtrToStructure<hl2ss.rm_imu_sample>(IntPtr.Add(region.samples, 0));
+            var sample = Marshal.PtrToStructure<hl2ss.rm_imu_sample>(IntPtr.Add(region.samples, 0));
 
-        Debug.Log(string.Format("first sample [{0}, {1}, {2}]", sample.x, sample.y, sample.z));
-
-        packet.destroy();
+            Debug.Log(string.Format("first sample [{0}, {1}, {2}]", sample.x, sample.y, sample.z));
+        }
     }
 
     void OnApplicationQuit()
     {
         if (source_rm_imu == null) { return; }
 
-        source_rm_imu.destroy();
+        source_rm_imu.Dispose();
     }
 }
