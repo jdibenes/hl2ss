@@ -42,7 +42,7 @@ public static partial class hl2ss
             public void Dispose()
             {
                 Dispose(true);
-                GC.SuppressFinalize(true);
+                GC.SuppressFinalize(this);
             }
 
             ~handle()
