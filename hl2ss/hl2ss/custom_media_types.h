@@ -2,6 +2,7 @@
 #pragma once
 
 #include <mfidl.h>
+#include <stdint.h>
 
 uint8_t const RAW_PROFILE = 0xFF;
 int32_t const H26xLevel_Default = -1;
