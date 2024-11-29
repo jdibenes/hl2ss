@@ -3,19 +3,17 @@
 
 #include <mfidl.h>
 
-// OK
 class CustomMediaTypeHandler : public IMFMediaTypeHandler
 {
 private:
-    ULONG            m_nRefCount;
-    CRITICAL_SECTION m_critSec;
-    IMFMediaType*    m_pType;
+    ULONG         m_nRefCount;
+    IMFMediaType* m_pType; // Release
 
-    CustomMediaTypeHandler();
+    CustomMediaTypeHandler(IMFMediaType* pMediaType);
     ~CustomMediaTypeHandler();
 
 public:
-    static HRESULT CreateInstance(IMFMediaTypeHandler** ppHandler);
+    static HRESULT CreateInstance(IMFMediaTypeHandler** ppHandler, IMFMediaType* pMediaType);
 
     // IUnknown Methods
     ULONG   AddRef();

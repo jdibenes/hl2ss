@@ -57,5 +57,11 @@ enum VideoSubtype : uint8_t
     VideoSubtype_YV12
 };
 
+enum ZProfile : uint8_t
+{
+    ZProfile_Same,
+    ZProfile_Zdepth
+};
+
 HRESULT CreateTypeAudio(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AudioSubtype subtype, AACProfile profile, AACLevel level);
 HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den, VideoSubtype subtype, H26xProfile profile, int32_t level, uint32_t bitrate);

@@ -4,6 +4,11 @@
 using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Media::Effects;
 
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
+// OK
 MRCVideoEffect::MRCVideoEffect(MRCVideoOptions const& options)
 {
     m_propertySet.Insert(L"StreamType", winrt::box_value<uint32_t>(1));
@@ -19,11 +24,13 @@ MRCVideoEffect::MRCVideoEffect(MRCVideoOptions const& options)
     m_propertySet.Insert(L"PreferredHologramPerspective", winrt::box_value<uint32_t>(options.hologram_perspective));
 }
 
+// OK
 IPropertySet MRCVideoEffect::Properties()
 {
     return m_propertySet;
 }
 
+// OK
 winrt::hstring MRCVideoEffect::ActivatableClassId()
 {
     return L"Windows.Media.MixedRealityCapture.MixedRealityCaptureVideoEffect";

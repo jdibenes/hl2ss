@@ -1,72 +1,62 @@
 
-#include <new>
 #include <mferror.h>
 #include "custom_media_sink.h"
-#include "custom_stream_sink.h"
-#include "lock.h"
 
 //-----------------------------------------------------------------------------
 // CustomMediaSink Methods
 //-----------------------------------------------------------------------------
 
 // OK
-HRESULT CustomMediaSink::CreateInstance(CustomMediaSink** ppSink, DWORD dwCharacteristics, CustomSinkHook* pHook)
+HRESULT CustomMediaSink::CreateInstance(CustomMediaSink** ppSink, DWORD dwCharacteristics, HOOK_SINK_PROC pHookCallback, void* pHookParam)
 {
-    if (!ppSink || !pHook) { return E_INVALIDARG; }
-    CustomMediaSink* pSink = new (std::nothrow) CustomMediaSink(dwCharacteristics, pHook);
-    if (!pSink) { return E_OUTOFMEMORY; }
-    *ppSink = pSink;
+    *ppSink = new CustomMediaSink(dwCharacteristics, pHookCallback, pHookParam);
     return S_OK;
 }
 
 // OK
-CustomMediaSink::CustomMediaSink(DWORD dwCharacteristics, CustomSinkHook* pHook)
+CustomMediaSink::CustomMediaSink(DWORD dwCharacteristics, HOOK_SINK_PROC pHookCallback, void* pHookParam)
 {
-    m_dwCharacteristics = dwCharacteristics;
     m_nRefCount = 1;
-    InitializeCriticalSection(&m_critSec);
-    m_isShutdown = false;
-    (m_pHook = pHook)->AddRef();
+    m_dwCharacteristics = dwCharacteristics;
     m_pClock = NULL;
+    m_streams = {};
+    m_pHookCallback = pHookCallback;
+    m_pHookParam = pHookParam;    
 }
 
 // OK
 CustomMediaSink::~CustomMediaSink()
 {
-    //assert(m_isShutDown)
-    //assert(!m_nRefCount)
-    DeleteCriticalSection(&m_critSec);
-    m_pHook->Release();
-}
-
-// OK
-DWORD CustomMediaSink::GetStreamId(IMFStreamSink* stream)
-{
-    DWORD dwId;
-    stream->GetIdentifier(&dwId); // No failure cases
-    return dwId;
 }
 
 // OK
 CustomStreamSink* CustomMediaSink::GetStreamSinkById(DWORD dwStreamSinkIdentifier)
 {
-    for (auto const& stream : m_streams) { if (GetStreamId(stream) == dwStreamSinkIdentifier) { return stream; } }
+    DWORD dwId;
+    for (auto const& stream : m_streams) { if (stream->GetIdentifier(&dwId), (dwId == dwStreamSinkIdentifier)) { return stream; } }
     return NULL;
 }
 
 // OK
-CustomStreamSink* CustomMediaSink::GetStreamSinkByIndex(DWORD dwIndex)
+void CustomMediaSink::ReleaseClock()
 {
-    DWORD idx = 0;
-    for (auto const& stream : m_streams) { if (idx++ == dwIndex) { return stream; } }
-    return NULL;
+    if (!m_pClock) { return; }
+    m_pClock->RemoveClockStateSink(this);
+    m_pClock->Release();
+    m_pClock = NULL;
 }
 
 // OK
-void CustomMediaSink::CleanupStreams()
+void CustomMediaSink::ReleaseStream(CustomStreamSink* pStream)
 {
-    for (auto const& stream : m_streams) { stream->Release(); }
-    m_streams.clear();
+    pStream->Shutdown();
+    pStream->Release();
+}
+
+// OK
+void CustomMediaSink::InvokeHook(IMFSample* pSample)
+{
+    m_pHookCallback(pSample, m_pHookParam);
 }
 
 //-----------------------------------------------------------------------------
@@ -110,9 +100,6 @@ HRESULT CustomMediaSink::QueryInterface(REFIID iid, void** ppv)
 // OK
 HRESULT CustomMediaSink::GetCharacteristics(DWORD* pdwCharacteristics)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    if (!pdwCharacteristics) { return E_INVALIDARG; }
     *pdwCharacteristics = m_dwCharacteristics;
     return S_OK;
 }
@@ -120,37 +107,27 @@ HRESULT CustomMediaSink::GetCharacteristics(DWORD* pdwCharacteristics)
 // OK
 HRESULT CustomMediaSink::AddStreamSink(DWORD dwStreamSinkIdentifier, IMFMediaType* pMediaType, IMFStreamSink** ppStreamSink)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    if (!ppStreamSink) { return E_INVALIDARG; }
-    CustomStreamSink* pSink = GetStreamSinkById(dwStreamSinkIdentifier);
-    if (pSink) { return MF_E_STREAMSINK_EXISTS; }
-    HRESULT hr = CustomStreamSink::CreateInstance(&pSink, this, dwStreamSinkIdentifier, pMediaType, m_pHook);
-    if (FAILED(hr)) { return hr; }
-    m_streams.push_back(pSink);
-    (*ppStreamSink = pSink)->AddRef();
+    CustomStreamSink* pStream = GetStreamSinkById(dwStreamSinkIdentifier);
+    if (pStream) { return MF_E_STREAMSINK_EXISTS; }
+    CustomStreamSink::CreateInstance(&pStream, this, dwStreamSinkIdentifier, pMediaType);
+    (*ppStreamSink = pStream)->AddRef();
+    m_streams.push_back(pStream);
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::RemoveStreamSink(DWORD dwStreamSinkIdentifier)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    CustomStreamSink* pSink = GetStreamSinkById(dwStreamSinkIdentifier);
-    if (!pSink) { return MF_E_INVALIDSTREAMNUMBER; }
-    pSink->Detach();
-    pSink->Release();
-    m_streams.remove(pSink);
+    CustomStreamSink* pStream = GetStreamSinkById(dwStreamSinkIdentifier);
+    if (!pStream) { return MF_E_INVALIDSTREAMNUMBER; }
+    ReleaseStream(pStream);
+    m_streams.remove(pStream);
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::GetStreamSinkCount(DWORD* pcStreamSinkCount)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    if (!pcStreamSinkCount) { return E_INVALIDARG; }
     *pcStreamSinkCount = static_cast<DWORD>(m_streams.size());
     return S_OK;
 }
@@ -158,45 +135,35 @@ HRESULT CustomMediaSink::GetStreamSinkCount(DWORD* pcStreamSinkCount)
 // OK
 HRESULT CustomMediaSink::GetStreamSinkByIndex(DWORD dwIndex, IMFStreamSink** ppStreamSink)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    if (!ppStreamSink) { return E_INVALIDARG; }    
     if (dwIndex >= m_streams.size()) { return MF_E_INVALIDINDEX; }
-    CustomStreamSink* pSink = GetStreamSinkByIndex(dwIndex);
-    (*ppStreamSink = static_cast<IMFStreamSink*>(pSink))->AddRef();
+    auto base = m_streams.begin();
+    std::advance(base, dwIndex);
+    (*ppStreamSink = *base)->AddRef();
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::GetStreamSinkById(DWORD dwStreamSinkIdentifier, IMFStreamSink** ppStreamSink)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    if (!ppStreamSink) { return E_INVALIDARG; }
-    CustomStreamSink* pSink = GetStreamSinkById(dwStreamSinkIdentifier);
-    if (!pSink) { return MF_E_INVALIDSTREAMNUMBER; }
-    (*ppStreamSink = static_cast<IMFStreamSink*>(pSink))->AddRef();
+    CustomStreamSink* pStream = GetStreamSinkById(dwStreamSinkIdentifier);
+    if (!pStream) { return MF_E_INVALIDSTREAMNUMBER; }
+    (*ppStreamSink = pStream)->AddRef();
     return S_OK;    
 }
 
 // OK
 HRESULT CustomMediaSink::SetPresentationClock(IMFPresentationClock* pPresentationClock)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    HRESULT hr;
-    if (m_pClock)            { hr = m_pClock->RemoveClockStateSink(this);        if (FAILED(hr)) { return hr; } /*SafeRelease(&m_pClock);*/ m_pClock->Release(); m_pClock = NULL; }
-    if (pPresentationClock)  { hr = pPresentationClock->AddClockStateSink(this); if (FAILED(hr)) { return hr; } pPresentationClock->AddRef(); }
-    m_pClock = pPresentationClock;
+    ReleaseClock();
+    if (!pPresentationClock) { return S_OK; }
+    pPresentationClock->AddClockStateSink(this);
+    (m_pClock = pPresentationClock)->AddRef();
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::GetPresentationClock(IMFPresentationClock** ppPresentationClock)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    if (!ppPresentationClock) { return E_INVALIDARG; }
     if (!m_pClock) { return MF_E_NO_CLOCK; }
     (*ppPresentationClock = m_pClock)->AddRef();
     return S_OK;
@@ -205,15 +172,9 @@ HRESULT CustomMediaSink::GetPresentationClock(IMFPresentationClock** ppPresentat
 // OK
 HRESULT CustomMediaSink::Shutdown()
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto const& stream : m_streams) { stream->Shutdown(); } // TODO: Error Handling
-    //SafeRelease(&m_pClock);
-    CleanupStreams();    
-    m_isShutdown = true;
-    if (!m_pClock) { return S_OK; }
-    m_pClock->Release();
-    m_pClock = NULL;
+    ReleaseClock();
+    for (auto const& stream : m_streams) { ReleaseStream(stream); }
+    m_streams.clear();
     return S_OK;
 }
 
@@ -224,44 +185,34 @@ HRESULT CustomMediaSink::Shutdown()
 // OK
 HRESULT CustomMediaSink::OnClockStart(MFTIME hnsSystemTime, LONGLONG llClockStartOffset)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto const& stream : m_streams) { stream->Start(hnsSystemTime, llClockStartOffset); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Start(hnsSystemTime, llClockStartOffset); }
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::OnClockStop(MFTIME hnsSystemTime)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto const& stream : m_streams) { stream->Stop(hnsSystemTime); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Stop(hnsSystemTime); }
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::OnClockPause(MFTIME hnsSystemTime)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto const& stream : m_streams) { stream->Pause(hnsSystemTime); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Pause(hnsSystemTime); }
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::OnClockRestart(MFTIME hnsSystemTime)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto const& stream : m_streams) { stream->Restart(hnsSystemTime); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->Restart(hnsSystemTime); }
     return S_OK;
 }
 
 // OK
 HRESULT CustomMediaSink::OnClockSetRate(MFTIME hnsSystemTime, float flRate)
 {
-    CriticalSection cs(&m_critSec);
-    if (m_isShutdown) { return MF_E_SHUTDOWN; }
-    for (auto const& stream : m_streams) { stream->SetRate(hnsSystemTime, flRate); } // TODO: Error Handling
+    for (auto const& stream : m_streams) { stream->SetRate(hnsSystemTime, flRate); }
     return S_OK;
 }

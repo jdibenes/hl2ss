@@ -2,34 +2,31 @@
 #pragma once
 
 #include <list>
-#include "custom_sink_hook.h"
+#include "custom_stream_sink.h"
 
-// OK
+typedef void(*HOOK_SINK_PROC)(IMFSample*, void*);
+
 class CustomMediaSink : public IMFMediaSink, public IMFClockStateSink
 {
-    friend class CustomStreamSink;
-
-private:
-    DWORD                        m_dwCharacteristics;
+private:    
     ULONG                        m_nRefCount;
-    CRITICAL_SECTION             m_critSec;
-    bool                         m_isShutdown;
-    CustomSinkHook*              m_pHook;
-    IMFPresentationClock*        m_pClock;
-    std::list<CustomStreamSink*> m_streams;    
+    DWORD                        m_dwCharacteristics;
+    IMFPresentationClock*        m_pClock; // Release
+    std::list<CustomStreamSink*> m_streams; // Release
+    HOOK_SINK_PROC               m_pHookCallback;
+    void*                        m_pHookParam;
 
-    CustomMediaSink(DWORD dwCharacteristics, CustomSinkHook* pHook);
+    CustomMediaSink(DWORD dwCharacteristics, HOOK_SINK_PROC pHookCallback, void* pHookParam);
     ~CustomMediaSink();
 
-    DWORD GetStreamId(IMFStreamSink *stream);
-
     CustomStreamSink* GetStreamSinkById(DWORD dwStreamSinkIdentifier);
-    CustomStreamSink* GetStreamSinkByIndex(DWORD dwIndex);
-
-    void CleanupStreams();
+    void ReleaseClock();
+    void ReleaseStream(CustomStreamSink* pStream);
 
 public:
-    static HRESULT CreateInstance(CustomMediaSink** ppSink, DWORD dwCharacteristics, CustomSinkHook* pHook);
+    static HRESULT CreateInstance(CustomMediaSink** ppSink, DWORD dwCharacteristics, HOOK_SINK_PROC pHookCallback, void* pHookParam);
+
+    void InvokeHook(IMFSample* pSample);
 
     // IUnknown Methods
     ULONG   AddRef();

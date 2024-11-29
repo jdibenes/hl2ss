@@ -92,8 +92,11 @@ HRESULT CreateTypeAudio(IMFMediaType** ppType, uint32_t channels, uint32_t sampl
     case AACProfile::AACProfile_24000: return CreateTypeAAC(ppType, channels, samplerate, 24000, level);
     }
 
-    if (subtype == AudioSubtype::AudioSubtype_F32) { return CreateTypePCMF32(ppType, channels, samplerate); }
-    if (subtype == AudioSubtype::AudioSubtype_S16) { return CreateTypePCMS16(ppType, channels, samplerate); }
+    switch (subtype)
+    {
+    case AudioSubtype::AudioSubtype_F32: return CreateTypePCMF32(ppType, channels, samplerate);
+    case AudioSubtype::AudioSubtype_S16: return CreateTypePCMS16(ppType, channels, samplerate);
+    }
 
     *ppType = NULL;
 
@@ -323,13 +326,16 @@ HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, 
     case H26xProfile::H265Profile_Main: return CreateTypeHEVC(ppType, width, height, fps_num, fps_den, eAVEncH265VProfile::eAVEncH265VProfile_Main_420_8, level, bitrate);
     }
 
-    if (subtype == VideoSubtype::VideoSubtype_L8)   { return CreateTypeL8(  ppType, width, height, stride, fps_num, fps_den); }
-    if (subtype == VideoSubtype::VideoSubtype_L16)  { return CreateTypeL16( ppType, width, height, stride, fps_num, fps_den); }
-    if (subtype == VideoSubtype::VideoSubtype_NV12) { return CreateTypeNV12(ppType, width, height, stride, fps_num, fps_den); }
-    if (subtype == VideoSubtype::VideoSubtype_ARGB) { return CreateTypeARGB(ppType, width, height, stride, fps_num, fps_den); }
-    if (subtype == VideoSubtype::VideoSubtype_YUY2) { return CreateTypeYUY2(ppType, width, height, stride, fps_num, fps_den); }
-    if (subtype == VideoSubtype::VideoSubtype_IYUV) { return CreateTypeIYUV(ppType, width, height, stride, fps_num, fps_den); }
-    if (subtype == VideoSubtype::VideoSubtype_YV12) { return CreateTypeYV12(ppType, width, height, stride, fps_num, fps_den); }
+    switch (subtype)
+    {
+    case VideoSubtype::VideoSubtype_L8:   return CreateTypeL8(  ppType, width, height, stride, fps_num, fps_den);
+    case VideoSubtype::VideoSubtype_L16:  return CreateTypeL16( ppType, width, height, stride, fps_num, fps_den);
+    case VideoSubtype::VideoSubtype_NV12: return CreateTypeNV12(ppType, width, height, stride, fps_num, fps_den);
+    case VideoSubtype::VideoSubtype_ARGB: return CreateTypeARGB(ppType, width, height, stride, fps_num, fps_den);
+    case VideoSubtype::VideoSubtype_YUY2: return CreateTypeYUY2(ppType, width, height, stride, fps_num, fps_den);
+    case VideoSubtype::VideoSubtype_IYUV: return CreateTypeIYUV(ppType, width, height, stride, fps_num, fps_den);
+    case VideoSubtype::VideoSubtype_YV12: return CreateTypeYV12(ppType, width, height, stride, fps_num, fps_den);
+    }
 
     *ppType = NULL;
 
