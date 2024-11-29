@@ -131,8 +131,7 @@ HRESULT CustomStreamSink::PlaceMarker(MFSTREAMSINK_MARKER_TYPE eMarkerType, PROP
 {
     (void)eMarkerType;
     (void)pvarMarkerValue;
-    (void)pvarContextValue;
-    return S_OK;
+    return QueueEvent(MEStreamSinkMarker, GUID_NULL, S_OK, pvarContextValue);
 }
 
 // OK

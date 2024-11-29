@@ -89,7 +89,7 @@ CustomSinkWriter::CustomSinkWriter(HOOK_SINK_PROC hookproc, void* hookparam, IMF
 // OK
 CustomSinkWriter::~CustomSinkWriter()
 {
-	m_pSinkWriter->Flush(m_dwStreamIndex);
+	m_pSinkWriter->Finalize();
 	m_pSinkWriter->Release();
 	m_pSink->Shutdown();
 	m_pSink->Release();
