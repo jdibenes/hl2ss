@@ -32,7 +32,6 @@ void Encoder_PV::WriteSample(MediaFrameReference const& frame, LONGLONG timestam
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(m_duration);
     pSample->SetSampleTime(timestamp);
-
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, metadata, metadata_size);
 
     m_pSinkWriter->WriteSample(pSample);
