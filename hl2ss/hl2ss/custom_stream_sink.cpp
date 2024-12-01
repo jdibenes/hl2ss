@@ -90,7 +90,7 @@ HRESULT CustomStreamSink::GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent)
 }
 
 // OK
-HRESULT CustomStreamSink::QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, const PROPVARIANT* pvValue)
+HRESULT CustomStreamSink::QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, PROPVARIANT const* pvValue)
 {
     return m_pEventQueue->QueueEventParamVar(met, guidExtendedType, hrStatus, pvValue);
 }

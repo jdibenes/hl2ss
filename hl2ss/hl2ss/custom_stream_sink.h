@@ -27,7 +27,7 @@ public:
     HRESULT BeginGetEvent(IMFAsyncCallback* pCallback, IUnknown* punkState);
     HRESULT EndGetEvent(IMFAsyncResult* pResult, IMFMediaEvent** ppEvent);
     HRESULT GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent);
-    HRESULT QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, const PROPVARIANT* pvValue);
+    HRESULT QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, PROPVARIANT const* pvValue);
 
     // IMFStreamSink Methods
     HRESULT Flush();
