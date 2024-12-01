@@ -22,8 +22,20 @@ private:
     uint32_t m_framebytes;
     LONGLONG m_duration;
 
+    static void InvalidateZ(uint16_t const* pDepth, uint16_t* pOut);
+    static void XABToNV12(uint16_t const* pAb, uint8_t* pOut);
+    static void ZABToNV12(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* pNV12);
+
+    static void SetZAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* out);
+    static void SetXAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* out);
+    static void SetZABToNV12(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* pNV12);
+    static void SetXABToNV12(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* pNV12);
+
+    static void BypassZ(zdepth::DepthCompressor& compressor, uint16_t const* pDepth, std::vector<uint8_t>*& pData, bool keyframe);
+    static void AppendZ(zdepth::DepthCompressor& compressor, uint16_t const* pDepth, std::vector<uint8_t>*& pData, bool keyframe);
+
 public:
-    Encoder_RM_ZHT(HOOK_SINK_PROC pHookCallback, void* pHookParam, H26xFormat const& format, ZABFormat const& zabformat, std::vector<uint64_t> const& options);
+    Encoder_RM_ZHT(HOOK_SINK_PROC pHookCallback, void* pHookParam, H26xFormat& format, ZABFormat& zabformat, std::vector<uint64_t> const& options);
 
     void WriteSample(UINT16 const* pDepth, UINT16 const* pAbImage, LONGLONG timestamp, RM_ZHT_SLOT* metadata, UINT32 metadata_size);
 };
