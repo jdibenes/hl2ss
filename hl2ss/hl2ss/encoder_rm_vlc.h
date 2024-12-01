@@ -13,7 +13,7 @@ private:
 	LONGLONG m_duration;
 
 public:
-	Encoder_RM_VLC(HOOK_SINK_PROC pHookCallback, void* pHookParam, H26xFormat const& format, std::vector<uint64_t> const& options);
+	Encoder_RM_VLC(HOOK_SINK_PROC pHookCallback, void* pHookParam, H26xFormat& format, std::vector<uint64_t> const& options);
 
-	void WriteSample(BYTE const* pImage, LONGLONG timestamp, UINT8* metadata, UINT32 metadata_size) const;
+	void WriteSample(BYTE const* pImage, LONGLONG timestamp, UINT8* metadata, UINT32 metadata_size);
 };

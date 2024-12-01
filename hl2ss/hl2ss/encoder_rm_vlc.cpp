@@ -9,21 +9,29 @@
 //-----------------------------------------------------------------------------
 
 // OK
-Encoder_RM_VLC::Encoder_RM_VLC(HOOK_SINK_PROC pHookCallback, void* pHookParam, H26xFormat const& format, std::vector<uint64_t> const& options)
+Encoder_RM_VLC::Encoder_RM_VLC(HOOK_SINK_PROC pHookCallback, void* pHookParam, H26xFormat& format, std::vector<uint64_t> const& options)
 {
-	bool         encoded = format.profile != H26xProfile::H26xProfile_None;
-	VideoSubtype subtype = encoded ? VideoSubtype::VideoSubtype_NV12 : VideoSubtype::VideoSubtype_L8;
+	VideoSubtype subtype;
 
-	m_lumasize   = format.width * format.height;
-	m_chromasize = encoded ? (m_lumasize / 2) : 0;
+	format.width     = RM_VLC_WIDTH;
+	format.height    = RM_VLC_HEIGHT;
+	format.framerate = RM_VLC_FPS;
+
+	switch (format.profile)
+	{
+	case H26xProfile::H26xProfile_None: m_chromasize = 0;                 subtype = VideoSubtype::VideoSubtype_L8;   break;
+	default:                            m_chromasize = RM_VLC_PIXELS / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
+	}
+
+	m_lumasize   = RM_VLC_PIXELS;
 	m_framebytes = m_lumasize + m_chromasize;
-	m_duration   = (format.divisor * HNS_BASE) / format.framerate;
+	m_duration   = (format.divisor * HNS_BASE) / RM_VLC_FPS;
 
-	m_pSinkWriter = CustomSinkWriter::CreateForVideo(pHookCallback, pHookParam, subtype, format, format.width, options);
+	m_pSinkWriter = CustomSinkWriter::CreateForVideo(pHookCallback, pHookParam, subtype, format, RM_VLC_WIDTH, options);
 }
 
 // OK
-void Encoder_RM_VLC::WriteSample(BYTE const* pImage, LONGLONG timestamp, UINT8* metadata, UINT32 metadata_size) const
+void Encoder_RM_VLC::WriteSample(BYTE const* pImage, LONGLONG timestamp, UINT8* metadata, UINT32 metadata_size)
 {
 	IMFMediaBuffer* pBuffer; // Release
 	IMFSample* pSample; // Release
