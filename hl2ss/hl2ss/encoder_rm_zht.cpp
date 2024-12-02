@@ -164,11 +164,10 @@ void Encoder_RM_ZHT::WriteSample(UINT16 const* pDepth, UINT16 const* pAbImage, L
     IMFSample* pSample; // Release
     BYTE* pDst;
 
-	m_kernel_blob(m_compressor, pDepth, metadata->z, true);
-
     MFCreateMemoryBuffer(m_framebytes, &pBuffer);
 
     pBuffer->Lock(&pDst, NULL, NULL);
+    m_kernel_blob(m_compressor, pDepth, metadata->z, true);
     m_kernel_sink(pDepth, pAbImage, pDst);
     pBuffer->Unlock();
     pBuffer->SetCurrentLength(m_framebytes);
