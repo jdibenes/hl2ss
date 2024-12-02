@@ -11,8 +11,10 @@ private:
 	DWORD m_block_in;
 	DWORD m_block_out;
 
-public:
-	Encoder_MC(HOOK_SINK_PROC pHookCallback, void* pHookParam, AACFormat const& format, bool raw);
+	static void AudioF32Crop11to5(float const* in, int32_t elements, float* out);
 
-	void WriteSample(BYTE* data, UINT32 framesAvailable, bool silent, LONGLONG timestamp);
+public:
+	Encoder_MC(HOOK_SINK_PROC pHookCallback, void* pHookParam, AACFormat& format, bool raw);
+
+	void WriteSample(BYTE const* data, UINT32 framesAvailable, bool silent, LONGLONG timestamp);
 };
