@@ -15,8 +15,8 @@ using namespace winrt::Windows::Media::Capture::Frames;
 // OK
 Encoder_PV::Encoder_PV(HOOK_SINK_PROC pHookCallback, void* pHookParam, VideoSubtype subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& options)
 {
-    m_pSinkWriter = CustomSinkWriter::CreateForVideo(pHookCallback, pHookParam, subtype, format, stride, options);
     m_duration = (format.divisor * HNS_BASE) / format.framerate;
+    m_pSinkWriter = CustomSinkWriter::CreateForVideo(pHookCallback, pHookParam, subtype, format, stride, options);
 }
 
 // OK
