@@ -45,7 +45,7 @@ static void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAtt
 {
 	size_t size = options.size() & ~1ULL;
 
-	MFCreateAttributes(pEncoderAttr, (UINT32)(size / 2));
+	MFCreateAttributes(pEncoderAttr, static_cast<UINT32>(size / 2));
 
 	for (int i = 0; i < (int)size; i += 2)
 	{
@@ -58,7 +58,7 @@ static void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAtt
 
 	switch (entry.vt)
 	{
-	case VT_UI4:  (*pEncoderAttr)->SetUINT32(entry.guid, (UINT32)value);                               break;
+	case VT_UI4:  (*pEncoderAttr)->SetUINT32(entry.guid, static_cast<UINT32>(value));                  break;
 	case VT_UI8:  (*pEncoderAttr)->SetUINT64(entry.guid, value);                                       break;
 	case VT_BOOL: (*pEncoderAttr)->SetUINT32(entry.guid, (value == 0) ? VARIANT_FALSE : VARIANT_TRUE); break;
 	}
