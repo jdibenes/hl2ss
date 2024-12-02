@@ -7,7 +7,7 @@
 //-----------------------------------------------------------------------------
 
 // OK
-void Encoder_MC::AudioF32Crop11to5(float const* in, int32_t bytes, float *out)
+void Encoder_MC::AudioF32Crop11To5(float* out, float const* in, int32_t bytes)
 {
 	for (int i = 0; i < (bytes / (sizeof(float) * 4)); ++i)
 	{
@@ -70,6 +70,18 @@ void Encoder_MC::AudioF32Crop11to5(float const* in, int32_t bytes, float *out)
 }
 
 // OK
+void Encoder_MC::CropArray(void* out, void const* in, int32_t bytes)
+{
+	AudioF32Crop11To5((float*)out, (float*)in, bytes);
+}
+
+// OK
+void Encoder_MC::Bypass(void* out, void const* in, int32_t bytes)
+{
+	memcpy(out, in, bytes);
+}
+
+// OK
 Encoder_MC::Encoder_MC(HOOK_SINK_PROC pHookCallback, void* pHookParam, AACFormat& format, bool raw)
 {
 	AudioSubtype subtype;
@@ -77,14 +89,13 @@ Encoder_MC::Encoder_MC(HOOK_SINK_PROC pHookCallback, void* pHookParam, AACFormat
 
 	switch (raw)
 	{
-	case false: channels = 2; subtype = AudioSubtype::AudioSubtype_S16; m_block_in =  2 * sizeof(uint16_t); m_block_out = 2 * sizeof(uint16_t); break;
-	default:    channels = 5; subtype = AudioSubtype::AudioSubtype_F32; m_block_in = 11 * sizeof(float);    m_block_out = 5 * sizeof(float);    break;
+	case false: channels = 2; subtype = AudioSubtype::AudioSubtype_S16; m_block_in =  2 * sizeof(uint16_t); m_block_out = 2 * sizeof(uint16_t); m_kernel_crop = Bypass;    break;
+	default:    channels = 5; subtype = AudioSubtype::AudioSubtype_F32; m_block_in = 11 * sizeof(float);    m_block_out = 5 * sizeof(float);    m_kernel_crop = CropArray; break;
 	}
 
 	format.samplerate = 48000;
 	format.channels   = channels;
 
-	m_raw = raw;
 	m_pSinkWriter = CustomSinkWriter::CreateForAudio(pHookCallback, pHookParam, subtype, format);
 }
 
@@ -103,7 +114,9 @@ void Encoder_MC::WriteSample(BYTE const* data, UINT32 framesAvailable, bool sile
     MFCreateMemoryBuffer(bytes_out, &pBuffer);
 
     pBuffer->Lock(&pDst, NULL, NULL);
-	if (silent) { memset(pDst, 0, bytes_out); } else if (m_raw) { AudioF32Crop11to5((float*)data, bytes_in, (float*)pDst); } else { memcpy(pDst, data, bytes_in); }
+
+	if (silent) { memset(pDst, 0, bytes_out); }	else { m_kernel_crop(pDst, data, bytes_in); }
+
 	pBuffer->Unlock();
 	pBuffer->SetCurrentLength(bytes_out);
 
