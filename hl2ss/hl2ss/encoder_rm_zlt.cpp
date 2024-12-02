@@ -64,7 +64,7 @@ void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT1
 
     spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
 
-    ToBGRA8(pSigma, pDepth, pAbImage, (uint32_t*)pixelBufferData);
+    ToBGRA8(pSigma, pDepth, pAbImage, reinterpret_cast<uint32_t*>(pixelBufferData));
     }
 
     auto stream = InMemoryRandomAccessStream();
@@ -73,7 +73,7 @@ void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT1
     encoder.SetSoftwareBitmap(m_softwareBitmap);
     encoder.FlushAsync().get();
 
-    streamSize = (uint32_t)stream.Size();
+    streamSize = static_cast<uint32_t>(stream.Size());
 
     auto streamBuf = Buffer(streamSize);
 

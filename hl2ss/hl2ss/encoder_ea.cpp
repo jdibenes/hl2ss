@@ -135,10 +135,12 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame, int64_t timestamp
 
     pBuffer->Lock(&pDst, NULL, NULL);
 
-    int16_t* high_addr = (int16_t*)(pDst + fill_bytes);
+    float*   data_addr = reinterpret_cast<float*>(reference.data());
+    int16_t* base_addr = reinterpret_cast<int16_t*>(pDst);
+    int16_t* high_addr = reinterpret_cast<int16_t*>(pDst + fill_bytes);
 
-    m_kernel_cast(high_addr,      (float*)reference.data(), output_bytes);
-    m_kernel_wide((int16_t*)pDst, high_addr,                output_bytes);
+    m_kernel_cast(high_addr, data_addr, output_bytes);
+    m_kernel_wide(base_addr, high_addr, output_bytes);
 
     pBuffer->Unlock();
     pBuffer->SetCurrentLength(buffer_bytes);

@@ -94,7 +94,7 @@ void Encoder_RM_ZHT::ZABToNV12(uint16_t const* pDepth, uint16_t const* pAb, uint
 // OK
 void Encoder_RM_ZHT::SetZAB(uint16_t const* pDepth, uint16_t const* pAb, uint8_t* out)
 {
-    InvalidateZ(pDepth, (uint16_t*)out);
+    InvalidateZ(pDepth, reinterpret_cast<uint16_t*>(out));
     memcpy(out + RM_ZHT_ZSIZE, pAb, RM_ZHT_ABSIZE);
 }
 
@@ -177,7 +177,7 @@ void Encoder_RM_ZHT::WriteSample(UINT16 const* pDepth, UINT16 const* pAbImage, L
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(m_duration);
     pSample->SetSampleTime(timestamp);
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)metadata, metadata_size);
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, reinterpret_cast<UINT8*>(metadata), metadata_size);
 
     m_pSinkWriter->WriteSample(pSample);
 
