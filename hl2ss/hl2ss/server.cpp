@@ -1,6 +1,7 @@
 
 #include <ws2tcpip.h>
 #include "server.h"
+#include "lock.h"
 #include "types.h"
 
 //-----------------------------------------------------------------------------
@@ -21,27 +22,41 @@ SOCKET CreateSocket(char const* port)
 	addrinfo hints;
 	addrinfo* result;
 	SOCKET listensocket;
+	int status;
 
 	ZeroMemory(&hints, sizeof(hints));
 
-	hints.ai_family   = AF_INET;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags    = AI_PASSIVE;
+	hints.ai_flags = AI_PASSIVE;
 
-	getaddrinfo(NULL, port, &hints, &result);
+	status = getaddrinfo(NULL, port, &hints, &result);
+	if (status != 0) { return INVALID_SOCKET; }
+
+	Cleaner free_info([=]() { freeaddrinfo(result); });
+
 	listensocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	bind(listensocket, result->ai_addr, (int)(result->ai_addrlen));
-	freeaddrinfo(result);
-	listen(listensocket, SOMAXCONN);
+	if (listensocket == INVALID_SOCKET) { return INVALID_SOCKET; }
+
+	Cleaner free_socket([=]() { closesocket(listensocket); });
+
+	status = bind(listensocket, result->ai_addr, (int)(result->ai_addrlen));
+	if (status != 0) { return INVALID_SOCKET; }
+
+	status = listen(listensocket, SOMAXCONN);
+	if (status != 0) { return INVALID_SOCKET; }
+
+	free_socket.Set(false);
 
 	return listensocket;
 }
 
 // OK
-void CleanupSockets()
+bool CleanupSockets()
 {
-	WSACleanup();
+	int status = WSACleanup();
+	return status == 0;
 }
 
 // OK
@@ -115,7 +130,7 @@ bool send_multiple(SOCKET s, LPWSABUF buffers, DWORD dwBufferCount)
 }
 
 // OK
-void pack_buffer(WSABUF *dst, int index, void const *buffer, ULONG length)
+void pack_buffer(LPWSABUF dst, int index, void const* buffer, ULONG length)
 {
 	dst[index].buf = (char*)buffer;
 	dst[index].len = length;

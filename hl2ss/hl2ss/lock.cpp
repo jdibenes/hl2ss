@@ -12,13 +12,13 @@
 CriticalSection::CriticalSection(CRITICAL_SECTION* pcs)
 {
 	m_pcs = pcs;
-	if (m_pcs) { EnterCriticalSection(m_pcs); }
+	EnterCriticalSection(m_pcs);
 }
 
 // OK
 CriticalSection::~CriticalSection()
 {
-	if (m_pcs) { LeaveCriticalSection(m_pcs); }
+	LeaveCriticalSection(m_pcs);
 }
 
 // OK
@@ -33,6 +33,23 @@ SRWLock::SRWLock(SRWLOCK *psrwl, bool exclusive)
 SRWLock::~SRWLock()
 {
 	if (m_exclusive) { ReleaseSRWLockExclusive(m_psrwl); } else { ReleaseSRWLockShared(m_psrwl); }
+}
+
+// OK
+Cleaner::Cleaner(std::function<void()> f) : m_f(f), m_enable(true)
+{
+}
+
+// OK
+Cleaner::~Cleaner()
+{
+	if (m_enable) { m_f(); }
+}
+
+// OK
+void Cleaner::Set(bool enable)
+{
+	m_enable = enable;
 }
 
 // OK
