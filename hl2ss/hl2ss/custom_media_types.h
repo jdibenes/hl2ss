@@ -2,9 +2,10 @@
 #pragma once
 
 #include <mfidl.h>
+#include <vector>
 #include <stdint.h>
 
-uint8_t const RAW_PROFILE = 0xFF;
+uint8_t const RAWProfile = 0xFF;
 int32_t const H26xLevel_Default = -1;
 
 enum AACProfile : uint8_t
@@ -13,7 +14,7 @@ enum AACProfile : uint8_t
     AACProfile_16000,
     AACProfile_20000,
     AACProfile_24000,
-    AACProfile_None = RAW_PROFILE
+    AACProfile_None = RAWProfile
 };
 
 enum AACLevel : uint8_t
@@ -43,7 +44,7 @@ enum H26xProfile : uint8_t
     H264Profile_Main,
     H264Profile_High,
     H265Profile_Main,
-    H26xProfile_None = RAW_PROFILE
+    H26xProfile_None = RAWProfile
 };
 
 enum VideoSubtype : uint8_t
@@ -65,3 +66,5 @@ enum ZProfile : uint8_t
 
 HRESULT CreateTypeAudio(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AudioSubtype subtype, AACProfile profile, AACLevel level);
 HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den, VideoSubtype subtype, H26xProfile profile, int32_t level, uint32_t bitrate);
+
+void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAttributes** pEncoderAttr);
