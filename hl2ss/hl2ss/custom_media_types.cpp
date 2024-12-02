@@ -3,6 +3,39 @@
 #include <codecapi.h>
 #include "custom_media_types.h"
 
+struct AVOption
+{
+    GUID guid;
+    uint32_t vt;
+};
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+static AVOption const g_AVLUT[] =
+{
+    {CODECAPI_AVEncCommonRateControlMode, VT_UI4},
+    {CODECAPI_AVEncCommonQuality, VT_UI4},
+    {CODECAPI_AVEncAdaptiveMode, VT_UI4},
+    {CODECAPI_AVEncCommonBufferSize, VT_UI4},
+    {CODECAPI_AVEncCommonMaxBitRate, VT_UI4},
+    {CODECAPI_AVEncCommonMeanBitRate, VT_UI4},
+    {CODECAPI_AVEncCommonQualityVsSpeed, VT_UI4},
+    {CODECAPI_AVEncH264CABACEnable, VT_BOOL},
+    {CODECAPI_AVEncH264SPSID, VT_UI4},
+    {CODECAPI_AVEncMPVDefaultBPictureCount, VT_UI4},
+    {CODECAPI_AVEncMPVGOPSize, VT_UI4},
+    {CODECAPI_AVEncNumWorkerThreads, VT_UI4},
+    {CODECAPI_AVEncVideoContentType, VT_UI4},
+    {CODECAPI_AVEncVideoEncodeQP, VT_UI8},
+    {CODECAPI_AVEncVideoForceKeyFrame, VT_UI4},
+    {CODECAPI_AVEncVideoMinQP, VT_UI4},
+    {CODECAPI_AVLowLatencyMode, VT_BOOL},
+    {CODECAPI_AVEncVideoMaxQP, VT_UI4},
+    {CODECAPI_VideoEncoderDisplayContentType, VT_UI4},
+};
+
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
@@ -340,4 +373,29 @@ HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, 
     *ppType = NULL;
 
     return E_INVALIDARG;
+}
+
+// OK
+void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAttributes **pEncoderAttr)
+{
+	size_t size = options.size() & ~1ULL;
+
+	MFCreateAttributes(pEncoderAttr, static_cast<UINT32>(size / 2));
+
+	for (int i = 0; i < (int)size; i += 2)
+	{
+	uint64_t option = options[i];
+	uint64_t value  = options[i + 1];
+
+	if (option >= (sizeof(g_AVLUT) / sizeof(AVOption))) { continue; }
+
+	AVOption entry = g_AVLUT[option];
+
+	switch (entry.vt)
+	{
+	case VT_UI4:  (*pEncoderAttr)->SetUINT32(entry.guid, static_cast<UINT32>(value));                  break;
+	case VT_UI8:  (*pEncoderAttr)->SetUINT64(entry.guid, value);                                       break;
+	case VT_BOOL: (*pEncoderAttr)->SetUINT32(entry.guid, (value == 0) ? VARIANT_FALSE : VARIANT_TRUE); break;
+	}
+	}
 }
