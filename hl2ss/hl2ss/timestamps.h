@@ -3,7 +3,7 @@
 
 #include <winrt/Windows.Perception.h>
 
-#define HNS_BASE (10ULL * 1000ULL * 1000ULL)
+uint64_t const HNS_BASE = 10ULL * 1000ULL * 1000ULL;
 
 UINT64 QPCTickstoQPCTimestamp(LARGE_INTEGER const& pc);
 UINT64 FTToU64(FILETIME const& ft);
