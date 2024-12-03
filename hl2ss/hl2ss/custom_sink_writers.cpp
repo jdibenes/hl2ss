@@ -19,6 +19,7 @@ CustomSinkWriter::CustomSinkWriter(HOOK_SINK_PROC hookproc, void* hookparam, IMF
 	pSinkAttr->SetUINT32(MF_SINK_WRITER_DISABLE_THROTTLING, TRUE);
 
 	CustomMediaSink::CreateInstance(&m_pSink, MEDIASINK_RATELESS, hookproc, hookparam);
+
 	MFCreateSinkWriterFromMediaSink(m_pSink, pSinkAttr, &m_pSinkWriter);
 
 	m_pSinkWriter->AddStream(pOutputType, &m_dwStreamIndex);
