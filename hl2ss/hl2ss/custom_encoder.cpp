@@ -38,18 +38,18 @@ CustomEncoder::~CustomEncoder()
 void CustomEncoder::ProcessSample(IMFSample* pSample)
 {
     IMFMediaBuffer* pBuffer; // Release
-    LONGLONG sampletime;
+    LONGLONG hnsSampleTime;
     BYTE* pFrame;
     DWORD cbFrameBytes;
 
     pSample->ConvertToContiguousBuffer(&pBuffer);
-    pSample->GetSampleTime(&sampletime);
+    pSample->GetSampleTime(&hnsSampleTime);
 
     if (!m_shift) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, m_metadata.get(), m_metadata_size, NULL); }
     
     pBuffer->Lock(&pFrame, NULL, &cbFrameBytes);
 
-    m_pHookCallback(pFrame, cbFrameBytes, sampletime, m_metadata.get(), m_metadata_size, m_pHookParam);
+    m_pHookCallback(pFrame, cbFrameBytes, hnsSampleTime, m_metadata.get(), m_metadata_size, m_pHookParam);
 
     pBuffer->Unlock();
     pBuffer->Release();
