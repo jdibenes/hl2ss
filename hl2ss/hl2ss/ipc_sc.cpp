@@ -1,8 +1,4 @@
 
-#include "server.h"
-#include "custom_media_types.h"
-#include "custom_sink_writers.h"
-#include "custom_video_effect.h"
 #include "ipc_sc.h"
 
 #include <winrt/Windows.Graphics.Imaging.h>
