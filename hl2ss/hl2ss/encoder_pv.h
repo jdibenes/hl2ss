@@ -1,18 +1,36 @@
 
 #pragma once
 
-#include "custom_sink_writers.h"
+#include "custom_encoder.h"
+#include "types.h"
 
+#include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 
-class Encoder_PV
+struct PV_Metadata
+{
+    winrt::Windows::Foundation::Numerics::float2 f;
+    winrt::Windows::Foundation::Numerics::float2 c;
+    uint64_t exposure_time;
+    uint64x2 exposure_compensation;
+    uint32_t lens_position;
+    uint32_t focus_state;
+    uint32_t iso_speed;
+    uint32_t white_balance;
+    winrt::Windows::Foundation::Numerics::float2 iso_gains;
+    winrt::Windows::Foundation::Numerics::float3 white_balance_gains;
+    uint32_t _reserved;
+    uint64_t timestamp;
+    winrt::Windows::Foundation::Numerics::float4x4 pose;
+};
+
+class Encoder_PV : public CustomEncoder
 {
 private:
-    std::unique_ptr<CustomSinkWriter> m_pSinkWriter;
     LONGLONG m_duration;
 
 public:
-    Encoder_PV(HOOK_SINK_PROC pHookCallback, void* pHookParam, VideoSubtype subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& options);
+    Encoder_PV(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, VideoSubtype subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& options);
 
-    void WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, LONGLONG timestamp, UINT8* metadata, UINT32 metadata_size);
+    void WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, LONGLONG timestamp, PV_Metadata* metadata);
 };
