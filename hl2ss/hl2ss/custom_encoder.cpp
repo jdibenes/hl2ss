@@ -3,27 +3,28 @@
 #include "custom_encoder.h"
 
 // OK
-CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, uint32_t metadata_size, bool shift)
+CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, bool shift)
 {
     m_metadata      = std::make_unique<uint8_t[]>(metadata_size);
     m_metadata_size = metadata_size;
     m_shift         = shift;
     m_pHookCallback = pHookCallback;
     m_pHookParam    = pHookParam;
+    m_pMetadataFree = pMetadataFree;
 
     memset(m_metadata.get(), 0, metadata_size);
 }
 
 // OK
-CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, uint32_t metadata_size, AudioSubtype input_subtype, AACFormat  const& format) :
-CustomEncoder(pHookCallback, pHookParam, metadata_size, false)
+CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, AudioSubtype input_subtype, AACFormat  const& format) :
+CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size, false)
 {
     m_pSinkWriter = CustomSinkWriter::CreateForAudio(SinkThunk, this, input_subtype, format);
 }
 
 // OK
-CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, uint32_t metadata_size, VideoSubtype input_subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& encoder_options) :
-CustomEncoder(pHookCallback, pHookParam, metadata_size, format.profile != H26xProfile::H26xProfile_None)
+CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, VideoSubtype input_subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& encoder_options) :
+CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size, format.profile != H26xProfile::H26xProfile_None)
 {
     m_pSinkWriter = CustomSinkWriter::CreateForVideo(SinkThunk, this, input_subtype, format, stride, encoder_options);
 }
@@ -31,7 +32,8 @@ CustomEncoder(pHookCallback, pHookParam, metadata_size, format.profile != H26xPr
 // OK
 CustomEncoder::~CustomEncoder()
 {
-    FreeMetadata(m_metadata.get(), m_metadata_size);
+    if (!m_shift) { return; }
+    if (m_pMetadataFree) { m_pMetadataFree(m_metadata.get(), m_metadata_size); }
 }
 
 // OK
@@ -54,7 +56,7 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
     pBuffer->Unlock();
     pBuffer->Release();
 
-    FreeMetadata(m_metadata.get(), m_metadata_size);
+    if (m_pMetadataFree) { m_pMetadataFree(m_metadata.get(), m_metadata_size); }
 
     if ( m_shift) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, m_metadata.get(), m_metadata_size, NULL); }
 }
