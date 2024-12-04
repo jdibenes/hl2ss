@@ -1,6 +1,15 @@
 
-#include <mfapi.h>
 #include "encoder_mc.h"
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+MC_AudioTransform const Encoder_MC::m_at_lut[2] =
+{
+	{Bypass,     2 * sizeof(int16_t), 2 * sizeof(int16_t), AudioSubtype::AudioSubtype_S16},
+	{CropArray, 11 * sizeof(float),   5 * sizeof(float),   AudioSubtype::AudioSubtype_F32}
+};
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -82,21 +91,25 @@ void Encoder_MC::Bypass(void* out, void const* in, int32_t bytes)
 }
 
 // OK
-Encoder_MC::Encoder_MC(HOOK_SINK_PROC pHookCallback, void* pHookParam, AACFormat& format, bool raw)
+MC_AudioTransform Encoder_MC::GetTransform(AACFormat const& format)
 {
-	AudioSubtype subtype;
-	uint8_t channels;
+	return m_at_lut[format.channels == 5];
+}
 
-	switch (raw)
-	{
-	case false: channels = 2; subtype = AudioSubtype::AudioSubtype_S16; m_block_in =  2 * sizeof(uint16_t); m_block_out = 2 * sizeof(uint16_t); m_kernel_crop = Bypass;    break;
-	default:    channels = 5; subtype = AudioSubtype::AudioSubtype_F32; m_block_in = 11 * sizeof(float);    m_block_out = 5 * sizeof(float);    m_kernel_crop = CropArray; break;
-	}
-
+// OK
+void Encoder_MC::SetAACFormat(AACFormat& format, bool raw)
+{
 	format.samplerate = 48000;
-	format.channels   = channels;
+	format.channels   = raw ? 5 : 2;
+}
 
-	m_pSinkWriter = CustomSinkWriter::CreateForAudio(pHookCallback, pHookParam, subtype, format);
+// OK
+Encoder_MC::Encoder_MC(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, AACFormat const& format) :
+CustomEncoder(pHookCallback, pHookParam, NULL, 0, GetTransform(format).subtype, format)
+{
+	m_kernel_crop = GetTransform(format).crop_kernel;
+	m_block_in    = GetTransform(format).block_in;
+	m_block_out   = GetTransform(format).block_out;
 }
 
 // OK
@@ -107,27 +120,18 @@ void Encoder_MC::WriteSample(BYTE const* data, UINT32 framesAvailable, bool sile
 
 	DWORD bytes_in  = framesAvailable * m_block_in;
 	DWORD bytes_out = framesAvailable * m_block_out;
-	IMFSample* pSample; // Release
 	IMFMediaBuffer* pBuffer; // Release
 	BYTE* pDst;
 
-    MFCreateMemoryBuffer(bytes_out, &pBuffer);
+	CreateBuffer(&pBuffer, bytes_out);
 
     pBuffer->Lock(&pDst, NULL, NULL);
 
 	if (silent) { memset(pDst, 0, bytes_out); }	else { m_kernel_crop(pDst, data, bytes_in); }
 
 	pBuffer->Unlock();
-	pBuffer->SetCurrentLength(bytes_out);
 
-	MFCreateSample(&pSample);
-
-	pSample->AddBuffer(pBuffer);
-	pSample->SetSampleDuration((framesAvailable * frame_duration_num) / frame_duration_den);
-	pSample->SetSampleTime(timestamp);
-
-	m_pSinkWriter->WriteSample(pSample);
+	WriteBuffer(pBuffer, timestamp, (framesAvailable * frame_duration_num) / frame_duration_den, NULL);
 
 	pBuffer->Release();
-	pSample->Release();
 }
