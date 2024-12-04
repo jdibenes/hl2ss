@@ -1,5 +1,4 @@
 
-#include <mfapi.h>
 #include "encoder_ea.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
@@ -10,6 +9,18 @@
 using namespace winrt::Windows::Media;
 using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Media::Capture::Frames;
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+EA_AudioTransform const Encoder_EA::m_at_lut[4] =
+{
+    {F32ToS16, ExtendMonoToStereo, sizeof(float),   true},
+    {F32ToS16, Bypass,             sizeof(float),   false},
+    {S16ToS16, ExtendMonoToStereo, sizeof(int16_t), true},
+    {S16ToS16, Bypass,             sizeof(int16_t), false}
+};
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -73,13 +84,6 @@ void Encoder_EA::S16ToS16(int16_t* out, float const* in, int32_t out_bytes)
 }
 
 // OK
-void Encoder_EA::Clear(int16_t* out, float const* in, int32_t out_bytes)
-{
-    (void)in;
-    memset(out, 0, out_bytes);
-}
-
-// OK
 void Encoder_EA::ExtendMonoToStereo(int16_t* out, int16_t const* in, int32_t in_bytes)
 {
     AudioS16MonoToStereo(out, in, in_bytes);
@@ -94,31 +98,31 @@ void Encoder_EA::Bypass(int16_t* out, int16_t const* in, int32_t in_bytes)
 }
 
 // OK
-Encoder_EA::Encoder_EA(HOOK_SINK_PROC pHookCallback, void* pHookParam, AudioSubtype subtype, AACFormat& format, uint32_t channels)
+EA_AudioTransform Encoder_EA::GetTransform(AudioSubtype subtype, uint32_t channels)
+{
+    return m_at_lut[(2 * (subtype == AudioSubtype::AudioSubtype_S16)) + (channels == 2)];
+}
+
+// OK
+void Encoder_EA::SetAACFormat(AACFormat& format)
 {
     format.samplerate = 48000;
     format.channels   = 2;
+}
 
-    switch (subtype)
-    {
-    case AudioSubtype::AudioSubtype_S16: m_kernel_cast = S16ToS16; m_sample_bytes = sizeof(int16_t); break;
-    case AudioSubtype::AudioSubtype_F32: m_kernel_cast = F32ToS16; m_sample_bytes = sizeof(float);   break;
-    default:                             m_kernel_cast = Clear;    m_sample_bytes = sizeof(int16_t); break;
-    }
-
-    switch (channels)
-    {
-    case 1:  m_kernel_wide = ExtendMonoToStereo; m_fill = 1; break;
-    default: m_kernel_wide = Bypass;             m_fill = 0; break;
-    }
-
-    m_pSinkWriter = CustomSinkWriter::CreateForAudio(pHookCallback, pHookParam, AudioSubtype::AudioSubtype_S16, format);
+// OK
+Encoder_EA::Encoder_EA(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, AudioSubtype subtype, AACFormat const& format, uint32_t channels) :
+CustomEncoder(pHookCallback, pHookParam, NULL, 0, AudioSubtype::AudioSubtype_S16, format)
+{
+    m_kernel_cast  = GetTransform(subtype, channels).cast_kernel;
+    m_kernel_wide  = GetTransform(subtype, channels).wide_kernel;
+    m_sample_bytes = GetTransform(subtype, channels).sample_bytes;
+    m_fill         = GetTransform(subtype, channels).fill;
 }
 
 // OK
 void Encoder_EA::WriteSample(MediaFrameReference const& frame, int64_t timestamp)
 {
-    IMFSample* pSample; // Release
     IMFMediaBuffer* pBuffer; // Release
     BYTE* pDst;
 
@@ -131,7 +135,7 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame, int64_t timestamp
     uint32_t fill_bytes   = m_fill * output_bytes;
     uint32_t buffer_bytes = output_bytes + fill_bytes;
 
-    MFCreateMemoryBuffer(buffer_bytes, &pBuffer);
+    CreateBuffer(&pBuffer, buffer_bytes);
 
     pBuffer->Lock(&pDst, NULL, NULL);
 
@@ -143,20 +147,12 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame, int64_t timestamp
     m_kernel_wide(base_addr, high_addr, output_bytes);
 
     pBuffer->Unlock();
-    pBuffer->SetCurrentLength(buffer_bytes);
+
+    WriteBuffer(pBuffer, timestamp, frame.Duration().count(), NULL);
+
+    pBuffer->Release();
 
     reference.Close();
     buffer.Close();
     audio.Close();
-
-    MFCreateSample(&pSample);
-
-    pSample->AddBuffer(pBuffer);
-    pSample->SetSampleDuration(frame.Duration().count());
-    pSample->SetSampleTime(timestamp);
-
-    m_pSinkWriter->WriteSample(pSample);
-
-    pBuffer->Release();
-    pSample->Release();
 }
