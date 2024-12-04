@@ -1,8 +1,19 @@
 
-#include <mfapi.h>
 #include "encoder_rm_zht.h"
 #include "research_mode.h"
 #include "timestamps.h"
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+RM_ZHT_VideoTransform const Encoder_RM_ZHT::m_vt_lut[4] =
+{
+	{BypassZ, SetZAB,        RM_ZHT_PIXELS * 4,      VideoSubtype::VideoSubtype_ARGB},
+	{BypassZ, SetZABToNV12, (RM_ZHT_PIXELS * 3) / 2, VideoSubtype::VideoSubtype_NV12},
+	{AppendZ, SetXAB,        RM_ZHT_PIXELS * 2,      VideoSubtype::VideoSubtype_L16},
+	{AppendZ, SetXABToNV12, (RM_ZHT_PIXELS * 3) / 2, VideoSubtype::VideoSubtype_NV12}
+};
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -136,51 +147,55 @@ void Encoder_RM_ZHT::AppendZ(zdepth::DepthCompressor& compressor, uint16_t const
 }
 
 // OK
-Encoder_RM_ZHT::Encoder_RM_ZHT(HOOK_SINK_PROC pHookCallback, void* pHookParam, H26xFormat& format, ZABFormat& zabformat, std::vector<uint64_t> const& options)
+void Encoder_RM_ZHT::FreeMetadata(void* metadata, uint32_t metadata_size)
 {
-    VideoSubtype subtype;
-
-	format.width     = RM_ZHT_WIDTH;
-	format.height    = RM_ZHT_HEIGHT;
-	format.framerate = RM_ZHT_FPS;
-	
-    switch (2 * (zabformat.profile != ZProfile::ZProfile_Same) + (format.profile != H26xProfile::H26xProfile_None))
-    {
-    case 0:  m_kernel_sink = SetZAB;       m_kernel_blob = BypassZ; m_framebytes =  RM_ZHT_PIXELS * 4;      subtype = VideoSubtype::VideoSubtype_ARGB; break;
-    case 1:  m_kernel_sink = SetZABToNV12; m_kernel_blob = BypassZ; m_framebytes = (RM_ZHT_PIXELS * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
-    case 2:  m_kernel_sink = SetXAB;       m_kernel_blob = AppendZ; m_framebytes =  RM_ZHT_PIXELS * 2;      subtype = VideoSubtype::VideoSubtype_L16;  break;
-    default: m_kernel_sink = SetXABToNV12; m_kernel_blob = AppendZ; m_framebytes = (RM_ZHT_PIXELS * 3) / 2; subtype = VideoSubtype::VideoSubtype_NV12; break;
-    }
-
-    m_duration = (format.divisor * HNS_BASE) / RM_ZHT_FPS;
-
-    m_pSinkWriter = CustomSinkWriter::CreateForVideo(pHookCallback, pHookParam, subtype, format, RM_ZHT_WIDTH, options);
+	(void)metadata_size;
+	std::vector<uint8_t>*& z = static_cast<RM_ZHT_Metadata*>(metadata)->z;
+	if (!z) { return; }
+	delete z;
+	z = NULL;
 }
 
 // OK
-void Encoder_RM_ZHT::WriteSample(UINT16 const* pDepth, UINT16 const* pAbImage, LONGLONG timestamp, RM_ZHT_SLOT* metadata, UINT32 metadata_size)
+RM_ZHT_VideoTransform Encoder_RM_ZHT::GetTransform(H26xFormat const& format, ZABFormat const& zabformat)
+{
+	return m_vt_lut[(2 * (zabformat.profile != ZProfile::ZProfile_Same)) + (format.profile != H26xProfile::H26xProfile_None)];
+}
+
+// OK
+void Encoder_RM_ZHT::SetH26xFormat(H26xFormat& format)
+{
+	format.width     = RM_ZHT_WIDTH;
+	format.height    = RM_ZHT_HEIGHT;
+	format.framerate = RM_ZHT_FPS;
+}
+
+// OK
+Encoder_RM_ZHT::Encoder_RM_ZHT(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format, ZABFormat const& zabformat, std::vector<uint64_t> const& options) :
+CustomEncoder(pHookCallback, pHookParam, FreeMetadata, sizeof(RM_ZHT_Metadata), GetTransform(format, zabformat).subtype, format, RM_ZHT_WIDTH, options)
+{
+	m_kernel_blob = GetTransform(format, zabformat).zxx_kernel;
+	m_kernel_sink = GetTransform(format, zabformat).zab_kernel;	
+	m_framebytes  = GetTransform(format, zabformat).framesize;
+    m_duration    = (format.divisor * HNS_BASE) / RM_ZHT_FPS;
+}
+
+// OK
+void Encoder_RM_ZHT::WriteSample(UINT16 const* pDepth, UINT16 const* pAbImage, LONGLONG timestamp, RM_ZHT_Metadata* metadata)
 {
     IMFMediaBuffer* pBuffer; // Release
-    IMFSample* pSample; // Release
     BYTE* pDst;
 
-    MFCreateMemoryBuffer(m_framebytes, &pBuffer);
+	CreateBuffer(&pBuffer, m_framebytes);
 
     pBuffer->Lock(&pDst, NULL, NULL);
+
     m_kernel_blob(m_compressor, pDepth, metadata->z, true);
     m_kernel_sink(pDepth, pAbImage, pDst);
+
     pBuffer->Unlock();
-    pBuffer->SetCurrentLength(m_framebytes);
 
-    MFCreateSample(&pSample);
+	WriteBuffer(pBuffer, timestamp, m_duration, reinterpret_cast<UINT8*>(metadata));
 
-    pSample->AddBuffer(pBuffer);
-    pSample->SetSampleDuration(m_duration);
-    pSample->SetSampleTime(timestamp);
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, reinterpret_cast<UINT8*>(metadata), metadata_size);
-
-    m_pSinkWriter->WriteSample(pSample);
-
-    pSample->Release();
     pBuffer->Release();
 }
