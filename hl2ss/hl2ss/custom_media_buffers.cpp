@@ -2,12 +2,13 @@
 #include <mferror.h>
 #include "custom_media_buffers.h"
 
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Media.Capture.Frames.h>
-#include <winrt/Windows.Graphics.Imaging.h>
-
+using namespace winrt::Windows::Storage::Streams;
 using namespace winrt::Windows::Media::Capture::Frames;
 using namespace winrt::Windows::Graphics::Imaging;
+
+//*****************************************************************************
+// SoftwareBitmapBuffer
+//*****************************************************************************
 
 //-----------------------------------------------------------------------------
 // IUnknown Methods
@@ -116,5 +117,113 @@ SoftwareBitmapBuffer::~SoftwareBitmapBuffer()
 HRESULT SoftwareBitmapBuffer::CreateInstance(SoftwareBitmapBuffer** ppBuffer, MediaFrameReference const& ref)
 {
     *ppBuffer = new SoftwareBitmapBuffer(ref);
+    return S_OK;
+}
+
+//*****************************************************************************
+// BufferBuffer
+//*****************************************************************************
+
+//-----------------------------------------------------------------------------
+// IUnknown Methods
+//-----------------------------------------------------------------------------
+
+// OK
+ULONG BufferBuffer::AddRef()
+{
+    return InterlockedIncrement(&m_nRefCount);
+}
+
+// OK
+ULONG BufferBuffer::Release()
+{
+    ULONG uCount = InterlockedDecrement(&m_nRefCount);
+    if (uCount == 0) { delete this; }
+    return uCount;
+}
+
+// OK
+HRESULT BufferBuffer::QueryInterface(REFIID iid, void** ppv)
+{
+    if (!ppv) { return E_POINTER; }
+
+    *ppv = NULL;
+
+    if      (iid == IID_IUnknown)       { *ppv = static_cast<IUnknown*>(this); }
+    else if (iid == IID_IMFMediaBuffer) { *ppv = static_cast<IMFMediaBuffer*>(this); }
+    else                                { return E_NOINTERFACE; }
+
+    AddRef();
+    return S_OK;
+}
+
+//-----------------------------------------------------------------------------
+// IMFMediaBuffer Methods
+//-----------------------------------------------------------------------------
+
+// OK
+HRESULT BufferBuffer::GetCurrentLength(DWORD* pcbCurrentLength)
+{
+    *pcbCurrentLength = m_curLength;
+    return S_OK;
+}
+
+// OK
+HRESULT BufferBuffer::GetMaxLength(DWORD* pcbMaxLength)
+{
+    *pcbMaxLength = m_maxLength;
+    return S_OK;
+}
+
+// OK
+HRESULT BufferBuffer::Lock(BYTE** ppbBuffer, DWORD* pcbMaxLength, DWORD* pcbCurrentLength)
+{
+    *ppbBuffer = m_pBase;
+    if (pcbMaxLength) { *pcbMaxLength = m_maxLength; }
+    if (pcbCurrentLength) { *pcbCurrentLength = m_curLength; }
+    return S_OK;
+}
+
+// OK
+HRESULT BufferBuffer::SetCurrentLength(DWORD cbCurrentLength)
+{
+    m_curLength = cbCurrentLength;
+    return S_OK;
+}
+
+// OK
+HRESULT BufferBuffer::Unlock()
+{
+    return S_OK;
+}
+
+//-----------------------------------------------------------------------------
+// BufferBuffer Methods
+//-----------------------------------------------------------------------------
+
+// OK
+BufferBuffer::BufferBuffer(Buffer const& ref) : m_buf(nullptr)
+{
+    UINT32 length;
+
+    m_nRefCount = 1;
+    m_buf       = ref;
+
+    m_pBase = ref.data();
+    length  = ref.Length();
+
+    m_maxLength = length;
+    m_curLength = length;
+}
+
+// OK
+BufferBuffer::~BufferBuffer()
+{
+}
+
+// OK
+HRESULT BufferBuffer::CreateInstance(BufferBuffer** ppBuffer, Buffer const& ref)
+{
+    *ppBuffer = new BufferBuffer(ref);
     return S_OK;
 }
