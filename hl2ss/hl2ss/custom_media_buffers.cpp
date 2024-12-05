@@ -88,7 +88,9 @@ HRESULT SoftwareBitmapBuffer::Unlock()
 //-----------------------------------------------------------------------------
 
 // OK
-SoftwareBitmapBuffer::SoftwareBitmapBuffer(MediaFrameReference const& ref) : m_bmp(nullptr), m_buf(nullptr)
+SoftwareBitmapBuffer::SoftwareBitmapBuffer(MediaFrameReference const& ref) :
+m_bmp(nullptr),
+m_buf(nullptr)
 {
     UINT32 length;
 
@@ -202,7 +204,8 @@ HRESULT BufferBuffer::Unlock()
 //-----------------------------------------------------------------------------
 
 // OK
-BufferBuffer::BufferBuffer(Buffer const& ref) : m_buf(nullptr)
+BufferBuffer::BufferBuffer(Buffer const& ref) :
+m_buf(nullptr)
 {
     UINT32 length;
 
