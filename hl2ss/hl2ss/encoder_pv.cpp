@@ -3,8 +3,6 @@
 #include "custom_media_buffers.h"
 #include "timestamps.h"
 
-#include <winrt/Windows.Media.Capture.Frames.h>
-
 using namespace winrt::Windows::Media::Capture::Frames;
 
 //-----------------------------------------------------------------------------
