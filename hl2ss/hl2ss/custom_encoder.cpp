@@ -2,6 +2,10 @@
 #include <mfapi.h>
 #include "custom_encoder.h"
 
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
 // OK
 CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, bool shift)
 {
