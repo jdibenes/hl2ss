@@ -1,9 +1,9 @@
 
 #include <MemoryBuffer.h>
 #include "encoder_rm_zlt.h"
+#include "custom_media_buffers.h"
 #include "research_mode.h"
-
-#include <winrt/Windows.Foundation.Collections.h>
+#include "timestamps.h"
 
 using namespace Windows::Foundation;
 using namespace winrt::Windows::Graphics::Imaging;
@@ -44,28 +44,31 @@ void Encoder_RM_ZLT::SetH26xFormat(H26xFormat& format)
     format.width     = RM_ZLT_WIDTH;
     format.height    = RM_ZLT_HEIGHT;
     format.framerate = RM_ZLT_FPS;
+    format.bitrate   = 0;
+    format.level     = H26xLevel_Default;
+    format.profile   = H26xProfile::H26xProfile_None;
 }
 
 // OK
-Encoder_RM_ZLT::Encoder_RM_ZLT(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format, ZABFormat const& zabFormat) : m_softwareBitmap(nullptr)
+Encoder_RM_ZLT::Encoder_RM_ZLT(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format, ZABFormat const& zabFormat) :
+CustomEncoder(pHookCallback, pHookParam, NULL, sizeof(RM_ZLT_Metadata), VideoSubtype::VideoSubtype_ARGB, format, RM_ZLT_WIDTH, {})
 {
     m_pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(zabFormat.filter), winrt::Windows::Foundation::PropertyType::UInt8));
-    m_softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, format.width, format.height, BitmapAlphaMode::Straight);
-    m_pHookCallback = pHookCallback;
-    m_pHookParam = pHookParam;
+    m_duration = (format.divisor * HNS_BASE) / RM_ZLT_FPS;
 }
 
 // OK
 void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT16 const* pAbImage, LONGLONG timestamp, RM_ZLT_Metadata* metadata)
 {
+    BufferBuffer* pBuffer; // Release
     BYTE* pixelBufferData;
     UINT32 pixelBufferDataLength;
     uint32_t streamSize;
-    uint8_t* sample_data;
-    uint32_t sample_size;
 
-    {
-    auto bitmapBuffer = m_softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
+    auto softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, RM_ZLT_WIDTH, RM_ZLT_HEIGHT, BitmapAlphaMode::Straight);
+
+    {    
+    auto bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
     auto spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
 
     spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
@@ -76,7 +79,7 @@ void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT1
     auto stream = InMemoryRandomAccessStream();
     auto encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, m_pngProperties).get();
 
-    encoder.SetSoftwareBitmap(m_softwareBitmap);
+    encoder.SetSoftwareBitmap(softwareBitmap);
     encoder.FlushAsync().get();
 
     streamSize = static_cast<uint32_t>(stream.Size());
@@ -85,8 +88,7 @@ void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT1
 
     stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
 
-    sample_data = streamBuf.data();
-    sample_size = streamBuf.Length();
-
-    m_pHookCallback(sample_data, sample_size, timestamp, metadata, sizeof(RM_ZLT_Metadata), m_pHookParam);
+    BufferBuffer::CreateInstance(&pBuffer, streamBuf);
+    WriteBuffer(pBuffer, timestamp, m_duration, reinterpret_cast<UINT8*>(metadata));
+    pBuffer->Release();
 }

@@ -3,6 +3,7 @@
 
 #include "custom_encoder.h"
 
+#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.Storage.Streams.h>
@@ -13,13 +14,11 @@ struct RM_ZLT_Metadata
     winrt::Windows::Foundation::Numerics::float4x4 pose;
 };
 
-class Encoder_RM_ZLT
+class Encoder_RM_ZLT : CustomEncoder
 {
 private:
     winrt::Windows::Graphics::Imaging::BitmapPropertySet m_pngProperties;
-    winrt::Windows::Graphics::Imaging::SoftwareBitmap m_softwareBitmap;
-    HOOK_ENCODER_PROC m_pHookCallback;
-    void* m_pHookParam;
+    LONGLONG m_duration;
 
     static void ToBGRA8(uint8_t const* pSigma, uint16_t const* pDepth, uint16_t const* pAb, uint32_t* pBGRA8);
 
