@@ -14,8 +14,8 @@ class SoftwareBitmapBuffer : public IMFMediaBuffer
 private:
     ULONG m_nRefCount;
 
-    winrt::Windows::Graphics::Imaging::SoftwareBitmap                  m_bmp;
-    winrt::Windows::Graphics::Imaging::BitmapBuffer                    m_buf;
+    winrt::Windows::Graphics::Imaging::SoftwareBitmap                  m_bmp = nullptr;
+    winrt::Windows::Graphics::Imaging::BitmapBuffer                    m_buf = nullptr;
     winrt::Windows::Foundation::IMemoryBufferReference                 m_ref;
     winrt::impl::com_ref<Windows::Foundation::IMemoryBufferByteAccess> m_bba;
 
@@ -47,7 +47,7 @@ class BufferBuffer : public IMFMediaBuffer
 private:
     ULONG m_nRefCount;
 
-    winrt::Windows::Storage::Streams::Buffer m_buf;
+    winrt::Windows::Storage::Streams::Buffer m_buf = nullptr;
 
     BYTE* m_pBase;
     DWORD m_maxLength;
