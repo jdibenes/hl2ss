@@ -3,6 +3,9 @@
 
 #include "custom_encoder.h"
 
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Media.h>
+#include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 
 typedef void(*EA_CAST_KERNEL)(int16_t*, float   const*, int32_t);

@@ -1,11 +1,6 @@
 
 #include "encoder_ea.h"
 
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Media.h>
-#include <winrt/Windows.Media.MediaProperties.h>
-#include <winrt/Windows.Media.Capture.Frames.h>
-
 using namespace winrt::Windows::Media;
 using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Media::Capture::Frames;
