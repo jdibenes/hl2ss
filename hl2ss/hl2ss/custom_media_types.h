@@ -5,8 +5,8 @@
 #include <vector>
 #include <stdint.h>
 
-uint8_t const RAWProfile = 0xFF;
-int32_t const H26xLevel_Default = -1;
+uint8_t const RAWProfile        = 0xFF;
+int8_t  const H26xLevel_Default = -1;
 
 enum AACProfile : uint8_t
 {
