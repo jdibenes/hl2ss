@@ -23,7 +23,7 @@ private:
 
     void ProcessSample(IMFSample* pSample);
 
-    static void SinkThunk(IMFSample* pSample, void* param);
+    static void Thunk_Sink(IMFSample* pSample, void* param);
 
 protected:
     CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, AudioSubtype input_subtype, AACFormat  const& format);
