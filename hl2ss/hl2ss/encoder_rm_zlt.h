@@ -11,6 +11,7 @@
 struct RM_ZLT_Metadata
 {
     uint64_t sensor_ticks;
+    uint64_t timestamp;
     winrt::Windows::Foundation::Numerics::float4x4 pose;
 };
 
