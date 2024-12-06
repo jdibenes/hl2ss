@@ -23,14 +23,14 @@ CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, 
 CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, AudioSubtype input_subtype, AACFormat  const& format) :
 CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size, false)
 {
-    m_pSinkWriter = CustomSinkWriter::CreateForAudio(SinkThunk, this, input_subtype, format);
+    m_pSinkWriter = CustomSinkWriter::CreateForAudio(Thunk_Sink, this, input_subtype, format);
 }
 
 // OK
 CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, VideoSubtype input_subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& encoder_options) :
 CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size, format.profile != H26xProfile::H26xProfile_None)
 {
-    m_pSinkWriter = CustomSinkWriter::CreateForVideo(SinkThunk, this, input_subtype, format, stride, encoder_options);
+    m_pSinkWriter = CustomSinkWriter::CreateForVideo(Thunk_Sink, this, input_subtype, format, stride, encoder_options);
 }
 
 // OK
@@ -66,7 +66,7 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
 }
 
 // OK
-void CustomEncoder::SinkThunk(IMFSample* pSample, void* param)
+void CustomEncoder::Thunk_Sink(IMFSample* pSample, void* param)
 {
     static_cast<CustomEncoder*>(param)->ProcessSample(pSample);
 }
