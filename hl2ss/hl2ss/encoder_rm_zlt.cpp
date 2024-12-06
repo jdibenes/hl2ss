@@ -1,11 +1,9 @@
 
-#include <MemoryBuffer.h>
 #include "encoder_rm_zlt.h"
 #include "custom_media_buffers.h"
 #include "research_mode.h"
 #include "timestamps.h"
 
-using namespace Windows::Foundation;
 using namespace winrt::Windows::Graphics::Imaging;
 using namespace winrt::Windows::Storage::Streams;
 
@@ -61,22 +59,18 @@ CustomEncoder(pHookCallback, pHookParam, NULL, sizeof(RM_ZLT_Metadata), VideoSub
 void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT16 const* pAbImage, LONGLONG timestamp, RM_ZLT_Metadata* metadata)
 {
     BufferBuffer* pBuffer; // Release
-    BYTE* pixelBufferData;
-    UINT32 pixelBufferDataLength;
     uint32_t streamSize;
 
-    auto softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, RM_ZLT_WIDTH, RM_ZLT_HEIGHT, BitmapAlphaMode::Straight);
+    auto softwareBitmap           = SoftwareBitmap(BitmapPixelFormat::Bgra8, RM_ZLT_WIDTH, RM_ZLT_HEIGHT, BitmapAlphaMode::Straight);
+    auto bitmapBuffer             = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
+    auto spMemoryBufferByteAccess = bitmapBuffer.CreateReference();
 
-    {    
-    auto bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
-    auto spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
+    ToBGRA8(pSigma, pDepth, pAbImage, reinterpret_cast<uint32_t*>(spMemoryBufferByteAccess.data()));
 
-    spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
-
-    ToBGRA8(pSigma, pDepth, pAbImage, reinterpret_cast<uint32_t*>(pixelBufferData));
-    }
-
-    auto stream = InMemoryRandomAccessStream();
+    spMemoryBufferByteAccess.Close();
+    bitmapBuffer.Close();
+    
+    auto stream  = InMemoryRandomAccessStream();
     auto encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, m_pngProperties).get();
 
     encoder.SetSoftwareBitmap(softwareBitmap);
