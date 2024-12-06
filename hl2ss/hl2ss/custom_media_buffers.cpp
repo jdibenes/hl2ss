@@ -96,9 +96,8 @@ SoftwareBitmapBuffer::SoftwareBitmapBuffer(MediaFrameReference const& ref)
     m_bmp       = ref.VideoMediaFrame().SoftwareBitmap();
     m_buf       = m_bmp.LockBuffer(BitmapBufferAccessMode::Read);
     m_ref       = m_buf.CreateReference();
-    m_bba       = m_ref.as<Windows::Foundation::IMemoryBufferByteAccess>();
-
-    m_bba->GetBuffer(&m_pBase, &length);
+    m_pBase     = m_ref.data();
+    length      = m_ref.Capacity();
 
     m_maxLength = length;
     m_curLength = length;
@@ -107,10 +106,12 @@ SoftwareBitmapBuffer::SoftwareBitmapBuffer(MediaFrameReference const& ref)
 // OK
 SoftwareBitmapBuffer::~SoftwareBitmapBuffer()
 {
-                   m_bba = nullptr;
-    m_ref.Close(); m_ref = nullptr;
-    m_buf.Close(); m_buf = nullptr;
-    m_bmp.Close(); m_bmp = nullptr;
+    m_ref.Close();
+    m_ref = nullptr;
+    m_buf.Close();
+    m_buf = nullptr;
+    m_bmp.Close();
+    m_bmp = nullptr;
 }
 
 // OK
