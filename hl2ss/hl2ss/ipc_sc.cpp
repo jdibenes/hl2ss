@@ -10,6 +10,17 @@ using namespace winrt::Windows::Graphics::Imaging;
 //-----------------------------------------------------------------------------
 
 // OK
+bool ReceiveOperatingMode(SOCKET clientsocket, uint8_t& mode)
+{
+	bool ok;
+
+	ok = recv_u8(clientsocket, mode);
+	if (!ok) { return false; }
+
+	return true;
+}
+
+// OK
 bool ReceiveAACFormat_Profile(SOCKET clientsocket, AACFormat& format)
 {
 	bool ok;
@@ -108,7 +119,7 @@ bool ReceiveH26xFormat_Profile(SOCKET clientsocket, H26xFormat& format)
 }
 
 // OK
-bool ReceiveH26xEncoder_Options(SOCKET clientsocket, std::vector<uint64_t> &options)
+bool ReceiveEncoderOptions(SOCKET clientsocket, std::vector<uint64_t> &options)
 {
 	bool ok;
 	uint8_t count;
