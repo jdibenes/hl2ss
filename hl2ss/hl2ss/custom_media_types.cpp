@@ -382,7 +382,7 @@ void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAttributes
 
 	MFCreateAttributes(pEncoderAttr, static_cast<UINT32>(size / 2));
 
-	for (int i = 0; i < (int)size; i += 2)
+	for (int i = 0; i < static_cast<int>(size); i += 2)
 	{
 	uint64_t option = options[i];
 	uint64_t value  = options[i + 1];
