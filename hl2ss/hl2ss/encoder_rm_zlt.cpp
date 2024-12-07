@@ -59,7 +59,6 @@ CustomEncoder(pHookCallback, pHookParam, NULL, sizeof(RM_ZLT_Metadata), VideoSub
 void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT16 const* pAbImage, LONGLONG timestamp, RM_ZLT_Metadata* metadata)
 {
     BufferBuffer* pBuffer; // Release
-    uint32_t streamSize;
 
     auto softwareBitmap           = SoftwareBitmap(BitmapPixelFormat::Bgra8, RM_ZLT_WIDTH, RM_ZLT_HEIGHT, BitmapAlphaMode::Straight);
     auto bitmapBuffer             = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
@@ -76,7 +75,7 @@ void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT1
     encoder.SetSoftwareBitmap(softwareBitmap);
     encoder.FlushAsync().get();
 
-    streamSize = static_cast<uint32_t>(stream.Size());
+    uint32_t streamSize = static_cast<uint32_t>(stream.Size());
 
     auto streamBuf = Buffer(streamSize);
 
