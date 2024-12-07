@@ -8,7 +8,6 @@
 #include "ports.h"
 #include "encoder_pv.h"
 #include "timestamps.h"
-#include "log.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Foundation.Collections.h>
@@ -51,12 +50,13 @@ private:
 
     void OnFrameArrived_Mode0(MediaFrameReference const& frame);
     void OnFrameArrived_Mode2(MediaFrameReference const& frame);
-    void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sampletime, void* metadata, UINT32 metadata_size);
+    void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
 
     static void TranslateEncoderOptions(std::vector<uint64_t> const& options, MediaFrameReaderAcquisitionMode& acquisition_mode);
-    static void Thunk_Sensor_Mode0(MediaFrameReference const& frame, void* param);
-    static void Thunk_Sensor_Mode2(MediaFrameReference const& frame, void* param);
-    static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sampletime, void* metadata, UINT32 metadata_size, void* param);
+    
+    static void Thunk_Sensor_Mode0(MediaFrameReference const& frame, void* self);
+    static void Thunk_Sensor_Mode2(MediaFrameReference const& frame, void* self);
+    static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
 
 public:
     Channel_PV(char const* name, char const* port, uint32_t id);
@@ -87,21 +87,21 @@ void Channel_PV::TranslateEncoderOptions(std::vector<uint64_t> const& options, M
 }
 
 // OK
-void Channel_PV::Thunk_Sensor_Mode0(MediaFrameReference const& frame, void* param)
+void Channel_PV::Thunk_Sensor_Mode0(MediaFrameReference const& frame, void* self)
 {
-    static_cast<Channel_PV*>(param)->OnFrameArrived_Mode0(frame);
+    static_cast<Channel_PV*>(self)->OnFrameArrived_Mode0(frame);
 }
 
 // OK
-void Channel_PV::Thunk_Sensor_Mode2(MediaFrameReference const& frame, void* param)
+void Channel_PV::Thunk_Sensor_Mode2(MediaFrameReference const& frame, void* self)
 {
-    static_cast<Channel_PV*>(param)->OnFrameArrived_Mode2(frame);
+    static_cast<Channel_PV*>(self)->OnFrameArrived_Mode2(frame);
 }
 
 // OK
-void Channel_PV::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sampletime, void* metadata, UINT32 metadata_size, void* param)
+void Channel_PV::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-    static_cast<Channel_PV*>(param)->OnEncodingComplete(encoded, encoded_size, sampletime, metadata, metadata_size);
+    static_cast<Channel_PV*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
 }
 
 // OK
@@ -126,11 +126,7 @@ void Channel_PV::OnFrameArrived_Mode0(MediaFrameReference const& frame)
     p.white_balance         = metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE).as<uint32_t>();
     p.white_balance_gains   = *reinterpret_cast<float3*>(metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin());
     p.timestamp             = timestamp;
-
-    if (m_enable_location)
-    {
     p.pose                  = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
-    }
 
     m_pEncoder->WriteSample(frame, timestamp, &p);
     }
@@ -170,7 +166,7 @@ void Channel_PV::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG 
     int const embed_size = sizeof(PV_Metadata) - sizeof(PV_Metadata::timestamp) - sizeof(PV_Metadata::pose);
 
     PV_Metadata* p = static_cast<PV_Metadata*>(metadata);
-    DWORD full_size = encoded_size + embed_size;
+    ULONG full_size = encoded_size + embed_size;
     WSABUF wsaBuf[5];
 
     pack_buffer(wsaBuf, 0, &p->timestamp, sizeof(p->timestamp));
@@ -218,6 +214,7 @@ void Channel_PV::Execute_Mode0(bool enable_location)
     m_pEncoder.reset();
 }
 
+// OK
 void Channel_PV::Execute_Mode2()
 {
     H26xFormat format;
