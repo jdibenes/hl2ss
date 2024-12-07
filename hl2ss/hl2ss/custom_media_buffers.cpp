@@ -90,17 +90,13 @@ HRESULT SoftwareBitmapBuffer::Unlock()
 // OK
 SoftwareBitmapBuffer::SoftwareBitmapBuffer(MediaFrameReference const& ref)
 {
-    UINT32 length;
-
     m_nRefCount = 1;
     m_bmp       = ref.VideoMediaFrame().SoftwareBitmap();
     m_buf       = m_bmp.LockBuffer(BitmapBufferAccessMode::Read);
     m_ref       = m_buf.CreateReference();
     m_pBase     = m_ref.data();
-    length      = m_ref.Capacity();
-
-    m_maxLength = length;
-    m_curLength = length;
+    m_maxLength =
+    m_curLength = m_ref.Capacity();
 }
 
 // OK
@@ -205,16 +201,11 @@ HRESULT BufferBuffer::Unlock()
 // OK
 BufferBuffer::BufferBuffer(Buffer const& ref)
 {
-    UINT32 length;
-
     m_nRefCount = 1;
     m_buf       = ref;
-
-    m_pBase = ref.data();
-    length  = ref.Length();
-
-    m_maxLength = length;
-    m_curLength = length;
+    m_pBase     = ref.data();
+    m_maxLength =
+    m_curLength = ref.Length();
 }
 
 // OK
