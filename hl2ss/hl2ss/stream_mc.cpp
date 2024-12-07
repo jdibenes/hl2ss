@@ -1,178 +1,120 @@
 
-#include <mfapi.h>
-#include "custom_media_sink.h"
-#include "ports.h"
 #include "microphone_capture.h"
+#include "channel.h"
 #include "ipc_sc.h"
-#include "extended_execution.h"
-#include "log.h"
+#include "ports.h"
+#include "encoder_mc.h"
 
-#include <winrt/Windows.UI.Core.h>
-#include <winrt/Windows.ApplicationModel.Core.h>
+class Channel_MC : public Channel
+{
+private:
+	std::unique_ptr<Encoder_MC> m_pEncoder;
 
-using namespace winrt::Windows::UI::Core;
-using namespace winrt::Windows::ApplicationModel::Core;
+	bool Startup();
+	void Run();
+	void Cleanup();
+
+	void OnFrameArrived(BYTE* data, UINT32 frames, bool silent, UINT64 timestamp);
+	void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+
+	static void Thunk_Sensor(BYTE* data, UINT32 frames, bool silent, UINT64 timestamp, void* self);
+	static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+
+public:
+	Channel_MC(char const* name, char const* port, uint32_t id);
+};
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_thread = NULL; // CloseHandle
-static HANDLE g_event_quit = NULL; // CloseHandle
-
-static winrt::com_ptr<MicrophoneCapture> g_microphoneCapture = nullptr;
+static std::unique_ptr<Channel_MC> g_channel;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void MC_SendSample(IMFSample* pSample, void* param)
+void Channel_MC::Thunk_Sensor(BYTE* data, UINT32 frames, bool silent, UINT64 timestamp, void* self)
 {
-	IMFMediaBuffer* pBuffer; // Release
-	LONGLONG sampletime;
-	BYTE* pBytes;
-	DWORD cbData;
-	WSABUF wsaBuf[3];
-	HookCallbackSocket* user;
-	bool ok;
-
-	user = (HookCallbackSocket*)param;
-
-	pSample->GetSampleTime(&sampletime);
-	pSample->ConvertToContiguousBuffer(&pBuffer);
-
-	pBuffer->Lock(&pBytes, NULL, &cbData);
-
-	pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
-	pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
-	pack_buffer(wsaBuf, 2, pBytes, cbData);
-
-	ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-	if (!ok) { SetEvent(user->clientevent); }
-
-	pBuffer->Unlock();
-	pBuffer->Release();
+	static_cast<Channel_MC*>(self)->OnFrameArrived(data, frames, silent, timestamp);
 }
 
 // OK
-static void MC_Shoutcast(SOCKET clientsocket)
+void Channel_MC::Thunk_Encoder(void* pBytes, DWORD cbData, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-	uint32_t const samplerate = 48000;
-	
-	CustomMediaSink* pSink; // Release
-	IMFSinkWriter* pSinkWriter; // Release
-	HANDLE event_client; // CloseHandle
-	bool raw;
-	uint8_t channels;
-	AudioSubtype subtype;
-	AACFormat format;
-	HookCallbackSocket user;
-	DWORD dwAudioIndex;
+	static_cast<Channel_MC*>(self)->OnEncodingComplete(pBytes, cbData, sample_time, metadata, metadata_size);
+}
+
+// OK
+void Channel_MC::OnFrameArrived(BYTE* data, UINT32 frames, bool silent, UINT64 timestamp)
+{
+	m_pEncoder->WriteSample(data, frames, silent, timestamp);
+}
+
+// OK
+void Channel_MC::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+{
+	(void)metadata;
+	(void)metadata_size;
+
+	WSABUF wsaBuf[3];
 	bool ok;
 
-	ok = ReceiveAACFormat_Profile(clientsocket, format);
+	pack_buffer(wsaBuf, 0, &sample_time,  sizeof(sample_time));
+	pack_buffer(wsaBuf, 1, &encoded_size, sizeof(encoded_size));
+	pack_buffer(wsaBuf, 2, encoded,       encoded_size);
+
+	ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+	if (!ok) { SetEvent(m_event_client); }
+}
+
+// OK
+Channel_MC::Channel_MC(char const* name, char const* port, uint32_t id) : Channel(name, port, id)
+{
+}
+
+// OK
+bool Channel_MC::Startup()
+{
+	return winrt::make_self<MicrophoneCapture>()->Initialize(false);
+}
+
+// OK
+void Channel_MC::Run()
+{
+	winrt::com_ptr<MicrophoneCapture> microphone_capture = winrt::make_self<MicrophoneCapture>();
+	AACFormat format;
+	bool ok;
+
+	ok = ReceiveAACFormat_Profile(m_socket_client, format);
 	if (!ok) { return; }
 
-	raw = (format.profile == AACProfile::AACProfile_None) && (format.level == AACLevel::AACLevel_L5);
+	bool array_raw = (format.profile == AACProfile::AACProfile_None) && (format.level == AACLevel::AACLevel_L5);
 
-	if (raw) { channels = 5; subtype = AudioSubtype::AudioSubtype_F32; }
-	else     { channels = 2; subtype = AudioSubtype::AudioSubtype_S16; }
+	ok = microphone_capture->Initialize(array_raw);
+	if (!ok) { return; }
 
-	format.channels = channels;
-	format.samplerate = samplerate;
+	Encoder_MC::SetAACFormat(format, array_raw);
 
-	g_microphoneCapture = winrt::make_self<MicrophoneCapture>();
-	g_microphoneCapture->Initialize(raw);
-
-	CoreApplication::Views().GetAt(0).Dispatcher().RunAsync(CoreDispatcherPriority::High, [=]() { g_microphoneCapture->Activate(); }).get();
-	
-	g_microphoneCapture->WaitActivate(INFINITE);
-	if (!g_microphoneCapture->Status()) { return; }
-
-	event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-	user.clientsocket = clientsocket;
-	user.clientevent  = event_client;
-	user.format       = &format;
-
-	CreateSinkWriterAudio(&pSink, &pSinkWriter, &dwAudioIndex, subtype, format, MC_SendSample, &user);
-
-	g_microphoneCapture->Start();
-	do { g_microphoneCapture->WriteSample(pSinkWriter, dwAudioIndex); } while (WaitForSingleObject(event_client, 0) == WAIT_TIMEOUT);
-	g_microphoneCapture->Stop();
-	
-	pSinkWriter->Flush(dwAudioIndex);
-	pSinkWriter->Release();
-	pSink->Shutdown();
-	pSink->Release();
-
-	CloseHandle(event_client);
+	m_pEncoder = std::make_unique<Encoder_MC>(Thunk_Encoder, this, format);
+	microphone_capture->ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
+	m_pEncoder.reset();
 }
 
 // OK
-static DWORD WINAPI MC_EntryPoint(void*)
+void Channel_MC::Cleanup()
 {
-	SOCKET listensocket; // closesocket
-	SOCKET clientsocket; // closesocket
-	int base_priority;
-
-	listensocket = CreateSocket(PORT_NAME_MC);
-
-	ShowMessage("MC: Listening at port %s", PORT_NAME_MC);
-
-	base_priority = GetThreadPriority(GetCurrentThread());
-
-	do
-	{
-	ShowMessage("MC: Waiting for client");
-
-	clientsocket = accept(listensocket, NULL, NULL); // block
-	if (clientsocket == INVALID_SOCKET) { break; }
-
-	ShowMessage("MC: Client connected");
-
-	SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_MC - PORT_NUMBER_BASE));
-
-	MC_Shoutcast(clientsocket);
-
-	SetThreadPriority(GetCurrentThread(), base_priority);
-
-	closesocket(clientsocket);
-
-	ShowMessage("MC: Client disconnected");
-	}
-	while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
-
-	closesocket(listensocket);
-
-	ShowMessage("MC: Closed");
-
-	return 0;
 }
 
 // OK
 void MC_Initialize()
 {
-	g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
-	g_thread = CreateThread(NULL, 0, MC_EntryPoint, NULL, 0, NULL);
-}
-
-// OK
-void MC_Quit()
-{
-	SetEvent(g_event_quit);
+	g_channel = std::make_unique<Channel_MC>("MC", PORT_NAME_MC, PORT_NUMBER_MC - PORT_NUMBER_BASE);
 }
 
 // OK
 void MC_Cleanup()
 {
-	WaitForSingleObject(g_thread, INFINITE);
-
-	CloseHandle(g_thread);
-	CloseHandle(g_event_quit);
-
-	g_thread = NULL;
-	g_event_quit = NULL;
-	g_microphoneCapture = nullptr;
+	g_channel.reset();
 }
