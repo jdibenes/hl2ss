@@ -1,151 +1,146 @@
 
-#include <MemoryBuffer.h>
-#include "research_mode.h"
-#include "server.h"
-#include "locator.h"
-#include "timestamps.h"
-#include "neon.h"
-#include "ipc_sc.h"
+// Notes
+// https://github.com/microsoft/HoloLens2ForCV/issues/142
 
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Foundation.Numerics.h>
-#include <winrt/Windows.Graphics.Imaging.h>
-#include <winrt/Windows.Storage.h>
-#include <winrt/Windows.Storage.Streams.h>
+#include "research_mode.h"
+#include "locator.h"
+#include "channel.h"
+#include "ipc_sc.h"
+#include "ports.h"
+#include "encoder_rm_zlt.h"
+#include "timestamps.h"
+
 #include <winrt/Windows.Perception.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
-using namespace Windows::Foundation;
-
-using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Graphics::Imaging;
-using namespace winrt::Windows::Storage;
-using namespace winrt::Windows::Storage::Streams;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
-// Notes
-// https://github.com/microsoft/HoloLens2ForCV/issues/142
+class Channel_RM_ZLT : public Channel
+{
+private:
+    IResearchModeSensor* m_sensor;
+    SpatialLocator m_locator = nullptr;
+    std::unique_ptr<Encoder_RM_ZLT> m_pEncoder;
+    bool m_enable_location;
+    uint32_t m_counter;
+    uint32_t m_divisor;
+
+    bool Startup();
+    void Run();
+    void Cleanup();
+
+    void Execute_Mode0(bool enable_location);
+    void Execute_Mode2();
+
+    void OnFrameArrived(IResearchModeSensorFrame* frame);
+    void OnFrameProcess(UINT8 const* sigma, UINT16 const* depth, UINT16 const* ab, UINT64 host_ticks, UINT64 sensor_ticks);
+    void OnEncodingComplete(void* encoded_frame, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+
+    static void Thunk_Sensor(IResearchModeSensorFrame* frame, void* self);
+    static void Thunk_Sample(UINT8 const* sigma, UINT16 const* depth, UINT16 const* ab, UINT64 host_ticks, UINT64 sensor_ticks, void* self);
+    static void Thunk_Encoder(void* encoded_frame, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+
+public:
+    Channel_RM_ZLT(char const* name, char const* port, uint32_t id);
+};
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+static std::unique_ptr<Channel_RM_ZLT> g_channel;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-template<bool ENABLE_LOCATION>
-void RM_ZLT_Stream(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
+void Channel_RM_ZLT::Thunk_Sensor(IResearchModeSensorFrame* frame, void* self)
 {
-    int const width  = RM_ZLT_WIDTH;
-    int const height = RM_ZLT_HEIGHT;
+    static_cast<Channel_RM_ZLT*>(self)->OnFrameArrived(frame);
+}
 
-    PerceptionTimestamp ts = nullptr;
-    uint32_t f = 0;
-    float4x4 pose;
-    IResearchModeSensorFrame* pSensorFrame; // Release
-    ResearchModeSensorTimestamp timestamp;
-    IResearchModeSensorDepthFrame* pDepthFrame; // Release
-    BYTE const* pSigma;
-    UINT16 const* pDepth;
-    UINT16 const* pAbImage;
-    size_t nSigmaCount;
-    size_t nDepthCount;
-    size_t nAbCount;
-    BYTE* pixelBufferData;
-    UINT32 pixelBufferDataLength;
-    BitmapPropertySet pngProperties;
-    ZABFormat zabFormat;
-    uint32_t streamSize;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];
-    HRESULT hr;
-    H26xFormat format;
+// OK
+void Channel_RM_ZLT::Thunk_Sample(UINT8 const* sigma, UINT16 const* depth, UINT16 const* ab, UINT64 host_ticks, UINT64 sensor_ticks, void* self)
+{
+    static_cast<Channel_RM_ZLT*>(self)->OnFrameProcess(sigma, depth, ab, host_ticks, sensor_ticks);
+}
+
+// OK
+void Channel_RM_ZLT::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+{
+    static_cast<Channel_RM_ZLT*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
+}
+
+// OK
+void Channel_RM_ZLT::OnFrameArrived(IResearchModeSensorFrame* frame)
+{
+    if (m_counter == 0) { ResearchMode_ProcessSample_ZLT(frame, Thunk_Sample, this); }
+    m_counter = (m_counter + 1) % m_divisor;
+}
+
+// OK
+void Channel_RM_ZLT::OnFrameProcess(UINT8 const* sigma, UINT16 const* depth, UINT16 const* ab, UINT64 host_ticks, UINT64 sensor_ticks)
+{
+    PerceptionTimestamp ts = QPCTimestampToPerceptionTimestamp(host_ticks);
+    RM_ZLT_Metadata metadata;
+
+    metadata.timestamp    = host_ticks;
+    metadata.sensor_ticks = sensor_ticks;    
+    metadata.pose         = Locator_Locate(ts, m_locator, Locator_GetWorldCoordinateSystem(ts));
+
+    m_pEncoder->WriteSample(sigma, depth, ab, host_ticks, &metadata);
+}
+
+// OK
+void Channel_RM_ZLT::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+{
+    (void)sample_time;
+    (void)metadata_size;
+
+    RM_ZLT_Metadata* p = static_cast<RM_ZLT_Metadata*>(metadata);
+    ULONG full_size = encoded_size + sizeof(p->sensor_ticks);
+    WSABUF wsaBuf[5];
     bool ok;
 
-    ok = ReceiveH26xFormat_Divisor(clientsocket, format);
+    pack_buffer(wsaBuf, 0, &p->timestamp,    sizeof(p->timestamp));
+    pack_buffer(wsaBuf, 1, &full_size,       sizeof(full_size));
+    pack_buffer(wsaBuf, 2, encoded,          encoded_size);
+    pack_buffer(wsaBuf, 3, &p->sensor_ticks, sizeof(p->sensor_ticks));
+    pack_buffer(wsaBuf, 4, &p->pose,         sizeof(p->pose) * m_enable_location);
+
+    ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { SetEvent(m_event_client); }
+}
+
+// OK
+void Channel_RM_ZLT::Execute_Mode0(bool enable_location)
+{
+    H26xFormat format;
+    ZABFormat zabFormat;
+    bool ok;
+
+    Encoder_RM_ZLT::SetH26xFormat(format);
+
+    ok = ReceiveH26xFormat_Divisor(m_socket_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveZABFormat_PNGFilter(clientsocket, zabFormat);
+    ok = ReceiveZABFormat_PNGFilter(m_socket_client, zabFormat);
     if (!ok) { return; }
 
-    pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(zabFormat.filter), winrt::Windows::Foundation::PropertyType::UInt8));
-    
-    sensor->OpenStream();
+    m_pEncoder        = std::make_unique<Encoder_RM_ZLT>(Thunk_Encoder, this, format, zabFormat);
+    m_enable_location = enable_location;
+    m_counter         = 0;
+    m_divisor         = format.divisor;
 
-    do
-    {
-    hr = sensor->GetNextBuffer(&pSensorFrame); // block
-    if (FAILED(hr)) { break; }
+    ResearchMode_ExecuteSensorLoop(m_sensor, Thunk_Sensor, this, m_event_client);
 
-    if (f == 0)
-    {
-    pSensorFrame->GetTimeStamp(&timestamp);
-    pSensorFrame->QueryInterface(IID_PPV_ARGS(&pDepthFrame));
-
-    pDepthFrame->GetSigmaBuffer(&pSigma, &nSigmaCount);
-    pDepthFrame->GetBuffer(&pDepth, &nDepthCount);
-    pDepthFrame->GetAbDepthBuffer(&pAbImage, &nAbCount);
-
-    auto const& softwareBitmap = SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Straight);
-    {
-    auto const& bitmapBuffer = softwareBitmap.LockBuffer(BitmapBufferAccessMode::Write);
-    auto const& spMemoryBufferByteAccess = bitmapBuffer.CreateReference().as<IMemoryBufferByteAccess>();
-    spMemoryBufferByteAccess->GetBuffer(&pixelBufferData, &pixelBufferDataLength);
-    Neon_ZLTToBGRA8(pSigma, pDepth, pAbImage, (u32*)pixelBufferData);
-    }
-
-    auto const& stream = InMemoryRandomAccessStream();
-    auto const& encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(), stream, pngProperties).get();
-
-    encoder.SetSoftwareBitmap(softwareBitmap);
-    encoder.FlushAsync().get();
-
-    streamSize = (uint32_t)stream.Size();
-    auto const& streamBuf = Buffer(streamSize);
-
-    stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
-
-    DWORD streamSizeEx = streamSize + sizeof(timestamp.SensorTicks);
-
-    pack_buffer(wsaBuf, 0, &timestamp.HostTicks, sizeof(timestamp.HostTicks));
-    pack_buffer(wsaBuf, 1, &streamSizeEx, sizeof(streamSizeEx));
-    pack_buffer(wsaBuf, 2, streamBuf.data(), streamSize);
-    pack_buffer(wsaBuf, 3, &timestamp.SensorTicks, sizeof(timestamp.SensorTicks));
-
-    if constexpr (ENABLE_LOCATION)
-    {
-    ts = QPCTimestampToPerceptionTimestamp(timestamp.HostTicks);
-    pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
-
-    pack_buffer(wsaBuf, 4, &pose, sizeof(pose));
-    }
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-
-    pDepthFrame->Release();
-    }
-
-    f = (f + 1) % format.divisor;
-
-    pSensorFrame->Release();
-    }
-    while (ok);
-
-    sensor->CloseStream();
+    m_pEncoder.reset();
 }
 
 // OK
-void RM_ZLT_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket)
-{
-    RM_ZLT_Stream<false>(sensor, clientsocket, nullptr);
-}
-
-// OK
-void RM_ZLT_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, SpatialLocator const& locator)
-{
-    RM_ZLT_Stream<true>(sensor, clientsocket, locator);
-}
-
-// OK
-void RM_ZLT_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
+void Channel_RM_ZLT::Execute_Mode2()
 {
     float const scale = 1000.0f;
 
@@ -157,16 +152,64 @@ void RM_ZLT_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket)
     DirectX::XMFLOAT4X4 extrinsics;
     WSABUF wsaBuf[7];
 
-    ResearchMode_GetIntrinsics(sensor, uv2x, uv2y, mapx, mapy, K);
-    ResearchMode_GetExtrinsics(sensor, extrinsics);
+    ResearchMode_GetIntrinsics(m_sensor, uv2x, uv2y, mapx, mapy, K);
+    ResearchMode_GetExtrinsics(m_sensor, extrinsics);
 
-    pack_buffer(wsaBuf, 0, uv2x.data(), (ULONG)(uv2x.size() * sizeof(float)));
-    pack_buffer(wsaBuf, 1, uv2y.data(), (ULONG)(uv2y.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 0, uv2x.data(),  (ULONG)(uv2x.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 1, uv2y.data(),  (ULONG)(uv2y.size() * sizeof(float)));
     pack_buffer(wsaBuf, 2, extrinsics.m, sizeof(extrinsics.m));
-    pack_buffer(wsaBuf, 3, &scale, sizeof(scale));
-    pack_buffer(wsaBuf, 4, mapx.data(), (ULONG)(mapx.size() * sizeof(float)));
-    pack_buffer(wsaBuf, 5, mapy.data(), (ULONG)(mapy.size() * sizeof(float)));
-    pack_buffer(wsaBuf, 6, K, sizeof(K));
+    pack_buffer(wsaBuf, 3, &scale,       sizeof(scale));
+    pack_buffer(wsaBuf, 4, mapx.data(),  (ULONG)(mapx.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 5, mapy.data(),  (ULONG)(mapy.size() * sizeof(float)));
+    pack_buffer(wsaBuf, 6, K,            sizeof(K));
 
-    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
+// OK
+Channel_RM_ZLT::Channel_RM_ZLT(char const* name, char const* port, uint32_t id) :
+Channel(name, port, id)
+{
+    m_sensor  = ResearchMode_GetSensor(ResearchModeSensorType::DEPTH_LONG_THROW);
+    m_locator = ResearchMode_GetLocator();
+}
+
+// OK
+bool Channel_RM_ZLT::Startup()
+{
+    return ResearchMode_WaitForConsent(m_sensor);
+}
+
+// OK
+void Channel_RM_ZLT::Run()
+{
+    uint8_t mode;
+    bool ok;
+
+    ok = ReceiveOperatingMode(m_socket_client, mode);
+    if (!ok) { return; }
+
+    switch (mode & 3)
+    {
+    case 0: Execute_Mode0(false); break;
+    case 1: Execute_Mode0(true);  break;
+    case 2: Execute_Mode2();      break;
+    }
+}
+
+// OK
+void Channel_RM_ZLT::Cleanup()
+{
+}
+
+// OK
+void RM_ZLT_Initialize()
+{
+    g_channel = std::make_unique<Channel_RM_ZLT>("RM_ZLT", PORT_NAME_RM_ZLT, PORT_NUMBER_RM_ZLT - PORT_NUMBER_BASE);
+}
+
+// OK
+void RM_ZLT_Cleanup()
+{
+    g_channel.reset();
 }
