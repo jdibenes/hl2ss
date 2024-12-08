@@ -81,7 +81,7 @@ void Channel_PV::TranslateEncoderOptions(std::vector<uint64_t> const& options, M
     {
     switch (options[i])
     {
-    case 0xFFFFFFFFFFFFFFFD: acquisition_mode = (options[i + 1] & 1) ? MediaFrameReaderAcquisitionMode::Buffered : MediaFrameReaderAcquisitionMode::Realtime; break;
+    case HL2SSAPI::HL2SSAPI_AcquisitionMode: acquisition_mode = (options[i + 1] & 1) ? MediaFrameReaderAcquisitionMode::Buffered : MediaFrameReaderAcquisitionMode::Realtime; break;
     }
     }
 }
