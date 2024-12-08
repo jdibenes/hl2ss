@@ -110,7 +110,8 @@ void Channel_RM_VLC::OnFrameProcess(BYTE const* image, UINT64 host_ticks, UINT64
     metadata.timestamp    = adjusted_timestamp;
     metadata.sensor_ticks = sensor_ticks;
     metadata.exposure     = exposure;
-    metadata.gain         = gain;    
+    metadata.gain         = gain;  
+    metadata._reserved    = 0;
     metadata.pose         = Locator_Locate(ts, m_locator, Locator_GetWorldCoordinateSystem(ts));
 
     m_pEncoder->WriteSample(image, adjusted_timestamp, &metadata);
