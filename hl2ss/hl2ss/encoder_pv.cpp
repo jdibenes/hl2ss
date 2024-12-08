@@ -1,7 +1,6 @@
 
 #include "encoder_pv.h"
 #include "custom_media_buffers.h"
-#include "timestamps.h"
 
 using namespace winrt::Windows::Media::Capture::Frames;
 
