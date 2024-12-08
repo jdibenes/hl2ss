@@ -111,9 +111,8 @@ void Channel_PV::OnFrameArrived_Mode0(MediaFrameReference const& frame)
 
     if (m_counter == 0)
     {
-    int64_t timestamp  = frame.SystemRelativeTime().Value().count();
-    auto    intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
-    auto    metadata   = frame.Properties().Lookup(MFSampleExtension_CaptureMetadata).as<IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable>>();
+    auto intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
+    auto metadata   = frame.Properties().Lookup(MFSampleExtension_CaptureMetadata).as<IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable>>();
 
     p.f                     = intrinsics.FocalLength();
     p.c                     = intrinsics.PrincipalPoint();
@@ -125,10 +124,10 @@ void Channel_PV::OnFrameArrived_Mode0(MediaFrameReference const& frame)
     p.focus_state           = metadata.Lookup(MF_CAPTURE_METADATA_FOCUSSTATE).as<uint32_t>();
     p.white_balance         = metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE).as<uint32_t>();
     p.white_balance_gains   = *reinterpret_cast<float3*>(metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin());
-    p.timestamp             = timestamp;
-    p.pose                  = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(timestamp)));
+    p.timestamp             = frame.SystemRelativeTime().Value().count();
+    p.pose                  = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(p.timestamp)));
 
-    m_pEncoder->WriteSample(frame, timestamp, &p);
+    m_pEncoder->WriteSample(frame, &p);
     }
     m_counter = (m_counter + 1) % m_divisor;
 }
@@ -163,7 +162,7 @@ void Channel_PV::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG 
     (void)sample_time;
     (void)metadata_size;
 
-    int const embed_size = sizeof(PV_Metadata) - sizeof(PV_Metadata::timestamp) - sizeof(PV_Metadata::pose);
+    ULONG const embed_size = sizeof(PV_Metadata) - sizeof(PV_Metadata::timestamp) - sizeof(PV_Metadata::pose);
 
     PV_Metadata* p = static_cast<PV_Metadata*>(metadata);
     ULONG full_size = encoded_size + embed_size;
@@ -239,7 +238,8 @@ void Channel_PV::Execute_Mode2()
 }
 
 // OK
-Channel_PV::Channel_PV(char const* name, char const* port, uint32_t id) : Channel(name, port, id)
+Channel_PV::Channel_PV(char const* name, char const* port, uint32_t id) : 
+Channel(name, port, id)
 {
 }
 
