@@ -116,7 +116,7 @@ CustomEncoder(pHookCallback, pHookParam, NULL, 0, AudioSubtype::AudioSubtype_S16
 }
 
 // OK
-void Encoder_EA::WriteSample(MediaFrameReference const& frame, int64_t timestamp)
+void Encoder_EA::WriteSample(MediaFrameReference const& frame)
 {
     IMFMediaBuffer* pBuffer; // Release
     BYTE* pDst;
@@ -143,7 +143,7 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame, int64_t timestamp
 
     pBuffer->Unlock();
 
-    WriteBuffer(pBuffer, timestamp, frame.Duration().count(), NULL);
+    WriteBuffer(pBuffer, frame.SystemRelativeTime().Value().count(), frame.Duration().count(), NULL);
 
     pBuffer->Release();
 

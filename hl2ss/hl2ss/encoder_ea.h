@@ -41,7 +41,7 @@ private:
 public:
     Encoder_EA(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, AudioSubtype subtype, AACFormat const& format, uint32_t channels);
 
-    void WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, int64_t timestamp);
+    void WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame);
 
     static void SetAACFormat(AACFormat& format);
 };
