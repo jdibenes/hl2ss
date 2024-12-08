@@ -122,8 +122,9 @@ void Channel_RM_VLC::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGL
     (void)sample_time;
     (void)metadata_size;
 
-    RM_VLC_Metadata* p = static_cast<RM_VLC_Metadata*>(metadata);
-    int embed_size = sizeof(RM_VLC_Metadata) - sizeof(RM_VLC_Metadata::timestamp) - sizeof(RM_VLC_Metadata::pose);
+    ULONG const embed_size = sizeof(RM_VLC_Metadata) - sizeof(RM_VLC_Metadata::timestamp) - sizeof(RM_VLC_Metadata::pose);
+
+    RM_VLC_Metadata* p = static_cast<RM_VLC_Metadata*>(metadata);    
     ULONG full_size = encoded_size + embed_size;
     WSABUF wsaBuf[5];
 
@@ -218,7 +219,7 @@ void Channel_RM_VLC::Run()
     {
     case 0: Execute_Mode0(false); break;
     case 1: Execute_Mode0(true);  break;
-    case 2: Execute_Mode2();       break;
+    case 2: Execute_Mode2();      break;
     }
 }
 
