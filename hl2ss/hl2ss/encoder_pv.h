@@ -26,11 +26,8 @@ struct PV_Metadata
 
 class Encoder_PV : public CustomEncoder
 {
-private:
-    LONGLONG m_duration;
-
 public:
     Encoder_PV(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, VideoSubtype subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& options);
 
-    void WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, LONGLONG timestamp, PV_Metadata* metadata);
+    void WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, PV_Metadata* metadata);
 };
