@@ -140,14 +140,13 @@ void Channel_PV::OnFrameArrived_Mode2(MediaFrameReference const& frame)
     auto intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
     auto extrinsics = frame.Properties().Lookup(MFSampleExtension_CameraExtrinsics).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value();
     auto additional = frame.Format().Properties().Lookup(winrt::guid("86b6adbb-3735-447d-bee5-6fc23cb58d4a")).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value();
-    auto rm_locator = ResearchMode_GetLocator();
 
     m_calibration.f             = intrinsics.FocalLength();
     m_calibration.c             = intrinsics.PrincipalPoint();
     m_calibration.r             = intrinsics.RadialDistortion();
     m_calibration.t             = intrinsics.TangentialDistortion();
     m_calibration.p             = intrinsics.UndistortedProjectionTransform();
-    m_calibration.extrinsics    = rm_locator ? Locator_Locate(QPCTimestampToPerceptionTimestamp(frame.SystemRelativeTime().Value().count()), rm_locator, frame.CoordinateSystem()) : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    m_calibration.extrinsics    = ResearchMode_Status() ? Locator_Locate(QPCTimestampToPerceptionTimestamp(frame.SystemRelativeTime().Value().count()), ResearchMode_GetLocator(), frame.CoordinateSystem()) : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     m_calibration.intrinsics_mf = *reinterpret_cast<float4*>(&(reinterpret_cast<float*>(additional.begin())[3]));
     m_calibration.extrinsics_mf = *reinterpret_cast<float7*>(&(reinterpret_cast<float*>(extrinsics.begin())[5]));
 
