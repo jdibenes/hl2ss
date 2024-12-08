@@ -124,6 +124,7 @@ void Channel_PV::OnFrameArrived_Mode0(MediaFrameReference const& frame)
     p.focus_state           = metadata.Lookup(MF_CAPTURE_METADATA_FOCUSSTATE).as<uint32_t>();
     p.white_balance         = metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE).as<uint32_t>();
     p.white_balance_gains   = *reinterpret_cast<float3*>(metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin());
+    p._reserved             = 0;
     p.timestamp             = frame.SystemRelativeTime().Value().count();
     p.pose                  = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(p.timestamp)));
 
