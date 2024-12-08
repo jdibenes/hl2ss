@@ -69,8 +69,8 @@ void Channel_RM_VLC::TranslateEncoderOptions(std::vector<uint64_t> const& option
     {
     switch (options[i])
     {
-    case 0xFFFFFFFFFFFFFFFE: constant_factor =       static_cast<int64_t>(       options[i + 1]); break;
-    case 0xFFFFFFFFFFFFFFFF: exposure_factor = *reinterpret_cast<double const*>(&options[i + 1]); break;
+    case HL2SSAPI::HL2SSAPI_VLCHostTicksOffsetConstant: constant_factor =       static_cast<int64_t>(       options[i + 1]); break;
+    case HL2SSAPI::HL2SSAPI_VLCHostTicksOffsetExposure: exposure_factor = *reinterpret_cast<double const*>(&options[i + 1]); break;
     }
     }
 }
