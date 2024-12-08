@@ -187,6 +187,8 @@ void Channel_PV::Execute_Mode0(bool enable_location)
     std::vector<uint64_t> options;
     bool ok;
 
+    if (!PersonalVideo_Status()) { return; }
+
     ok = ReceiveH26xFormat_Video(m_socket_client, format);
     if (!ok) { return; }
 
@@ -220,6 +222,8 @@ void Channel_PV::Execute_Mode2()
     H26xFormat format;
     WSABUF wsaBuf[1];
     bool ok;
+
+    if (!PersonalVideo_Status()) { return; }
     
     ok = ReceiveH26xFormat_Video(m_socket_client, format);
     if (!ok) { return; }
@@ -270,8 +274,6 @@ void Channel_PV::Run()
     PersonalVideo_Open(options);
     }
 
-    if (!PersonalVideo_Status()) { return; }
-
     switch (mode & 3)
     {
     case 0: Execute_Mode0(false); break;
@@ -281,7 +283,7 @@ void Channel_PV::Run()
 
     if (mode & 8) 
     { 
-    PersonalVideo_Close();
+    if (PersonalVideo_Status()) { PersonalVideo_Close(); }
     }    
 }
 
