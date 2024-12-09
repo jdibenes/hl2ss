@@ -141,8 +141,9 @@ void Channel_EA::Run()
     return;
     }
 
-    ok = ExtendedAudio_Open(options);
-    if (!ok) { return; }
+    ExtendedAudio_Open(options);
+
+    if (!ExtendedAudio_Status()) { return; }
 
     Execute_Mode0();
 
