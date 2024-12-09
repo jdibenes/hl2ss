@@ -1,46 +1,83 @@
 
-#include <mfapi.h>
-#include "custom_media_sink.h"
-#include "custom_media_buffers.h"
 #include "extended_audio.h"
-#include "extended_execution.h"
-#include "neon.h"
-#include "log.h"
-#include "ports.h"
-#include "timestamps.h"
+#include "channel.h"
 #include "ipc_sc.h"
+#include "ports.h"
+#include "encoder_ea.h"
+#include "timestamps.h"
 
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Media.h>
-#include <winrt/Windows.Media.MediaProperties.h>
-#include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
-#include <winrt/Windows.Media.Devices.Core.h>
-#include <winrt/Windows.Foundation.Numerics.h>
 
-using namespace winrt::Windows::Media;
-using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
-using namespace winrt::Windows::Media::Devices::Core;
-using namespace winrt::Windows::Foundation::Numerics;
+
+class Channel_EA : public Channel
+{
+private:
+    std::unique_ptr<Encoder_EA> m_pEncoder;
+
+    bool Startup();
+    void Run();
+    void Cleanup();
+
+    void Execute_Mode0();
+    void Execute_Mode2();
+
+    void OnFrameArrived(MediaFrameReference const& frame);
+    void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+
+    static void Thunk_Sensor(MediaFrameReference const& frame, void* self);
+    static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadat_size, void* self);
+
+public:
+    Channel_EA(char const* name, char const* port, uint32_t id);
+};
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_thread = NULL; // CloseHandle
-static HANDLE g_event_quit = NULL; // CloseHandle
-static SRWLOCK g_lock;
-
-static IMFSinkWriter* g_pSinkWriter = nullptr; // Release
-static DWORD g_dwAudioIndex = 0;
+static std::unique_ptr<Channel_EA> g_channel;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void EA_DeviceQuery(SOCKET clientsocket)
+void Channel_EA::Thunk_Sensor(MediaFrameReference const& frame, void* self)
+{
+    static_cast<Channel_EA*>(self)->OnFrameArrived(frame);
+}
+
+// OK
+void Channel_EA::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+{
+    static_cast<Channel_EA*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
+}
+
+// OK
+void Channel_EA::OnFrameArrived(MediaFrameReference const& frame)
+{
+    m_pEncoder->WriteSample(frame);
+}
+
+// OK
+void Channel_EA::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+{
+    (void)metadata;
+    (void)metadata_size;
+
+    WSABUF wsaBuf[3];
+
+    pack_buffer(wsaBuf, 0, &sample_time,  sizeof(sample_time));
+    pack_buffer(wsaBuf, 1, &encoded_size, sizeof(encoded_size));
+    pack_buffer(wsaBuf, 2, encoded,       encoded_size);
+
+    bool ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { SetEvent(m_event_client); }
+}
+
+// OK
+void Channel_EA::Execute_Mode2()
 {
     winrt::hstring query;
     WSABUF wsaBuf[2];
@@ -49,238 +86,82 @@ static void EA_DeviceQuery(SOCKET clientsocket)
 
     uint32_t bytes = query.size() * sizeof(wchar_t);
 
-    pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
+    pack_buffer(wsaBuf, 0, &bytes,        sizeof(bytes));
     pack_buffer(wsaBuf, 1, query.c_str(), bytes);
 
-    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
-static void EA_OnAudioFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
+void Channel_EA::Execute_Mode0()
 {
-    (void)args;
-
-    IMFSample* pSample; // Release
-    IMFMediaBuffer* pBuffer; // Release
-    BYTE* pDst;
-
-    if (TryAcquireSRWLockShared(&g_lock) != 0)
-    {
-    auto const& frame = sender.TryAcquireLatestFrame();
-    if (frame) 
-    {
-    int64_t timestamp = frame.SystemRelativeTime().Value().count();
-
-    AudioMediaFrame amf       = frame.AudioMediaFrame();
-    AudioFrame      audio     = amf.GetAudioFrame();
-    AudioBuffer     buffer    = audio.LockBuffer(AudioBufferAccessMode::Read);
-    auto const&     reference = buffer.CreateReference();
-    auto const&     aep       = amf.AudioEncodingProperties();
-
-    uint32_t bytes_per_sample = aep.BitsPerSample() / 8;
-    uint32_t channels         = aep.ChannelCount();
-
-    uint32_t input_bytes   = reference.Capacity();
-    uint32_t input_samples = input_bytes / bytes_per_sample;
-    uint32_t output_bytes  = input_samples * sizeof(int16_t);
-    uint32_t fill_bytes    = (channels == 1) ? output_bytes : 0;
-    uint32_t buffer_bytes  = output_bytes + fill_bytes;
-
-    MFCreateMemoryBuffer(buffer_bytes, &pBuffer);
-
-    pBuffer->Lock(&pDst, NULL, NULL);
-
-    float*   src_addr  = (float*)reference.data();
-    int16_t* base_addr = (int16_t*)pDst;
-    int16_t* high_addr = (int16_t*)(pDst + fill_bytes);
-
-    switch (bytes_per_sample)
-    {
-    case 4:  Neon_F32ToS16(src_addr, input_samples, high_addr); break;
-    case 2:  memcpy(high_addr, src_addr, output_bytes);         break;
-    default: memset(high_addr, 0,        output_bytes);
-    }
-
-    if (channels == 1) { Neon_S16MonoToStereo(high_addr, input_samples, base_addr); }
-
-    pBuffer->Unlock();
-    pBuffer->SetCurrentLength(buffer_bytes);
-
-    reference.Close();
-    buffer.Close();
-    audio.Close();
-
-    MFCreateSample(&pSample);
-
-    pSample->AddBuffer(pBuffer);
-    pSample->SetSampleDuration(frame.Duration().count());
-    pSample->SetSampleTime(timestamp);
-
-    g_pSinkWriter->WriteSample(g_dwAudioIndex, pSample);
-
-    pBuffer->Release();
-    pSample->Release();
-    }
-    ReleaseSRWLockShared(&g_lock);
-    }
-}
-
-// OK
-static void EA_SendSample(IMFSample* pSample, void* param)
-{
-    IMFMediaBuffer* pBuffer; // Release
-    LONGLONG sampletime;
-    BYTE* pBytes;
-    DWORD cbData;
-    WSABUF wsaBuf[3];
-
-    HookCallbackSocket* user = (HookCallbackSocket*)param;
-
-    pSample->GetSampleTime(&sampletime);
-    pSample->ConvertToContiguousBuffer(&pBuffer);
-
-    pBuffer->Lock(&pBytes, NULL, &cbData);
-
-    pack_buffer(wsaBuf, 0, &sampletime, sizeof(sampletime));
-    pack_buffer(wsaBuf, 1, &cbData, sizeof(cbData));
-    pack_buffer(wsaBuf, 2, pBytes, cbData);
-
-    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(user->clientevent); }
-
-    pBuffer->Unlock();
-    pBuffer->Release();
-}
-
-// OK
-static void EA_Shoutcast(SOCKET clientsocket)
-{
-    uint32_t const channels   = 2;
-    uint32_t const samplerate = 48000;
-
-    CustomMediaSink* pSink; // Release
-    HANDLE event_client; // CloseHandle
-    MRCAudioOptions options;
     AACFormat format;
-    HookCallbackSocket user;
+    AudioSubtype subtype;
+    uint32_t channels;
     bool ok;
 
-    ok = ReceiveMRCAudioOptions(clientsocket, options);
+    Encoder_EA::SetAACFormat(format);
+
+    ok = ReceiveAACFormat_Profile(m_socket_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveAACFormat_Profile(clientsocket, format);
+    ExtendedAudio_GetCurrentFormat(subtype, channels);
+
+    m_pEncoder = std::make_unique<Encoder_EA>(Thunk_Encoder, this, subtype, format, channels);
+
+    ExtendedAudio_ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
+
+    m_pEncoder.reset();
+}
+
+// OK
+Channel_EA::Channel_EA(char const* name, char const* port, uint32_t id) :
+Channel(name, port, id)
+{
+}
+
+// OK
+bool Channel_EA::Startup()
+{
+    return true;
+}
+
+// OK
+void Channel_EA::Run()
+{
+    MRCAudioOptions options;    
+    bool ok;
+
+    ok = ReceiveMRCAudioOptions(m_socket_client, options);
     if (!ok) { return; }
 
-    if ((options.mixer_mode & 0x80000000) != 0)
+    if (options.mixer_mode & 0x80000000)
     {
-    EA_DeviceQuery(clientsocket);
+    Execute_Mode2();
     return;
     }
 
     ok = ExtendedAudio_Open(options);
     if (!ok) { return; }
-    
-    format.channels   = channels;
-    format.samplerate = samplerate;
 
-    event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-    ExtendedAudio_RegisterEvent(event_client);
-    auto const& reader = ExtendedAudio_CreateFrameReader();
-    reader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
-
-    user.clientsocket = clientsocket;
-    user.clientevent  = event_client;
-    user.format       = &format;
-
-    CreateSinkWriterAudio(&pSink, &g_pSinkWriter, &g_dwAudioIndex, AudioSubtype::AudioSubtype_S16, format, EA_SendSample, &user);
-
-    reader.FrameArrived(EA_OnAudioFrameArrived);
-
-    ReleaseSRWLockExclusive(&g_lock);
-    reader.StartAsync().get();
-    WaitForSingleObject(event_client, INFINITE);
-    reader.StopAsync().get();
-    AcquireSRWLockExclusive(&g_lock);
-
-    g_pSinkWriter->Flush(g_dwAudioIndex);
-    g_pSinkWriter->Release();
-    pSink->Shutdown();
-    pSink->Release();
-
-    reader.Close();
-    ExtendedAudio_RegisterEvent(NULL);
-
-    CloseHandle(event_client);
+    Execute_Mode0();
 
     ExtendedAudio_Close();
 }
 
 // OK
-static DWORD WINAPI EA_EntryPoint(void*)
+void Channel_EA::Cleanup()
 {
-    SOCKET listensocket; // closesocket
-    SOCKET clientsocket; // closesocket
-    int base_priority;
-
-    listensocket = CreateSocket(PORT_NAME_EA);
-
-    ShowMessage("EA: Listening at port %s", PORT_NAME_EA);
-
-    AcquireSRWLockExclusive(&g_lock);
-
-    base_priority = GetThreadPriority(GetCurrentThread());
-
-    do
-    {
-    ShowMessage("EA: Waiting for client");
-
-    clientsocket = accept(listensocket, NULL, NULL); // block
-    if (clientsocket == INVALID_SOCKET) { break; }
-
-    ShowMessage("EA: Client connected");
-
-    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EA - PORT_NUMBER_BASE));
-
-    EA_Shoutcast(clientsocket);
-
-    SetThreadPriority(GetCurrentThread(), base_priority);
-
-    closesocket(clientsocket);
-
-    ShowMessage("EA: Client disconnected");
-    }
-    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
-
-    closesocket(listensocket);
-
-    ShowMessage("EA: Closed");
-
-    return 0;
 }
 
 // OK
 void EA_Initialize()
 {
-    InitializeSRWLock(&g_lock);
-    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_thread = CreateThread(NULL, 0, EA_EntryPoint, NULL, 0, NULL);
-}
-
-// OK
-void EA_Quit()
-{
-    SetEvent(g_event_quit);
+    g_channel = std::make_unique<Channel_EA>("EA", PORT_NAME_EA, PORT_NUMBER_EA - PORT_NUMBER_BASE);
 }
 
 // OK
 void EA_Cleanup()
 {
-    WaitForSingleObject(g_thread, INFINITE);
-
-    CloseHandle(g_thread);
-    CloseHandle(g_event_quit);
-
-    g_thread = NULL;
-    g_event_quit = NULL;
+    g_channel.reset();
 }
