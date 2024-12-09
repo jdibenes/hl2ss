@@ -64,6 +64,14 @@ enum ZProfile : uint8_t
     ZProfile_Zdepth
 };
 
+enum HL2SSAPI : uint64_t
+{
+    HL2SSAPI_VideoStrideMask            = 0xFFFFFFFFFFFFFFFCULL,
+    HL2SSAPI_AcquisitionMode            = 0xFFFFFFFFFFFFFFFDULL,
+    HL2SSAPI_VLCHostTicksOffsetConstant = 0xFFFFFFFFFFFFFFFEULL,
+    HL2SSAPI_VLCHostTicksOffsetExposure = 0xFFFFFFFFFFFFFFFFULL
+};
+
 HRESULT CreateTypeAudio(IMFMediaType** ppType, uint32_t channels, uint32_t samplerate, AudioSubtype subtype, AACProfile profile, AACLevel level);
 HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, uint32_t stride, uint32_t fps_num, uint32_t fps_den, VideoSubtype subtype, H26xProfile profile, int32_t level, uint32_t bitrate);
 
