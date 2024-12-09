@@ -14,6 +14,8 @@ private:
 	void Run();
 	void Cleanup();
 
+	void Execute_Mode0();
+
 	void OnFrameArrived(BYTE* data, UINT32 frames, bool silent, UINT64 timestamp);
 	void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
 
@@ -70,20 +72,8 @@ void Channel_MC::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG 
 }
 
 // OK
-Channel_MC::Channel_MC(char const* name, char const* port, uint32_t id) : Channel(name, port, id)
+void Channel_MC::Execute_Mode0()
 {
-}
-
-// OK
-bool Channel_MC::Startup()
-{
-	return winrt::make_self<MicrophoneCapture>()->Initialize(false);
-}
-
-// OK
-void Channel_MC::Run()
-{
-	winrt::com_ptr<MicrophoneCapture> microphone_capture = winrt::make_self<MicrophoneCapture>();
 	AACFormat format;
 	bool ok;
 
@@ -92,14 +82,37 @@ void Channel_MC::Run()
 
 	bool array_raw = (format.profile == AACProfile::AACProfile_None) && (format.level == AACLevel::AACLevel_L5);
 
-	ok = microphone_capture->Initialize(array_raw);
-	if (!ok) { return; }
+	MicrophoneCapture_Open(array_raw);
+
+	if (!MicrophoneCapture_Status()) { return; }
 
 	Encoder_MC::SetAACFormat(format, array_raw);
 
 	m_pEncoder = std::make_unique<Encoder_MC>(Thunk_Encoder, this, format);
-	microphone_capture->ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
+
+	MicrophoneCapture_ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
+
 	m_pEncoder.reset();
+
+	MicrophoneCapture_Close();
+}
+
+// OK
+Channel_MC::Channel_MC(char const* name, char const* port, uint32_t id) : 
+Channel(name, port, id)
+{
+}
+
+// OK
+bool Channel_MC::Startup()
+{
+	return true;
+}
+
+// OK
+void Channel_MC::Run()
+{
+	Execute_Mode0();
 }
 
 // OK
