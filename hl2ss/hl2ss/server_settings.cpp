@@ -1,5 +1,5 @@
 
-#include "ipc_sc.h"
+#include "server_settings.h"
 
 #include <winrt/Windows.Graphics.Imaging.h>
 
