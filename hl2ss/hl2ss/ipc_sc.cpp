@@ -10,25 +10,25 @@ using namespace winrt::Windows::Graphics::Imaging;
 //-----------------------------------------------------------------------------
 
 // OK
-bool ReceiveOperatingMode(SOCKET clientsocket, uint8_t& mode)
+bool ReceiveOperatingMode(SOCKET socket, HANDLE event_error, uint8_t& mode)
 {
 	bool ok;
 
-	ok = recv_u8(clientsocket, mode);
+	ok = recv_u8(socket, event_error, mode);
 	if (!ok) { return false; }
 
 	return true;
 }
 
 // OK
-bool ReceiveAACFormat_Profile(SOCKET clientsocket, AACFormat& format)
+bool ReceiveAACFormat_Profile(SOCKET socket, HANDLE event_error, AACFormat& format)
 {
 	bool ok;
 
-	ok = recv_u8(clientsocket, *(uint8_t*)&format.profile);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(format.profile));
 	if (!ok) { return false; }
 
-	ok = recv_u8(clientsocket, *(uint8_t*)&format.level);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(format.level));
 	if (!ok) { return false; }
 
 	switch (format.profile)
@@ -60,28 +60,28 @@ bool ReceiveAACFormat_Profile(SOCKET clientsocket, AACFormat& format)
 }
 
 // OK
-bool ReceiveH26xFormat_Video(SOCKET clientsocket, H26xFormat& format)
+bool ReceiveH26xFormat_Video(SOCKET socket, HANDLE event_error, H26xFormat& format)
 {
 	bool ok;
 
-	ok = recv_u16(clientsocket, format.width);
+	ok = recv_u16(socket, event_error, format.width);
 	if (!ok) { return false; }
 
-	ok = recv_u16(clientsocket, format.height);
+	ok = recv_u16(socket, event_error, format.height);
 	if (!ok) { return false; }
 
-	ok = recv_u8(clientsocket, format.framerate);
+	ok = recv_u8(socket, event_error, format.framerate);
 	if (!ok) { return false; }
 
 	return true;
 }
 
 // OK
-bool ReceiveH26xFormat_Divisor(SOCKET clientsocket, H26xFormat& format)
+bool ReceiveH26xFormat_Divisor(SOCKET socket, HANDLE event_error, H26xFormat& format)
 {
 	bool ok;
 
-	ok = recv_u8(clientsocket, format.divisor);
+	ok = recv_u8(socket, event_error, format.divisor);
 	if (!ok) { return false; }
 
 	if (format.divisor <= 0) { return false; }
@@ -90,17 +90,17 @@ bool ReceiveH26xFormat_Divisor(SOCKET clientsocket, H26xFormat& format)
 }
 
 // OK
-bool ReceiveH26xFormat_Profile(SOCKET clientsocket, H26xFormat& format)
+bool ReceiveH26xFormat_Profile(SOCKET socket, HANDLE event_error, H26xFormat& format)
 {
 	bool ok;
 
-	ok = recv_u8(clientsocket, *((uint8_t*)&format.profile));
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(format.profile));
 	if (!ok) { return false; }
 
-	ok = recv_u8(clientsocket, *((uint8_t*)&format.level));
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(format.level));
 	if (!ok) { return false; }
 
-	ok = recv_u32(clientsocket, format.bitrate);
+	ok = recv_u32(socket, event_error, format.bitrate);
 	if (!ok) { return false; }
 
 	switch (format.profile)
@@ -119,40 +119,39 @@ bool ReceiveH26xFormat_Profile(SOCKET clientsocket, H26xFormat& format)
 }
 
 // OK
-bool ReceiveEncoderOptions(SOCKET clientsocket, std::vector<uint64_t> &options)
+bool ReceiveEncoderOptions(SOCKET socket, HANDLE event_error, std::vector<uint64_t> &options)
 {
-	bool ok;
 	uint8_t count;
+	bool ok;	
 
-	ok = recv_u8(clientsocket, count);
+	ok = recv_u8(socket, event_error, count);
 	if (!ok) { return false; }
 
 	options.resize(count * 2);
 
-	ok = recv(clientsocket, (char*)options.data(), (int)(options.size() * sizeof(uint64_t)));
+	ok = recv(socket, event_error, options.data(), static_cast<int>(options.size() * sizeof(uint64_t)));
 	if (!ok) { return false; }
 
 	return true;
 }
 
 // OK
-bool ReceiveZABFormat_PNGFilter(SOCKET clientsocket, ZABFormat& format)
+bool ReceiveZABFormat_PNGFilter(SOCKET socket, HANDLE event_error, ZABFormat& format)
 {
 	bool ok;
-	uint8_t filterid;
 
-	ok = recv_u8(clientsocket, filterid);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(format.filter));
 	if (!ok) { return false; }
 
-	switch (filterid)
+	switch (format.filter)
 	{
-	case static_cast<int>(PngFilterMode::Automatic): format.filter =  PngFilterMode::Automatic;  break;
-	case static_cast<int>(PngFilterMode::None):      format.filter =  PngFilterMode::None;       break;
-	case static_cast<int>(PngFilterMode::Sub):       format.filter =  PngFilterMode::Sub;        break;
-	case static_cast<int>(PngFilterMode::Up):        format.filter =  PngFilterMode::Up;         break;
-	case static_cast<int>(PngFilterMode::Average):   format.filter =  PngFilterMode::Average;    break;
-	case static_cast<int>(PngFilterMode::Paeth):     format.filter =  PngFilterMode::Paeth;      break;
-	case static_cast<int>(PngFilterMode::Adaptive):  format.filter =  PngFilterMode::Adaptive;   break;
+	case PngFilterMode::Automatic: break;
+	case PngFilterMode::None:      break;
+	case PngFilterMode::Sub:       break;
+	case PngFilterMode::Up:        break;
+	case PngFilterMode::Average:   break;
+	case PngFilterMode::Paeth:     break;
+	case PngFilterMode::Adaptive:  break;
 	default: return false;
 	}
 
@@ -160,11 +159,11 @@ bool ReceiveZABFormat_PNGFilter(SOCKET clientsocket, ZABFormat& format)
 }
 
 // OK
-bool ReceiveZABFormat_Profile(SOCKET clientsocket, ZABFormat& format)
+bool ReceiveZABFormat_Profile(SOCKET socket, HANDLE event_error, ZABFormat& format)
 {
 	bool ok;
 
-	ok = recv_u8(clientsocket, *(uint8_t*)&format.profile);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(format.profile));
 	if (!ok) { return false; }
 
 	switch (format.profile)
@@ -178,48 +177,59 @@ bool ReceiveZABFormat_Profile(SOCKET clientsocket, ZABFormat& format)
 }
 
 // OK
-bool ReceiveMRCVideoOptions(SOCKET clientsocket, MRCVideoOptions& options)
+bool ReceiveMRCVideoOptions(SOCKET socket, HANDLE event_error, MRCVideoOptions& options)
 {
 	bool ok;
 
-	ok = recv_u8(clientsocket, *(uint8_t*)&options.enable);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(options.enable));
 	if (!ok) { return false; }
-	ok = recv_u8(clientsocket, *(uint8_t*)&options.hologram_composition);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(options.hologram_composition));
 	if (!ok) { return false; }
-	ok = recv_u8(clientsocket, *(uint8_t*)&options.recording_indicator);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(options.recording_indicator));
 	if (!ok) { return false; }
-	ok = recv_u8(clientsocket, *(uint8_t*)&options.video_stabilization);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(options.video_stabilization));
 	if (!ok) { return false; }
-	ok = recv_u8(clientsocket, *(uint8_t*)&options.blank_protected);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(options.blank_protected));
 	if (!ok) { return false; }
-	ok = recv_u8(clientsocket, *(uint8_t*)&options.show_mesh);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(options.show_mesh));
 	if (!ok) { return false; }
-	ok = recv_u8(clientsocket, *(uint8_t*)&options.shared);
+	ok = recv_u8(socket, event_error, reinterpret_cast<uint8_t&>(options.shared));
 	if (!ok) { return false; }
-	ok = recv_u32(clientsocket, *(uint32_t*)&options.global_opacity);
+	ok = recv_u32(socket, event_error, reinterpret_cast<uint32_t&>(options.global_opacity));
 	if (!ok) { return false; }
-	ok = recv_u32(clientsocket, *(uint32_t*)&options.output_width);
+	ok = recv_u32(socket, event_error, reinterpret_cast<uint32_t&>(options.output_width));
 	if (!ok) { return false; }
-	ok = recv_u32(clientsocket, *(uint32_t*)&options.output_height);
+	ok = recv_u32(socket, event_error, reinterpret_cast<uint32_t&>(options.output_height));
 	if (!ok) { return false; }
-	ok = recv_u32(clientsocket, options.video_stabilization_length);
+	ok = recv_u32(socket, event_error, options.video_stabilization_length);
 	if (!ok) { return false; }
-	ok = recv_u32(clientsocket, options.hologram_perspective);
+	ok = recv_u32(socket, event_error, options.hologram_perspective);
 	if (!ok) { return false; }
 
 	return true;
 }
 
 // OK
-bool ReceiveMRCAudioOptions(SOCKET clientsocket, MRCAudioOptions& options)
+bool ReceiveMRCAudioOptions(SOCKET socket, HANDLE event_error, MRCAudioOptions& options)
 {
 	bool ok;
 
-	ok = recv_u32(clientsocket, options.mixer_mode);
+	ok = recv_u32(socket, event_error, options.mixer_mode);
 	if (!ok) { return false; }
-	ok = recv_u32(clientsocket, *(uint32_t*)&options.loopback_gain);
+	ok = recv_u32(socket, event_error, reinterpret_cast<uint32_t&>(options.loopback_gain));
 	if (!ok) { return false; }
-	ok = recv_u32(clientsocket, *(uint32_t*)&options.microphone_gain);
+	ok = recv_u32(socket, event_error, reinterpret_cast<uint32_t&>(options.microphone_gain));
+	if (!ok) { return false; }
+
+	return true;
+}
+
+// OK
+bool ReceiveEETFramerate(SOCKET socket, HANDLE event_error, uint8_t& fps)
+{
+	bool ok;
+
+	ok = recv_u8(socket, event_error, fps);
 	if (!ok) { return false; }
 
 	return true;
