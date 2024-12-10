@@ -26,10 +26,10 @@ SOCKET CreateSocket(char const* port)
 
 	ZeroMemory(&hints, sizeof(hints));
 
-	hints.ai_family = AF_INET;
+	hints.ai_family   = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_PASSIVE;
+	hints.ai_flags    = AI_PASSIVE;
 
 	status = getaddrinfo(NULL, port, &hints, &result);
 	if (status != 0) { return INVALID_SOCKET; }
@@ -41,7 +41,7 @@ SOCKET CreateSocket(char const* port)
 
 	Cleaner free_socket([=]() { closesocket(listensocket); });
 
-	status = bind(listensocket, result->ai_addr, (int)(result->ai_addrlen));
+	status = bind(listensocket, result->ai_addr, static_cast<int>(result->ai_addrlen));
 	if (status != 0) { return INVALID_SOCKET; }
 
 	status = listen(listensocket, SOMAXCONN);
@@ -60,59 +60,55 @@ bool CleanupSockets()
 }
 
 // OK
-bool recv_u8(SOCKET socket, uint8_t& byte)
+static bool recv_u8(SOCKET socket, uint8_t& byte)
 {
-	v8 buf;
-
+	v8& buf = reinterpret_cast<v8&>(byte);
 	int status;
-	status = recv(socket, (char*)&buf.b, 1, 0);
+
+	status = recv(socket, &buf.x, 1, 0);
 	if (status != 1) { return false; }
-	byte = buf.b;
+
 	return true;
 }
 
 // OK
-bool recv_u16(SOCKET socket, uint16_t& word)
+static bool recv_u16(SOCKET socket, uint16_t& word)
 {
-	v16 buf;
+	v16& buf = reinterpret_cast<v16&>(word);
+	bool ok;
 
-	int status;
-	status = recv(socket, (char*)&buf.b.b0.b, 1, 0);
-	if (status != 1) { return false; }
-	status = recv(socket, (char*)&buf.b.b1.b, 1, 0);
-	if (status != 1) { return false; }
-	word = buf.w;
+	ok = recv_u8(socket, buf.b.b0.b);
+	if (!ok) { return false; }
+	ok = recv_u8(socket, buf.b.b1.b);
+	if (!ok) { return false; }
+
 	return true;
 }
 
 // OK
-bool recv_u32(SOCKET socket, uint32_t& dword)
+static bool recv_u32(SOCKET socket, uint32_t& dword)
 {
-	v32 buf;
+	v32& buf = reinterpret_cast<v32&>(dword);
+	bool ok;
 
-	int status;
-	status = recv(socket, (char*)&buf.w.w0.b.b0.b, 1, 0);
-	if (status != 1) { return false; }
-	status = recv(socket, (char*)&buf.w.w0.b.b1.b, 1, 0);
-	if (status != 1) { return false; }
-	status = recv(socket, (char*)&buf.w.w1.b.b0.b, 1, 0);
-	if (status != 1) { return false; }
-	status = recv(socket, (char*)&buf.w.w1.b.b1.b, 1, 0);
-	if (status != 1) { return false; }
-	dword = buf.d;
+	ok = recv_u16(socket, buf.w.w0.w);
+	if (!ok) { return false; }
+	ok = recv_u16(socket, buf.w.w1.w);
+	if (!ok) { return false; }
+
 	return true;
 }
 
 // OK
-bool recv(SOCKET clientsocket, char* buf, int bytes)
+static bool recv(SOCKET socket, void* buffer, int bytes)
 {
-	int status;
+	char* dst = static_cast<char*>(buffer);
 
 	while (bytes > 0)
 	{
-	status = recv(clientsocket, buf, bytes, 0);
+	int status = recv(socket, dst, bytes, 0);
 	if ((status == SOCKET_ERROR) || (status == 0)) { return false; }
-	buf   += status;
+	dst   += status;
 	bytes -= status;
 	}
 
@@ -120,18 +116,56 @@ bool recv(SOCKET clientsocket, char* buf, int bytes)
 }
 
 // OK
-bool send_multiple(SOCKET s, LPWSABUF buffers, DWORD dwBufferCount)
+static bool send_multiple(SOCKET socket, LPWSABUF buffers, DWORD buffer_count)
 {
-	DWORD dwBytesSent;
-	int status;
-
-	status = WSASend(s, buffers, dwBufferCount, &dwBytesSent, 0, NULL, NULL);
+	DWORD bytes_sent;
+	int status = WSASend(socket, buffers, buffer_count, &bytes_sent, 0, NULL, NULL);
 	return status != SOCKET_ERROR;
 }
 
 // OK
-void pack_buffer(LPWSABUF dst, int index, void const* buffer, ULONG length)
+bool recv_u8(SOCKET socket, HANDLE event_error, uint8_t& byte)
 {
-	dst[index].buf = (char*)buffer;
-	dst[index].len = length;
+	bool ok = recv_u8(socket, byte);
+	if (!ok) { SetEvent(event_error); }
+	return ok;
+}
+
+// OK
+bool recv_u16(SOCKET socket, HANDLE event_error, uint16_t& word)
+{
+	bool ok = recv_u16(socket, word);
+	if (!ok) { SetEvent(event_error); }
+	return ok;
+}
+
+// OK
+bool recv_u32(SOCKET socket, HANDLE event_error, uint32_t& dword)
+{
+	bool ok = recv_u32(socket, dword);
+	if (!ok) { SetEvent(event_error); }
+	return ok;
+}
+
+// OK
+bool recv(SOCKET socket, HANDLE event_error, void* buffer, int buffer_size)
+{
+	bool ok = recv(socket, buffer, buffer_size);
+	if (!ok) { SetEvent(event_error); }
+	return ok;
+}
+
+// OK
+void pack_buffer(LPWSABUF buffers, int index, void const* buffer, ULONG buffer_size)
+{
+	buffers[index].buf = static_cast<char*>(const_cast<void*>(buffer));
+	buffers[index].len = buffer_size;
+}
+
+// OK
+bool send_multiple(SOCKET socket, HANDLE event_error, LPWSABUF buffers, DWORD buffer_count)
+{
+	bool ok = send_multiple(socket, buffers, buffer_count);
+	if (!ok) { SetEvent(event_error); }
+	return ok;
 }
