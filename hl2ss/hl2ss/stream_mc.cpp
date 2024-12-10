@@ -43,9 +43,9 @@ void Channel_MC::Thunk_Sensor(BYTE* data, UINT32 frames, bool silent, UINT64 tim
 }
 
 // OK
-void Channel_MC::Thunk_Encoder(void* pBytes, DWORD cbData, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+void Channel_MC::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-	static_cast<Channel_MC*>(self)->OnEncodingComplete(pBytes, cbData, sample_time, metadata, metadata_size);
+	static_cast<Channel_MC*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
 }
 
 // OK
@@ -61,14 +61,12 @@ void Channel_MC::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG 
 	(void)metadata_size;
 
 	WSABUF wsaBuf[3];
-	bool ok;
 
 	pack_buffer(wsaBuf, 0, &sample_time,  sizeof(sample_time));
 	pack_buffer(wsaBuf, 1, &encoded_size, sizeof(encoded_size));
 	pack_buffer(wsaBuf, 2, encoded,       encoded_size);
 
-	ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-	if (!ok) { SetEvent(m_event_client); }
+	send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
@@ -77,7 +75,7 @@ void Channel_MC::Execute_Mode0()
 	AACFormat format;
 	bool ok;
 
-	ok = ReceiveAACFormat_Profile(m_socket_client, format);
+	ok = ReceiveAACFormat_Profile(m_socket_client, m_event_client, format);
 	if (!ok) { return; }
 
 	bool array_raw = (format.profile == AACProfile::AACProfile_None) && (format.level == AACLevel::AACLevel_L5);
