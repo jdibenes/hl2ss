@@ -16,9 +16,9 @@ MC_AudioTransform const Encoder_MC::m_at_lut[2] =
 //-----------------------------------------------------------------------------
 
 // OK
-void Encoder_MC::AudioF32Crop11To5(float* out, float const* in, int32_t bytes)
+void Encoder_MC::AudioF32Crop11To5(float* out, float const* in, int32_t samples)
 {
-	for (int i = 0; i < (bytes / (sizeof(float) * 4)); ++i)
+	for (int i = 0; i < (samples / 4); ++i)
 	{
 	float32x4_t f = vld1q_f32(in);
 	switch (i % 11)
@@ -81,7 +81,7 @@ void Encoder_MC::AudioF32Crop11To5(float* out, float const* in, int32_t bytes)
 // OK
 void Encoder_MC::CropArray(void* out, void const* in, int32_t bytes)
 {
-	AudioF32Crop11To5(static_cast<float*>(out), static_cast<float const*>(in), bytes);
+	AudioF32Crop11To5(static_cast<float*>(out), static_cast<float const*>(in), bytes / sizeof(float));
 }
 
 // OK

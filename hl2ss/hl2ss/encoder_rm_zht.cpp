@@ -195,7 +195,7 @@ void Encoder_RM_ZHT::WriteSample(UINT16 const* pDepth, UINT16 const* pAbImage, L
 
     pBuffer->Unlock();
 
-	WriteBuffer(pBuffer, timestamp, m_duration, reinterpret_cast<UINT8*>(metadata));
+	WriteBuffer(pBuffer, timestamp, m_duration, metadata);
 
     pBuffer->Release();
 }

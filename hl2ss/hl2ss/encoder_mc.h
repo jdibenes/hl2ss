@@ -22,7 +22,7 @@ private:
 
 	static MC_AudioTransform const m_at_lut[2];
 
-	static void AudioF32Crop11To5(float* out, float const* in, int32_t bytes);
+	static void AudioF32Crop11To5(float* out, float const* in, int32_t samples);
 	static void CropArray(void* out, void const* in, int32_t bytes);
 	static void Bypass(void* out, void const* in, int32_t bytes);
 

@@ -19,6 +19,6 @@ void Encoder_PV::WriteSample(MediaFrameReference const& frame, PV_Metadata* meta
 {
     SoftwareBitmapBuffer* pBuffer; // Release
     SoftwareBitmapBuffer::CreateInstance(&pBuffer, frame);
-    WriteBuffer(pBuffer, frame.SystemRelativeTime().Value().count(), frame.Duration().count(), reinterpret_cast<UINT8*>(metadata));
+    WriteBuffer(pBuffer, frame.SystemRelativeTime().Value().count(), frame.Duration().count(), metadata);
     pBuffer->Release();
 }

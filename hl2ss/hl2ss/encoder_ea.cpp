@@ -22,11 +22,11 @@ EA_AudioTransform const Encoder_EA::m_at_lut[4] =
 //-----------------------------------------------------------------------------
 
 // OK
-void Encoder_EA::AudioF32ToS16(int16_t* out, float const* in, int32_t out_bytes)
+void Encoder_EA::AudioF32ToS16(int16_t* out, float const* in, int32_t samples)
 {
 	float32x4_t s = vdupq_n_f32(32767.0f);
 
-	for (int i = 0; i < (out_bytes / (sizeof(int16_t) * 16)); ++i)
+	for (int i = 0; i < (samples / 16); ++i)
 	{
 	float32x4x4_t f = vld1q_f32_x4(in);
 	uint16x4x4_t d;
@@ -44,9 +44,9 @@ void Encoder_EA::AudioF32ToS16(int16_t* out, float const* in, int32_t out_bytes)
 }
 
 // OK
-void Encoder_EA::AudioS16MonoToStereo(int16_t* out, int16_t const* in, int32_t in_bytes)
+void Encoder_EA::AudioS16MonoToStereo(int16_t* out, int16_t const* in, int32_t samples)
 {
-	for (int i = 0; i < (in_bytes / (sizeof(int16_t) * 32)); ++i)
+	for (int i = 0; i < (samples / 32); ++i)
 	{
 	int16x8x4_t f = vld1q_s16_x4(in);
 
@@ -67,29 +67,29 @@ void Encoder_EA::AudioS16MonoToStereo(int16_t* out, int16_t const* in, int32_t i
 }
 
 // OK
-void Encoder_EA::F32ToS16(int16_t* out, float const* in, int32_t out_bytes)
+void Encoder_EA::F32ToS16(int16_t* out, void const* in, int32_t samples)
 {
-    AudioF32ToS16(out, in, out_bytes);
+    AudioF32ToS16(out, static_cast<float const*>(in), samples);
 }
 
 // OK
-void Encoder_EA::S16ToS16(int16_t* out, float const* in, int32_t out_bytes)
+void Encoder_EA::S16ToS16(int16_t* out, void const* in, int32_t samples)
 {
-    memcpy(out, in, out_bytes);
+    memcpy(out, in, samples);
 }
 
 // OK
-void Encoder_EA::ExtendMonoToStereo(int16_t* out, int16_t const* in, int32_t in_bytes)
+void Encoder_EA::ExtendMonoToStereo(int16_t* out, int16_t const* in, int32_t samples)
 {
-    AudioS16MonoToStereo(out, in, in_bytes);
+    AudioS16MonoToStereo(out, in, samples);
 }
 
 // OK
-void Encoder_EA::Bypass(int16_t* out, int16_t const* in, int32_t in_bytes)
+void Encoder_EA::Bypass(int16_t* out, int16_t const* in, int32_t samples)
 {
     (void)out;
     (void)in;
-    (void)in_bytes;
+    (void)samples;
 }
 
 // OK
@@ -126,7 +126,8 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame)
     auto buffer    = audio.LockBuffer(AudioBufferAccessMode::Read);
     auto reference = buffer.CreateReference();
 
-    uint32_t output_bytes = (reference.Capacity() / m_sample_bytes) * sizeof(int16_t);
+    uint32_t samples      = reference.Capacity() / m_sample_bytes;
+    uint32_t output_bytes = samples * sizeof(int16_t);
     uint32_t fill_bytes   = m_fill * output_bytes;
     uint32_t buffer_bytes = output_bytes + fill_bytes;
 
@@ -134,12 +135,12 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame)
 
     pBuffer->Lock(&pDst, NULL, NULL);
 
-    float*   data_addr = reinterpret_cast<float*>(reference.data());
+    void*    data_addr = reference.data();
     int16_t* base_addr = reinterpret_cast<int16_t*>(pDst);
     int16_t* high_addr = reinterpret_cast<int16_t*>(pDst + fill_bytes);
 
-    m_kernel_cast(high_addr, data_addr, output_bytes);
-    m_kernel_wide(base_addr, high_addr, output_bytes);
+    m_kernel_cast(high_addr, data_addr, samples);
+    m_kernel_wide(base_addr, high_addr, samples);
 
     pBuffer->Unlock();
 

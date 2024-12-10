@@ -56,7 +56,7 @@ void Encoder_RM_VLC::WriteSample(BYTE const* pImage, LONGLONG timestamp, RM_VLC_
 
 	pBuffer->Unlock();
 
-	WriteBuffer(pBuffer, timestamp, m_duration, reinterpret_cast<UINT8*>(metadata));
+	WriteBuffer(pBuffer, timestamp, m_duration, metadata);
 
 	pBuffer->Release();
 }

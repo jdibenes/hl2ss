@@ -82,6 +82,6 @@ void Encoder_RM_ZLT::WriteSample(BYTE const* pSigma, UINT16 const* pDepth, UINT1
     stream.ReadAsync(streamBuf, streamSize, InputStreamOptions::None).get();
 
     BufferBuffer::CreateInstance(&pBuffer, streamBuf);
-    WriteBuffer(pBuffer, timestamp, m_duration, reinterpret_cast<UINT8*>(metadata));
+    WriteBuffer(pBuffer, timestamp, m_duration, metadata);
     pBuffer->Release();
 }
