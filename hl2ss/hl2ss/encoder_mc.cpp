@@ -81,7 +81,7 @@ void Encoder_MC::AudioF32Crop11To5(float* out, float const* in, int32_t bytes)
 // OK
 void Encoder_MC::CropArray(void* out, void const* in, int32_t bytes)
 {
-	AudioF32Crop11To5(reinterpret_cast<float*>(out), reinterpret_cast<float const*>(in), bytes);
+	AudioF32Crop11To5(static_cast<float*>(out), static_cast<float const*>(in), bytes);
 }
 
 // OK
