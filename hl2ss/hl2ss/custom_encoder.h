@@ -31,7 +31,7 @@ protected:
     
     virtual ~CustomEncoder();
 
-    void WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LONGLONG duration, UINT8* metadata);
+    void WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LONGLONG duration, void* metadata);
 
     static void CreateBuffer(IMFMediaBuffer** ppBuffer, DWORD size);
 };

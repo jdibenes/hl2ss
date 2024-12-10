@@ -80,7 +80,7 @@ void CustomEncoder::CreateBuffer(IMFMediaBuffer** ppBuffer, DWORD size)
 }
 
 // OK
-void CustomEncoder::WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LONGLONG duration, UINT8* metadata)
+void CustomEncoder::WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LONGLONG duration, void* metadata)
 {
     IMFSample* pSample; // Release
 
@@ -89,7 +89,7 @@ void CustomEncoder::WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LON
     pSample->AddBuffer(pBuffer);
     pSample->SetSampleDuration(duration);
     pSample->SetSampleTime(timestamp);
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, metadata, m_metadata_size);
+    pSample->SetBlob(MF_USER_DATA_PAYLOAD, static_cast<UINT8*>(metadata), m_metadata_size);
 
     m_pSinkWriter->WriteSample(pSample);
 
