@@ -138,13 +138,10 @@ bool ReceiveEncoderOptions(SOCKET socket, HANDLE event_error, std::vector<uint64
 // OK
 bool ReceiveZABFormat_PNGFilter(SOCKET socket, HANDLE event_error, ZABFormat& format)
 {
-	uint8_t filter;
 	bool ok;
 
-	ok = recv_u8(socket, event_error, filter);
+	ok = recv_u32(socket, event_error, reinterpret_cast<uint32_t&>(format.filter));
 	if (!ok) { return false; }
-
-	format.filter = static_cast<PngFilterMode>(filter);
 
 	switch (format.filter)
 	{
