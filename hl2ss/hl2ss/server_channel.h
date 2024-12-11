@@ -11,9 +11,10 @@ private:
     HANDLE m_thread; // CloseHandle
     SOCKET m_socket_listen; // closesocket
 
+    void Entry();
     void Loop();
 
-    static DWORD WINAPI Thunk_Loop(void* self);
+    static DWORD WINAPI Thunk_Entry(void* self);
 
 protected:    
     SOCKET m_socket_client; // closesocket
