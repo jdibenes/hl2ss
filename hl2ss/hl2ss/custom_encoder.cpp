@@ -43,10 +43,13 @@ CustomEncoder::~CustomEncoder()
 // OK
 void CustomEncoder::ProcessSample(IMFSample* pSample)
 {
+    UINT32 bCleanPoint = TRUE;
     IMFMediaBuffer* pBuffer; // Release
     LONGLONG hnsSampleTime;
     BYTE* pFrame;
     DWORD cbFrameBytes;
+
+    pSample->GetUINT32(MFSampleExtension_CleanPoint, &bCleanPoint);
 
     pSample->ConvertToContiguousBuffer(&pBuffer);
     pSample->GetSampleTime(&hnsSampleTime);
@@ -55,7 +58,7 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
     
     pBuffer->Lock(&pFrame, NULL, &cbFrameBytes);
 
-    m_pHookCallback(pFrame, cbFrameBytes, hnsSampleTime, m_metadata.get(), m_metadata_size, m_pHookParam);
+    m_pHookCallback(pFrame, cbFrameBytes, bCleanPoint, hnsSampleTime, m_metadata.get(), m_metadata_size, m_pHookParam);
 
     pBuffer->Unlock();
     pBuffer->Release();

@@ -5,7 +5,7 @@
 
 uint8_t const NV12_ZERO_CHROMA = 0x80;
 
-typedef void(*HOOK_ENCODER_PROC)(void*, DWORD, LONGLONG, void*, UINT32, void*);
+typedef void(*HOOK_ENCODER_PROC)(void*, DWORD, UINT32, LONGLONG, void*, UINT32, void*);
 typedef void(*HOOK_METADATA_PROC)(void*, uint32_t);
 
 class CustomEncoder
