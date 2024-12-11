@@ -1,8 +1,7 @@
 
 #include "microphone_capture.h"
-#include "channel.h"
-#include "ipc_sc.h"
-#include "ports.h"
+#include "server_channel.h"
+#include "server_settings.h"
 #include "encoder_mc.h"
 
 class Channel_MC : public Channel
@@ -17,10 +16,10 @@ private:
 	void Execute_Mode0();
 
 	void OnFrameArrived(BYTE* data, UINT32 frames, bool silent, UINT64 timestamp);
-	void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+	void OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
 
 	static void Thunk_Sensor(BYTE* data, UINT32 frames, bool silent, UINT64 timestamp, void* self);
-	static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+	static void Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
 
 public:
 	Channel_MC(char const* name, char const* port, uint32_t id);
@@ -43,9 +42,9 @@ void Channel_MC::Thunk_Sensor(BYTE* data, UINT32 frames, bool silent, UINT64 tim
 }
 
 // OK
-void Channel_MC::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+void Channel_MC::Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-	static_cast<Channel_MC*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
+	static_cast<Channel_MC*>(self)->OnEncodingComplete(encoded, encoded_size, clean_point, sample_time, metadata, metadata_size);
 }
 
 // OK
@@ -55,8 +54,9 @@ void Channel_MC::OnFrameArrived(BYTE* data, UINT32 frames, bool silent, UINT64 t
 }
 
 // OK
-void Channel_MC::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+void Channel_MC::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
+	(void)clean_point;
 	(void)metadata;
 	(void)metadata_size;
 
@@ -82,7 +82,8 @@ void Channel_MC::Execute_Mode0()
 
 	MicrophoneCapture_Open(array_raw);
 
-	if (!MicrophoneCapture_Status()) { return; }
+	ok = MicrophoneCapture_Status();
+	if (!ok) { return; }
 
 	Encoder_MC::SetAACFormat(format, array_raw);
 
