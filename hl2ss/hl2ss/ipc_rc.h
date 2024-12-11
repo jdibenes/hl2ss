@@ -1,5 +1,5 @@
 
 #pragma once
 
-void RC_Initialize();
+void RC_Startup();
 void RC_Cleanup();

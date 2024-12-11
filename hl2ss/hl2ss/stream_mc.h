@@ -1,5 +1,5 @@
 
 #pragma once
 
-void MC_Initialize();
+void MC_Startup();
 void MC_Cleanup();

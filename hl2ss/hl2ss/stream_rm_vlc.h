@@ -1,10 +1,10 @@
 
 #pragma once
 
-void RM_VLF_Initialize();
-void RM_VLL_Initialize();
-void RM_VRF_Initialize();
-void RM_VRR_Initialize();
+void RM_VLF_Startup();
+void RM_VLL_Startup();
+void RM_VRF_Startup();
+void RM_VRR_Startup();
 
 void RM_VLF_Cleanup();
 void RM_VLL_Cleanup();

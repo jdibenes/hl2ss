@@ -1,5 +1,5 @@
 
 #pragma once
 
-void SI_Initialize();
+void SI_Startup();
 void SI_Cleanup();

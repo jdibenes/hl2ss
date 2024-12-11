@@ -1,5 +1,5 @@
 
 #pragma once
 
-void EV_Initialize();
+void EV_Startup();
 void EV_Cleanup();

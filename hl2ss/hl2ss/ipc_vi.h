@@ -1,5 +1,5 @@
 
 #pragma once
 
-void VI_Initialize();
+void VI_Startup();
 void VI_Cleanup();

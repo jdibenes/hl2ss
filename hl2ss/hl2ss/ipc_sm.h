@@ -1,5 +1,5 @@
 
 #pragma once
 
-void SM_Initialize();
+void SM_Startup();
 void SM_Cleanup();
