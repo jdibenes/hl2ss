@@ -53,6 +53,13 @@ SOCKET CreateSocket(char const* port)
 }
 
 // OK
+SOCKET AcceptClient(SOCKET socket)
+{
+	SOCKET client = accept(socket, NULL, NULL);
+	return client;
+}
+
+// OK
 bool CleanupSockets()
 {
 	int status = WSACleanup();

@@ -62,7 +62,7 @@ void Channel::Loop()
     {
     ShowMessage("%s: Waiting for client", m_name);
 
-    m_socket_client = accept(m_socket_listen, NULL, NULL);
+    m_socket_client = AcceptClient(m_socket_listen);
     if (m_socket_client == INVALID_SOCKET) { break; }
 
     ShowMessage("%s: Client connected", m_name);
