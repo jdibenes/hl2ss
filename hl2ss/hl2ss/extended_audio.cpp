@@ -1,24 +1,18 @@
 
-#include <mfapi.h>
-#include <combaseapi.h>
-#include "custom_media_types.h"
-#include "custom_audio_effect.h"
+#include "extended_audio.h"
 #include "nfo.h"
 #include "log.h"
 
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Media.MediaProperties.h>
-#include <winrt/Windows.Media.Devices.h>
-#include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
+#include <winrt/Windows.Media.MediaProperties.h>
+#include <winrt/Windows.Media.Devices.h>
 #include <winrt/Windows.Data.Json.h>
 
-using namespace winrt::Windows::Media::MediaProperties;
-using namespace winrt::Windows::Media::Devices;
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
+using namespace winrt::Windows::Media::MediaProperties;
+using namespace winrt::Windows::Media::Devices;
 using namespace winrt::Windows::Data::Json;
 
 struct source_format
@@ -31,10 +25,12 @@ struct source_format
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_event = NULL;
-
 static MediaCapture g_mediaCapture = nullptr;
 static MediaFrameSource g_audioSource = nullptr;
+static bool g_ready = false;
+static HANDLE g_event = NULL;
+static HOOK_EA_PROC g_hook = nullptr;
+static void* g_param = nullptr;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -48,6 +44,14 @@ static void ExtendedAudio_OnFailed(MediaCapture const&, MediaCaptureFailedEventA
 }
 
 // OK
+static void ExtendedAudio_OnFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
+{
+    (void)args;
+    auto frame = sender.TryAcquireLatestFrame();
+    if (frame) { g_hook(frame, g_param); }
+}
+
+// OK
 static bool ExtendedAudio_ParseSubtype(winrt::hstring const& s, AudioSubtype& v)
 {
     if (s == L"PCM")   { v = AudioSubtype::AudioSubtype_S16; return true; }
@@ -56,17 +60,17 @@ static bool ExtendedAudio_ParseSubtype(winrt::hstring const& s, AudioSubtype& v)
 }
 
 // OK
-static bool ExtendedAudio_FindAudioSource(MediaCapture const& mediaCapture, MediaFrameSource& audioSource)
+static bool ExtendedAudio_FindAudioSource()
 {
     std::vector<source_format> sources[2][2];
 
-    for (auto const& frameSource : mediaCapture.FrameSources())
+    for (auto const& frameSource : g_mediaCapture.FrameSources())
     {
-    auto const& source = frameSource.Value();
+    auto source = frameSource.Value();
     if (source.Info().MediaStreamType() != MediaStreamType::Audio) { continue; }
     for (auto const& format : source.SupportedFormats())
     {
-    auto const& aep = format.AudioEncodingProperties();
+    auto aep = format.AudioEncodingProperties();
     if (aep.SampleRate() != 48000) { continue; }
     AudioSubtype subtype;
     bool ok = ExtendedAudio_ParseSubtype(aep.Subtype(), subtype);
@@ -83,8 +87,8 @@ static bool ExtendedAudio_FindAudioSource(MediaCapture const& mediaCapture, Medi
     {
     if (sources[i][j].size() <= 0) { continue; }
     auto const& sf = sources[i][j][0];
-    audioSource = sf.source;
-    audioSource.SetFormatAsync(sf.format).get();
+    g_audioSource = sf.source;
+    g_audioSource.SetFormatAsync(sf.format).get();
     return true;
     }
     }
@@ -93,7 +97,7 @@ static bool ExtendedAudio_FindAudioSource(MediaCapture const& mediaCapture, Medi
 }
 
 // OK
-void ExtendedAudio_QueryDevices(winrt::hstring& out)
+winrt::hstring ExtendedAudio_QueryDevices()
 {
     std::vector<winrt::hstring> ids;
     std::vector<winrt::hstring> names;
@@ -101,28 +105,24 @@ void ExtendedAudio_QueryDevices(winrt::hstring& out)
     GetAudioCaptureIdsAndNames(ids, names);
 
     JsonObject root = JsonObject();
+
     for (uint32_t i = 0; i < ids.size(); ++i)
     {
     JsonObject jsourceinfos = JsonObject();
-    jsourceinfos.Insert(L"Id", JsonValue::CreateStringValue(ids[i]));
+
+    jsourceinfos.Insert(L"Id",   JsonValue::CreateStringValue(ids[i]));
     jsourceinfos.Insert(L"Name", JsonValue::CreateStringValue(names[i]));
 
     root.Insert(winrt::to_hstring(i), jsourceinfos);
     }
 
-    out = root.ToString();
+    return root.ToString();
 }
 
 // OK
-void ExtendedAudio_RegisterEvent(HANDLE h)
+void ExtendedAudio_Open(MRCAudioOptions const& options)
 {
-    g_event = h;
-}
-
-// OK
-bool ExtendedAudio_Open(MRCAudioOptions const& options)
-{
-    uint32_t index = (options.mixer_mode & 0x7FFFFFFC) >> 2;
+    uint32_t index = options.mixer_mode >> 2;
     MediaCaptureInitializationSettings settings;
     std::vector<winrt::hstring> ids;
     winrt::hstring id;
@@ -136,7 +136,7 @@ bool ExtendedAudio_Open(MRCAudioOptions const& options)
     {
     index--;
     GetAudioCaptureIds(ids);
-    if (index >= ids.size()) { return false; }
+    if (index >= ids.size()) { return; }
     id = ids[index];
     }
 
@@ -146,31 +146,71 @@ bool ExtendedAudio_Open(MRCAudioOptions const& options)
     settings.MediaCategory(MediaCategory::Media);
 
     g_mediaCapture = MediaCapture();
+    
+    try
+    {
     g_mediaCapture.InitializeAsync(settings).get();
-    g_mediaCapture.AddAudioEffectAsync(MRCAudioEffect(options)).get();
+    }
+    catch (...)
+    {
+    g_mediaCapture = nullptr;
+    return;
+    }
 
-    g_mediaCapture.Failed({ ExtendedAudio_OnFailed });
-    ok = ExtendedAudio_FindAudioSource(g_mediaCapture, g_audioSource);
+    ok = ExtendedAudio_FindAudioSource();
     if (!ok)
     {
     g_mediaCapture.Close();
     g_mediaCapture = nullptr;
-    return false;
+    return;
     }
 
-    return true;
+    g_mediaCapture.AddAudioEffectAsync(MRCAudioEffect(options)).get();
+    g_mediaCapture.Failed({ ExtendedAudio_OnFailed });
+
+    g_ready = true;
 }
 
 // OK
 void ExtendedAudio_Close()
 {
+    g_ready       = false;
     g_audioSource = nullptr;
     g_mediaCapture.Close();
     g_mediaCapture = nullptr;
 }
 
 // OK
-MediaFrameReader ExtendedAudio_CreateFrameReader()
+bool ExtendedAudio_Status()
 {
-    return g_mediaCapture.CreateFrameReaderAsync(g_audioSource).get();
+    return g_ready;
+}
+
+// OK
+void ExtendedAudio_GetCurrentFormat(AudioSubtype& subtype, uint32_t& channels)
+{
+    auto aep = g_audioSource.CurrentFormat().AudioEncodingProperties();
+    ExtendedAudio_ParseSubtype(aep.Subtype(), subtype);
+    channels = aep.ChannelCount();
+}
+
+// OK
+void ExtendedAudio_ExecuteSensorLoop(HOOK_EA_PROC hook, void* param, HANDLE event_stop)
+{
+    g_hook  = hook;
+    g_param = param;
+    g_event = event_stop;
+    
+    auto reader = g_mediaCapture.CreateFrameReaderAsync(g_audioSource).get();
+
+    reader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
+    reader.FrameArrived(ExtendedAudio_OnFrameArrived);
+
+    reader.StartAsync().get();
+    WaitForSingleObject(event_stop, INFINITE);
+    reader.StopAsync().get();
+
+    reader.Close();
+    
+    g_event = NULL;
 }
