@@ -120,6 +120,7 @@ Channel(name, port, id)
 // OK
 bool Channel_EA::Startup()
 {
+    SetNoDelay(true);
     return true;
 }
 
