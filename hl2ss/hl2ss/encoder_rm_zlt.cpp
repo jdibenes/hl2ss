@@ -4,6 +4,7 @@
 #include "research_mode.h"
 #include "timestamp.h"
 
+using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Graphics::Imaging;
 using namespace winrt::Windows::Storage::Streams;
 
@@ -51,7 +52,7 @@ void Encoder_RM_ZLT::SetH26xFormat(H26xFormat& format)
 Encoder_RM_ZLT::Encoder_RM_ZLT(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format, ZABFormat const& zabFormat) :
 CustomEncoder(pHookCallback, pHookParam, NULL, sizeof(RM_ZLT_Metadata), VideoSubtype::VideoSubtype_ARGB, format, RM_ZLT_WIDTH, {})
 {
-    m_pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(zabFormat.filter), winrt::Windows::Foundation::PropertyType::UInt8));
+    m_pngProperties.Insert(L"FilterOption", BitmapTypedValue(winrt::box_value(zabFormat.filter), PropertyType::UInt8));
     m_duration = (format.divisor * HNS_BASE) / RM_ZLT_FPS;
 }
 
