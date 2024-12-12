@@ -1,4 +1,9 @@
 
+// Notes
+// https://github.com/microsoft/HoloLens2ForCV/issues/86
+// https://github.com/microsoft/HoloLens2ForCV/issues/117
+// https://github.com/microsoft/HoloLens2ForCV/issues/134
+
 #include "research_mode.h"
 #include "server_channel.h"
 #include "server_settings.h"
