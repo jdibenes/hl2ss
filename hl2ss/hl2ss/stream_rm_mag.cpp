@@ -1,24 +1,16 @@
 
 #include "research_mode.h"
-#include "locator.h"
-#include "channel.h"
-#include "ipc_sc.h"
-#include "ports.h"
-#include "timestamps.h"
+#include "server_channel.h"
+#include "server_settings.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
-#include <winrt/Windows.Perception.h>
-#include <winrt/Windows.Perception.Spatial.h>
 
 using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
 
 class Channel_RM_MAG : public Channel
 {
 private:
     IResearchModeSensor* m_sensor;
-    SpatialLocator m_locator = nullptr;
     bool m_enable_location;
 
     bool Startup();
@@ -71,8 +63,7 @@ void Channel_RM_MAG::OnFrameProcess(MagDataStruct const* imu_buffer, size_t imu_
     (void)sensor_ticks;
 
     ULONG full_size = static_cast<ULONG>(imu_samples * sizeof(MagDataStruct));
-    PerceptionTimestamp ts = QPCTimestampToPerceptionTimestamp(host_ticks);
-    float4x4 pose = Locator_Locate(ts, m_locator, Locator_GetWorldCoordinateSystem(ts));
+    float4x4 pose = ResearchMode_GetRigNodeWorldPose(host_ticks);
     WSABUF wsaBuf[4];
 
     pack_buffer(wsaBuf, 0, &host_ticks, sizeof(host_ticks));
@@ -80,8 +71,7 @@ void Channel_RM_MAG::OnFrameProcess(MagDataStruct const* imu_buffer, size_t imu_
     pack_buffer(wsaBuf, 2, imu_buffer,  full_size);
     pack_buffer(wsaBuf, 3, &pose,       sizeof(pose) * m_enable_location);
 
-    bool ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(m_event_client); }
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
@@ -96,8 +86,7 @@ void Channel_RM_MAG::Execute_Mode0(bool enable_location)
 Channel_RM_MAG::Channel_RM_MAG(char const* name, char const* port, uint32_t id) :
 Channel(name, port, id)
 {
-    m_sensor  = ResearchMode_GetSensor(ResearchModeSensorType::IMU_MAG);
-    m_locator = ResearchMode_GetLocator();
+    m_sensor = ResearchMode_GetSensor(ResearchModeSensorType::IMU_MAG);
 }
 
 // OK
@@ -112,14 +101,14 @@ void Channel_RM_MAG::Run()
     uint8_t mode;
     bool ok;
 
-    ok = ReceiveOperatingMode(m_socket_client, mode);
+    ok = ReceiveOperatingMode(m_socket_client, m_event_client, mode);
     if (!ok) { return; }
 
     switch (mode & 3)
     {
     case 0: Execute_Mode0(false); break;
     case 1: Execute_Mode0(true);  break;
-    // No Mode2 for RM MAG
+    // No Mode2 for RM_MAG
     }
 }
 
@@ -129,9 +118,9 @@ void Channel_RM_MAG::Cleanup()
 }
 
 // OK
-void RM_MAG_Initialize()
+void RM_MAG_Startup()
 {
-    g_channel = std::make_unique<Channel_RM_MAG>("RM_MAG", PORT_NAME_RM_MAG, PORT_NUMBER_RM_MAG - PORT_NUMBER_BASE);
+    g_channel = std::make_unique<Channel_RM_MAG>("RM_MAG", PORT_NAME_RM_MAG, PORT_ID_RM_MAG);
 }
 
 // OK
