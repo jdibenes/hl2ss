@@ -1,23 +1,13 @@
 
 #include "research_mode.h"
-#include "locator.h"
-#include "channel.h"
-#include "ipc_sc.h"
-#include "ports.h"
+#include "server_channel.h"
+#include "server_settings.h"
 #include "encoder_rm_vlc.h"
-#include "timestamps.h"
-
-#include <winrt/Windows.Perception.h>
-#include <winrt/Windows.Perception.Spatial.h>
-
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
 
 class Channel_RM_VLC : public Channel
 {
 private:
     IResearchModeSensor* m_sensor;
-    SpatialLocator m_locator = nullptr;
     std::unique_ptr<Encoder_RM_VLC> m_pEncoder;
     bool m_enable_location;
     uint32_t m_counter;
@@ -34,13 +24,13 @@ private:
 
     void OnFrameArrived(IResearchModeSensorFrame* sensor);
     void OnFrameProcess(BYTE const* image, UINT64 host_ticks, UINT64 sensor_ticks, UINT64 exposure, UINT32 gain);
-    void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+    void OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
     
     static void TranslateEncoderOptions(std::vector<uint64_t> const& options, double& exposure_factor, int64_t& constant_factor);
 
     static void Thunk_Sensor(IResearchModeSensorFrame* frame, void* self);
     static void Thunk_Sample(BYTE const* image, UINT64 host_ticks, UINT64 sensor_ticks, UINT64 exposure, UINT32 gain, void* self);
-    static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+    static void Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
 
 public:
     Channel_RM_VLC(char const* name, char const* port, uint32_t id, ResearchModeSensorType kind);
@@ -88,9 +78,9 @@ void Channel_RM_VLC::Thunk_Sample(BYTE const* image, UINT64 host_ticks, UINT64 s
 }
 
 // OK
-void Channel_RM_VLC::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+void Channel_RM_VLC::Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-    static_cast<Channel_RM_VLC*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
+    static_cast<Channel_RM_VLC*>(self)->OnEncodingComplete(encoded, encoded_size, clean_point, sample_time, metadata, metadata_size);
 }
 
 // OK
@@ -104,7 +94,6 @@ void Channel_RM_VLC::OnFrameArrived(IResearchModeSensorFrame* frame)
 void Channel_RM_VLC::OnFrameProcess(BYTE const* image, UINT64 host_ticks, UINT64 sensor_ticks, UINT64 exposure, UINT32 gain)
 {
     int64_t adjusted_timestamp = host_ticks + (int64_t)((m_exposure_factor * exposure) / 100.0) + m_constant_factor;
-    PerceptionTimestamp ts = QPCTimestampToPerceptionTimestamp(adjusted_timestamp);
     RM_VLC_Metadata metadata;
 
     metadata.timestamp    = adjusted_timestamp;
@@ -112,14 +101,15 @@ void Channel_RM_VLC::OnFrameProcess(BYTE const* image, UINT64 host_ticks, UINT64
     metadata.exposure     = exposure;
     metadata.gain         = gain;  
     metadata._reserved    = 0;
-    metadata.pose         = Locator_Locate(ts, m_locator, Locator_GetWorldCoordinateSystem(ts));
+    metadata.pose         = ResearchMode_GetRigNodeWorldPose(adjusted_timestamp);
 
     m_pEncoder->WriteSample(image, adjusted_timestamp, &metadata);
 }
 
 // OK
-void Channel_RM_VLC::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+void Channel_RM_VLC::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
+    (void)clean_point;
     (void)sample_time;
     (void)metadata_size;
 
@@ -135,8 +125,7 @@ void Channel_RM_VLC::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGL
     pack_buffer(wsaBuf, 3, p,             embed_size);
     pack_buffer(wsaBuf, 4, &p->pose,      sizeof(p->pose) * m_enable_location);
 
-    bool ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(m_event_client); }
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
@@ -148,13 +137,13 @@ void Channel_RM_VLC::Execute_Mode0(bool enable_location)
 
     Encoder_RM_VLC::SetH26xFormat(format);
 
-    ok = ReceiveH26xFormat_Divisor(m_socket_client, format);
+    ok = ReceiveH26xFormat_Divisor(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveH26xFormat_Profile(m_socket_client, format);
+    ok = ReceiveH26xFormat_Profile(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveEncoderOptions(m_socket_client, options);
+    ok = ReceiveEncoderOptions(m_socket_client, m_event_client, options);
     if (!ok) { return; }
 
     m_pEncoder        = std::make_unique<Encoder_RM_VLC>(Thunk_Encoder, this, format, options);
@@ -190,20 +179,20 @@ void Channel_RM_VLC::Execute_Mode2()
     pack_buffer(wsaBuf, 4, mapy.data(),  (ULONG)(mapy.size() * sizeof(float)));
     pack_buffer(wsaBuf, 5, K,            sizeof(K));
 
-    send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
 Channel_RM_VLC::Channel_RM_VLC(char const* name, char const* port, uint32_t id, ResearchModeSensorType kind) : 
 Channel(name, port, id)
 {
-    m_sensor  = ResearchMode_GetSensor(kind);
-    m_locator = ResearchMode_GetLocator();
+    m_sensor = ResearchMode_GetSensor(kind);
 }
 
 // OK
 bool Channel_RM_VLC::Startup()
 {
+    SetNoDelay(true);
     return ResearchMode_WaitForConsent(m_sensor);
 }
 
@@ -213,7 +202,7 @@ void Channel_RM_VLC::Run()
     uint8_t mode;
     bool ok;
 
-    ok = ReceiveOperatingMode(m_socket_client, mode);
+    ok = ReceiveOperatingMode(m_socket_client, m_event_client, mode);
     if (!ok) { return; }
 
     switch (mode & 3)
@@ -230,25 +219,49 @@ void Channel_RM_VLC::Cleanup()
 }
 
 // OK
-void RM_VLF_Initialize() { g_channel_lf = std::make_unique<Channel_RM_VLC>("RM_VLF", PORT_NAME_RM_VLF, PORT_NUMBER_RM_VLF - PORT_NUMBER_BASE, ResearchModeSensorType::LEFT_FRONT); }
+void RM_VLF_Startup() 
+{ 
+    g_channel_lf = std::make_unique<Channel_RM_VLC>("RM_VLF", PORT_NAME_RM_VLF, PORT_ID_RM_VLF, ResearchModeSensorType::LEFT_FRONT);
+}
 
 // OK
-void RM_VLL_Initialize() { g_channel_ll = std::make_unique<Channel_RM_VLC>("RM_VLL", PORT_NAME_RM_VLL, PORT_NUMBER_RM_VLL - PORT_NUMBER_BASE, ResearchModeSensorType::LEFT_LEFT); }
+void RM_VLL_Startup()
+{ 
+    g_channel_ll = std::make_unique<Channel_RM_VLC>("RM_VLL", PORT_NAME_RM_VLL, PORT_ID_RM_VLL, ResearchModeSensorType::LEFT_LEFT);
+}
 
 // OK
-void RM_VRF_Initialize() { g_channel_rf = std::make_unique<Channel_RM_VLC>("RM_VRF", PORT_NAME_RM_VRF, PORT_NUMBER_RM_VRF - PORT_NUMBER_BASE, ResearchModeSensorType::RIGHT_FRONT); }
+void RM_VRF_Startup()
+{
+    g_channel_rf = std::make_unique<Channel_RM_VLC>("RM_VRF", PORT_NAME_RM_VRF, PORT_ID_RM_VRF, ResearchModeSensorType::RIGHT_FRONT);
+}
 
 // OK
-void RM_VRR_Initialize() { g_channel_rr = std::make_unique<Channel_RM_VLC>("RM_VRR", PORT_NAME_RM_VRR, PORT_NUMBER_RM_VRR - PORT_NUMBER_BASE, ResearchModeSensorType::RIGHT_RIGHT); }
+void RM_VRR_Startup()
+{ 
+    g_channel_rr = std::make_unique<Channel_RM_VLC>("RM_VRR", PORT_NAME_RM_VRR, PORT_ID_RM_VRR, ResearchModeSensorType::RIGHT_RIGHT);
+}
 
 // OK
-void RM_VLF_Cleanup() { g_channel_lf.reset(); }
+void RM_VLF_Cleanup() 
+{ 
+    g_channel_lf.reset();
+}
 
 // OK
-void RM_VLL_Cleanup() { g_channel_ll.reset(); }
+void RM_VLL_Cleanup()
+{ 
+    g_channel_ll.reset();
+}
 
 // OK
-void RM_VRF_Cleanup() { g_channel_rf.reset(); }
+void RM_VRF_Cleanup() 
+{ 
+    g_channel_rf.reset();
+}
 
 // OK
-void RM_VRR_Cleanup() { g_channel_rr.reset(); }
+void RM_VRR_Cleanup() 
+{ 
+    g_channel_rr.reset();
+}
