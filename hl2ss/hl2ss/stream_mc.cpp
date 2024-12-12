@@ -123,7 +123,7 @@ void Channel_MC::Cleanup()
 // OK
 void MC_Startup()
 {
-	g_channel = std::make_unique<Channel_MC>("MC", PORT_NAME_MC, PORT_NUMBER_MC - PORT_NUMBER_BASE);
+	g_channel = std::make_unique<Channel_MC>("MC", PORT_NAME_MC, PORT_ID_MC);
 }
 
 // OK
