@@ -2,7 +2,6 @@
 #include "research_mode.h"
 #include "server_channel.h"
 #include "server_settings.h"
-#include "timestamp.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 
