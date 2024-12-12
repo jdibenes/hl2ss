@@ -5,7 +5,7 @@
 
 bool InitializeSockets();
 SOCKET CreateSocket(char const* port);
-SOCKET AcceptClient(SOCKET socket);
+SOCKET AcceptClient(SOCKET socket, DWORD nodelay);
 bool CleanupSockets();
 
 bool recv_u8(SOCKET socket, HANDLE event_error, uint8_t& byte);
