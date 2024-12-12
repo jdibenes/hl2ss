@@ -105,6 +105,7 @@ Channel(name, port, id)
 // OK
 bool Channel_MC::Startup()
 {
+	SetNoDelay(true);
 	return true;
 }
 
