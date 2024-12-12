@@ -165,8 +165,8 @@ void ExtendedAudio_Open(MRCAudioOptions const& options)
     return;
     }
 
-    g_mediaCapture.AddAudioEffectAsync(MRCAudioEffect(options)).get();
     g_mediaCapture.Failed({ ExtendedAudio_OnFailed });
+    g_mediaCapture.AddAudioEffectAsync(MRCAudioEffect(options)).get();    
 
     g_ready = true;
 }
