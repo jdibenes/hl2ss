@@ -1,6 +1,5 @@
 
-#include <Windows.h>
-#include "timestamps.h"
+#include "timestamp.h"
 #include "types.h"
 
 using namespace winrt::Windows::Foundation;

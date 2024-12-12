@@ -2,7 +2,7 @@
 #include "encoder_rm_zlt.h"
 #include "custom_media_buffers.h"
 #include "research_mode.h"
-#include "timestamps.h"
+#include "timestamp.h"
 
 using namespace winrt::Windows::Graphics::Imaging;
 using namespace winrt::Windows::Storage::Streams;
