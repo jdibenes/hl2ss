@@ -10,6 +10,7 @@ private:
     HANDLE m_event_quit; // CloseHandle
     HANDLE m_thread; // CloseHandle
     SOCKET m_socket_listen; // closesocket
+    DWORD  m_no_delay;
 
     void Entry();
     void Loop();
@@ -23,6 +24,8 @@ protected:
     virtual bool Startup() = 0;
     virtual void Run()     = 0;
     virtual void Cleanup() = 0;
+
+    void SetNoDelay(bool no_delay);
 
 public:
     char const* const m_name;

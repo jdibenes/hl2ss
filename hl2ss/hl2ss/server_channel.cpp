@@ -21,6 +21,8 @@ m_name(name),
 m_port(port), 
 m_id(id)
 {
+    m_no_delay   = FALSE;
+
     m_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
     m_thread     = CreateThread(NULL, 0, Thunk_Entry, this, 0, NULL);
 }
@@ -62,7 +64,7 @@ void Channel::Loop()
     {
     ShowMessage("%s: Waiting for client", m_name);
 
-    m_socket_client = AcceptClient(m_socket_listen, TRUE);
+    m_socket_client = AcceptClient(m_socket_listen, m_no_delay);
     if (m_socket_client == INVALID_SOCKET) { break; }
 
     ShowMessage("%s: Client connected", m_name);
@@ -84,4 +86,9 @@ void Channel::Loop()
     CloseHandle(m_event_client);
 
     ShowMessage("%s: Closed", m_name);
+}
+
+void Channel::SetNoDelay(bool no_delay)
+{
+    m_no_delay = no_delay * TRUE;
 }
