@@ -3,18 +3,21 @@
 #include "timestamps.h"
 #include "types.h"
 
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Perception.h>
-
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Perception;
+
+//-----------------------------------------------------------------------------
+// Global Variables
+//-----------------------------------------------------------------------------
+
+static UINT64 g_utc_to_qpc_offset = 0;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-UINT64 QPCTickstoQPCTimestamp(LARGE_INTEGER const &pc)
+static UINT64 Timestamp_QPCTicksToQPC(LARGE_INTEGER const &pc)
 {
 	LARGE_INTEGER pf;
 	QueryPerformanceFrequency(&pf);
@@ -23,7 +26,7 @@ UINT64 QPCTickstoQPCTimestamp(LARGE_INTEGER const &pc)
 }
 
 // OK
-UINT64 FTToU64(FILETIME const &ft)
+static UINT64 Timestamp_FTToU64(FILETIME const &ft)
 {
 	v64 ts;
 	ts.d.d0.d = ft.dwLowDateTime;
@@ -32,23 +35,7 @@ UINT64 FTToU64(FILETIME const &ft)
 }
 
 // OK
-UINT64 GetCurrentQPCTimestamp()
-{
-	LARGE_INTEGER pc;
-	QueryPerformanceCounter(&pc);
-	return QPCTickstoQPCTimestamp(pc);
-}
-
-// OK
-UINT64 GetCurrentUTCTimestamp()
-{
-	FILETIME ft;	
-	GetSystemTimePreciseAsFileTime(&ft);
-	return FTToU64(ft);
-}
-
-// OK
-static DWORD WINAPI ComputeQPCToUTCOffset(void* offset)
+static DWORD WINAPI Timestamp_ComputeQPCToUTCOffset(void* offset)
 {
 	LARGE_INTEGER pc;
 	FILETIME ft;
@@ -56,39 +43,67 @@ static DWORD WINAPI ComputeQPCToUTCOffset(void* offset)
 	UINT64 utc;
 	QueryPerformanceCounter(&pc);
 	GetSystemTimePreciseAsFileTime(&ft);
-	qpc = QPCTickstoQPCTimestamp(pc);
-	utc = FTToU64(ft);
+	qpc = Timestamp_QPCTicksToQPC(pc);
+	utc = Timestamp_FTToU64(ft);
 	*((u64*)offset) = utc - qpc;
 	return 0;
 }
 
 // OK
-UINT64 GetQPCToUTCOffset()
+static UINT64 Timestamp_SampleQPCToUTCOffset()
 {
 	u64 offset;
-	HANDLE h = CreateThread(NULL, 0, ComputeQPCToUTCOffset, &offset, 0, NULL);
+	HANDLE h = CreateThread(NULL, 0, Timestamp_ComputeQPCToUTCOffset, &offset, 0, NULL);
 	WaitForSingleObject(h, INFINITE);
 	CloseHandle(h);
 	return offset;
 }
 
 // OK
-UINT64 GetQPCToUTCOffset(int samples)
+static UINT64 Timestamp_GetQPCToUTCOffset(int samples)
 {
-	u64 offset = GetQPCToUTCOffset();
+	u64 offset = ~0ULL;
 	u64 next;
-	for (int i = 0; i < samples; ++i) { if ((next = GetQPCToUTCOffset()) < offset) { offset = next; } }
+	for (int i = 0; i < samples; ++i) { if ((next = Timestamp_SampleQPCToUTCOffset()) < offset) { offset = next; } }
 	return offset;
 }
 
 // OK
-PerceptionTimestamp QPCTimestampToPerceptionTimestamp(LONGLONG qpctime)
+void Timestamp_Initialize()
 {
-	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(QPCTimestampToTimeSpan(qpctime));
+	g_utc_to_qpc_offset = Timestamp_GetQPCToUTCOffset(32);
 }
 
 // OK
-TimeSpan QPCTimestampToTimeSpan(LONGLONG qpctime)
+UINT64 Timestamp_GetQPCToUTCOffset()
 {
-	return std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(qpctime);
+	return g_utc_to_qpc_offset;
+}
+
+// OK
+UINT64 Timestamp_GetCurrentQPC()
+{
+	LARGE_INTEGER pc;
+	QueryPerformanceCounter(&pc);
+	return Timestamp_QPCTicksToQPC(pc);
+}
+
+// OK
+UINT64 Timestamp_GetCurrentUTC()
+{
+	FILETIME ft;
+	GetSystemTimePreciseAsFileTime(&ft);
+	return Timestamp_FTToU64(ft);
+}
+
+// OK
+TimeSpan Timestamp_U64ToTimeSpan(UINT64 time)
+{
+	return std::chrono::duration<int64_t, std::ratio<1, HNS_BASE>>(time);
+}
+
+// OK
+PerceptionTimestamp Timestamp_QPCToPerception(UINT64 qpctime)
+{
+	return PerceptionTimestampHelper::FromSystemRelativeTargetTime(Timestamp_U64ToTimeSpan(qpctime));
 }
