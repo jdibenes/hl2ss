@@ -156,7 +156,7 @@ void Channel_EA::Cleanup()
 // OK
 void EA_Startup()
 {
-    g_channel = std::make_unique<Channel_EA>("EA", PORT_NAME_EA, PORT_NUMBER_EA - PORT_NUMBER_BASE);
+    g_channel = std::make_unique<Channel_EA>("EA", PORT_NAME_EA, PORT_ID_EA);
 }
 
 // OK
