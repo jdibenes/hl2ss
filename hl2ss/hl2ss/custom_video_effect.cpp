@@ -1,6 +1,7 @@
 
 #include "custom_video_effect.h"
 
+using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Media::Effects;
 
@@ -19,7 +20,7 @@ MRCVideoEffect::MRCVideoEffect(MRCVideoOptions const& options)
     m_propertySet.Insert(L"GlobalOpacityCoefficient", winrt::box_value<float>(options.global_opacity));
     m_propertySet.Insert(L"BlankOnProtectedContent", winrt::box_value<bool>(options.blank_protected));
     m_propertySet.Insert(L"ShowHiddenMesh", winrt::box_value<bool>(options.show_mesh));
-    m_propertySet.Insert(L"OutputSize", winrt::box_value(winrt::Windows::Foundation::Size(options.output_width, options.output_height)));
+    m_propertySet.Insert(L"OutputSize", winrt::box_value(Size(options.output_width, options.output_height)));
     m_propertySet.Insert(L"OutputSubtype", winrt::box_value(winrt::hstring(L"Nv12")));
     m_propertySet.Insert(L"PreferredHologramPerspective", winrt::box_value<uint32_t>(options.hologram_perspective));
 }
