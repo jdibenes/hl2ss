@@ -92,6 +92,7 @@ Channel(name, port, id)
 // OK
 bool Channel_RM_MAG::Startup()
 {
+    SetNoDelay(true);
     return ResearchMode_WaitForConsent(m_sensor);
 }
 

@@ -106,6 +106,7 @@ Channel(name, port, id)
 // OK
 bool Channel_RM_ACC::Startup()
 {
+    SetNoDelay(true);
     return ResearchMode_WaitForConsent(m_sensor);
 }
 
