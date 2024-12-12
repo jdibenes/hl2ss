@@ -3,24 +3,14 @@
 // https://github.com/microsoft/HoloLens2ForCV/issues/142
 
 #include "research_mode.h"
-#include "locator.h"
-#include "channel.h"
-#include "ipc_sc.h"
-#include "ports.h"
+#include "server_channel.h"
+#include "server_settings.h"
 #include "encoder_rm_zlt.h"
-#include "timestamps.h"
-
-#include <winrt/Windows.Perception.h>
-#include <winrt/Windows.Perception.Spatial.h>
-
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
 
 class Channel_RM_ZLT : public Channel
 {
 private:
     IResearchModeSensor* m_sensor;
-    SpatialLocator m_locator = nullptr;
     std::unique_ptr<Encoder_RM_ZLT> m_pEncoder;
     bool m_enable_location;
     uint32_t m_counter;
@@ -35,11 +25,11 @@ private:
 
     void OnFrameArrived(IResearchModeSensorFrame* frame);
     void OnFrameProcess(UINT8 const* sigma, UINT16 const* depth, UINT16 const* ab, UINT64 host_ticks, UINT64 sensor_ticks);
-    void OnEncodingComplete(void* encoded_frame, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+    void OnEncodingComplete(void* encoded_frame, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
 
     static void Thunk_Sensor(IResearchModeSensorFrame* frame, void* self);
     static void Thunk_Sample(UINT8 const* sigma, UINT16 const* depth, UINT16 const* ab, UINT64 host_ticks, UINT64 sensor_ticks, void* self);
-    static void Thunk_Encoder(void* encoded_frame, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+    static void Thunk_Encoder(void* encoded_frame, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
 
 public:
     Channel_RM_ZLT(char const* name, char const* port, uint32_t id);
@@ -68,9 +58,9 @@ void Channel_RM_ZLT::Thunk_Sample(UINT8 const* sigma, UINT16 const* depth, UINT1
 }
 
 // OK
-void Channel_RM_ZLT::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+void Channel_RM_ZLT::Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-    static_cast<Channel_RM_ZLT*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
+    static_cast<Channel_RM_ZLT*>(self)->OnEncodingComplete(encoded, encoded_size, clean_point, sample_time, metadata, metadata_size);
 }
 
 // OK
@@ -83,26 +73,25 @@ void Channel_RM_ZLT::OnFrameArrived(IResearchModeSensorFrame* frame)
 // OK
 void Channel_RM_ZLT::OnFrameProcess(UINT8 const* sigma, UINT16 const* depth, UINT16 const* ab, UINT64 host_ticks, UINT64 sensor_ticks)
 {
-    PerceptionTimestamp ts = QPCTimestampToPerceptionTimestamp(host_ticks);
     RM_ZLT_Metadata metadata;
 
     metadata.timestamp    = host_ticks;
     metadata.sensor_ticks = sensor_ticks;    
-    metadata.pose         = Locator_Locate(ts, m_locator, Locator_GetWorldCoordinateSystem(ts));
+    metadata.pose         = ResearchMode_GetRigNodeWorldPose(host_ticks);
 
     m_pEncoder->WriteSample(sigma, depth, ab, host_ticks, &metadata);
 }
 
 // OK
-void Channel_RM_ZLT::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+void Channel_RM_ZLT::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
+    (void)clean_point;
     (void)sample_time;
     (void)metadata_size;
 
     RM_ZLT_Metadata* p = static_cast<RM_ZLT_Metadata*>(metadata);
     ULONG full_size = encoded_size + sizeof(p->sensor_ticks);
     WSABUF wsaBuf[5];
-    bool ok;
 
     pack_buffer(wsaBuf, 0, &p->timestamp,    sizeof(p->timestamp));
     pack_buffer(wsaBuf, 1, &full_size,       sizeof(full_size));
@@ -110,8 +99,7 @@ void Channel_RM_ZLT::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGL
     pack_buffer(wsaBuf, 3, &p->sensor_ticks, sizeof(p->sensor_ticks));
     pack_buffer(wsaBuf, 4, &p->pose,         sizeof(p->pose) * m_enable_location);
 
-    ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(m_event_client); }
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
@@ -123,10 +111,10 @@ void Channel_RM_ZLT::Execute_Mode0(bool enable_location)
 
     Encoder_RM_ZLT::SetH26xFormat(format);
 
-    ok = ReceiveH26xFormat_Divisor(m_socket_client, format);
+    ok = ReceiveH26xFormat_Divisor(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveZABFormat_PNGFilter(m_socket_client, zabFormat);
+    ok = ReceiveZABFormat_PNGFilter(m_socket_client, m_event_client, zabFormat);
     if (!ok) { return; }
 
     m_pEncoder        = std::make_unique<Encoder_RM_ZLT>(Thunk_Encoder, this, format, zabFormat);
@@ -163,20 +151,20 @@ void Channel_RM_ZLT::Execute_Mode2()
     pack_buffer(wsaBuf, 5, mapy.data(),  (ULONG)(mapy.size() * sizeof(float)));
     pack_buffer(wsaBuf, 6, K,            sizeof(K));
 
-    send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
 Channel_RM_ZLT::Channel_RM_ZLT(char const* name, char const* port, uint32_t id) :
 Channel(name, port, id)
 {
-    m_sensor  = ResearchMode_GetSensor(ResearchModeSensorType::DEPTH_LONG_THROW);
-    m_locator = ResearchMode_GetLocator();
+    m_sensor = ResearchMode_GetSensor(ResearchModeSensorType::DEPTH_LONG_THROW);
 }
 
 // OK
 bool Channel_RM_ZLT::Startup()
 {
+    SetNoDelay(true);
     return ResearchMode_WaitForConsent(m_sensor);
 }
 
@@ -186,7 +174,7 @@ void Channel_RM_ZLT::Run()
     uint8_t mode;
     bool ok;
 
-    ok = ReceiveOperatingMode(m_socket_client, mode);
+    ok = ReceiveOperatingMode(m_socket_client, m_event_client, mode);
     if (!ok) { return; }
 
     switch (mode & 3)
@@ -203,9 +191,9 @@ void Channel_RM_ZLT::Cleanup()
 }
 
 // OK
-void RM_ZLT_Initialize()
+void RM_ZLT_Startup()
 {
-    g_channel = std::make_unique<Channel_RM_ZLT>("RM_ZLT", PORT_NAME_RM_ZLT, PORT_NUMBER_RM_ZLT - PORT_NUMBER_BASE);
+    g_channel = std::make_unique<Channel_RM_ZLT>("RM_ZLT", PORT_NAME_RM_ZLT, PORT_ID_RM_ZLT);
 }
 
 // OK
