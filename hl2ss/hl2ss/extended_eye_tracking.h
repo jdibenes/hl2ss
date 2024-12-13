@@ -1,12 +1,18 @@
 
 #pragma once
 
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Perception.Spatial.h>
+#include <Windows.h>
+
+#include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Microsoft.MixedReality.EyeTracking.h>
 
-void ExtendedEyeTracking_Initialize();
+typedef void (*HOOK_EET_PROC)(winrt::Microsoft::MixedReality::EyeTracking::EyeGazeTrackerReading const&, UINT64, void*);
+
+bool ExtendedEyeTracking_WaitForConsent();
+void ExtendedEyeTracking_Open(bool restricted_mode);
+void ExtendedEyeTracking_Close();
+bool ExtendedEyeTracking_Status();
 void ExtendedEyeTracking_QueryCapabilities();
-winrt::Windows::Perception::Spatial::SpatialLocator ExtendedEyeTracking_CreateLocator();
-void ExtendedEyeTracking_SetTargetFrameRate(int index);
-winrt::Microsoft::MixedReality::EyeTracking::EyeGazeTrackerReading ExtendedEyeTracking_GetReading(winrt::Windows::Foundation::DateTime const& ts, int64_t max_delta);
+winrt::Windows::Foundation::Numerics::float4x4 ExtendedEyeTracking_GetNodeWorldPose(UINT64 host_ticks);
+bool ExtendedEyeTracking_SetTargetFrameRate(uint8_t fps);
+void ExtendedEyeTracking_ExecuteSensorLoop(HOOK_EET_PROC hook, void* param, HANDLE event_stop);
