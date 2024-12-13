@@ -1,19 +1,17 @@
 
 #include <mfapi.h>
 #include "personal_video.h"
-#include "research_mode.h"
-#include "locator.h"
-#include "channel.h"
-#include "ipc_sc.h"
-#include "ports.h"
+#include "server_channel.h"
+#include "server_settings.h"
 #include "encoder_pv.h"
-#include "timestamps.h"
 
+#include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 #include <winrt/Windows.Media.Devices.Core.h>
 
+using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Media::Capture::Frames;
@@ -38,7 +36,6 @@ private:
     bool m_enable_location;
     uint32_t m_counter;
     uint32_t m_divisor;
-    std::atomic<bool> m_calibration_valid;
     PV_Mode2 m_calibration;
     
     bool Startup();
@@ -50,13 +47,13 @@ private:
 
     void OnFrameArrived_Mode0(MediaFrameReference const& frame);
     void OnFrameArrived_Mode2(MediaFrameReference const& frame);
-    void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+    void OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
 
     static void TranslateEncoderOptions(std::vector<uint64_t> const& options, MediaFrameReaderAcquisitionMode& acquisition_mode);
     
     static void Thunk_Sensor_Mode0(MediaFrameReference const& frame, void* self);
     static void Thunk_Sensor_Mode2(MediaFrameReference const& frame, void* self);
-    static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+    static void Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
 
 public:
     Channel_PV(char const* name, char const* port, uint32_t id);
@@ -99,9 +96,9 @@ void Channel_PV::Thunk_Sensor_Mode2(MediaFrameReference const& frame, void* self
 }
 
 // OK
-void Channel_PV::Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+void Channel_PV::Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-    static_cast<Channel_PV*>(self)->OnEncodingComplete(encoded, encoded_size, sample_time, metadata, metadata_size);
+    static_cast<Channel_PV*>(self)->OnEncodingComplete(encoded, encoded_size, clean_point, sample_time, metadata, metadata_size);
 }
 
 // OK
@@ -112,21 +109,21 @@ void Channel_PV::OnFrameArrived_Mode0(MediaFrameReference const& frame)
     if (m_counter == 0)
     {
     auto intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
-    auto metadata   = frame.Properties().Lookup(MFSampleExtension_CaptureMetadata).as<IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable>>();
+    auto metadata   = frame.Properties().Lookup(MFSampleExtension_CaptureMetadata).as<IMapView<winrt::guid, IInspectable>>();
 
     p.f                     = intrinsics.FocalLength();
     p.c                     = intrinsics.PrincipalPoint();
     p.exposure_time         = metadata.Lookup(MF_CAPTURE_METADATA_EXPOSURE_TIME).as<uint64_t>();
-    p.exposure_compensation = *reinterpret_cast<uint64x2*>(metadata.Lookup(MF_CAPTURE_METADATA_EXPOSURE_COMPENSATION).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin());
+    p.exposure_compensation = *reinterpret_cast<uint64x2*>(metadata.Lookup(MF_CAPTURE_METADATA_EXPOSURE_COMPENSATION).as<IReferenceArray<uint8_t>>().Value().begin());
     p.iso_speed             = metadata.Lookup(MF_CAPTURE_METADATA_ISO_SPEED).as<uint32_t>();
-    p.iso_gains             = *reinterpret_cast<float2*>(metadata.Lookup(MF_CAPTURE_METADATA_ISO_GAINS).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin());
+    p.iso_gains             = *reinterpret_cast<float2*>(metadata.Lookup(MF_CAPTURE_METADATA_ISO_GAINS).as<IReferenceArray<uint8_t>>().Value().begin());
     p.lens_position         = metadata.Lookup(MF_CAPTURE_METADATA_LENS_POSITION).as<uint32_t>();
     p.focus_state           = metadata.Lookup(MF_CAPTURE_METADATA_FOCUSSTATE).as<uint32_t>();
     p.white_balance         = metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE).as<uint32_t>();
-    p.white_balance_gains   = *reinterpret_cast<float3*>(metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value().begin());
+    p.white_balance_gains   = *reinterpret_cast<float3*>(metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<IReferenceArray<uint8_t>>().Value().begin());
     p._reserved             = 0;
     p.timestamp             = frame.SystemRelativeTime().Value().count();
-    p.pose                  = Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem(QPCTimestampToPerceptionTimestamp(p.timestamp)));
+    p.pose                  = PersonalVideo_GetFrameWorldPose(frame);
 
     m_pEncoder->WriteSample(frame, &p);
     }
@@ -139,27 +136,29 @@ void Channel_PV::OnFrameArrived_Mode2(MediaFrameReference const& frame)
     if (WaitForSingleObject(m_event_client, 0) == WAIT_TIMEOUT)
     {
     auto intrinsics = frame.VideoMediaFrame().CameraIntrinsics();
-    auto extrinsics = frame.Properties().Lookup(MFSampleExtension_CameraExtrinsics).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value();
-    auto additional = frame.Format().Properties().Lookup(winrt::guid("86b6adbb-3735-447d-bee5-6fc23cb58d4a")).as<winrt::Windows::Foundation::IReferenceArray<uint8_t>>().Value();
+    auto extrinsics = frame.Properties().Lookup(MFSampleExtension_CameraExtrinsics).as<IReferenceArray<uint8_t>>().Value();
+    auto additional = frame.Format().Properties().Lookup(winrt::guid("86b6adbb-3735-447d-bee5-6fc23cb58d4a")).as<IReferenceArray<uint8_t>>().Value();
+
+    float* mf_intrinsics = reinterpret_cast<float*>(additional.begin()) + 3;
+    float* mf_extrinsics = reinterpret_cast<float*>(extrinsics.begin()) + 5;
 
     m_calibration.f             = intrinsics.FocalLength();
     m_calibration.c             = intrinsics.PrincipalPoint();
     m_calibration.r             = intrinsics.RadialDistortion();
     m_calibration.t             = intrinsics.TangentialDistortion();
     m_calibration.p             = intrinsics.UndistortedProjectionTransform();
-    m_calibration.extrinsics    = ResearchMode_Status() ? Locator_Locate(QPCTimestampToPerceptionTimestamp(frame.SystemRelativeTime().Value().count()), ResearchMode_GetLocator(), frame.CoordinateSystem()) : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    m_calibration.intrinsics_mf = *reinterpret_cast<float4*>(&(reinterpret_cast<float*>(additional.begin())[3]));
-    m_calibration.extrinsics_mf = *reinterpret_cast<float7*>(&(reinterpret_cast<float*>(extrinsics.begin())[5]));
-
-    m_calibration_valid = true;
+    m_calibration.extrinsics    = make_float4x4_translation(-(*reinterpret_cast<float3*>(mf_extrinsics + 0))) * make_float4x4_from_quaternion(conjugate(*reinterpret_cast<quaternion*>(mf_extrinsics + 3)));
+    m_calibration.intrinsics_mf = *reinterpret_cast<float4*>(mf_intrinsics);
+    m_calibration.extrinsics_mf = *reinterpret_cast<float7*>(mf_extrinsics);
 
     SetEvent(m_event_client);
     }
 }
 
 // OK
-void Channel_PV::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+void Channel_PV::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
+    (void)clean_point;
     (void)sample_time;
     (void)metadata_size;
 
@@ -175,8 +174,7 @@ void Channel_PV::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG 
     pack_buffer(wsaBuf, 3, p,             embed_size);
     pack_buffer(wsaBuf, 4, &p->pose,      sizeof(p->pose) * m_enable_location);
 
-    bool ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(m_event_client); }
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
@@ -189,19 +187,19 @@ void Channel_PV::Execute_Mode0(bool enable_location)
 
     if (!PersonalVideo_Status()) { return; }
 
-    ok = ReceiveH26xFormat_Video(m_socket_client, format);
+    ok = ReceiveH26xFormat_Video(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
     if (!ok) { return; }
 
-    ok = ReceiveH26xFormat_Divisor(m_socket_client, format);
+    ok = ReceiveH26xFormat_Divisor(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveH26xFormat_Profile(m_socket_client, format);
+    ok = ReceiveH26xFormat_Profile(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveEncoderOptions(m_socket_client, options);
+    ok = ReceiveEncoderOptions(m_socket_client, m_event_client, options);
     if (!ok) { return; }
 
     TranslateEncoderOptions(options, acquisition_mode);
@@ -225,21 +223,17 @@ void Channel_PV::Execute_Mode2()
 
     if (!PersonalVideo_Status()) { return; }
     
-    ok = ReceiveH26xFormat_Video(m_socket_client, format);
+    ok = ReceiveH26xFormat_Video(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
     ok = PersonalVideo_SetFormat(format.width, format.height, format.framerate);
     if (!ok) { return; }
 
-    m_calibration_valid = false;
-
     PersonalVideo_ExecuteSensorLoop(MediaFrameReaderAcquisitionMode::Realtime, Thunk_Sensor_Mode2, this, m_event_client);
-
-    if (!m_calibration_valid) { return; }
 
     pack_buffer(wsaBuf, 0, &m_calibration, sizeof(m_calibration));
 
-    send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
@@ -251,6 +245,7 @@ Channel(name, port, id)
 // OK
 bool Channel_PV::Startup()
 {
+    SetNoDelay(true);
     return true;
 }
 
@@ -261,12 +256,12 @@ void Channel_PV::Run()
     uint8_t mode;    
     bool ok;
 
-    ok = ReceiveOperatingMode(m_socket_client, mode);
+    ok = ReceiveOperatingMode(m_socket_client, m_event_client, mode);
     if (!ok) { return; }
 
     if (mode & 4)
     {
-    ok = ReceiveMRCVideoOptions(m_socket_client, options);
+    ok = ReceiveMRCVideoOptions(m_socket_client, m_event_client, options);
     if (!ok) { return; }
 
     if (PersonalVideo_Status()) { PersonalVideo_Close(); }
@@ -293,9 +288,9 @@ void Channel_PV::Cleanup()
 }
 
 // OK
-void PV_Initialize()
+void PV_Startup()
 {
-    g_channel = std::make_unique<Channel_PV>("PV", PORT_NAME_PV, PORT_NUMBER_PV - PORT_NUMBER_BASE);
+    g_channel = std::make_unique<Channel_PV>("PV", PORT_NAME_PV, PORT_ID_PV);
 }
 
 // OK
