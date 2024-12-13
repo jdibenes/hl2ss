@@ -37,7 +37,7 @@ static bool g_ready = false;
 //-----------------------------------------------------------------------------
 
 // OK
-static void OnEyeGazeTrackerAdded(EyeGazeTrackerWatcher const& sender, EyeGazeTracker const& tracker)
+static void ExtendedEyeTracking_OnEyeGazeTrackerAdded(EyeGazeTrackerWatcher const& sender, EyeGazeTracker const& tracker)
 {
     (void)sender;
     g_tracker = tracker;
@@ -45,7 +45,7 @@ static void OnEyeGazeTrackerAdded(EyeGazeTrackerWatcher const& sender, EyeGazeTr
 }
 
 // OK
-static void OnEyeGazeTrackerRemoved(EyeGazeTrackerWatcher const& sender, EyeGazeTracker const& tracker)
+static void ExtendedEyeTracking_OnEyeGazeTrackerRemoved(EyeGazeTrackerWatcher const& sender, EyeGazeTracker const& tracker)
 {
     (void)sender;
     (void)tracker;
@@ -63,8 +63,8 @@ void ExtendedEyeTracking_Open(bool restricted_mode)
     if (g_ready) { return; }
     g_event_tracker = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_watcher = EyeGazeTrackerWatcher();
-    g_watcher.EyeGazeTrackerAdded(OnEyeGazeTrackerAdded);
-    g_watcher.EyeGazeTrackerRemoved(OnEyeGazeTrackerRemoved);
+    g_watcher.EyeGazeTrackerAdded(ExtendedEyeTracking_OnEyeGazeTrackerAdded);
+    g_watcher.EyeGazeTrackerRemoved(ExtendedEyeTracking_OnEyeGazeTrackerRemoved);
     g_watcher.StartAsync().get();
     WaitForSingleObject(g_event_tracker, INFINITE);
     g_watcher.Stop();
