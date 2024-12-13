@@ -79,6 +79,8 @@ void Channel_EET::OnFrameArrived(EyeGazeTrackerReading const& frame, UINT64 host
     EET_Packet eet_packet;
     WSABUF wsaBuf[1];
 
+    memset(&eet_packet, 0, sizeof(eet_packet));
+
     bool cg_valid = frame.TryGetCombinedEyeGazeInTrackerSpace(eet_packet.frame.c_origin, eet_packet.frame.c_direction);
     bool lg_valid = frame.TryGetLeftEyeGazeInTrackerSpace(eet_packet.frame.l_origin, eet_packet.frame.l_direction);
     bool rg_valid = frame.TryGetRightEyeGazeInTrackerSpace(eet_packet.frame.r_origin, eet_packet.frame.r_direction);
