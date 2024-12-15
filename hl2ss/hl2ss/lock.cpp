@@ -1,8 +1,5 @@
 
-#include <Windows.h>
-#include <new>
 #include "lock.h"
-#include "log.h"
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -26,7 +23,7 @@ SRWLock::SRWLock(SRWLOCK *psrwl, bool exclusive)
 {
 	m_psrwl = psrwl;
 	m_exclusive = exclusive;
-	if (exclusive) { AcquireSRWLockExclusive(psrwl); } else { AcquireSRWLockShared(psrwl); }
+	if (m_exclusive) { AcquireSRWLockExclusive(m_psrwl); } else { AcquireSRWLockShared(m_psrwl); }
 }
 
 // OK
@@ -36,8 +33,10 @@ SRWLock::~SRWLock()
 }
 
 // OK
-Cleaner::Cleaner(std::function<void()> f) : m_f(f), m_enable(true)
+Cleaner::Cleaner(std::function<void()> f)
 {
+	m_f = f;
+	m_enable = true;
 }
 
 // OK
@@ -53,8 +52,9 @@ void Cleaner::Set(bool enable)
 }
 
 // OK
-NamedMutex::NamedMutex() : m_mutex(NULL)
+NamedMutex::NamedMutex()
 {
+	m_mutex = NULL;
 }
 
 // OK
@@ -92,32 +92,4 @@ bool NamedMutex::Release() const
 {
 	if (m_mutex == NULL) { return true; }
 	return ReleaseMutex(m_mutex) != 0;
-}
-
-// OK
-void* NamedMutex_Create(wchar_t const* name)
-{
-	NamedMutex* mutex = new (std::nothrow) NamedMutex(); // delete
-	if (mutex == nullptr) { return NULL; }
-	if (mutex->Create(name)) { return mutex; }
-	NamedMutex_Destroy(mutex);
-	return NULL;
-}
-
-// OK
-void NamedMutex_Destroy(void* p)
-{
-	delete (NamedMutex*)p;
-}
-
-// OK
-int NamedMutex_Acquire(void* p, uint32_t timeout)
-{
-	return ((NamedMutex*)p)->Acquire(timeout);
-}
-
-// OK
-int NamedMutex_Release(void* p)
-{
-	return ((NamedMutex*)p)->Release();
 }

@@ -3,7 +3,6 @@
 
 #include <Windows.h>
 #include <functional>
-#include "plugin.h"
 
 class CriticalSection
 {
@@ -51,8 +50,3 @@ public:
     bool Acquire(DWORD timeout) const;
     bool Release() const;
 };
-
-HL2SS_PLUGIN_EXPORT void* NamedMutex_Create(wchar_t const* name);
-HL2SS_PLUGIN_EXPORT void NamedMutex_Destroy(void* p);
-HL2SS_PLUGIN_EXPORT int NamedMutex_Acquire(void* p, uint32_t timeout);
-HL2SS_PLUGIN_EXPORT int NamedMutex_Release(void* p);
