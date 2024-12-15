@@ -3,20 +3,23 @@
 
 #include <Windows.h>
 #include "custom_video_effect.h"
-#include "plugin.h"
 
+#include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 
-HL2SS_PLUGIN_EXPORT void PersonalVideo_RegisterNamedMutex(wchar_t const* name);
+typedef void (*HOOK_PV_PROC)(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, void* param);
 
-void PersonalVideo_Initialize();
+void PersonalVideo_RegisterNamedMutex(wchar_t const* name);
+
+void PersonalVideo_Startup();
 void PersonalVideo_Cleanup();
-void PersonalVideo_RegisterEvent(HANDLE h);
 void PersonalVideo_Open(MRCVideoOptions const& options);
 void PersonalVideo_Close();
 bool PersonalVideo_Status();
+uint32_t PersonalVideo_GetStride(uint32_t width);
+winrt::Windows::Foundation::Numerics::float4x4 PersonalVideo_GetFrameWorldPose(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame);
 bool PersonalVideo_SetFormat(uint16_t& width, uint16_t& height, uint8_t& framerate);
-winrt::Windows::Media::Capture::Frames::MediaFrameReader PersonalVideo_CreateFrameReader();
+void PersonalVideo_ExecuteSensorLoop(winrt::Windows::Media::Capture::Frames::MediaFrameReaderAcquisitionMode mode, HOOK_PV_PROC hook, void* param, HANDLE event_stop);
 
 void PersonalVideo_SetFocus(uint32_t focusmode, uint32_t autofocusrange, uint32_t distance, uint32_t value, uint32_t disabledriverfallback);
 void PersonalVideo_SetVideoTemporalDenoising(uint32_t mode);
