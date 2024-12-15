@@ -127,7 +127,7 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
     CriticalSection cs(&g_lock);
 
     ok = PersonalVideo_FindMediaSourceGroup(width, height, framerate, sourceGroup, profile, description);
-    if (!ok) { return; }
+    if (!ok) { goto _fail_fmsg; }
 
     if (!options.shared)
     {
@@ -166,6 +166,8 @@ _fail_find:
 
 _fail_open:
     g_mediaCapture = nullptr;
+
+_fail_fmsg:
     g_mutex.Release();
 }
 
