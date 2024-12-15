@@ -1,7 +1,7 @@
 
-#include "extended_eye_tracking.h"
 #include "locator.h"
 #include "timestamp.h"
+#include "extended_eye_tracking.h"
 #include "log.h"
 
 #include <winrt/Windows.Foundation.h>
