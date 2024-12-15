@@ -147,28 +147,23 @@ void ExtendedAudio_Open(MRCAudioOptions const& options)
 
     g_mediaCapture = MediaCapture();
     
-    try
-    {
-    g_mediaCapture.InitializeAsync(settings).get();
-    }
-    catch (...)
-    {
-    g_mediaCapture = nullptr;
-    return;
-    }
+    try { g_mediaCapture.InitializeAsync(settings).get(); } catch (...) { goto _fail_open; }
 
     ok = ExtendedAudio_FindAudioSource();
-    if (!ok)
-    {
-    g_mediaCapture.Close();
-    g_mediaCapture = nullptr;
-    return;
-    }
+    if (!ok) { goto _fail_find; }
 
     g_mediaCapture.Failed({ ExtendedAudio_OnFailed });
     g_mediaCapture.AddAudioEffectAsync(MRCAudioEffect(options)).get();    
 
     g_ready = true;
+
+    return;
+
+_fail_find:
+    g_mediaCapture.Close();
+
+_fail_open:
+    g_mediaCapture = nullptr;
 }
 
 // OK
