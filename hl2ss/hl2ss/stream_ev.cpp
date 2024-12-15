@@ -155,14 +155,12 @@ void Channel_EV::Execute_Mode0(bool enable_location)
 // OK
 void Channel_EV::Execute_Mode2()
 {
-    winrt::hstring query;
-    WSABUF wsaBuf[2];
-
-    ExtendedVideo_QueryDevices(query);
+    winrt::hstring query = ExtendedVideo_QueryDevices();
+    WSABUF wsaBuf[2];    
 
     uint32_t bytes = query.size() * sizeof(wchar_t);
 
-    pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
+    pack_buffer(wsaBuf, 0, &bytes,        sizeof(bytes));
     pack_buffer(wsaBuf, 1, query.c_str(), bytes);
 
     send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
