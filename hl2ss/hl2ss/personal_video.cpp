@@ -54,7 +54,7 @@ static void PersonalVideo_OnVideoFrameArrived(MediaFrameReader const& sender, Me
 }
 
 // OK
-static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, double framerate, MediaFrameSourceGroup &sourceGroup, MediaCaptureVideoProfile &profile, MediaCaptureVideoProfileMediaDescription &description)
+static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, double framerate, MediaFrameSourceGroup& sourceGroup, MediaCaptureVideoProfile& profile, MediaCaptureVideoProfileMediaDescription& description)
 {
     auto const& mediaFrameSourceGroup = MediaFrameSourceGroup::FromIdAsync(GetBuiltInVideoCaptureId()).get();
 
@@ -206,9 +206,9 @@ bool PersonalVideo_SetFormat(uint16_t& width, uint16_t& height, uint8_t& framera
 {
     if (g_shared)
     {
-    width     = (uint16_t)g_videoSource.CurrentFormat().VideoFormat().Width();
-    height    = (uint16_t)g_videoSource.CurrentFormat().VideoFormat().Height();
-    framerate = (uint8_t) g_videoSource.CurrentFormat().FrameRate().Numerator();
+    width     = static_cast<uint16_t>(g_videoSource.CurrentFormat().VideoFormat().Width());
+    height    = static_cast<uint16_t>(g_videoSource.CurrentFormat().VideoFormat().Height());
+    framerate = static_cast<uint8_t>( g_videoSource.CurrentFormat().FrameRate().Numerator());
     return true;
     }
 
@@ -422,7 +422,7 @@ void PersonalVideo_SetDesiredOptimization(uint32_t mode)
     CriticalSection cs(&g_lock);
     if (!g_ready || g_shared) { return; }
     if (mode > 6) { return; }
-    g_mediaCapture.VideoDeviceController().DesiredOptimization((MediaCaptureOptimization)mode);
+    g_mediaCapture.VideoDeviceController().DesiredOptimization(static_cast<MediaCaptureOptimization>(mode));
 }
 
 // OK
@@ -431,7 +431,7 @@ void PersonalVideo_SetPrimaryUse(uint32_t mode)
     CriticalSection cs(&g_lock);
     if (!g_ready || g_shared) { return; }
     if (mode > 2) { return; }
-    g_mediaCapture.VideoDeviceController().PrimaryUse((CaptureUse)mode);
+    g_mediaCapture.VideoDeviceController().PrimaryUse(static_cast<CaptureUse>(mode));
 }
 
 // OK
@@ -440,7 +440,7 @@ void PersonalVideo_SetOpticalImageStabilization(uint32_t mode)
     CriticalSection cs(&g_lock);
     if (!g_ready || g_shared) { return; }
     if (mode > 1) { return; }
-    g_mediaCapture.VideoDeviceController().OpticalImageStabilizationControl().Mode((OpticalImageStabilizationMode)mode);
+    g_mediaCapture.VideoDeviceController().OpticalImageStabilizationControl().Mode(static_cast<OpticalImageStabilizationMode>(mode));
 }
 
 // OK
@@ -449,7 +449,7 @@ void PersonalVideo_SetHdrVideo(uint32_t mode)
     CriticalSection cs(&g_lock);
     if (!g_ready || g_shared) { return; }
     if (mode > 2) { return; }
-    g_mediaCapture.VideoDeviceController().HdrVideoControl().Mode((HdrVideoMode)mode);
+    g_mediaCapture.VideoDeviceController().HdrVideoControl().Mode(static_cast<HdrVideoMode>(mode));
 }
 
 // OK
@@ -474,7 +474,7 @@ void PersonalVideo_SetRegionsOfInterest(bool clear, bool set, bool auto_exposure
     roi.AutoWhiteBalanceEnabled(false);
     roi.Bounds({ x, y, w, h });
     roi.BoundsNormalized(bounds_normalized);
-    roi.Type((RegionOfInterestType)(type & 1));
+    roi.Type(static_cast<RegionOfInterestType>(type & 1));
     roi.Weight(weight % 101);
 
     mc.SetRegionsAsync({ roi }).get();
