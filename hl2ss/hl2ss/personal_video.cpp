@@ -126,9 +126,8 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
 
     CriticalSection cs(&g_lock);
 
-    g_mediaCapture = MediaCapture();
-
-    PersonalVideo_FindMediaSourceGroup(width, height, framerate, sourceGroup, profile, description);
+    ok = PersonalVideo_FindMediaSourceGroup(width, height, framerate, sourceGroup, profile, description);
+    if (!ok) { return; }
 
     if (!options.shared)
     {
@@ -146,6 +145,8 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
     settings.MemoryPreference(MediaCaptureMemoryPreference::Cpu);
     settings.SourceGroup(sourceGroup);
     settings.MediaCategory(MediaCategory::Media);
+
+    g_mediaCapture = MediaCapture();
 
     try { g_mediaCapture.InitializeAsync(settings).get(); } catch (...) { goto _fail_open; }
 
