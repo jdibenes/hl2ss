@@ -92,6 +92,12 @@ static bool PersonalVideo_FindVideoSource()
 }
 
 // OK
+void PersonalVideo_RegisterNamedMutex(wchar_t const* name)
+{
+    g_mutex.Create(name);
+}
+
+// OK
 void PersonalVideo_Startup()
 {
     InitializeCriticalSection(&g_lock);
@@ -101,12 +107,6 @@ void PersonalVideo_Startup()
 void PersonalVideo_Cleanup()
 {
     DeleteCriticalSection(&g_lock);
-}
-
-// OK
-void PersonalVideo_RegisterNamedMutex(wchar_t const* name)
-{
-    g_mutex.Create(name);
 }
 
 // OK
