@@ -1,41 +1,41 @@
 
 #include <string.h>
-#include "types.h"
+#include <stdint.h>
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void DrawGlyphUnit(int x, int y, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
+static void DrawGlyphUnit(int x, int y, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, uint32_t color, uint32_t* buffer)
 {
     for (int v = 0; v < glyph_unit_height; ++v)
     {
-        int col = y + v;
-        if ((col < 0) || (col >= image_height)) { continue; }
+    int col = y + v;
+    if ((col < 0) || (col >= image_height)) { continue; }
     for (int u = 0; u < glyph_unit_width; ++u)
     {
-        int row = x + u;
-        if ((row < 0) || (row >= image_width )) { continue; }
-        buffer[col * image_width + row] = color;
+    int row = x + u;
+    if ((row < 0) || (row >= image_width )) { continue; }
+    buffer[col * image_width + row] = color;
     }
     }
 }
 
 // OK
-static void DrawGlyphH(int x, int y, int glyph_width, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32 *buffer)
+static void DrawGlyphH(int x, int y, int glyph_width, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, uint32_t color, uint32_t* buffer)
 {
     for (int u = glyph_unit_width; u < (glyph_width - glyph_unit_width); u += glyph_unit_width) { DrawGlyphUnit(x + u, y, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
 }
 
 // OK
-static void DrawGlyphV(int x, int y, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
+static void DrawGlyphV(int x, int y, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, uint32_t color, uint32_t* buffer)
 {
     for (int v = glyph_unit_height; v < (glyph_height - glyph_unit_height); v += glyph_unit_height) { DrawGlyphUnit(x, y + v, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
 }
 
 // OK
-static void DrawGlyphTile(int segments, int x, int y, int glyph_width, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
+static void DrawGlyphTile(int segments, int x, int y, int glyph_width, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, uint32_t color, uint32_t* buffer)
 {
     if (segments & 1) { DrawGlyphH(x,                                  y,                                    glyph_width,  glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
     if (segments & 2) { DrawGlyphV(x + glyph_width - glyph_unit_width, y,                                    glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
@@ -44,7 +44,7 @@ static void DrawGlyphTile(int segments, int x, int y, int glyph_width, int glyph
 }
 
 // OK
-static void DrawGlyph(int segments, int x, int y, int glyph_width, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
+static void DrawGlyph(int segments, int x, int y, int glyph_width, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, uint32_t color, uint32_t* buffer)
 {
     DrawGlyphTile(segments,      x, y,                                   glyph_width, glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer);
     DrawGlyphTile(segments >> 4, x, y + glyph_height - glyph_unit_width, glyph_width, glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer);
@@ -89,14 +89,14 @@ static int DigitToSegments(wchar_t number)
 }
 
 // OK
-void DrawDigits(wchar_t const* str, int x, int y, int glyph_width, int glyph_kerning, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
+void DrawDigits(wchar_t const* str, int x, int y, int glyph_width, int glyph_kerning, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, uint32_t color, uint32_t* buffer)
 {
     int offset = glyph_width + glyph_kerning;   
     for (int i = 0; i < wcslen(str); ++i) { DrawGlyph(DigitToSegments(str[i]), x + (i * offset), y, glyph_width, glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
 }
 
 // OK
-void DrawDigits(char const* str, int x, int y, int glyph_width, int glyph_kerning, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, u32 color, u32* buffer)
+void DrawDigits(char const* str, int x, int y, int glyph_width, int glyph_kerning, int glyph_height, int glyph_unit_width, int glyph_unit_height, int image_width, int image_height, uint32_t color, uint32_t* buffer)
 {
     int offset = glyph_width + glyph_kerning;
     for (int i = 0; i < strlen(str); ++i) { DrawGlyph(DigitToSegments(str[i]), x + (i * offset), y, glyph_width, glyph_height, glyph_unit_width, glyph_unit_height, image_width, image_height, color, buffer); }
