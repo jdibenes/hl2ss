@@ -3,6 +3,7 @@
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Foundation::Collections;
+using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Effects;
 
 //-----------------------------------------------------------------------------
@@ -12,7 +13,7 @@ using namespace winrt::Windows::Media::Effects;
 // OK
 MRCVideoEffect::MRCVideoEffect(MRCVideoOptions const& options)
 {
-    m_propertySet.Insert(L"StreamType", winrt::box_value<uint32_t>(1));
+    m_propertySet.Insert(L"StreamType", winrt::box_value<uint32_t>(static_cast<uint32_t>(MediaStreamType::VideoRecord)));
     m_propertySet.Insert(L"HologramCompositionEnabled", winrt::box_value<bool>(options.hologram_composition));
     m_propertySet.Insert(L"RecordingIndicatorEnabled", winrt::box_value<bool>(options.recording_indicator));
     m_propertySet.Insert(L"VideoStabilizationEnabled", winrt::box_value<bool>(options.video_stabilization));
