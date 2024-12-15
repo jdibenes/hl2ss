@@ -11,7 +11,7 @@ typedef void (*HOOK_EV_PROC)(winrt::Windows::Media::Capture::Frames::MediaFrameR
 
 void ExtendedVideo_RegisterNamedMutex(wchar_t const* name);
 
-void ExtendedVideo_QueryDevices(winrt::hstring& out);
+winrt::hstring ExtendedVideo_QueryDevices();
 void ExtendedVideo_Open(MRCVideoOptions const& options);
 void ExtendedVideo_Close();
 bool ExtendedVideo_Status();
