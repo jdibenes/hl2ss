@@ -1,22 +1,17 @@
 
 #include "extended_video.h"
 #include "lock.h"
-#include "custom_media_types.h"
-#include "custom_video_effect.h"
 #include "nfo.h"
 #include "log.h"
 
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Media.Devices.h>
+#include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
-#include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Data.Json.h>
 
-using namespace winrt::Windows::Media::Devices;
+using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
-using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Data::Json;
 
 //-----------------------------------------------------------------------------
@@ -24,32 +19,93 @@ using namespace winrt::Windows::Data::Json;
 //-----------------------------------------------------------------------------
 
 static NamedMutex g_mutex;
-static HANDLE g_event = NULL;
-
-static bool g_ready = false;
-static bool g_shared = false;
 static MediaCapture g_mediaCapture = nullptr;
 static MediaFrameSource g_videoSource = nullptr;
+static bool g_shared = false;
+static bool g_ready = false;
+static HANDLE g_event = NULL;
+static HOOK_EV_PROC g_hook = nullptr;
+static void* g_param = nullptr;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-void ExtendedVideo_RegisterNamedMutex(wchar_t const* name)
+static void ExtendedVideo_OnFailed(MediaCapture const& c, MediaCaptureFailedEventArgs const& b)
 {
-    g_mutex.Create(name);
-}
-
-// OK
-static void ExtendedVideo_OnFailed(MediaCapture const&, MediaCaptureFailedEventArgs const& b)
-{
+    (void)c;
     ShowMessage(L"ExtendedVideo_OnFailed - 0x%X : '%s'", b.Code(), b.Message().c_str());
     if (g_event != NULL) { SetEvent(g_event); }
 }
 
 // OK
-void ExtendedVideo_QueryDevices(winrt::hstring& out)
+static void ExtendedVideo_OnFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
+{
+    (void)args;
+    auto frame = sender.TryAcquireLatestFrame();
+    if (frame) { g_hook(frame, g_param); }
+}
+
+// OK
+static bool ExtendedVideo_FindMediaSourceGroup(uint32_t indexGroup, uint32_t indexSource, uint32_t indexProfile, MediaFrameSourceGroup& sourceGroup, winrt::hstring& sourceId, MediaCaptureVideoProfile& profile, MediaCaptureVideoProfileMediaDescription& description)
+{
+    std::vector<winrt::hstring> ids;
+
+    GetVideoCaptureIds(ids);
+    if (indexGroup >= ids.size()) { return false; }
+    sourceGroup = MediaFrameSourceGroup::FromIdAsync(ids[indexGroup]).get();
+
+    auto sources = sourceGroup.SourceInfos();
+    if (indexSource >= sources.Size()) { return false; }
+    sourceId = sources.GetAt(indexSource).Id();
+
+    auto profiles = MediaCapture::FindAllVideoProfiles(sourceGroup.Id());
+    if (profiles.Size() <= 0)
+    {
+    profile     = nullptr;
+    description = nullptr;
+    }
+    else
+    {
+    if (indexProfile >= profiles.Size()) { return false; }
+    profile = profiles.GetAt(indexProfile);
+    auto descriptions = profile.SupportedRecordMediaDescription();
+    if (descriptions.Size() <= 0) { return false; }
+    description = descriptions.GetAt(0);
+    }
+
+    return true;
+}
+
+// OK
+static bool ExtendedVideo_FindVideoSource(winrt::hstring const& sourceId)
+{
+    auto sources = g_mediaCapture.FrameSources();
+    if (!sources.HasKey(sourceId)) { return false; }
+    g_videoSource = sources.Lookup(sourceId);
+    return true;
+}
+
+// OK
+static bool ExtendedVideo_ParseSubtype(winrt::hstring const& s, VideoSubtype& v)
+{
+    if (s == L"NV12") { v = VideoSubtype::VideoSubtype_NV12; return true; }
+    if (s == L"YUY2") { v = VideoSubtype::VideoSubtype_YUY2; return true; }
+    if (s == L"IYUV") { v = VideoSubtype::VideoSubtype_IYUV; return true; }
+    if (s == L"I420") { v = VideoSubtype::VideoSubtype_IYUV; return true; }
+    if (s == L"YV12") { v = VideoSubtype::VideoSubtype_YV12; return true; }
+    return false;
+}
+
+// OK
+static double ExtendedVideo_RatioToDouble(MediaRatio const& r)
+{
+    return (double)r.Numerator() / (double)r.Denominator();
+}
+
+// OK
+winrt::hstring ExtendedVideo_QueryDevices()
 {
     std::vector<winrt::hstring> ids;
 
@@ -58,7 +114,7 @@ void ExtendedVideo_QueryDevices(winrt::hstring& out)
     JsonObject root = JsonObject();
     for (uint32_t i = 0; i < ids.size(); ++i)
     {
-    auto const& sourceGroup = MediaFrameSourceGroup::FromIdAsync(ids[i]).get();
+    auto sourceGroup = MediaFrameSourceGroup::FromIdAsync(ids[i]).get();
     
     JsonObject jsourceinfos = JsonObject();
     uint32_t sourceInfo = 0;
@@ -122,97 +178,13 @@ void ExtendedVideo_QueryDevices(winrt::hstring& out)
     root.Insert(winrt::to_hstring(i), jsourcegroup);
     }
 
-    out = root.ToString();
+    return root.ToString();
 }
 
 // OK
-static bool ExtendedVideo_FindMediaSourceGroup(uint32_t indexGroup, uint32_t indexSource, uint32_t indexProfile, MediaFrameSourceGroup& sourceGroup, winrt::hstring& sourceId, MediaCaptureVideoProfile& profile, MediaCaptureVideoProfileMediaDescription& description)
+void ExtendedVideo_RegisterNamedMutex(wchar_t const* name)
 {
-    std::vector<winrt::hstring> ids;
-
-    GetVideoCaptureIds(ids);
-    if (indexGroup >= ids.size()) { return false; }
-    sourceGroup = MediaFrameSourceGroup::FromIdAsync(ids[indexGroup]).get();
-
-    auto const& sources = sourceGroup.SourceInfos();
-    if (indexSource >= sources.Size()) { return false; }
-    sourceId = sources.GetAt(indexSource).Id();
-
-    auto const& profiles = MediaCapture::FindAllVideoProfiles(sourceGroup.Id());
-    if (profiles.Size() <= 0)
-    {
-    profile     = nullptr;
-    description = nullptr;
-    }
-    else
-    {
-    if (indexProfile >= profiles.Size()) { return false; }
-    profile = profiles.GetAt(indexProfile);
-    auto const& descriptions = profile.SupportedRecordMediaDescription();
-    if (descriptions.Size() <= 0) { return false; }
-    description = descriptions.GetAt(0);
-    }
-
-    return true;
-}
-
-// OK
-static bool ExtendedVideo_FindVideoSource(MediaCapture const& mediaCapture, winrt::hstring const& sourceId, MediaFrameSource& videoSource)
-{
-    auto const& sources = mediaCapture.FrameSources();
-    if (!sources.HasKey(sourceId)) { return false; }
-    videoSource = sources.Lookup(sourceId);
-    return true;
-}
-
-// OK
-static bool ExtendedVideo_ParseSubtype(winrt::hstring const& s, VideoSubtype& v)
-{
-    if (s == L"NV12") { v = VideoSubtype::VideoSubtype_NV12; return true; }
-    if (s == L"YUY2") { v = VideoSubtype::VideoSubtype_YUY2; return true; }
-    if (s == L"IYUV") { v = VideoSubtype::VideoSubtype_IYUV; return true; }
-    if (s == L"I420") { v = VideoSubtype::VideoSubtype_IYUV; return true; }
-    if (s == L"YV12") { v = VideoSubtype::VideoSubtype_YV12; return true; }
-    return false;
-}
-
-// OK
-static double ExtendedVideo_RatioToDouble(MediaRatio const& r)
-{
-    return (double)r.Numerator() / (double)r.Denominator();
-}
-
-// OK
-static bool ExtendedVideo_CopyVideoFormat(uint16_t& width, uint16_t& height, uint8_t& framerate, VideoSubtype& subtype)
-{
-    width     = (uint16_t)g_videoSource.CurrentFormat().VideoFormat().Width();
-    height    = (uint16_t)g_videoSource.CurrentFormat().VideoFormat().Height();
-    framerate = (uint8_t) ExtendedVideo_RatioToDouble(g_videoSource.CurrentFormat().FrameRate());
-
-    return ExtendedVideo_ParseSubtype(g_videoSource.CurrentFormat().Subtype(), subtype);
-}
-
-// OK
-static bool ExtendedVideo_FindVideoFormat(MediaFrameSource const& videoSource, uint32_t width, uint32_t height, uint32_t frameRate, VideoSubtype& subtype, MediaFrameFormat& selectedFormat)
-{
-    for (auto const& format : videoSource.SupportedFormats())
-    {
-    if (format.VideoFormat().Width()                              != width)     { continue; }
-    if (format.VideoFormat().Height()                             != height)    { continue; }
-    if ((uint32_t)ExtendedVideo_RatioToDouble(format.FrameRate()) != frameRate) { continue; }
-    if (!ExtendedVideo_ParseSubtype(format.Subtype(), subtype))                 { continue; }
-
-    selectedFormat = format;
-    return true;
-    }
-
-    return false;
-}
-
-// OK
-void ExtendedVideo_RegisterEvent(HANDLE h)
-{
-    g_event = h;
+    g_mutex.Create(name);
 }
 
 // OK
@@ -227,8 +199,8 @@ void ExtendedVideo_Open(MRCVideoOptions const& options)
     MediaCaptureInitializationSettings settings;
     bool ok;
 
-    ok = ExtendedVideo_FindMediaSourceGroup((uint32_t)options.global_opacity, (uint32_t)options.output_width, (uint32_t)options.output_height, sourceGroup, sourceId, profile, description);
-    if (!ok) { return; }
+    ok = ExtendedVideo_FindMediaSourceGroup(static_cast<uint32_t>(options.global_opacity), static_cast<uint32_t>(options.output_width), static_cast<uint32_t>(options.output_height), sourceGroup, sourceId, profile, description);
+    if (!ok) { goto _fail_fmsg; }
 
     if (!options.shared)
     {
@@ -248,31 +220,36 @@ void ExtendedVideo_Open(MRCVideoOptions const& options)
     settings.MediaCategory(MediaCategory::Media);
 
     g_mediaCapture = MediaCapture();
-    g_mediaCapture.InitializeAsync(settings).get();
+
+    try { g_mediaCapture.InitializeAsync(settings).get(); } catch (...) { goto _fail_open; }
 
     g_mediaCapture.Failed({ ExtendedVideo_OnFailed });
-    ok = ExtendedVideo_FindVideoSource(g_mediaCapture, sourceId, g_videoSource);
-    if (!ok)
-    {
-    g_videoSource = nullptr;
-    g_mediaCapture.Close();
-    g_mediaCapture = nullptr;
-    return;
-    }
+
+    ok = ExtendedVideo_FindVideoSource(sourceId);
+    if (!ok) { goto _fail_find; }
 
     g_shared = options.shared;
     g_ready  = true;
+
+    return;
+
+_fail_find:
+    g_mediaCapture.Close();
+
+_fail_open:
+    g_mediaCapture = nullptr;
+
+_fail_fmsg:
+    g_mutex.Release();
 }
 
 // OK
 void ExtendedVideo_Close()
 {
+    g_ready = false;
     g_videoSource = nullptr;
     g_mediaCapture.Close();
     g_mediaCapture = nullptr;
-
-    g_ready = false;
-
     g_mutex.Release();
 }
 
@@ -285,24 +262,47 @@ bool ExtendedVideo_Status()
 // OK
 bool ExtendedVideo_SetFormat(uint16_t& width, uint16_t& height, uint8_t& framerate, VideoSubtype& subtype)
 {
-    MediaFrameFormat selectedFormat = nullptr;
-    bool ok;
-
     if (g_shared)
     {
-    ok = ExtendedVideo_CopyVideoFormat(width, height, framerate, subtype);
-    return ok;
+    width     = static_cast<uint16_t>(g_videoSource.CurrentFormat().VideoFormat().Width());
+    height    = static_cast<uint16_t>(g_videoSource.CurrentFormat().VideoFormat().Height());
+    framerate = static_cast<uint8_t>(ExtendedVideo_RatioToDouble(g_videoSource.CurrentFormat().FrameRate()));
+
+    return ExtendedVideo_ParseSubtype(g_videoSource.CurrentFormat().Subtype(), subtype);
     }
 
-    ok = ExtendedVideo_FindVideoFormat(g_videoSource, width, height, framerate, subtype, selectedFormat);
-    if (!ok) { return false; }
+    for (auto const& format : g_videoSource.SupportedFormats())
+    {
+    if (format.VideoFormat().Width()                                           != width)     { continue; }
+    if (format.VideoFormat().Height()                                          != height)    { continue; }
+    if (static_cast<uint32_t>(ExtendedVideo_RatioToDouble(format.FrameRate())) != framerate) { continue; }    
+    if (!ExtendedVideo_ParseSubtype(format.Subtype(), subtype))                              { continue; }
 
-    g_videoSource.SetFormatAsync(selectedFormat).get();
+    g_videoSource.SetFormatAsync(format).get();
+
     return true;
+    }
+
+    return false;
 }
 
 // OK
-MediaFrameReader ExtendedVideo_CreateFrameReader()
+void ExtendedVideo_ExecuteSensorLoop(MediaFrameReaderAcquisitionMode mode, HOOK_EV_PROC hook, void* param, HANDLE event_stop)
 {
-    return g_mediaCapture.CreateFrameReaderAsync(g_videoSource).get();
+    g_hook  = hook;
+    g_param = param;
+    g_event = event_stop;
+
+    auto reader = g_mediaCapture.CreateFrameReaderAsync(g_videoSource).get();
+
+    reader.AcquisitionMode(mode);
+    reader.FrameArrived(ExtendedVideo_OnFrameArrived);
+
+    reader.StartAsync().get();
+    WaitForSingleObject(event_stop, INFINITE);
+    reader.StopAsync().get();
+
+    reader.Close();
+
+    g_event = NULL;
 }
