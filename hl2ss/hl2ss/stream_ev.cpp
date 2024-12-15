@@ -1,10 +1,8 @@
 
 #include "extended_video.h"
-#include "channel.h"
-#include "ipc_sc.h"
-#include "ports.h"
+#include "server_channel.h"
+#include "server_settings.h"
 #include "encoder_pv.h"
-#include "timestamps.h"
 
 #include <winrt/Windows.Media.Capture.Frames.h>
 
@@ -26,12 +24,12 @@ private:
     void Execute_Mode2();
 
     void OnFrameArrived(MediaFrameReference const& frame);
-    void OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+    void OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
     
     static void TranslateEncoderOptions(std::vector<uint64_t> const& options, uint32_t& stride_mask, MediaFrameReaderAcquisitionMode& acquisition_mode);
 
     static void Thunk_Sensor(MediaFrameReference const& frame, void* self);
-    static void Thunk_Encoder(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+    static void Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
 
 public:
     Channel_EV(char const* name, char const* port, uint32_t id);
@@ -70,9 +68,9 @@ void Channel_EV::Thunk_Sensor(MediaFrameReference const& frame, void* self)
 }
 
 // OK
-void Channel_EV::Thunk_Encoder(void* encoder, DWORD encoder_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+void Channel_EV::Thunk_Encoder(void* encoder, DWORD encoder_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-    static_cast<Channel_EV*>(self)->OnEncodingComplete(encoder, encoder_size, sample_time, metadata, metadata_size);
+    static_cast<Channel_EV*>(self)->OnEncodingComplete(encoder, encoder_size, clean_point, sample_time, metadata, metadata_size);
 }
 
 // OK
@@ -92,8 +90,9 @@ void Channel_EV::OnFrameArrived(MediaFrameReference const& frame)
 }
 
 // OK
-void Channel_EV::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+void Channel_EV::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
+    (void)clean_point;
     (void)sample_time;
     (void)metadata_size;
 
@@ -109,48 +108,31 @@ void Channel_EV::OnEncodingComplete(void* encoded, DWORD encoded_size, LONGLONG 
     pack_buffer(wsaBuf, 3, p,             embed_size);
     pack_buffer(wsaBuf, 4, &p->pose,      sizeof(p->pose) * m_enable_location);
 
-    bool ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(m_event_client); }
-}
-
-// OK
-void Channel_EV::Execute_Mode2()
-{
-    winrt::hstring query;
-    WSABUF wsaBuf[2];
-
-    ExtendedVideo_QueryDevices(query);
-
-    uint32_t bytes = query.size() * sizeof(wchar_t);
-
-    pack_buffer(wsaBuf, 0, &bytes,        sizeof(bytes));
-    pack_buffer(wsaBuf, 1, query.c_str(), bytes);
-
-    send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
 void Channel_EV::Execute_Mode0(bool enable_location)
 {
+    MediaFrameReaderAcquisitionMode acquisition_mode;
     H26xFormat format;
     std::vector<uint64_t> options;
     VideoSubtype subtype;
-    uint32_t stride_mask;
-    MediaFrameReaderAcquisitionMode acquisition_mode;
+    uint32_t stride_mask;    
     bool ok;
 
     if (!ExtendedVideo_Status()) { return; }
 
-    ok = ReceiveH26xFormat_Video(m_socket_client, format);
+    ok = ReceiveH26xFormat_Video(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveH26xFormat_Divisor(m_socket_client, format);
+    ok = ReceiveH26xFormat_Divisor(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveH26xFormat_Profile(m_socket_client, format);
+    ok = ReceiveH26xFormat_Profile(m_socket_client, m_event_client, format);
     if (!ok) { return; }
 
-    ok = ReceiveEncoderOptions(m_socket_client, options);
+    ok = ReceiveEncoderOptions(m_socket_client, m_event_client, options);
     if (!ok) { return; }
 
     ok = ExtendedVideo_SetFormat(format.width, format.height, format.framerate, subtype);
@@ -171,6 +153,22 @@ void Channel_EV::Execute_Mode0(bool enable_location)
 }
 
 // OK
+void Channel_EV::Execute_Mode2()
+{
+    winrt::hstring query;
+    WSABUF wsaBuf[2];
+
+    ExtendedVideo_QueryDevices(query);
+
+    uint32_t bytes = query.size() * sizeof(wchar_t);
+
+    pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
+    pack_buffer(wsaBuf, 1, query.c_str(), bytes);
+
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
+// OK
 Channel_EV::Channel_EV(char const* name, char const* port, uint32_t id) : 
 Channel(name, port, id)
 {
@@ -179,27 +177,28 @@ Channel(name, port, id)
 // OK
 bool Channel_EV::Startup()
 {
+    SetNoDelay(true);
     return true;
 }
 
 // OK
 void Channel_EV::Run()
 {
-    uint8_t mode;
-    MRCVideoOptions capture_options;
+    MRCVideoOptions options;
+    uint8_t mode;    
     bool ok;
 
-    ok = ReceiveOperatingMode(m_socket_client, mode);
+    ok = ReceiveOperatingMode(m_socket_client, m_event_client, mode);
     if (!ok) { return; }
 
     if (mode & 4)
     {
-    ok = ReceiveMRCVideoOptions(m_socket_client, capture_options);
+    ok = ReceiveMRCVideoOptions(m_socket_client, m_event_client, options);
     if (!ok) { return; }
 
     if (ExtendedVideo_Status()) { ExtendedVideo_Close(); }
 
-    ExtendedVideo_Open(capture_options);
+    ExtendedVideo_Open(options);
     }
 
     switch (mode & 3)
@@ -221,9 +220,9 @@ void Channel_EV::Cleanup()
 }
 
 // OK
-void EV_Initialize()
+void EV_Startup()
 {
-    g_channel = std::make_unique<Channel_EV>("EV", PORT_NAME_EV, PORT_NUMBER_EV - PORT_NUMBER_BASE);
+    g_channel = std::make_unique<Channel_EV>("EV", PORT_NAME_EV, PORT_ID_EV);
 }
 
 // OK
