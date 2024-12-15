@@ -1,16 +1,20 @@
 
+#include "locator.h"
 #include "personal_video.h"
 #include "lock.h"
-#include "custom_video_effect.h"
 #include "nfo.h"
 #include "log.h"
 
-#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Media.MediaProperties.h>
 #include <winrt/Windows.Media.Devices.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 
+using namespace winrt::Windows::Foundation;
+using namespace winrt::Windows::Foundation::Numerics;
+using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Media::Devices;
 using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
@@ -21,28 +25,32 @@ using namespace winrt::Windows::Media::Capture::Frames;
 
 static NamedMutex g_mutex;
 static CRITICAL_SECTION g_lock; // DeleteCriticalSection
-static HANDLE g_event = NULL;
-
-static bool g_ready = false;
-static bool g_shared = false;
 static MediaCapture g_mediaCapture = nullptr;
 static MediaFrameSource g_videoSource = nullptr;
+static bool g_shared = false;
+static bool g_ready = false;
+static HANDLE g_event = NULL;
+static HOOK_PV_PROC g_hook = nullptr;
+static void* g_param = nullptr;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-void PersonalVideo_RegisterNamedMutex(wchar_t const* name)
+static void PersonalVideo_OnFailed(MediaCapture const& c, MediaCaptureFailedEventArgs const& b)
 {
-    g_mutex.Create(name);
+    (void)c;
+    ShowMessage(L"PersonalVideo_OnFailed - 0x%X : '%s'", b.Code(), b.Message().c_str());
+    if (g_event != NULL) { SetEvent(g_event); }
 }
 
 // OK
-static void PersonalVideo_OnFailed(MediaCapture const&, MediaCaptureFailedEventArgs const& b)
+static void PersonalVideo_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
 {
-    ShowMessage(L"PersonalVideo_OnFailed - 0x%X : '%s'", b.Code(), b.Message().c_str());
-    if (g_event != NULL) { SetEvent(g_event); }
+    (void)args;
+    auto frame = sender.TryAcquireLatestFrame();
+    if (frame) { g_hook(frame, g_param); }
 }
 
 // OK
@@ -59,8 +67,9 @@ static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, 
     if (supportedRecordMediaDescription.FrameRate() != framerate) { continue; }
 
     sourceGroup = mediaFrameSourceGroup;
-    profile = knownVideoProfile;
+    profile     = knownVideoProfile;
     description = supportedRecordMediaDescription;
+
     return true;
     }
     }
@@ -69,13 +78,13 @@ static bool PersonalVideo_FindMediaSourceGroup(uint32_t width, uint32_t height, 
 }
 
 // OK
-static bool PersonalVideo_FindVideoSource(MediaCapture const& mediaCapture, MediaFrameSource& videoSource)
+static bool PersonalVideo_FindVideoSource()
 {
-    for (auto const& frameSource : mediaCapture.FrameSources())
+    for (auto const& frameSource : g_mediaCapture.FrameSources())
     {
     auto const& frameSourceInfo = frameSource.Value().Info();
     if ((frameSourceInfo.MediaStreamType() != MediaStreamType::VideoRecord) || (frameSourceInfo.SourceKind() != MediaFrameSourceKind::Color)) { continue; }
-    videoSource = frameSource.Value();
+    g_videoSource = frameSource.Value();
     return true;
     }
 
@@ -83,22 +92,7 @@ static bool PersonalVideo_FindVideoSource(MediaCapture const& mediaCapture, Medi
 }
 
 // OK
-static bool PersonalVideo_FindVideoFormat(MediaFrameSource const& videoSource, uint32_t width, uint32_t height, uint32_t frameRate, MediaFrameFormat& selectedFormat)
-{
-    for (auto const& format : videoSource.SupportedFormats())
-    {
-    if (format.VideoFormat().Width()   != width)     { continue; }
-    if (format.VideoFormat().Height()  != height)    { continue; }    
-    if (format.FrameRate().Numerator() != frameRate) { continue; } // assuming all denominators are 1
-    selectedFormat = format;
-    return true;
-    }
-
-    return false;
-}
-
-// OK
-void PersonalVideo_Initialize()
+void PersonalVideo_Startup()
 {
     InitializeCriticalSection(&g_lock);
 }
@@ -110,9 +104,9 @@ void PersonalVideo_Cleanup()
 }
 
 // OK
-void PersonalVideo_RegisterEvent(HANDLE h)
+void PersonalVideo_RegisterNamedMutex(wchar_t const* name)
 {
-    g_event = h;
+    g_mutex.Create(name);
 }
 
 // OK
@@ -128,6 +122,7 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
     MediaCaptureVideoProfile profile = nullptr;
     MediaCaptureVideoProfileMediaDescription description = nullptr;
     MediaCaptureInitializationSettings settings;
+    bool ok;
 
     CriticalSection cs(&g_lock);
 
@@ -152,28 +147,35 @@ void PersonalVideo_Open(MRCVideoOptions const& options)
     settings.SourceGroup(sourceGroup);
     settings.MediaCategory(MediaCategory::Media);
 
-    g_mediaCapture.InitializeAsync(settings).get();
+    try { g_mediaCapture.InitializeAsync(settings).get(); } catch (...) { goto _fail_open; }
 
     g_mediaCapture.Failed({ PersonalVideo_OnFailed });
     if (options.enable) { g_mediaCapture.AddVideoEffectAsync(MRCVideoEffect(options), MediaStreamType::VideoRecord).get(); }
 
-    PersonalVideo_FindVideoSource(g_mediaCapture, g_videoSource);
+    ok = PersonalVideo_FindVideoSource();
+    if (!ok) { goto _fail_find; }
 
     g_shared = options.shared;
     g_ready  = true;
+
+    return;
+
+_fail_find:
+    g_mediaCapture.Close();
+
+_fail_open:
+    g_mediaCapture = nullptr;
+    g_mutex.Release();
 }
 
 // OK
 void PersonalVideo_Close()
 {
     CriticalSection cs(&g_lock);
-
+    g_ready = false;
     g_videoSource = nullptr;
     g_mediaCapture.Close();
     g_mediaCapture = nullptr;
-
-    g_ready = false;
-
     g_mutex.Release();
 }
 
@@ -184,11 +186,21 @@ bool PersonalVideo_Status()
 }
 
 // OK
+uint32_t PersonalVideo_GetStride(uint32_t width)
+{
+    uint32_t const mask = 64 - 1;
+    return (width + mask) & ~mask;
+}
+
+// OK
+float4x4 PersonalVideo_GetFrameWorldPose(MediaFrameReference const& frame)
+{
+    return Locator_GetTransformTo(frame.CoordinateSystem(), Locator_GetWorldCoordinateSystem());
+}
+
+// OK
 bool PersonalVideo_SetFormat(uint16_t& width, uint16_t& height, uint8_t& framerate)
 {
-    MediaFrameFormat selectedFormat = nullptr;
-    bool ok;
-
     if (g_shared)
     {
     width     = (uint16_t)g_videoSource.CurrentFormat().VideoFormat().Width();
@@ -197,17 +209,39 @@ bool PersonalVideo_SetFormat(uint16_t& width, uint16_t& height, uint8_t& framera
     return true;
     }
 
-    ok = PersonalVideo_FindVideoFormat(g_videoSource, width, height, framerate, selectedFormat);
-    if (!ok) { return false; }
+    for (auto const& format : g_videoSource.SupportedFormats())
+    {
+    if (format.VideoFormat().Width()   != width)     { continue; }
+    if (format.VideoFormat().Height()  != height)    { continue; }    
+    if (format.FrameRate().Numerator() != framerate) { continue; } // assuming all denominators are 1
 
-    g_videoSource.SetFormatAsync(selectedFormat).get();
+    g_videoSource.SetFormatAsync(format).get();
+
     return true;
+    }
+
+    return false;
 }
 
 // OK
-MediaFrameReader PersonalVideo_CreateFrameReader()
+void PersonalVideo_ExecuteSensorLoop(MediaFrameReaderAcquisitionMode mode, HOOK_PV_PROC hook, void* param, HANDLE event_stop)
 {
-    return g_mediaCapture.CreateFrameReaderAsync(g_videoSource).get();
+    g_hook  = hook;
+    g_param = param;
+    g_event = event_stop;
+
+    auto reader = g_mediaCapture.CreateFrameReaderAsync(g_videoSource).get();
+    
+    reader.AcquisitionMode(mode);
+    reader.FrameArrived(PersonalVideo_OnVideoFrameArrived);
+
+    reader.StartAsync().get();
+    WaitForSingleObject(g_event, INFINITE);
+    reader.StopAsync().get();
+
+    reader.Close();
+
+    g_event = NULL;
 }
 
 // OK
@@ -324,7 +358,7 @@ void PersonalVideo_SetExposure(uint32_t setauto, uint32_t value)
     g_mediaCapture.VideoDeviceController().ExposureControl().SetAutoAsync(mode).get();
     if (mode) { return; }
     exposure = value * 10;
-    if ((exposure >= 1000) && (exposure <= 660000)) { g_mediaCapture.VideoDeviceController().ExposureControl().SetValueAsync(winrt::Windows::Foundation::TimeSpan(exposure)).get(); }    
+    if ((exposure >= 1000) && (exposure <= 660000)) { g_mediaCapture.VideoDeviceController().ExposureControl().SetValueAsync(TimeSpan(exposure)).get(); }    
 }
 
 // OK
