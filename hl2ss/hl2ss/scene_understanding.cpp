@@ -1,19 +1,12 @@
 
-#include <Windows.h>
 #include <unordered_set>
-#include "timestamp.h"
 #include "locator.h"
+#include "timestamp.h"
 #include "scene_understanding.h"
 
-#include <winrt/Windows.Foundation.Numerics.h>
-#include <winrt/Windows.Perception.h>
-#include <winrt/Windows.Perception.Spatial.h>
 #include <winrt/Windows.Perception.Spatial.Preview.h>
 #include <Microsoft.MixedReality.SceneUnderstanding.h>
 
-using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Windows::Perception::Spatial::Preview;
 using namespace Microsoft::MixedReality::SceneUnderstanding;
 
