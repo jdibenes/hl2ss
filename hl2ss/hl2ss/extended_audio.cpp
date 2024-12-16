@@ -15,7 +15,7 @@ using namespace winrt::Windows::Media::MediaProperties;
 using namespace winrt::Windows::Media::Devices;
 using namespace winrt::Windows::Data::Json;
 
-struct source_format
+struct EA_SourceFormat
 {
     MediaFrameSource source;
     MediaFrameFormat format;
@@ -62,7 +62,7 @@ static bool ExtendedAudio_ParseSubtype(winrt::hstring const& s, AudioSubtype& v)
 // OK
 static bool ExtendedAudio_FindAudioSource()
 {
-    std::vector<source_format> sources[2][2];
+    std::vector<EA_SourceFormat> sources[2][2];
 
     for (auto const& frameSource : g_mediaCapture.FrameSources())
     {
