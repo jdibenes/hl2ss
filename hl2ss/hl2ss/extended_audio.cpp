@@ -169,7 +169,7 @@ _fail_open:
 // OK
 void ExtendedAudio_Close()
 {
-    g_ready       = false;
+    g_ready = false;
     g_audioSource = nullptr;
     g_mediaCapture.Close();
     g_mediaCapture = nullptr;
