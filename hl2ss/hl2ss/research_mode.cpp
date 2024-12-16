@@ -50,7 +50,7 @@ static bool g_ready = false;
 //-----------------------------------------------------------------------------
 
 // OK
-static void ResearchMode_CamAccessCallback(ResearchModeSensorConsent consent)
+static void ResearchMode_CameraAccessCallback(ResearchModeSensorConsent consent)
 {
 	g_camera_consent_value = consent;
 	SetEvent(g_camera_consent_event);
@@ -95,7 +95,7 @@ void ResearchMode_Startup()
 	g_camera_consent_event = CreateEvent(NULL, TRUE, FALSE, NULL);
 	g_imu_consent_event    = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-	g_pSensorDeviceConsent->RequestCamAccessAsync(ResearchMode_CamAccessCallback);
+	g_pSensorDeviceConsent->RequestCamAccessAsync(ResearchMode_CameraAccessCallback);
 	g_pSensorDeviceConsent->RequestIMUAccessAsync(ResearchMode_IMUAccessCallback);
 
 	for (uint32_t sensor_index = 0; sensor_index < g_sensor_count; ++sensor_index) { g_pSensorDevice->GetSensor(g_sensor_lut[sensor_index], &(g_sensors[sensor_index])); }
