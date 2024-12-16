@@ -25,7 +25,8 @@ struct SceneUnderstanding_Result
     std::vector<std::shared_ptr<Microsoft::MixedReality::SceneUnderstanding::SceneObject>> selected;
 };
 
-void SceneUnderstanding_Initialize();
+void SceneUnderstanding_Startup();
+void SceneUnderstanding_Cleanup();
 bool SceneUnderstanding_WaitForConsent();
 void SceneUnderstanding_Query(Microsoft::MixedReality::SceneUnderstanding::SceneQuerySettings sqs, float query_radius, bool use_previous, GUID const* guid_match, size_t guid_count, uint8_t kind_flags);
 SceneUnderstanding_Result const* SceneUnderstanding_WaitForResult();
