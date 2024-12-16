@@ -10,7 +10,7 @@
 using namespace winrt::Windows::Perception::Spatial::Preview;
 using namespace Microsoft::MixedReality::SceneUnderstanding;
 
-struct Query
+struct SU_Query
 {
     GUID const* guid_match;
     size_t guid_count;
@@ -27,7 +27,7 @@ static std::shared_ptr<PerceptionSceneFactory> g_scene_observer = nullptr;
 static Status g_s = Status::Failed;
 static PerceptionSceneFactoryAccessStatus g_psfas = PerceptionSceneFactoryAccessStatus::UserPromptRequired;
 static std::shared_ptr<Scene> g_scene = nullptr;
-static Query g_query;
+static SU_Query g_query;
 static SceneUnderstanding_Result g_result;
 
 //-----------------------------------------------------------------------------
