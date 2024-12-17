@@ -80,8 +80,8 @@ void MessageQueue_Server_Startup()
 void MessageQueue_Server_Cleanup()
 {
     CloseHandle(m_event_restart_s);
-    m_event_restart_s = NULL;
     CloseHandle(m_semaphore_so);
+    m_event_restart_s = NULL;
     m_semaphore_so = NULL;
     DeleteCriticalSection(&m_lock_si);
     DeleteCriticalSection(&m_lock_so);
@@ -132,8 +132,10 @@ bool MessageQueue_Server_TX_Pull(HANDLE event_cancel, uint32_t& id)
 
     if (WaitForMultipleObjects(sizeof(events) / sizeof(HANDLE), events, FALSE, INFINITE) != (WAIT_OBJECT_0 + 1)) { return false; }
 
+    {
     CriticalSection cs(&m_lock_so);
     id = pull(m_queue_so);
+    }
 
     return true;
 }
@@ -141,8 +143,11 @@ bool MessageQueue_Server_TX_Pull(HANDLE event_cancel, uint32_t& id)
 // OK (USER)
 void MessageQueue_Server_Restart()
 {
+    {
     CriticalSection cs(&m_lock_so);
     while (WaitForSingleObject(m_semaphore_so, 0) == WAIT_OBJECT_0) { m_queue_so.pop(); }
+    }
+
     SetEvent(m_event_restart_s);
 }
 
@@ -216,8 +221,11 @@ MQ_Item* MessageQueue_Client_TX_Pull()
 // OK (USER)
 void MessageQueue_Client_Restart()
 {
+    {
     CriticalSection cs(&g_lock_ci);
     while (g_queue_ci.size() > 0) { MessageQueue_Item_Delete(pull(g_queue_ci)); }
+    }
+
     SetEvent(g_event_restart_c);
 }
 
