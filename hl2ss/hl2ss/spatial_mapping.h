@@ -61,7 +61,8 @@ struct SpatialMapping_MeshInfo
 typedef void (*HOOK_SM_PROC)(SpatialMapping_MeshInfo const&, void*);
 
 bool SpatialMapping_WaitForConsent();
-void SpatialMapping_CreateObserver();
+void SpatialMapping_Open();
+void SpatialMapping_Close();
 void SpatialMapping_SetVolumes(std::vector<SpatialMapping_VolumeDescription> const& vd);
 void SpatialMapping_GetObservedSurfaces(std::vector<SpatialMapping_SurfaceInfo>& smsi);
 bool SpatialMapping_ExecuteSensorLoop(std::vector<SpatialMapping_MeshDescription> const& md, HOOK_SM_PROC hook, void* param, HANDLE event_stop);

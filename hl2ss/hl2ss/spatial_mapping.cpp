@@ -41,9 +41,17 @@ bool SpatialMapping_WaitForConsent()
 }
 
 // OK
-void SpatialMapping_CreateObserver()
+void SpatialMapping_Open()
 {
     g_sso = SpatialSurfaceObserver();
+}
+
+// OK
+void SpatialMapping_Close()
+{
+    g_observed = nullptr;
+    g_world = nullptr;
+    g_sso = nullptr;
 }
 
 // OK
