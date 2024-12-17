@@ -30,7 +30,7 @@ private:
     void Run();
     void Cleanup();
 
-    void Dispatch();
+    bool Dispatch();
 
     bool TX_Item_Identity(GUID const& item_id, SceneObjectKind item_kind);
     bool TX_Item_Orientation(Quaternion const& item_orientation);
@@ -155,7 +155,7 @@ bool Channel_SU::TX_Item_Mesh(std::shared_ptr<SceneMesh> mesh)
 }
 
 // OK
-void Channel_SU::Dispatch()
+bool Channel_SU::Dispatch()
 {
     int const header_size = sizeof(SceneUnderstanding_Result::status) + sizeof(SceneUnderstanding_Result::extrinsics) + sizeof(SceneUnderstanding_Result::pose) + sizeof(SceneUnderstanding_Result::items);
     
@@ -166,12 +166,12 @@ void Channel_SU::Dispatch()
     bool ok;
 
     ok = recv(m_socket_client, m_event_client, &task, sizeof(SU_Task));
-    if (!ok) { return; }
+    if (!ok) { return false; }
 
     guids.resize(task.guid_count);
 
     ok = recv(m_socket_client, m_event_client, guids.data(), static_cast<int>(guids.size() * sizeof(GUID)));
-    if (!ok) { return; }
+    if (!ok) { return false; }
 
     SceneUnderstanding_Query(task.sqs, task.query_radius, task.use_previous, guids.data(), guids.size(), task.kind_flags);
     result = SceneUnderstanding_WaitForResult();
@@ -179,18 +179,20 @@ void Channel_SU::Dispatch()
     pack_buffer(wsaBuf, 0, result, header_size);
 
     ok = send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { return; }
+    if (!ok) { return false; }
 
     for (auto const& item : result->selected)
     {
-    if (                            !TX_Item_Identity(item->GetId(), item->GetKind())) { return; }
-    if (task.get_orientation     && !TX_Item_Orientation(item->GetOrientation()))      { return; }
-    if (task.get_position        && !TX_Item_Position(item->GetPosition()))            { return; }
-    if (task.get_location_matrix && !TX_Item_Location(item->GetLocationAsMatrix()))    { return; }
-    if (task.get_quad            && !TX_Item_Quad(item->GetQuad()))                    { return; }    
-    if (task.get_meshes          && !TX_Item_Meshes(item->GetMeshes()))                { return; }
-    if (task.get_collider_meshes && !TX_Item_Meshes(item->GetColliderMeshes()))        { return; }
+    if (                            !TX_Item_Identity(item->GetId(), item->GetKind())) { return false; }
+    if (task.get_orientation     && !TX_Item_Orientation(item->GetOrientation()))      { return false; }
+    if (task.get_position        && !TX_Item_Position(item->GetPosition()))            { return false; }
+    if (task.get_location_matrix && !TX_Item_Location(item->GetLocationAsMatrix()))    { return false; }
+    if (task.get_quad            && !TX_Item_Quad(item->GetQuad()))                    { return false; }
+    if (task.get_meshes          && !TX_Item_Meshes(item->GetMeshes()))                { return false; }
+    if (task.get_collider_meshes && !TX_Item_Meshes(item->GetColliderMeshes()))        { return false; }
     }
+
+    return true;
 }
 
 // OK
@@ -202,14 +204,14 @@ Channel(name, port, id)
 // OK
 bool Channel_SU::Startup()
 {
-    SetNoDelay(false);
+    SetNoDelay(true);
     return SceneUnderstanding_WaitForConsent();
 }
 
 // OK
 void Channel_SU::Run()
 {
-    do { Dispatch(); } while (WaitForSingleObject(m_event_client, 0) == WAIT_TIMEOUT);
+    while (Dispatch());
 }
 
 // OK
