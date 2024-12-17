@@ -3,10 +3,11 @@
 
 #include <winsock2.h>
 
-bool InitializeSockets();
-SOCKET CreateSocket(char const* port);
-SOCKET AcceptClient(SOCKET socket, DWORD nodelay);
-bool CleanupSockets();
+bool Server_Startup();
+bool Server_Cleanup();
+
+SOCKET Server_CreateSocket(char const* port);
+SOCKET Server_AcceptClient(SOCKET socket, DWORD nodelay);
 
 bool recv_u8(SOCKET socket, HANDLE event_error, uint8_t& byte);
 bool recv_u16(SOCKET socket, HANDLE event_error, uint16_t& word);

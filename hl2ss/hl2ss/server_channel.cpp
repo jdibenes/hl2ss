@@ -39,7 +39,7 @@ Channel::~Channel()
 // OK
 void Channel::Entry()
 {
-    m_socket_listen = CreateSocket(m_port);
+    m_socket_listen = Server_CreateSocket(m_port);
     if (m_socket_listen == INVALID_SOCKET) { return; }
 
     bool ok = Startup();
@@ -64,7 +64,7 @@ void Channel::Loop()
     {
     ShowMessage("%s: Waiting for client", m_name);
 
-    m_socket_client = AcceptClient(m_socket_listen, m_no_delay);
+    m_socket_client = Server_AcceptClient(m_socket_listen, m_no_delay);
     if (m_socket_client == INVALID_SOCKET) { break; }
 
     ShowMessage("%s: Client connected", m_name);

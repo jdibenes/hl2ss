@@ -9,7 +9,7 @@
 //-----------------------------------------------------------------------------
 
 // OK
-bool InitializeSockets()
+bool Server_Startup()
 {
 	WSADATA wsaData;
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -17,7 +17,14 @@ bool InitializeSockets()
 }
 
 // OK
-SOCKET CreateSocket(char const* port)
+bool Server_Cleanup()
+{
+	int status = WSACleanup();
+	return status == 0;
+}
+
+// OK
+SOCKET Server_CreateSocket(char const* port)
 {
 	addrinfo hints;
 	addrinfo* result;
@@ -53,20 +60,13 @@ SOCKET CreateSocket(char const* port)
 }
 
 // OK
-SOCKET AcceptClient(SOCKET socket, DWORD nodelay)
+SOCKET Server_AcceptClient(SOCKET socket, DWORD nodelay)
 {
 	SOCKET client = accept(socket, NULL, NULL);
 
 	setsockopt(client, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&nodelay), sizeof(nodelay));
 
 	return client;
-}
-
-// OK
-bool CleanupSockets()
-{
-	int status = WSACleanup();
-	return status == 0;
 }
 
 // OK
