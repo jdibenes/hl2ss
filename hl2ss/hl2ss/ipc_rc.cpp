@@ -439,6 +439,7 @@ Channel(name, port, id)
 // OK
 bool Channel_RC::Startup()
 {
+    SetNoDelay(true);
     return true;
 }
 
