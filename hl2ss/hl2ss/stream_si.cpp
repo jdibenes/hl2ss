@@ -1,7 +1,6 @@
 
 #include "spatial_input.h"
-#include "channel.h"
-#include "ports.h"
+#include "server_channel.h"
 
 #include <winrt/Windows.Perception.People.h>
 
@@ -47,7 +46,6 @@ void Channel_SI::OnFrameArrived(uint32_t valid, SpatialInput_Frame* head_pose, S
     int32_t const packet_size = sizeof(uint32_t) + sizeof(SpatialInput_Frame) + sizeof(SpatialInput_Ray) + (2 * hand_size);
 
     WSABUF wsaBuf[7];
-    bool ok;
 
     pack_buffer(wsaBuf, 0, &timestamp,   sizeof(timestamp));
     pack_buffer(wsaBuf, 1, &packet_size, sizeof(packet_size));
@@ -57,8 +55,7 @@ void Channel_SI::OnFrameArrived(uint32_t valid, SpatialInput_Frame* head_pose, S
     pack_buffer(wsaBuf, 5, left_hand,    hand_size);
     pack_buffer(wsaBuf, 6, right_hand,   hand_size);
 
-    ok = send_multiple(m_socket_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(m_event_client); }
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
@@ -76,6 +73,7 @@ Channel(name, port, id)
 // OK
 bool Channel_SI::Startup()
 {
+    SetNoDelay(true);
     return SpatialInput_WaitForConsent();
 }
 
@@ -91,9 +89,9 @@ void Channel_SI::Cleanup()
 }
 
 // OK
-void SI_Initialize()
+void SI_Startup()
 {
-    g_channel = std::make_unique<Channel_SI>("SI", PORT_NAME_SI, PORT_NUMBER_SI - PORT_NUMBER_BASE);
+    g_channel = std::make_unique<Channel_SI>("SI", PORT_NAME_SI, PORT_ID_SI);
 }
 
 // OK
