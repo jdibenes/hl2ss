@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 void ExtendedExecution_Initialize();
+void ExtendedExecution_GetApplicationVersion(uint16_t data[4]);
 void ExtendedExecution_RunOnMainThread(std::function<void()> f);
 
 void ExtendedExecution_SetFlatMode(bool flat);

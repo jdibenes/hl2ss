@@ -5,12 +5,14 @@
 #include "log.h"
 
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.ApplicationModel.ExtendedExecution.Foreground.h>
 #include <winrt/Windows.UI.Core.h>
 #include <winrt/Windows.Storage.h>
 
 using namespace winrt::Windows::Foundation;
+using namespace winrt::Windows::ApplicationModel;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::ExtendedExecution::Foreground;
 using namespace winrt::Windows::UI::Core;
@@ -47,6 +49,17 @@ void ExtendedExecution_Initialize()
 	g_eefs.Revoked(ExtendedExecution_OnRevoked);
 	g_status = g_eefs.RequestExtensionAsync().get() == ExtendedExecutionForegroundResult::Allowed;
 	ShowMessage("EEFS Result: %d", g_status);	
+}
+
+// OK
+void ExtendedExecution_GetApplicationVersion(uint16_t data[4])
+{
+	PackageVersion version = Package::Current().Id().Version();
+
+	data[0] = version.Major;
+	data[1] = version.Minor;
+	data[2] = version.Build;
+	data[3] = version.Revision;
 }
 
 // OK
