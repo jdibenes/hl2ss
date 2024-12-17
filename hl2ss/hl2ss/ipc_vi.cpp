@@ -1,239 +1,151 @@
 
-#include "server.h"
-#include "ports.h"
 #include "voice_input.h"
-#include "log.h"
+#include "server_channel.h"
+
+class Channel_VI : public Channel
+{
+private:
+    bool Startup();
+    void Run();
+    void Cleanup();
+
+    bool Dispatch();
+
+    bool RX_Commands();
+    bool TX_Commands();
+
+public:
+    Channel_VI(char const* name, char const* port, uint32_t id);
+};
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-HANDLE g_thread = NULL;
-HANDLE g_event_quit = NULL;
-HANDLE g_event_client = NULL;
+static std::unique_ptr<Channel_VI> g_channel;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void VI_TransferError()
+bool Channel_VI::RX_Commands()
 {
-    SetEvent(g_event_client);
-}
-
-// OK
-static void VI_MSG_CreateRecognizer(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_CreateRecognizer();
-}
-
-// OK
-static void VI_MSG_RegisterCommands(SOCKET clientsocket)
-{
-    uint8_t clear;
-    uint8_t count;
     std::vector<winrt::hstring> commands;
+    uint16_t count;   
     std::vector<uint8_t> buffer;
     uint16_t stlen;
-    uint8_t result;
-    WSABUF wsaBuf[1];
     bool ok;
 
-    ok = recv_u8(clientsocket, clear);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
-    ok = recv_u8(clientsocket, count);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
+    ok = recv_u16(m_socket_client, m_event_client, count);
+    if (!ok) { return false; }
 
     for (int i = 0; i < count; ++i)
     {
-    ok = recv_u16(clientsocket, stlen);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
+    ok = recv_u16(m_socket_client, m_event_client, stlen);
+    if (!ok) { return false; }
     if (stlen <= 0) { continue; }
 
     buffer.resize(stlen);
 
-    ok = recv(clientsocket, (char*)buffer.data(), (int)stlen);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
+    ok = recv(m_socket_client, m_event_client, buffer.data(), stlen);
+    if (!ok) { return false; }
     
-    commands.push_back(winrt::hstring((wchar_t*)buffer.data(), stlen / sizeof(wchar_t)));
+    commands.push_back(winrt::hstring(reinterpret_cast<wchar_t*>(buffer.data()), stlen / sizeof(wchar_t)));
     }
 
-    result = VoiceInput_RegisterCommands(commands, clear != 0);
+    if (commands.size() <= 0) { return false; }
 
-    pack_buffer(wsaBuf, 0, &result, sizeof(result));
-    
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
+    return VoiceInput_RegisterCommands(commands);
 }
 
 // OK
-static void VI_MSG_Start(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_Start();
-}
-
-// OK
-static void VI_MSG_Pop(SOCKET clientsocket)
+bool Channel_VI::TX_Commands()
 {
     uint32_t count;
     VoiceInput_Result result;
     WSABUF wsaBuf[1];
     bool ok;
 
-    count = (uint32_t)VoiceInput_GetCount();
+    count = VoiceInput_GetCount();
 
     pack_buffer(wsaBuf, 0, &count, sizeof(count));
 
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
+    ok = send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { return false; }
 
     pack_buffer(wsaBuf, 0, &result, sizeof(result));
 
     for (uint32_t i = 0; i < count; ++i)
     {
     result = VoiceInput_Pop();
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
+    ok = send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { return false; }
     }
-    }
+
+    return true;
 }
 
 // OK
-static void VI_MSG_Clear(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_Clear();
-}
-
-// OK
-static void VI_MSG_Stop(SOCKET clientsocket)
-{
-    (void)clientsocket;
-    VoiceInput_Stop();
-}
-
-// OK
-static void VI_Dispatch(SOCKET clientsocket)
+bool Channel_VI::Dispatch()
 {
     uint8_t state;
     bool ok;
 
-    ok = recv_u8(clientsocket, state);
-    if (!ok)
-    {
-        VI_TransferError();
-        return;
-    }
+    ok = RX_Commands();
+    if (!ok) { return false; }
 
-    switch (state)
-    {
-    case 0x00: VI_MSG_CreateRecognizer(clientsocket); break;
-    case 0x01: VI_MSG_RegisterCommands(clientsocket); break;
-    case 0x02: VI_MSG_Start(clientsocket);            break;
-    case 0x03: VI_MSG_Pop(clientsocket);              break;
-    case 0x04: VI_MSG_Clear(clientsocket);            break;
-    case 0x05: VI_MSG_Stop(clientsocket);             break;
-    default:
-        VI_TransferError();
-        return;
-    }
-}
+    VoiceInput_Start();
 
-// OK
-static void VI_Translate(SOCKET clientsocket)
-{
-    ResetEvent(g_event_client);
-    do { VI_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
-    if (!VoiceInput_IsRunning()) { return; }
-    VoiceInput_Stop();
-    VoiceInput_Clear();
-}
-
-// OK
-static DWORD WINAPI VI_EntryPoint(void *param)
-{
-    (void)param;
-
-    SOCKET listensocket; // closesocket
-    SOCKET clientsocket; // closesocket
-
-    listensocket = CreateSocket(PORT_NAME_VI);
-
-    ShowMessage("VI: Listening at port %s", PORT_NAME_VI);
+    if (!VoiceInput_Status()) { return false; }
 
     do
     {
-    ShowMessage("VI: Waiting for client");
-
-    clientsocket = accept(listensocket, NULL, NULL); // block
-    if (clientsocket == INVALID_SOCKET) { break; }
-
-    ShowMessage("VI: Client connected");
-
-    VI_Translate(clientsocket);
-
-    closesocket(clientsocket);
-
-    ShowMessage("VI: Client disconnected");
+    ok = recv_u8(m_socket_client, m_event_client, state);
+    if (!ok) { break; }
+    if (state == 0) { break; }
     }
-    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
+    while (TX_Commands());
 
-    closesocket(listensocket);
+    VoiceInput_Stop();
 
-    ShowMessage("VI: Closed");
-
-    return 0;
+    return ok;
 }
 
 // OK
-void VI_Initialize()
+Channel_VI::Channel_VI(char const* name, char const* port, uint32_t id) :
+Channel(name, port, id)
 {
-    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_thread = CreateThread(NULL, 0, VI_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
-void VI_Quit()
+bool Channel_VI::Startup()
 {
-    SetEvent(g_event_quit);
+    SetNoDelay(true);
+    return true;
+}
+
+// OK
+void Channel_VI::Run()
+{
+    VoiceInput_Open();
+    while (Dispatch());
+    VoiceInput_Close();
+}
+
+// OK
+void Channel_VI::Cleanup()
+{
+}
+
+// OK
+void VI_Startup()
+{
+    g_channel = std::make_unique<Channel_VI>("VI", PORT_NAME_VI, PORT_ID_VI);
 }
 
 // OK
 void VI_Cleanup()
 {
-    WaitForSingleObject(g_thread, INFINITE);
-    CloseHandle(g_thread);
-    CloseHandle(g_event_client);
-    CloseHandle(g_event_quit);
+    g_channel.reset();
 }
