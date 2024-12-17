@@ -1,4 +1,5 @@
 
+#include <memory>
 #include "message_queue.h"
 #include "server_channel.h"
 
