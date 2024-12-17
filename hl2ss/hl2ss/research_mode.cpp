@@ -231,8 +231,8 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     {
     for (int u = 0; u < width;  ++u)
     {
-    uv[0] = (float)u + 0.5f;
-	uv[1] = (float)v + 0.5f;
+    uv[0] = static_cast<float>(u) + 0.5f;
+	uv[1] = static_cast<float>(v) + 0.5f;
 
     pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
 
@@ -249,8 +249,8 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
 	span_x = max_x - min_x;
 	span_y = max_y - min_y;
-	span_u = (float)(width - 1);
-	span_v = (float)(height - 1);
+	span_u = static_cast<float>(width - 1);
+	span_v = static_cast<float>(height - 1);
 
 	fx = span_x / span_u;
 	fy = span_y / span_v;
