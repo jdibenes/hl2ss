@@ -1,7 +1,8 @@
 
 #pragma once
 
-#include <winrt/Windows.Foundation.h>
+#include <Windows.h>
+
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.Spatial.h>
 
@@ -32,9 +33,6 @@ struct SpatialMapping_SurfaceInfo
     int64_t update_time;
 };
 
-#define SPATIALMAPPING_COMPUTE_NORMALS 0x01
-#define SPATIALMAPPING_COMPUTE_BOUNDS  0x02
-
 struct SpatialMapping_MeshDescription
 {
     winrt::guid id;
@@ -43,13 +41,6 @@ struct SpatialMapping_MeshDescription
     uint32_t triangle_format;
     uint32_t normal_format;
     uint32_t flags;
-};
-
-struct SpatialMapping_MeshTask
-{
-    SpatialMapping_MeshDescription md;
-    uint32_t index;
-    uint32_t reserved;
 };
 
 struct SpatialMapping_MeshInfo
@@ -61,22 +52,16 @@ struct SpatialMapping_MeshInfo
     uint32_t vnl;
     winrt::Windows::Foundation::Numerics::float3 scale;
     winrt::Windows::Foundation::Numerics::float4x4 pose;
-    uint32_t bsz;
     winrt::Windows::Perception::Spatial::SpatialBoundingOrientedBox bounds;
     uint8_t* vpd;
     uint8_t* tid;
     uint8_t* vnd;
-    void* ssm;
 };
 
-int const SM_MESH_INFO_HEADER_SIZE = 100;
+typedef void (*HOOK_SM_PROC)(SpatialMapping_MeshInfo const&, void*);
 
-void SpatialMapping_Initialize();
 bool SpatialMapping_WaitForConsent();
 void SpatialMapping_CreateObserver();
-void SpatialMapping_SetVolumes(SpatialMapping_VolumeDescription const* vd, size_t size);
-void SpatialMapping_GetObservedSurfaces(SpatialMapping_SurfaceInfo const*& data, size_t& size);
-void SpatialMapping_BeginComputeMeshes(SpatialMapping_MeshTask* task, size_t size, int maxtasks);
-SpatialMapping_MeshInfo* SpatialMapping_GetNextMesh();
-void SpatialMapping_DestroyMesh(SpatialMapping_MeshInfo* mi);
-void SpatialMapping_EndComputeMeshes();
+void SpatialMapping_SetVolumes(std::vector<SpatialMapping_VolumeDescription> const& vd);
+void SpatialMapping_GetObservedSurfaces(std::vector<SpatialMapping_SurfaceInfo>& smsi);
+bool SpatialMapping_ExecuteSensorLoop(std::vector<SpatialMapping_MeshDescription> const& md, HOOK_SM_PROC hook, void* param, HANDLE event_stop);
