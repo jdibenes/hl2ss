@@ -98,3 +98,15 @@ void CustomEncoder::WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LON
 
     pSample->Release();
 }
+
+// OK
+void CustomEncoder_Startup()
+{
+    MFStartup(MF_VERSION);
+}
+
+// OK
+void CustomEncoder_Cleanup()
+{
+    MFShutdown();
+}

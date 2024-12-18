@@ -35,3 +35,6 @@ protected:
 
     static void CreateBuffer(IMFMediaBuffer** ppBuffer, DWORD size);
 };
+
+void CustomEncoder_Startup();
+void CustomEncoder_Cleanup();
