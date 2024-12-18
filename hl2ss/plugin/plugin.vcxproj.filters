@@ -22,124 +22,37 @@
     <Filter Include="Libraries\Zdepth\zstd">
       <UniqueIdentifier>{6a069fb5-8fb1-4326-9490-94402781b716}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libraries\hl2ss\devices">
+      <UniqueIdentifier>{e71b5e14-1aff-43fe-97a2-352150be8719}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\hl2ss\encoders">
+      <UniqueIdentifier>{a8f6f834-2507-48fb-80a3-5a2df2b64d34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\hl2ss\sink">
+      <UniqueIdentifier>{35d29a94-8562-4428-bdb4-f12c6857b1b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\hl2ss\system">
+      <UniqueIdentifier>{d8eeb8c8-facd-4afe-838d-0a86ada4cb1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\hl2ss\server">
+      <UniqueIdentifier>{7a6f91a5-d2df-4e3f-a530-b537a6a1724e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\hl2ss\utilities">
+      <UniqueIdentifier>{dafeb6c6-720e-4dfd-bc69-8b9b939fdac9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\hl2ss\interfaces">
+      <UniqueIdentifier>{b2521679-bda0-4fe7-89ab-57ac1663b3dc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\hl2ss\custom_hook_callback.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\custom_media_buffers.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\custom_media_sink.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\custom_media_type_handler.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\custom_media_types.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\custom_sink_writers.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\custom_stream_sink.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\locator.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\microphone_capture.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\personal_video.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\research_mode.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\server.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\spatial_input.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_mc.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_pv.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_imu.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
     <ClCompile Include="plugin.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_si.cpp">
-      <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
     <ClCompile Include="holographic_space_stub.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\timestamps.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\nfo.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\neon.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\ipc_sc.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\ipc_rc.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\log.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\lock.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\ipc_sm.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\spatial_mapping.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\ipc_su.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\scene_understanding.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
     <ClCompile Include="..\packages\Microsoft.MixedReality.SceneUnderstanding.1.0.14\include\native\Microsoft.MixedReality.SceneUnderstanding.cpp">
       <Filter>Libraries\SceneUnderstanding</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\ipc_vi.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\voice_input.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_eet.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_zht.cpp">
-      <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\debug.c">
       <Filter>Libraries\Zdepth\zstd</Filter>
@@ -216,154 +129,172 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\src\zdepth.cpp">
       <Filter>Libraries\Zdepth</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\custom_video_effect.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
     <ClCompile Include="..\hl2ss\custom_audio_effect.cpp">
-      <Filter>Libraries\hl2ss</Filter>
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_encoder.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_media_buffers.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_media_sink.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_media_type_handler.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_media_types.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_sink_writers.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_stream_sink.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_video_effect.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_ea.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_mc.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_pv.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_rm_vlc.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_rm_zht.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_rm_zlt.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
     </ClCompile>
     <ClCompile Include="..\hl2ss\extended_audio.cpp">
-      <Filter>Libraries\hl2ss</Filter>
+      <Filter>Libraries\hl2ss\devices</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_ea.cpp">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\extended_execution.cpp">
-      <Filter>Libraries\hl2ss</Filter>
+    <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
     </ClCompile>
     <ClCompile Include="..\hl2ss\extended_video.cpp">
-      <Filter>Libraries\hl2ss</Filter>
+      <Filter>Libraries\hl2ss\devices</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_ev.cpp">
-      <Filter>Libraries\hl2ss</Filter>
+    <ClCompile Include="..\hl2ss\message_queue.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\microphone_capture.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\personal_video.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\research_mode.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\scene_understanding.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\spatial_input.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\spatial_mapping.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\voice_input.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\extended_execution.cpp">
+      <Filter>Libraries\hl2ss\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\locator.cpp">
+      <Filter>Libraries\hl2ss\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\timestamp.cpp">
+      <Filter>Libraries\hl2ss\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\server.cpp">
+      <Filter>Libraries\hl2ss\server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\server_channel.cpp">
+      <Filter>Libraries\hl2ss\server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\server_settings.cpp">
+      <Filter>Libraries\hl2ss\server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\lock.cpp">
+      <Filter>Libraries\hl2ss\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\log.cpp">
+      <Filter>Libraries\hl2ss\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\nfo.cpp">
+      <Filter>Libraries\hl2ss\utilities</Filter>
     </ClCompile>
     <ClCompile Include="..\hl2ss\ipc_mq.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_mqx.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_rc.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_sm.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_su.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipc_vi.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_ea.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_eet.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_ev.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_mc.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_pv.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_acc.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_gyr.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_mag.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_zht.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_si.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\ipl.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\hl2ss\custom_hook_callback.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_media_buffers.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_media_sink.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_media_type_handler.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_media_types.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_sink_hook.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_sink_writers.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_stream_sink.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\locator.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\microphone_capture.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\personal_video.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\ports.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\research_mode.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\server.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\spatial_input.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_mc.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_pv.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_imu.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_vlc.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\types.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_si.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
     <ClInclude Include="hl2ss.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\timestamps.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\nfo.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\neon.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\ipc_sc.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\ipc_rc.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\log.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\lock.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="configuration.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\ipc_sm.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\spatial_mapping.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\ipc_su.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\scene_understanding.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\ipc_vi.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\voice_input.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\extended_eye_tracking.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_eet.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_zlt.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_zht.h">
-      <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\fse.h">
       <Filter>Libraries\Zdepth\zstd</Filter>
@@ -449,31 +380,172 @@
     <ClInclude Include="..\..\3rdparty\Zdepth\include\zdepth.hpp">
       <Filter>Libraries\Zdepth</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\custom_video_effect.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
     <ClInclude Include="..\hl2ss\custom_audio_effect.h">
-      <Filter>Libraries\hl2ss</Filter>
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_encoder.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_media_buffers.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_media_sink.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_media_type_handler.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_media_types.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_sink_writers.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_stream_sink.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_video_effect.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_ea.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_mc.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_pv.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_rm_vlc.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_rm_zht.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_rm_zlt.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\extended_audio.h">
-      <Filter>Libraries\hl2ss</Filter>
+      <Filter>Libraries\hl2ss\devices</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_ea.h">
-      <Filter>Libraries\hl2ss</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\extended_execution.h">
-      <Filter>Libraries\hl2ss</Filter>
+    <ClInclude Include="..\hl2ss\extended_eye_tracking.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\extended_video.h">
-      <Filter>Libraries\hl2ss</Filter>
+      <Filter>Libraries\hl2ss\devices</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_ev.h">
-      <Filter>Libraries\hl2ss</Filter>
+    <ClInclude Include="..\hl2ss\message_queue.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\microphone_capture.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\personal_video.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\research_mode.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\scene_understanding.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\spatial_input.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\spatial_mapping.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\voice_input.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\extended_execution.h">
+      <Filter>Libraries\hl2ss\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\locator.h">
+      <Filter>Libraries\hl2ss\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\timestamp.h">
+      <Filter>Libraries\hl2ss\system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\server.h">
+      <Filter>Libraries\hl2ss\server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\server_channel.h">
+      <Filter>Libraries\hl2ss\server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\server_ports.h">
+      <Filter>Libraries\hl2ss\server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\server_settings.h">
+      <Filter>Libraries\hl2ss\server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\lock.h">
+      <Filter>Libraries\hl2ss\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\log.h">
+      <Filter>Libraries\hl2ss\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\nfo.h">
+      <Filter>Libraries\hl2ss\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\types.h">
+      <Filter>Libraries\hl2ss\utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\hl2ss\ipc_mq.h">
-      <Filter>Libraries\hl2ss</Filter>
+      <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\plugin.h">
+    <ClInclude Include="..\hl2ss\ipc_mqx.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_rc.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_sm.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_su.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipc_vi.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_ea.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_eet.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_ev.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_mc.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_pv.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_acc.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_gyr.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_mag.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_vlc.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_zht.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_zlt.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_si.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\ipl.h">
       <Filter>Libraries\hl2ss</Filter>
     </ClInclude>
   </ItemGroup>
