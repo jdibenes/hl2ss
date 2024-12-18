@@ -45,12 +45,9 @@
 // Global Variables
 //-----------------------------------------------------------------------------
 
-char const* const g_mqx_greeting = "Hello from HoloLens 2";
-int g_mqx_state = 0;
-
-bool g_standalone = false;
-bool g_flat = false;
-bool g_rm = false;
+static bool g_standalone = false;
+static bool g_flat = false;
+static bool g_rm = false;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -145,7 +142,7 @@ void HL2SS_Process_MQ()
 	switch (command)
 	{
 	case 0xFFFFFFFE:
-		ShowMessage("MQ: [client] %s", data);
+		ShowMessage("MQ: %s", data);
 		MessageQueue_Server_TX_Push(0);
 		break;
 	case MQ_MARKER:
@@ -163,19 +160,22 @@ void HL2SS_Process_MQ()
 // OK
 void HL2SS_Process_MQX()
 {
+	char const* const text = "Hello from HoloLens 2";
+
+	static int state = 0;
 	uint32_t id;
 
-	switch (g_mqx_state)
+	switch (state)
 	{
 	case 0:
-		MessageQueue_Client_TX_Push(0xFFFFFFFE, strlen(g_mqx_greeting), g_mqx_greeting);
-		g_mqx_state = 1;
+		MessageQueue_Client_TX_Push(0xFFFFFFFE, static_cast<uint32_t>(strlen(text)), text);
+		state = 1;
 		break;
 	case 1:
 		if (MessageQueue_Client_RX_Peek() == MQ_MARKER) { break; }
 		MessageQueue_Client_RX_Pull(id);
 		if (id == MQ_MARKER) { MessageQueue_Client_Restart(); } else { ShowMessage("MQX: Received response %x", id); }
-		g_mqx_state = 0;
+		state = 0;
 		break;
 	}
 }
