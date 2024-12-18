@@ -285,12 +285,14 @@
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
     <ClCompile Include="..\hl2ss\custom_video_effect.cpp" />
     <ClCompile Include="..\hl2ss\encoder_ea.cpp" />
+    <ClCompile Include="..\hl2ss\encoder_ez.cpp" />
     <ClCompile Include="..\hl2ss\encoder_mc.cpp" />
     <ClCompile Include="..\hl2ss\encoder_pv.cpp" />
     <ClCompile Include="..\hl2ss\encoder_rm_vlc.cpp" />
     <ClCompile Include="..\hl2ss\encoder_rm_zht.cpp" />
     <ClCompile Include="..\hl2ss\encoder_rm_zlt.cpp" />
     <ClCompile Include="..\hl2ss\extended_audio.cpp" />
+    <ClCompile Include="..\hl2ss\extended_depth.cpp" />
     <ClCompile Include="..\hl2ss\extended_execution.cpp" />
     <ClCompile Include="..\hl2ss\extended_eye_tracking.cpp" />
     <ClCompile Include="..\hl2ss\extended_video.cpp" />
@@ -318,6 +320,7 @@
     <ClCompile Include="..\hl2ss\stream_ea.cpp" />
     <ClCompile Include="..\hl2ss\stream_eet.cpp" />
     <ClCompile Include="..\hl2ss\stream_ev.cpp" />
+    <ClCompile Include="..\hl2ss\stream_ez.cpp" />
     <ClCompile Include="..\hl2ss\stream_mc.cpp" />
     <ClCompile Include="..\hl2ss\stream_pv.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_acc.cpp" />
@@ -372,12 +375,14 @@
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
     <ClInclude Include="..\hl2ss\custom_video_effect.h" />
     <ClInclude Include="..\hl2ss\encoder_ea.h" />
+    <ClInclude Include="..\hl2ss\encoder_ez.h" />
     <ClInclude Include="..\hl2ss\encoder_mc.h" />
     <ClInclude Include="..\hl2ss\encoder_pv.h" />
     <ClInclude Include="..\hl2ss\encoder_rm_vlc.h" />
     <ClInclude Include="..\hl2ss\encoder_rm_zht.h" />
     <ClInclude Include="..\hl2ss\encoder_rm_zlt.h" />
     <ClInclude Include="..\hl2ss\extended_audio.h" />
+    <ClInclude Include="..\hl2ss\extended_depth.h" />
     <ClInclude Include="..\hl2ss\extended_execution.h" />
     <ClInclude Include="..\hl2ss\extended_eye_tracking.h" />
     <ClInclude Include="..\hl2ss\extended_video.h" />
@@ -406,6 +411,7 @@
     <ClInclude Include="..\hl2ss\stream_ea.h" />
     <ClInclude Include="..\hl2ss\stream_eet.h" />
     <ClInclude Include="..\hl2ss\stream_ev.h" />
+    <ClInclude Include="..\hl2ss\stream_ez.h" />
     <ClInclude Include="..\hl2ss\stream_mc.h" />
     <ClInclude Include="..\hl2ss\stream_pv.h" />
     <ClInclude Include="..\hl2ss\stream_rm_acc.h" />

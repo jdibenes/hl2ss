@@ -291,6 +291,15 @@
     <ClCompile Include="..\hl2ss\ipl.cpp">
       <Filter>Libraries\hl2ss</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\extended_depth.cpp">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_ez.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_ez.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hl2ss.h">
@@ -547,6 +556,15 @@
     </ClInclude>
     <ClInclude Include="..\hl2ss\ipl.h">
       <Filter>Libraries\hl2ss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\extended_depth.h">
+      <Filter>Libraries\hl2ss\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_ez.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_ez.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
