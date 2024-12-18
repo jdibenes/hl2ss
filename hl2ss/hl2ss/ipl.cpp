@@ -8,6 +8,7 @@
 #include "timestamp.h"
 
 #include "extended_audio.h"
+#include "extended_depth.h"
 #include "extended_eye_tracking.h"
 #include "extended_video.h"
 #include "message_queue.h"
@@ -29,6 +30,7 @@
 #include "stream_ea.h"
 #include "stream_eet.h"
 #include "stream_ev.h"
+#include "stream_ez.h"
 #include "stream_mc.h"
 #include "stream_pv.h"
 #include "stream_rm_acc.h"
@@ -79,6 +81,7 @@ void HL2SS_Load(bool standalone)
 	MicrophoneCapture_Startup();
 	SpatialInput_Startup();
 	// - EV
+	// - EZ
 	// - EA
 	// - EET
 	// - SM
@@ -106,6 +109,7 @@ void HL2SS_Load(bool standalone)
 	MC_Startup();
 	SI_Startup();
 	EV_Startup();
+	EZ_Startup();
 	EA_Startup();
 	EET_Startup();
 

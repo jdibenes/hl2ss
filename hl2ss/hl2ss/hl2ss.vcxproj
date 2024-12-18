@@ -182,6 +182,8 @@
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h" />
+    <ClInclude Include="encoder_ez.h" />
+    <ClInclude Include="extended_depth.h" />
     <ClInclude Include="ipc_mqx.h" />
     <ClInclude Include="ipl.h" />
     <ClInclude Include="server_channel.h" />
@@ -223,6 +225,7 @@
     <ClInclude Include="stream_ea.h" />
     <ClInclude Include="stream_eet.h" />
     <ClInclude Include="stream_ev.h" />
+    <ClInclude Include="stream_ez.h" />
     <ClInclude Include="stream_mc.h" />
     <ClInclude Include="microphone_capture.h" />
     <ClInclude Include="server_ports.h" />
@@ -274,6 +277,8 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c" />
+    <ClCompile Include="encoder_ez.cpp" />
+    <ClCompile Include="extended_depth.cpp" />
     <ClCompile Include="ipl.cpp" />
     <ClCompile Include="message_queue.cpp" />
     <ClCompile Include="server_channel.cpp" />
@@ -315,6 +320,7 @@
     <ClCompile Include="stream_ea.cpp" />
     <ClCompile Include="stream_eet.cpp" />
     <ClCompile Include="stream_ev.cpp" />
+    <ClCompile Include="stream_ez.cpp" />
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />
