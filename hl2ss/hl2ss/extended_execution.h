@@ -4,6 +4,8 @@
 #include <functional>
 #include <stdint.h>
 
+int const INTERFACE_SLOTS = 32;
+
 void ExtendedExecution_Initialize();
 void ExtendedExecution_GetApplicationVersion(uint16_t data[4]);
 void ExtendedExecution_RunOnMainThread(std::function<void()> f);

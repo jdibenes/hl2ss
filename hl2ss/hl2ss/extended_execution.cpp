@@ -1,7 +1,7 @@
 
 #include <Windows.h>
 #include <atomic>
-#include <functional>
+#include "extended_execution.h"
 #include "log.h"
 
 #include <winrt/Windows.Foundation.h>
@@ -23,10 +23,9 @@ using namespace winrt::Windows::Storage;
 //-----------------------------------------------------------------------------
 
 static wchar_t const* g_flat_name = L"flat_mode.cfg";
-static int const g_interface_slots = 32;
 static ExtendedExecutionForegroundSession g_eefs = nullptr;
 static bool g_status = false;
-static std::atomic<int32_t> g_interface_priority[g_interface_slots];
+static std::atomic<int32_t> g_interface_priority[INTERFACE_SLOTS];
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -112,7 +111,7 @@ bool ExtendedExecution_GetFlatMode()
 // OK
 void ExtendedExecution_SetInterfacePriority(uint32_t id, int32_t priority)
 {
-	if (id >= g_interface_slots) { return; }
+	if (id >= INTERFACE_SLOTS) { return; }
 	if ((priority < THREAD_PRIORITY_LOWEST) || (priority > THREAD_PRIORITY_HIGHEST)) { return; }
 	g_interface_priority[id] = priority;
 }
@@ -120,6 +119,6 @@ void ExtendedExecution_SetInterfacePriority(uint32_t id, int32_t priority)
 // OK
 int32_t ExtendedExecution_GetInterfacePriority(uint32_t id)
 {
-	if (id >= g_interface_slots) { return THREAD_PRIORITY_NORMAL; }
+	if (id >= INTERFACE_SLOTS) { return THREAD_PRIORITY_NORMAL; }
 	return g_interface_priority[id];
 }
