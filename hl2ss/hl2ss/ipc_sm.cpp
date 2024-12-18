@@ -166,6 +166,7 @@ Channel(name, port, id)
 // OK
 bool Channel_SM::Startup()
 {
+    SetNoDelay(true);
     return SpatialMapping_WaitForConsent();
 }
 
