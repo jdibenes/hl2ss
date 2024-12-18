@@ -9,7 +9,7 @@
 
 typedef void (*HOOK_PV_PROC)(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, void* param);
 
-void PersonalVideo_RegisterNamedMutex(wchar_t const* name);
+void PersonalVideo_CreateNamedMutex(wchar_t const* name);
 
 void PersonalVideo_Startup();
 void PersonalVideo_Cleanup();

@@ -182,7 +182,7 @@ winrt::hstring ExtendedVideo_QueryDevices()
 }
 
 // OK
-void ExtendedVideo_RegisterNamedMutex(wchar_t const* name)
+void ExtendedVideo_CreateNamedMutex(wchar_t const* name)
 {
     g_mutex.Create(name);
 }

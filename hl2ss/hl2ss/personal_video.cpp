@@ -92,7 +92,7 @@ static bool PersonalVideo_FindVideoSource()
 }
 
 // OK
-void PersonalVideo_RegisterNamedMutex(wchar_t const* name)
+void PersonalVideo_CreateNamedMutex(wchar_t const* name)
 {
     g_mutex.Create(name);
 }
