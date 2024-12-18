@@ -66,6 +66,7 @@ enum ZProfile : uint8_t
 
 enum HL2SSAPI : uint64_t
 {
+    HL2SSAPI_VideoMediaIndex            = 0xFFFFFFFFFFFFFFFBULL,
     HL2SSAPI_VideoStrideMask            = 0xFFFFFFFFFFFFFFFCULL,
     HL2SSAPI_AcquisitionMode            = 0xFFFFFFFFFFFFFFFDULL,
     HL2SSAPI_VLCHostTicksOffsetConstant = 0xFFFFFFFFFFFFFFFEULL,
