@@ -2067,6 +2067,7 @@ class ipc_rc(_context_manager):
     _CMD_SET_PV_HDR_VIDEO = 0x12
     _CMD_SET_PV_REGIONS_OF_INTEREST = 0x13
     _CMD_SET_INTERFACE_PRIORITY = 0x14
+    _CMD_SET_QUIET_MODE = 0x15
 
     def __init__(self, host, port):
         self.host = host
@@ -2174,7 +2175,11 @@ class ipc_rc(_context_manager):
     def ee_set_interface_priority(self, port, priority):
         command = struct.pack('<BIi', ipc_rc._CMD_SET_INTERFACE_PRIORITY, port, priority)
         self._client.sendall(command)
-    
+
+    def ee_set_quiet_mode(self, mode):
+        command = struct.pack('<BI', ipc_rc._CMD_SET_QUIET_MODE, mode)
+        self._client.sendall(command)
+
 
 #------------------------------------------------------------------------------
 # Spatial Mapping
