@@ -1,6 +1,6 @@
 
-#include <queue>
 #include "message_queue.h"
+#include "queue.h"
 #include "lock.h"
 
 //-----------------------------------------------------------------------------
@@ -25,15 +25,6 @@ static std::queue<uint32_t> g_queue_co;
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
-
-// OK
-template<typename T>
-T pull(std::queue<T>& q)
-{
-    T e = q.front();
-    q.pop();
-    return e;
-}
 
 // OK
 MQ_Item::MQ_Item()
