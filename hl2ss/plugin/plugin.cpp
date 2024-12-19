@@ -64,6 +64,13 @@ int OverrideWorldCoordinateSystem(void* scs_ptr)
     return true;
 }
 
+// OK
+HL2SS_PLUGIN_EXPORT
+void CheckExceptions()
+{
+    HL2SS_Process_EE();
+}
+
 //-----------------------------------------------------------------------------
 // Message Queue
 //-----------------------------------------------------------------------------

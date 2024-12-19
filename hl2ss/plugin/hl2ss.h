@@ -24,6 +24,9 @@ void GetLocalIPv4Address(wchar_t* buffer, int size);
 HL2SS_PLUGIN_IMPORT
 int OverrideWorldCoordinateSystem(void* scs_ptr);
 
+HL2SS_PLUGIN_IMPORT
+void CheckExceptions();
+
 //-----------------------------------------------------------------------------
 // Message Queue
 //-----------------------------------------------------------------------------
