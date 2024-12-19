@@ -87,6 +87,7 @@ void App::Run()
 	HL2SS_Process_HS();
 	HL2SS_Process_MQ();
 	HL2SS_Process_MQX();
+	HL2SS_Process_EE();
 	}
 }
 
