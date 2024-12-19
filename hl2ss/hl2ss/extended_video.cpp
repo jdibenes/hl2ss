@@ -1,4 +1,5 @@
 
+#include "extended_execution.h"
 #include "extended_video.h"
 #include "lock.h"
 #include "nfo.h"
@@ -221,7 +222,16 @@ void ExtendedVideo_Open(MRCVideoOptions const& options)
 
     g_mediaCapture = MediaCapture();
 
-    try { g_mediaCapture.InitializeAsync(settings).get(); } catch (...) { goto _fail_open; }
+    try
+    {
+    Cleaner log_error_camera([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedCamera); });
+    g_mediaCapture.InitializeAsync(settings).get();
+    log_error_camera.Set(false);
+    } 
+    catch (...) 
+    { 
+    goto _fail_open; 
+    }
 
     g_mediaCapture.Failed({ ExtendedVideo_OnFailed });
 

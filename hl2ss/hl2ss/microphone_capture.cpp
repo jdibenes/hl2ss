@@ -3,6 +3,7 @@
 #include <AudioClient.h>
 #include "extended_execution.h"
 #include "microphone_capture.h"
+#include "lock.h"
 #include "nfo.h"
 
 class MicrophoneCapture : public winrt::implements<MicrophoneCapture, IActivateAudioInterfaceCompletionHandler>
@@ -68,8 +69,9 @@ HRESULT MicrophoneCapture::Configure(IActivateAudioInterfaceAsyncOperation* oper
 	UINT32 minPeriodInFrames;
 	UINT32 maxPeriodInFrames;
 
+	Cleaner log_error_microphone([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedMicrophone); });
+
 	operation->GetActivateResult(&activateStatus, punkAudioInterface.put());
-	if (FAILED(activateStatus)) { return activateStatus; }
 
 	m_audio_client = punkAudioInterface.as<IAudioClient3>();
 
@@ -85,6 +87,8 @@ HRESULT MicrophoneCapture::Configure(IActivateAudioInterfaceAsyncOperation* oper
 
 	m_audio_client->GetMixFormat(&m_wfx);
 
+	Cleaner free_wfx([=]() { CoTaskMemFree(m_wfx); });
+
 	wfe = reinterpret_cast<WAVEFORMATEXTENSIBLE*>(m_wfx);
 
 	if (!m_raw)
@@ -97,12 +101,13 @@ HRESULT MicrophoneCapture::Configure(IActivateAudioInterfaceAsyncOperation* oper
 	}
 
 	m_audio_client->GetSharedModeEnginePeriod(m_wfx, &defaultPeriodInFrames, &fundamentalPeriodInFrames, &minPeriodInFrames, &maxPeriodInFrames);
-	m_audio_client->InitializeSharedAudioStream(AUDCLNT_STREAMFLAGS_EVENTCALLBACK, minPeriodInFrames, m_wfx, NULL);
+	activateStatus = m_audio_client->InitializeSharedAudioStream(AUDCLNT_STREAMFLAGS_EVENTCALLBACK, minPeriodInFrames, m_wfx, NULL);
+	if (FAILED(activateStatus)) { return activateStatus; }
 	m_audio_client->SetEventHandle(m_event_data);
 	
 	m_audio_capture_client.capture(m_audio_client, &IAudioClient::GetService);
 
-	CoTaskMemFree(m_wfx);
+	log_error_microphone.Set(false);
 
 	return S_OK;
 }

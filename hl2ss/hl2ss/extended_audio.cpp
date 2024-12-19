@@ -1,5 +1,7 @@
 
+#include "extended_execution.h"
 #include "extended_audio.h"
+#include "lock.h"
 #include "nfo.h"
 #include "log.h"
 
@@ -147,7 +149,16 @@ void ExtendedAudio_Open(MRCAudioOptions const& options)
 
     g_mediaCapture = MediaCapture();
     
-    try { g_mediaCapture.InitializeAsync(settings).get(); } catch (...) { goto _fail_open; }
+    try
+    {
+    Cleaner log_error_microphone([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedMicrophone); });
+    g_mediaCapture.InitializeAsync(settings).get();
+    log_error_microphone.Set(false);
+    }
+    catch (...)
+    {
+    goto _fail_open;
+    }
 
     ok = ExtendedAudio_FindAudioSource();
     if (!ok) { goto _fail_find; }

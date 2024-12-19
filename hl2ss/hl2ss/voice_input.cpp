@@ -1,6 +1,7 @@
 
 #include <vector>
 #include <queue>
+#include "extended_execution.h"
 #include "voice_input.h"
 #include "lock.h"
 
@@ -106,7 +107,9 @@ void VoiceInput_Start()
     ResetEvent(g_event_completed);
     try
     {
+    Cleaner log_error_microphone([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedMicrophone); });
     g_recognizer.ContinuousRecognitionSession().StartAsync().get();
+    log_error_microphone.Set(false);
     }
     catch (...)
     {

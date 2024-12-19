@@ -1,7 +1,9 @@
 
+#include "extended_execution.h"
 #include "locator.h"
 #include "timestamp.h"
 #include "spatial_input.h"
+#include "lock.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.UI.Input.h>
@@ -29,7 +31,10 @@ static std::vector<HandJointKind> g_joints;
 // OK
 bool SpatialInput_WaitForConsent()
 {
-    return EyesPose::RequestAccessAsync().get() == GazeInputAccessStatus::Allowed;
+    Cleaner log_error_eyetracker([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedEyeTracker); });
+    if (EyesPose::RequestAccessAsync().get() != GazeInputAccessStatus::Allowed) { return false; }
+    log_error_eyetracker.Set(false);
+    return true;
 }
 
 // OK

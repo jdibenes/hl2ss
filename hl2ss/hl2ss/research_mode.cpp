@@ -1,7 +1,9 @@
 
+#include "extended_execution.h"
 #include "locator.h"
 #include "timestamp.h"
 #include "research_mode.h"
+#include "lock.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.Spatial.h>
@@ -67,14 +69,20 @@ static void ResearchMode_IMUAccessCallback(ResearchModeSensorConsent consent)
 static bool ResearchMode_WaitForCameraConsent()
 {
 	WaitForSingleObject(g_camera_consent_event, INFINITE);
-	return g_camera_consent_value == ResearchModeSensorConsent::Allowed;
+	Cleaner log_error_camera([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedCamera); });
+	if (g_camera_consent_value != ResearchModeSensorConsent::Allowed) { return false; }
+	log_error_camera.Set(false);
+	return true;
 }
 
 // OK
 static bool ResearchMode_WaitForIMUConsent()
 {
 	WaitForSingleObject(g_imu_consent_event, INFINITE);
-	return g_imu_consent_value == ResearchModeSensorConsent::Allowed;
+	Cleaner log_error_movements([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedMovements); });
+	if (g_imu_consent_value != ResearchModeSensorConsent::Allowed) { return false; }
+	log_error_movements.Set(false);
+	return true;
 }
 
 // OK
@@ -83,6 +91,8 @@ void ResearchMode_Startup()
 	IResearchModeSensorDevicePerception* pSensorDevicePerception; // Release
 	GUID rigNodeId;
 	HRESULT hr;
+
+	Cleaner log_error_rm([=]() { ExtendedExecution_EnterException(Exception::Exception_DisabledResearchMode); });
 	
 	g_hrResearchMode = LoadLibraryA("ResearchModeAPI");
 
@@ -107,6 +117,8 @@ void ResearchMode_Startup()
 
 	g_locator = SpatialGraphInteropPreview::CreateLocatorForNode(rigNodeId);
 	g_ready   = true;
+
+	log_error_rm.Set(false);
 
 	return;
 

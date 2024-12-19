@@ -1,7 +1,9 @@
 
+#include "extended_execution.h"
 #include "locator.h"
 #include "timestamp.h"
 #include "extended_eye_tracking.h"
+#include "lock.h"
 #include "log.h"
 
 #include <winrt/Windows.Foundation.h>
@@ -54,7 +56,10 @@ static void ExtendedEyeTracking_OnEyeGazeTrackerRemoved(EyeGazeTrackerWatcher co
 // OK
 bool ExtendedEyeTracking_WaitForConsent()
 {
-    return EyesPose::RequestAccessAsync().get() == GazeInputAccessStatus::Allowed;
+    Cleaner log_error_eyetracker([=]() { ExtendedExecution_EnterException(Exception::Exception_AccessDeniedEyeTracker); });
+    if (EyesPose::RequestAccessAsync().get() != GazeInputAccessStatus::Allowed) { return false; }
+    log_error_eyetracker.Set(false);
+    return true;
 }
 
 // OK
