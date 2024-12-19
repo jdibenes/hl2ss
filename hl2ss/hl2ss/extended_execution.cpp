@@ -43,7 +43,7 @@ static long g_log_error = 0;
 //-----------------------------------------------------------------------------
 
 // OK
-static DWORD WINAPI ExtendedExecution_BackgroundService(void* param)
+static DWORD WINAPI ExtendedExecution_MailboxService(void* param)
 {
 	(void)param;
 
@@ -56,9 +56,10 @@ static DWORD WINAPI ExtendedExecution_BackgroundService(void* param)
 	if (g_mailbox.size() <= 0) { continue; }	
 	while (!g_mailbox.empty()) { message = message + pull(g_mailbox) + L"\n"; }
 	}
-	MessageDialog dialog(message, L"HL2SS");
-	dialog.ShowAsync().get();
-	} 
+	IAsyncOperation<IUICommand> ao;
+	ExtendedExecution_RunOnMainThread([&]() { ao = MessageDialog(message, L"HL2SS").ShowAsync(); });
+	ao.get();
+	}
 	while (true);
 }
 
@@ -116,7 +117,7 @@ void ExtendedExecution_Initialize()
 {
 	InitializeCriticalSection(&g_lock);
 	g_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	g_thread = CreateThread(NULL, 0, ExtendedExecution_BackgroundService, NULL, 0, NULL);
+	g_thread = CreateThread(NULL, 0, ExtendedExecution_MailboxService, NULL, 0, NULL);
 }
 
 // OK
