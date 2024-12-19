@@ -27,7 +27,7 @@ void ExtendedExecution_SetFlatMode(bool flat);
 bool ExtendedExecution_GetFlatMode();
 void ExtendedExecution_SetInterfacePriority(uint32_t id, int32_t priority);
 int32_t ExtendedExecution_GetInterfacePriority(uint32_t id);
-void ExtendedExecution_SetQuietMode(bool debug);
+void ExtendedExecution_SetQuietMode(bool quiet);
 bool ExtendedExecution_GetQuietMode();
 void ExtendedExecution_EnterException(Exception e);
 Exception ExtendedExecution_GetExceptions();
