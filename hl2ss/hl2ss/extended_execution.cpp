@@ -2,6 +2,8 @@
 #include <Windows.h>
 #include <atomic>
 #include "extended_execution.h"
+#include "queue.h"
+#include "lock.h"
 #include "log.h"
 
 #include <winrt/Windows.Foundation.h>
@@ -27,6 +29,10 @@ using namespace winrt::Windows::Storage;
 static wchar_t const* g_name_flat = L"flat_mode.cfg";
 static wchar_t const* g_name_quiet = L"quiet_mode.cfg";
 
+static CRITICAL_SECTION g_lock; // DeleteCriticalSection
+static HANDLE g_event; // CloseHandle
+static std::queue<winrt::hstring> g_mailbox;
+static HANDLE g_thread; // CloseHandle
 static ExtendedExecutionForegroundSession g_eefs = nullptr;
 static bool g_status = false;
 static std::atomic<int32_t> g_interface_priority[INTERFACE_SLOTS];
@@ -35,6 +41,26 @@ static long g_log_error = 0;
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
+
+// OK
+static DWORD WINAPI ExtendedExecution_BackgroundService(void* param)
+{
+	(void)param;
+
+	do
+	{
+	WaitForSingleObject(g_event, INFINITE);
+	winrt::hstring message = L"";
+	{
+	CriticalSection cs(&g_lock);
+	if (g_mailbox.size() <= 0) { continue; }	
+	while (!g_mailbox.empty()) { message = message + pull(g_mailbox) + L"\n"; }
+	}
+	MessageDialog dialog(message, L"HL2SS");
+	dialog.ShowAsync().get();
+	} 
+	while (true);
+}
 
 // OK
 static void ExtendedExecution_OnRevoked(IInspectable const& sender, ExtendedExecutionForegroundRevokedEventArgs const& args)
@@ -88,12 +114,20 @@ static bool ExtendedExecution_GetFileRegister(winrt::hstring option)
 // OK
 void ExtendedExecution_Initialize()
 {
+	InitializeCriticalSection(&g_lock);
+	g_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+	g_thread = CreateThread(NULL, 0, ExtendedExecution_BackgroundService, NULL, 0, NULL);
+}
+
+// OK
+void ExtendedExecution_Request()
+{
 	g_eefs = ExtendedExecutionForegroundSession();
 	g_eefs.Reason(ExtendedExecutionForegroundReason::Unconstrained);
 	g_eefs.Description(L"Background Capture");
 	g_eefs.Revoked(ExtendedExecution_OnRevoked);
 	g_status = g_eefs.RequestExtensionAsync().get() == ExtendedExecutionForegroundResult::Allowed;
-	ShowMessage("EEFS Result: %d", g_status);	
+	ShowMessage("EEFS Result: %d", g_status);
 }
 
 // OK
@@ -111,6 +145,26 @@ void ExtendedExecution_GetApplicationVersion(uint16_t data[4])
 void ExtendedExecution_RunOnMainThread(std::function<void()> f)
 {
 	CoreApplication::MainView().Dispatcher().RunAsync(CoreDispatcherPriority::High, f).get();
+}
+
+// OK
+void ExtendedExecution_EnterException(Exception e)
+{
+	InterlockedOr(&g_log_error, static_cast<long>(e));
+}
+
+// OK
+Exception ExtendedExecution_GetExceptions()
+{
+	return static_cast<Exception>(g_log_error);
+}
+
+// OK
+void ExtendedExecution_MessageBox(winrt::hstring message)
+{
+	CriticalSection cs(&g_lock);
+	g_mailbox.push(message);
+	SetEvent(g_event);
 }
 
 // OK
@@ -150,23 +204,4 @@ void ExtendedExecution_SetQuietMode(bool quiet)
 bool ExtendedExecution_GetQuietMode()
 {
 	return ExtendedExecution_GetFileRegister(g_name_quiet);
-}
-
-// OK
-void ExtendedExecution_EnterException(Exception e)
-{
-	InterlockedOr(&g_log_error, static_cast<long>(e));
-}
-
-// OK
-Exception ExtendedExecution_GetExceptions()
-{
-	return static_cast<Exception>(g_log_error);
-}
-
-// OK
-void ExtendedExecution_MessageBox(winrt::hstring message)
-{
-	MessageDialog dialog(message, L"HL2SS");
-	dialog.ShowAsync().get();
 }
