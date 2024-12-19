@@ -14,7 +14,9 @@ private:
     std::unique_ptr<Encoder_PV> m_pEncoder;
     bool m_enable_location;
     uint32_t m_counter;
-    uint32_t m_divisor;    
+    uint32_t m_divisor;
+    uint16_t m_width;
+    uint16_t m_height;
 
     bool Startup();
     void Run();
@@ -82,7 +84,8 @@ void Channel_EV::OnFrameArrived(MediaFrameReference const& frame)
     {
     memset(&p, 0, sizeof(p));
 
-    p.timestamp = frame.SystemRelativeTime().Value().count();
+    p.timestamp  = frame.SystemRelativeTime().Value().count();
+    p.resolution = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
 
     m_pEncoder->WriteSample(frame, &p);
     }
@@ -146,6 +149,8 @@ void Channel_EV::Execute_Mode0(bool enable_location)
     m_enable_location = enable_location;
     m_counter         = 0;
     m_divisor         = format.divisor;
+    m_width           = format.width;
+    m_height          = format.height;
 
     ExtendedVideo_ExecuteSensorLoop(acquisition_mode, Thunk_Sensor, this, m_event_client);
 

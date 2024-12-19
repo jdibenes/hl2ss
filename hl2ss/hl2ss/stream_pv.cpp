@@ -37,6 +37,8 @@ private:
     uint32_t m_counter;
     uint32_t m_divisor;
     PV_Mode2 m_calibration;
+    uint16_t m_width;
+    uint16_t m_height;
     
     bool Startup();
     void Run();
@@ -121,7 +123,7 @@ void Channel_PV::OnFrameArrived_Mode0(MediaFrameReference const& frame)
     p.focus_state           = metadata.Lookup(MF_CAPTURE_METADATA_FOCUSSTATE).as<uint32_t>();
     p.white_balance         = metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE).as<uint32_t>();
     p.white_balance_gains   = *reinterpret_cast<float3*>(metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<IReferenceArray<uint8_t>>().Value().begin());
-    p._reserved             = 0;
+    p.resolution            = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
     p.timestamp             = frame.SystemRelativeTime().Value().count();
     p.pose                  = PersonalVideo_GetFrameWorldPose(frame);
 
@@ -208,6 +210,8 @@ void Channel_PV::Execute_Mode0(bool enable_location)
     m_enable_location = enable_location;
     m_counter         = 0;
     m_divisor         = format.divisor;
+    m_width           = format.width;
+    m_height          = format.height;
 
     PersonalVideo_ExecuteSensorLoop(acquisition_mode, Thunk_Sensor_Mode0, this, m_event_client);
 

@@ -19,7 +19,7 @@ struct PV_Metadata
     uint32_t white_balance;
     winrt::Windows::Foundation::Numerics::float2 iso_gains;
     winrt::Windows::Foundation::Numerics::float3 white_balance_gains;
-    uint32_t _reserved;
+    uint32_t resolution;
     uint64_t timestamp;
     winrt::Windows::Foundation::Numerics::float4x4 pose;
 };

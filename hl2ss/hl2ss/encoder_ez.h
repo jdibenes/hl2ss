@@ -10,7 +10,7 @@
 
 struct EZ_Metadata
 {
-    uint32_t _reserved;
+    uint32_t resolution;
 };
 
 class Encoder_EZ

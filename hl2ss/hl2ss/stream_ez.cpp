@@ -18,6 +18,8 @@ private:
     bool m_enable_location;
     uint32_t m_counter;
     uint32_t m_divisor;
+    uint16_t m_width;
+    uint16_t m_height;
 
     bool Startup();
     void Run();
@@ -82,7 +84,7 @@ void Channel_EZ::OnFrameArrived(MediaFrameReference const& frame)
 
     if (m_counter == 0)
     {
-    p._reserved = 0;
+    p.resolution = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
     if (!m_pEncoder->WriteSample(frame, &p)) { SetEvent(m_event_client); }
     }
     m_counter = (m_counter + 1) % m_divisor;
@@ -132,10 +134,12 @@ void Channel_EZ::Execute_Mode0(bool enable_location)
 
     format.width = static_cast<uint16_t>((format.width + stride_mask) & ~stride_mask);
 
-    m_pEncoder = std::make_unique<Encoder_EZ>(Thunk_Encoder, this, format);
+    m_pEncoder        = std::make_unique<Encoder_EZ>(Thunk_Encoder, this, format);
     m_enable_location = enable_location;
-    m_counter = 0;
-    m_divisor = format.divisor;
+    m_counter         = 0;
+    m_divisor         = format.divisor;
+    m_width           = format.width;
+    m_height          = format.height;
 
     ExtendedDepth_ExecuteSensorLoop(MediaFrameReaderAcquisitionMode::Realtime, Thunk_Sensor, this, m_event_client);
 
