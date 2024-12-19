@@ -9,6 +9,7 @@
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.ApplicationModel.ExtendedExecution.Foreground.h>
 #include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.UI.Popups.h>
 #include <winrt/Windows.Storage.h>
 
 using namespace winrt::Windows::Foundation;
@@ -16,16 +17,20 @@ using namespace winrt::Windows::ApplicationModel;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::ExtendedExecution::Foreground;
 using namespace winrt::Windows::UI::Core;
+using namespace winrt::Windows::UI::Popups;
 using namespace winrt::Windows::Storage;
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static wchar_t const* g_flat_name = L"flat_mode.cfg";
+static wchar_t const* g_name_flat = L"flat_mode.cfg";
+static wchar_t const* g_name_quiet = L"quiet_mode.cfg";
+
 static ExtendedExecutionForegroundSession g_eefs = nullptr;
 static bool g_status = false;
 static std::atomic<int32_t> g_interface_priority[INTERFACE_SLOTS];
+static long g_log_error = 0;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -37,6 +42,47 @@ static void ExtendedExecution_OnRevoked(IInspectable const& sender, ExtendedExec
 	(void)sender;
 	ShowMessage("EEFS Revoked: %d", static_cast<int>(args.Reason()));
 	g_status = false;
+}
+
+// OK
+static void ExtendedExecution_SetFileRegister(winrt::hstring option, bool value)
+{
+	StorageFolder folder = ApplicationData::Current().LocalFolder();
+	winrt::hstring name{ option };
+
+	try
+	{
+	if (value)
+	{
+	folder.CreateFileAsync(name).get();
+	}
+	else
+	{
+	StorageFile file = folder.GetFileAsync(name).get();
+	file.DeleteAsync().get();
+	}
+	}
+	catch (...)
+	{
+	}
+}
+
+// OK
+static bool ExtendedExecution_GetFileRegister(winrt::hstring option)
+{
+	StorageFolder folder = ApplicationData::Current().LocalFolder();
+	winrt::hstring name{ option };
+
+	try
+	{
+	folder.GetFileAsync(name).get();
+	return true;
+	}
+	catch (...)
+	{
+	}
+
+	return false;
 }
 
 // OK
@@ -70,42 +116,13 @@ void ExtendedExecution_RunOnMainThread(std::function<void()> f)
 // OK
 void ExtendedExecution_SetFlatMode(bool flat)
 {
-	StorageFolder folder = ApplicationData::Current().LocalFolder();
-	winrt::hstring name{ g_flat_name };
-
-	try
-	{
-	if (flat)
-	{
-	folder.CreateFileAsync(name).get();
-	}
-	else
-	{
-	StorageFile file = folder.GetFileAsync(name).get();
-	file.DeleteAsync().get();
-	}
-	}
-	catch (...)
-	{
-	}
+	ExtendedExecution_SetFileRegister(g_name_flat, flat);
 }
 
 // OK
 bool ExtendedExecution_GetFlatMode()
 {
-	StorageFolder folder = ApplicationData::Current().LocalFolder();
-	winrt::hstring name{ g_flat_name };
-
-	try
-	{
-	folder.GetFileAsync(name).get();
-	return true;
-	}
-	catch (...)
-	{
-	}
-
-	return false;
+	return ExtendedExecution_GetFileRegister(g_name_flat);
 }
 
 // OK
@@ -121,4 +138,35 @@ int32_t ExtendedExecution_GetInterfacePriority(uint32_t id)
 {
 	if (id >= INTERFACE_SLOTS) { return THREAD_PRIORITY_NORMAL; }
 	return g_interface_priority[id];
+}
+
+// OK
+void ExtendedExecution_SetQuietMode(bool quiet)
+{
+	ExtendedExecution_SetFileRegister(g_name_quiet, quiet);
+}
+
+// OK
+bool ExtendedExecution_GetQuietMode()
+{
+	return ExtendedExecution_GetFileRegister(g_name_quiet);
+}
+
+// OK
+void ExtendedExecution_EnterException(Exception e)
+{
+	InterlockedOr(&g_log_error, static_cast<long>(e));
+}
+
+// OK
+Exception ExtendedExecution_GetExceptions()
+{
+	return static_cast<Exception>(g_log_error);
+}
+
+// OK
+void ExtendedExecution_MessageBox(winrt::hstring message)
+{
+	MessageDialog dialog(message, L"HL2SS");
+	dialog.ShowAsync().get();
 }
