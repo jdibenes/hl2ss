@@ -543,10 +543,11 @@ def _create_configuration_for_extended_audio(mixer_mode, loopback_gain, micropho
     return bytes(configuration)
 
 
-def _create_configuration_for_extended_depth(mode, divisor, options):
+def _create_configuration_for_extended_depth(mode, divisor, profile_z, options):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mode(mode))
     configuration.extend(_create_configuration_for_video_divisor(divisor))
+    configuration.extend(_create_configuration_for_depth_encoding(profile_z))
     configuration.extend(_create_configuration_for_h26x_encoding(options))
     return bytes(configuration)
 
@@ -633,10 +634,10 @@ def _connect_client_extended_audio(host, port, chunk_size, mixer_mode, loopback_
     return c
 
 
-def _connect_client_extended_depth(host, port, chunk_size, mode, divisor, options):
+def _connect_client_extended_depth(host, port, chunk_size, mode, divisor, profile_z, options):
     c = _gatherer()
     c.open(host, port, chunk_size, mode)
-    c.sendall(_create_configuration_for_extended_depth(mode, divisor, options))
+    c.sendall(_create_configuration_for_extended_depth(mode, divisor, profile_z, options))
     return c
   
 
@@ -856,16 +857,17 @@ class rx_extended_audio:
 
 
 class rx_extended_depth:
-    def __init__(self, host, port, chunk, mode, divisor, options):
+    def __init__(self, host, port, chunk, mode, divisor, profile_z, options):
         self.host = host
         self.port = port
         self.chunk = chunk
         self.mode = mode
         self.divisor = divisor
+        self.profile_z = profile_z
         self.options = options
 
     def open(self):
-        self._client = _connect_client_extended_depth(self.host, self.port, self.chunk, self.mode, self.divisor, self.options)
+        self._client = _connect_client_extended_depth(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile_z, self.options)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -1460,24 +1462,39 @@ class unpack_eet:
 #------------------------------------------------------------------------------
 
 class _EZ_Frame:
-    def __init__(self, depth):
-        self.depth = depth
+    def __init__(self, depth, width, height):
+        self.depth  = depth
+        self.width  = width
+        self.height = height
 
 
 def unpack_extended_depth(payload):
-    return _EZ_Frame(payload[:-4])
+    width, height = struct.unpack('<HH', payload[-4:])
+    return _EZ_Frame(payload[:-4], width, height)
 
 
-class decode_extended_depth:
+class _unpack_extended_depth:
+    def create(self):
+        pass
+
+    def decode(self, payload, width, height):
+        return np.frombuffer(payload, dtype=np.uint16).reshape((height, width))
+
+
+class _decode_extended_depth:
     def create(self):
         import pyzdepth
         self._codec = pyzdepth.DepthCompressor()
 
-    def decode(self, payload):
+    def decode(self, payload, width, height):
         if (len(payload) <= 0):
             return None
         result, width, height, decompressed = self._codec.Decompress(bytes(payload))
         return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
+
+
+def decode_extended_depth(profile_z):
+    return _decode_extended_depth() if (profile_z == DepthProfile.ZDEPTH) else _unpack_extended_depth()
 
 
 #------------------------------------------------------------------------------
@@ -1597,9 +1614,9 @@ class rx_decoded_extended_audio(rx_extended_audio):
 
 
 class rx_decoded_extended_depth(rx_extended_depth):
-    def __init__(self, host, port, chunk, mode, divisor, options):
-        super().__init__(host, port, chunk, mode, divisor, options)
-        self._codec = decode_extended_depth()
+    def __init__(self, host, port, chunk, mode, divisor, profile_z, options):
+        super().__init__(host, port, chunk, mode, divisor, profile_z, options)
+        self._codec = decode_extended_depth(profile_z)
 
     def open(self):
         self._codec.create()
@@ -1608,7 +1625,7 @@ class rx_decoded_extended_depth(rx_extended_depth):
     def get_next_packet(self):
         data = super().get_next_packet()
         data.payload = unpack_extended_depth(data.payload)
-        data.payload.depth = self._codec.decode(data.payload.depth)
+        data.payload.depth = self._codec.decode(data.payload.depth, data.payload.width, data.payload.height)
         return data
     
     def close(self):

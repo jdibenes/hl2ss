@@ -21,9 +21,10 @@ private:
     void* m_param;
     uint16_t m_width;
     uint16_t m_height;
+    bool m_raw;
 
 public:
-    Encoder_EZ(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format);
+    Encoder_EZ(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format, ZABFormat const& zabformat);
 
     bool WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame, EZ_Metadata* metadata);
 };

@@ -113,6 +113,7 @@ void Channel_EZ::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 cl
 void Channel_EZ::Execute_Mode0(bool enable_location)
 {
     H26xFormat format;
+    ZABFormat zabformat;
     std::vector<uint64_t> options;
     winrt::hstring subtype;
     uint32_t media_index;
@@ -122,6 +123,9 @@ void Channel_EZ::Execute_Mode0(bool enable_location)
     if (!ExtendedDepth_Status()) { return; }
 
     ok = ReceiveH26xFormat_Divisor(m_socket_client, m_event_client, format);
+    if (!ok) { return; }
+
+    ok = ReceiveZABFormat_Profile(m_socket_client, m_event_client, zabformat);
     if (!ok) { return; }
 
     ok = ReceiveEncoderOptions(m_socket_client, m_event_client, options);
@@ -134,7 +138,7 @@ void Channel_EZ::Execute_Mode0(bool enable_location)
 
     format.width = static_cast<uint16_t>((format.width + stride_mask) & ~stride_mask);
 
-    m_pEncoder        = std::make_unique<Encoder_EZ>(Thunk_Encoder, this, format);
+    m_pEncoder        = std::make_unique<Encoder_EZ>(Thunk_Encoder, this, format, zabformat);
     m_enable_location = enable_location;
     m_counter         = 0;
     m_divisor         = format.divisor;
