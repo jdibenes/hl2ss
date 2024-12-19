@@ -37,6 +37,7 @@ private:
     bool MSG_PV_SetHdrVideo();
     bool MSG_PV_SetRegionsOfInterest();
     bool MSG_EE_SetInterfacePriority();
+    bool MSG_EE_SetQuietMode();
 
 public:
     Channel_RC(char const* name, char const* port, uint32_t id);
@@ -395,6 +396,20 @@ bool Channel_RC::MSG_EE_SetInterfacePriority()
 }
 
 // OK
+bool Channel_RC::MSG_EE_SetQuietMode()
+{
+    bool ok;
+    uint32_t mode;
+
+    ok = recv_u32(m_socket_client, m_event_client, mode);
+    if (!ok) { return false; }
+
+    ExtendedExecution_SetQuietMode(mode != 0);
+
+    return true;
+}
+
+// OK
 bool Channel_RC::Dispatch()
 {
     uint8_t state;
@@ -426,6 +441,7 @@ bool Channel_RC::Dispatch()
     case 0x12: return MSG_PV_SetHdrVideo();
     case 0x13: return MSG_PV_SetRegionsOfInterest();
     case 0x14: return MSG_EE_SetInterfacePriority();
+    case 0x15: return MSG_EE_SetQuietMode();
     default:   return false;
     }
 }
