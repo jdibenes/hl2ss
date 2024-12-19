@@ -49,7 +49,9 @@
 
 static bool g_standalone = false;
 static bool g_flat = false;
+static bool g_quiet = false;
 static bool g_rm = false;
+static uint32_t g_exceptions = 0;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -63,10 +65,15 @@ void HL2SS_Load(bool standalone)
 	Server_Startup();
 	CustomEncoder_Startup();
 
+	ExtendedExecution_Initialize();
+
 	if (g_standalone)
 	{
-	ExtendedExecution_Initialize();
-	g_flat = ExtendedExecution_GetFlatMode();
+	ExtendedExecution_Request();
+
+	g_flat  = ExtendedExecution_GetFlatMode();
+	g_quiet = ExtendedExecution_GetQuietMode();
+
 	if (!g_flat)
 	{
 	HolographicSpace_Initialize();
@@ -124,7 +131,7 @@ void HL2SS_Load(bool standalone)
 // OK
 void HL2SS_Process_HS()
 {
-	if (g_flat) { return; }
+	if (!g_standalone || g_flat) { return; }
 
 	HolographicSpace_Update();
 	HolographicSpace_Clear();
@@ -182,4 +189,21 @@ void HL2SS_Process_MQX()
 		state = 0;
 		break;
 	}
+}
+
+// OK
+void HL2SS_Process_EE()
+{
+	if (g_quiet) { return; }
+
+	uint32_t e = ExtendedExecution_GetExceptions();
+	long trigger = e ^ g_exceptions;
+	g_exceptions = e;
+
+	if (trigger & Exception::Exception_UnknownNetworkAddress)  { ExtendedExecution_MessageBox(L"Network Error - Check HoloLens is connected to the network."); }
+	if (trigger & Exception::Exception_DisabledResearchMode)   { ExtendedExecution_MessageBox(L"Research Mode Error - Check [Research Mode] is enabled."); }
+	if (trigger & Exception::Exception_AccessDeniedCamera)     { ExtendedExecution_MessageBox(L"Camera Error - Check [Camera] permissions."); }
+	if (trigger & Exception::Exception_AccessDeniedMicrophone) { ExtendedExecution_MessageBox(L"Microphone Error - Check [Microphone] permissions."); }
+	if (trigger & Exception::Exception_AccessDeniedEyeTracker) { ExtendedExecution_MessageBox(L"Eye Tracker Error - Check [Eye tracker] permissions."); }
+	if (trigger & Exception::Exception_AccessDeniedMovements)  { ExtendedExecution_MessageBox(L"IMU Error - Check [User movements] permissions."); }
 }
