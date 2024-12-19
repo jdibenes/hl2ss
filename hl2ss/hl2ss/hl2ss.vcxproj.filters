@@ -696,6 +696,9 @@
     <ClInclude Include="encoder_ez.h">
       <Filter>Header Files\encoders</Filter>
     </ClInclude>
+    <ClInclude Include="queue.h">
+      <Filter>Header Files\utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">

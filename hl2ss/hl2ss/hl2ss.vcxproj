@@ -186,6 +186,7 @@
     <ClInclude Include="extended_depth.h" />
     <ClInclude Include="ipc_mqx.h" />
     <ClInclude Include="ipl.h" />
+    <ClInclude Include="queue.h" />
     <ClInclude Include="server_channel.h" />
     <ClInclude Include="custom_audio_effect.h" />
     <ClInclude Include="custom_encoder.h" />
