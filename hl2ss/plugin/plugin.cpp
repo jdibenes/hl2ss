@@ -4,11 +4,11 @@
 #include "../hl2ss/ipl.h"
 #include "../hl2ss/extended_execution.h"
 #include "../hl2ss/locator.h"
+#include "../hl2ss/server.h"
 #include "../hl2ss/personal_video.h"
 #include "../hl2ss/extended_video.h"
 #include "../hl2ss/message_queue.h"
 #include "../hl2ss/lock.h"
-#include "../hl2ss/nfo.h"
 #include "../hl2ss/log.h"
 
 #define HL2SS_PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -45,7 +45,7 @@ void DebugMessage(char const* str)
 HL2SS_PLUGIN_EXPORT
 void GetLocalIPv4Address(wchar_t *buffer, int size)
 {
-    winrt::hstring address = GetLocalIPv4Address();
+    winrt::hstring address = Server_GetLocalIPv4Address();
     wcscpy_s(buffer, size / sizeof(wchar_t), address.c_str());
 }
 

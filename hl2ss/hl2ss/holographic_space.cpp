@@ -1,16 +1,18 @@
 
 #include <Cannon/DrawCall.h>
-#include "nfo.h"
+#include "server.h"
 #include "display7s.h"
 
 #include <windows.graphics.directx.direct3d11.interop.h>
 
+#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.UI.Core.h>
 #include <winrt/Windows.Graphics.Holographic.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3D11.h>
 
 using namespace Windows::Graphics::DirectX::Direct3D11;
 
+using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::Graphics::Holographic;
 using namespace winrt::Windows::Graphics::DirectX::Direct3D11;
@@ -82,7 +84,7 @@ static void HolographicSpace_CreateHUDTextures()
 
     memset(data, 0, buffer_size);
 
-    winrt::hstring ipaddress = GetLocalIPv4Address();
+    winrt::hstring ipaddress = Server_GetLocalIPv4Address();
 
     DrawDigits(ipaddress.c_str(), iptext_x, iptext_y, iptext_side, iptext_size, iptext_side, iptext_size, iptext_size, buffer_width, buffer_height, iptext_color, reinterpret_cast<uint32_t*>(data));
 

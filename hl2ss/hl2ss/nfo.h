@@ -7,7 +7,6 @@
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Collections.h>
 
-winrt::hstring GetLocalIPv4Address();
 void PrintSystemInfo();
 void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::hstring, winrt::Windows::Foundation::IInspectable> const& p);
 void PrintProperties(winrt::Windows::Foundation::Collections::IMapView<winrt::guid, winrt::Windows::Foundation::IInspectable> const& p);

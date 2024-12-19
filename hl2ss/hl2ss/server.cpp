@@ -1,8 +1,17 @@
 
 #include <ws2tcpip.h>
+#include "extended_execution.h"
 #include "server.h"
 #include "lock.h"
 #include "types.h"
+
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Networking.h>
+#include <winrt/Windows.Networking.Connectivity.h>
+
+using namespace winrt::Windows::Foundation::Collections;
+using namespace winrt::Windows::Networking;
+using namespace winrt::Windows::Networking::Connectivity;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -67,6 +76,18 @@ SOCKET Server_AcceptClient(SOCKET socket, DWORD nodelay)
 	setsockopt(client, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&nodelay), sizeof(nodelay));
 
 	return client;
+}
+
+// OK
+winrt::hstring Server_GetLocalIPv4Address()
+{
+    for (auto const& hostname : NetworkInformation::GetHostNames())
+    {
+    if (hostname.Type() == HostNameType::Ipv4) { return hostname.ToString(); }
+    }
+
+	ExtendedExecution_EnterException(Exception::Exception_UnknownNetworkAddress);
+    return L"0.0.0.0";
 }
 
 // OK
