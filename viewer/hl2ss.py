@@ -23,6 +23,7 @@ class StreamPort:
     EXTENDED_EYE_TRACKER = 3817
     EXTENDED_AUDIO       = 3818
     EXTENDED_VIDEO       = 3819
+    EXTENDED_DEPTH       = 3821
 
 
 # IPC TCP Ports
@@ -46,6 +47,8 @@ class ChunkSize:
     SPATIAL_INPUT        = 1024
     EXTENDED_EYE_TRACKER = 256
     EXTENDED_AUDIO       = 512
+    EXTENDED_VIDEO       = 4096
+    EXTENDED_DEPTH       = 4096
     SINGLE_TRANSFER      = 4096
 
 
@@ -53,10 +56,12 @@ class ChunkSize:
 # 0: Device data (e.g. video)
 # 1: Device data + location data (e.g. video + camera pose)
 # 2: Device constants (e.g. camera intrinsics)
+# 3: Reserved
 class StreamMode:
     MODE_0 = 0
     MODE_1 = 1
     MODE_2 = 2
+    MODE_3 = 3
 
 
 # Video Encoder Profile
@@ -174,7 +179,7 @@ class MixerMode:
     MICROPHONE = 0
     SYSTEM     = 1
     BOTH       = 2
-    QUERY      = 0x80000000
+    QUERY      = 3
 
 
 # RM VLC Parameters
@@ -427,6 +432,9 @@ class H26xEncoderProperty:
     CODECAPI_AVLowLatencyMode = 16
     CODECAPI_AVEncVideoMaxQP = 17
     CODECAPI_VideoEncoderDisplayContentType = 18
+    HL2SSAPI_VideoMediaIndex            = 0xFFFFFFFFFFFFFFFB
+    HL2SSAPI_VideoStrideMask            = 0xFFFFFFFFFFFFFFFC
+    HL2SSAPI_AcquisitionMode            = 0xFFFFFFFFFFFFFFFD
     HL2SSAPI_VLCHostTicksOffsetConstant = 0xFFFFFFFFFFFFFFFE
     HL2SSAPI_VLCHostTicksOffsetExposure = 0xFFFFFFFFFFFFFFFF
 
@@ -456,7 +464,7 @@ def _create_configuration_for_audio_encoding(profile, level):
 
 
 def _create_configuration_for_png_encoding(png_filter):
-    return struct.pack('<B', png_filter)
+    return struct.pack('<I', png_filter)
 
 
 def _create_configuration_for_h26x_encoding(options):
@@ -465,6 +473,10 @@ def _create_configuration_for_h26x_encoding(options):
     for key, value in options.items():
         configuration.extend(struct.pack('<QQ', key, value))
     return bytes(configuration)
+
+
+def _create_configuration_for_framerate(fps):
+    return struct.pack('<B', fps)
 
 
 def _create_configuration_for_mrc_video(enable, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
@@ -521,13 +533,21 @@ def _create_configuration_for_microphone(profile, level):
 
 
 def _create_configuration_for_eet(fps):
-    return struct.pack('<B', fps)
+    return _create_configuration_for_framerate(fps)
 
 
 def _create_configuration_for_extended_audio(mixer_mode, loopback_gain, microphone_gain, profile, level):
     configuration = bytearray()
     configuration.extend(_create_configuration_for_mrc_audio(mixer_mode, loopback_gain, microphone_gain))
     configuration.extend(_create_configuration_for_audio_encoding(profile, level))
+    return bytes(configuration)
+
+
+def _create_configuration_for_extended_depth(mode, divisor, options):
+    configuration = bytearray()
+    configuration.extend(_create_configuration_for_mode(mode))
+    configuration.extend(_create_configuration_for_video_divisor(divisor))
+    configuration.extend(_create_configuration_for_h26x_encoding(options))
     return bytes(configuration)
 
 
@@ -613,16 +633,22 @@ def _connect_client_extended_audio(host, port, chunk_size, mixer_mode, loopback_
     return c
 
 
+def _connect_client_extended_depth(host, port, chunk_size, mode, divisor, options):
+    c = _gatherer()
+    c.open(host, port, chunk_size, mode)
+    c.sendall(_create_configuration_for_extended_depth(mode, divisor, options))
+    return c
+  
+
 class _PVCNT:
     START =  0x04
     STOP   = 0x08
-    MODE_3 = 0x03
 
 
 def start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
     c = _client()
     c.open(host, port)
-    c.sendall(_create_configuration_for_pv_mode2(_PVCNT.START | _PVCNT.MODE_3, 1920, 1080, 30))
+    c.sendall(_create_configuration_for_mode(_PVCNT.START | StreamMode.MODE_3))
     c.sendall(_create_configuration_for_mrc_video(enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective))
     c.close()
 
@@ -630,7 +656,7 @@ def start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_i
 def stop_subsystem_pv(host, port):
     c = _client()
     c.open(host, port)
-    c.sendall(_create_configuration_for_pv_mode2(_PVCNT.STOP | _PVCNT.MODE_3, 1920, 1080, 30))
+    c.sendall(_create_configuration_for_mode(_PVCNT.STOP | StreamMode.MODE_3))
     c.close()
 
 
@@ -825,6 +851,25 @@ class rx_extended_audio:
     def get_next_packet(self):
         return self._client.get_next_packet()
     
+    def close(self):
+        self._client.close()
+
+
+class rx_extended_depth:
+    def __init__(self, host, port, chunk, mode, divisor, options):
+        self.host = host
+        self.port = port
+        self.chunk = chunk
+        self.mode = mode
+        self.divisor = divisor
+        self.options = options
+
+    def open(self):
+        self._client = _connect_client_extended_depth(self.host, self.port, self.chunk, self.mode, self.divisor, self.options)
+
+    def get_next_packet(self):
+        return self._client.get_next_packet()
+
     def close(self):
         self._client.close()
 
@@ -1411,6 +1456,31 @@ class unpack_eet:
 
 
 #------------------------------------------------------------------------------
+# Extended Depth Decoder
+#------------------------------------------------------------------------------
+
+class _EZ_Frame:
+    def __init__(self, depth):
+        self.depth = depth
+
+
+def unpack_extended_depth(payload):
+    return _EZ_Frame(payload[:-4])
+
+
+class decode_extended_depth:
+    def create(self):
+        import pyzdepth
+        self._codec = pyzdepth.DepthCompressor()
+
+    def decode(self, payload):
+        if (len(payload) <= 0):
+            return None
+        result, width, height, decompressed = self._codec.Decompress(bytes(payload))
+        return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
+
+
+#------------------------------------------------------------------------------
 # Decoded Receivers
 #------------------------------------------------------------------------------
 
@@ -1522,6 +1592,25 @@ class rx_decoded_extended_audio(rx_extended_audio):
         data.payload = self._codec.decode(data.payload)
         return data
 
+    def close(self):
+        super().close()
+
+
+class rx_decoded_extended_depth(rx_extended_depth):
+    def __init__(self, host, port, chunk, mode, divisor, options):
+        super().__init__(host, port, chunk, mode, divisor, options)
+        self._codec = decode_extended_depth()
+
+    def open(self):
+        self._codec.create()
+        super().open()
+
+    def get_next_packet(self):
+        data = super().get_next_packet()
+        data.payload = unpack_extended_depth(data.payload)
+        data.payload.depth = self._codec.decode(data.payload.depth)
+        return data
+    
     def close(self):
         super().close()
 
@@ -1747,7 +1836,7 @@ def download_calibration_pv(host, port, width, height, framerate):
 def download_devicelist_extended_audio(host, port):
     c = _client()
     c.open(host, port)
-    c.sendall(_create_configuration_for_extended_audio(MixerMode.QUERY, 1.0, 1.0, AudioProfile.AAC_24000, AACLevel.L2))
+    c.sendall(_create_configuration_for_mrc_audio(MixerMode.QUERY, 1.0, 1.0))
     size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
     query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
     c.close()
@@ -1757,7 +1846,7 @@ def download_devicelist_extended_audio(host, port):
 def download_devicelist_extended_video(host, port):
     c = _client()
     c.open(host, port)
-    c.sendall(_create_configuration_for_pv_mode2(StreamMode.MODE_2, 1920, 1080, 30))
+    c.sendall(_create_configuration_for_mode(StreamMode.MODE_2))
     size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
     query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
     c.close()
@@ -1973,99 +2062,99 @@ class ipc_rc(_context_manager):
     def close(self):
         self._client.close()
 
-    def get_application_version(self):
+    def ee_get_application_version(self):
         command = struct.pack('<B', ipc_rc._CMD_GET_APPLICATION_VERSION)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.SHORT * 4, ChunkSize.SINGLE_TRANSFER)
         version = struct.unpack('<HHHH', data)
         return version
 
-    def get_utc_offset(self, samples):
-        command = struct.pack('<BI', ipc_rc._CMD_GET_UTC_OFFSET, samples)
+    def ts_get_utc_offset(self):
+        command = struct.pack('<B', ipc_rc._CMD_GET_UTC_OFFSET)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
         return struct.unpack('<Q', data)[0]
 
-    def set_hs_marker_state(self, state):
+    def hs_set_marker_state(self, state):
         command = struct.pack('<BI', ipc_rc._CMD_SET_HS_MARKER_STATE, state)
         self._client.sendall(command)
 
-    def get_pv_subsystem_status(self):
+    def pv_get_subsystem_status(self):
         command = struct.pack('<B', ipc_rc._CMD_GET_PV_SUBSYSTEM_STATUS)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
         return struct.unpack('<B', data)[0] != 0
     
-    def wait_for_pv_subsystem(self, status):
-        while (self.get_pv_subsystem_status() != status):
+    def pv_wait_for_subsystem(self, status):
+        while (self.pv_get_subsystem_status() != status):
             pass
 
-    def set_pv_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
+    def pv_set_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
         command = struct.pack('<BIIIII', ipc_rc._CMD_SET_PV_FOCUS, focusmode, autofocusrange, distance, value, driverfallback)
         self._client.sendall(command)
 
-    def set_pv_video_temporal_denoising(self, mode):
+    def pv_set_video_temporal_denoising(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_VIDEO_TEMPORAL_DENOISING, mode)
         self._client.sendall(command)
 
-    def set_pv_white_balance_preset(self, preset):
+    def pv_set_white_balance_preset(self, preset):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_PRESET, preset)
         self._client.sendall(command)
 
-    def set_pv_white_balance_value(self, value):
+    def pv_set_white_balance_value(self, value):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_VALUE, value)
         self._client.sendall(command)
 
-    def set_pv_exposure(self, mode, value):
+    def pv_set_exposure(self, mode, value):
         command = struct.pack('<BII', ipc_rc._CMD_SET_PV_EXPOSURE, mode, value)
         self._client.sendall(command)
     
-    def set_pv_exposure_priority_video(self, enabled):
+    def pv_set_exposure_priority_video(self, enabled):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_EXPOSURE_PRIORITY_VIDEO, enabled)
         self._client.sendall(command)
 
-    def set_pv_iso_speed(self, mode, value):
+    def pv_set_iso_speed(self, mode, value):
         command = struct.pack('<BII', ipc_rc._CMD_SET_PV_ISO_SPEED, mode, value)
         self._client.sendall(command)
 
-    def set_pv_backlight_compensation(self, state):
+    def pv_set_backlight_compensation(self, state):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_BACKLIGHT_COMPENSATION, state)
         self._client.sendall(command)
 
-    def set_pv_scene_mode(self, mode):
+    def pv_set_scene_mode(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_SCENE_MODE, mode)
         self._client.sendall(command)
 
-    def set_flat_mode(self, mode):
+    def ee_set_flat_mode(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_FLAT_MODE, mode)
         self._client.sendall(command)
 
-    def set_rm_eye_selection(self, enable):
+    def rm_set_eye_selection(self, enable):
         command = struct.pack('<BI', ipc_rc._CMD_SET_RM_EYE_SELECTION, 1 if (enable) else 0)
         self._client.sendall(command)
 
-    def set_pv_desired_optimization(self, mode):
+    def pv_set_desired_optimization(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_DESIRED_OPTIMIZATION, mode)
         self._client.sendall(command)
 
-    def set_pv_primary_use(self, mode):
+    def pv_set_primary_use(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_PRIMARY_USE, mode)
         self._client.sendall(command)
 
-    def set_pv_optical_image_stabilization(self, mode):
+    def pv_set_optical_image_stabilization(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_OPTICAL_IMAGE_STABILIZATION, mode)
         self._client.sendall(command)
 
-    def set_pv_hdr_video(self, mode):
+    def pv_set_hdr_video(self, mode):
         command = struct.pack('<BI', ipc_rc._CMD_SET_PV_HDR_VIDEO, mode)
         self._client.sendall(command)
 
-    def set_pv_regions_of_interest(self, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h):
+    def pv_set_regions_of_interest(self, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h):
         mode = (0x1000 if (clear) else 0) | (0x0800 if (set) else 0) | (0x0400 if (auto_exposure) else 0) | (0x0200 if (auto_focus) else 0) | (0x0100 if (bounds_normalized) else 0) | ((type & 1) << 7) | (weight & 0x007F)
         command = struct.pack('<BIffff', ipc_rc._CMD_SET_PV_REGIONS_OF_INTEREST, mode, x, y, w, h)
         self._client.sendall(command)
 
-    def set_interface_priority(self, port, priority):
+    def ee_set_interface_priority(self, port, priority):
         command = struct.pack('<BIi', ipc_rc._CMD_SET_INTERFACE_PRIORITY, port, priority)
         self._client.sendall(command)
     
@@ -2136,8 +2225,8 @@ class sm_mesh_task:
         self._count = 0
         self._data = bytearray()
 
-    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, include_vertex_normals, include_bounds):
-        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, (1 if include_vertex_normals else 0) | (2 if include_bounds else 0)))
+    def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format):
+        self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, 0))
         self._count += 1
 
     def _get(self):
@@ -2163,10 +2252,9 @@ class _sm_mesh:
 
 
 class ipc_sm(_context_manager):
-    _CMD_CREATE_OBSERVER       = 0x00
-    _CMD_SET_VOLUMES           = 0x01
-    _CMD_GET_OBSERVED_SURFACES = 0x02
-    _CMD_GET_MESHES            = 0x03
+    _CMD_SET_VOLUMES           = 0x00
+    _CMD_GET_OBSERVED_SURFACES = 0x01
+    _CMD_GET_MESHES            = 0x02
 
     def __init__(self, host, port):
         self.host = host
@@ -2175,9 +2263,6 @@ class ipc_sm(_context_manager):
     def open(self):
         self._client = _client()
         self._client.open(self.host, self.port)
-
-    def create_observer(self):
-        self._client.sendall(struct.pack('<B', ipc_sm._CMD_CREATE_OBSERVER))
 
     def set_volumes(self, volumes):
         count, data = volumes._get()
@@ -2188,33 +2273,30 @@ class ipc_sm(_context_manager):
 
     def get_observed_surfaces(self):
         self._client.sendall(struct.pack('<B', ipc_sm._CMD_GET_OBSERVED_SURFACES))
-        count = struct.unpack('<Q', self._client.download(_SIZEOF.QWORD, ChunkSize.SINGLE_TRANSFER))[0]
+        count = struct.unpack('<I', self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
         ids = self._client.download(count * 24, ChunkSize.SINGLE_TRANSFER)
         return [_sm_surface_info(ids[(i*24):(i*24+16)], struct.unpack('<Q', ids[(i*24+16):(i*24+24)])[0]) for i in range(0, count)]
     
     def _download_mesh(self):
-        header = self._client.download(100, ChunkSize.SINGLE_TRANSFER)
+        header = self._client.download(136, ChunkSize.SINGLE_TRANSFER)
 
         index, status, vpl, til, vnl = struct.unpack('<IIIII', header[:20])
         scale = header[20:32]
         pose = header[32:96]
-        bsz = struct.unpack('<I', header[96:100])[0]
+        bounds = header[96:(96+40)]
 
         if (status != 0):
             return index, None
         
-        payload = self._client.download(bsz + vpl + til + vnl, ChunkSize.SINGLE_TRANSFER)
+        payload = self._client.download(vpl + til + vnl, ChunkSize.SINGLE_TRANSFER)
 
-        osb_b = 0
-        osb_e = osb_b + bsz
-        vpd_b = osb_e
+        vpd_b = 0
         vpd_e = vpd_b + vpl
         tid_b = vpd_e
         tid_e = tid_b + til
         vnd_b = tid_e
         vnd_e = vnd_b + vnl
 
-        bounds           = payload[osb_b:osb_e]
         vertex_positions = payload[vpd_b:vpd_e]
         triangle_indices = payload[tid_b:tid_e]
         vertex_normals   = payload[vnd_b:vnd_e]
@@ -2225,10 +2307,10 @@ class ipc_sm(_context_manager):
         for _ in range(0, count):
             yield self._download_mesh()
     
-    def get_meshes(self, tasks, threads):
+    def get_meshes(self, tasks):
         count, data = tasks._get()
         msg = bytearray()
-        msg.extend(struct.pack('<BII', ipc_sm._CMD_GET_MESHES, count, threads))
+        msg.extend(struct.pack('<BI', ipc_sm._CMD_GET_MESHES, count))
         msg.extend(data)
         self._client.sendall(msg)
         meshes = {index : mesh for index, mesh in self._download_meshes(count)}
@@ -2420,12 +2502,8 @@ class vi_result:
 
 
 class ipc_vi(_context_manager):
-    _CMD_CREATE_RECOGNIZER = 0x00
-    _CMD_REGISTER_COMMANDS = 0x01
-    _CMD_START = 0x02
-    _CMD_POP = 0x03
-    _CMD_CLEAR = 0x04
-    _CMD_STOP = 0x05
+    _CMD_POP  = 0x01
+    _CMD_STOP = 0x00
 
     def __init__(self, host, port):
         self.host = host
@@ -2435,23 +2513,13 @@ class ipc_vi(_context_manager):
         self._client = _client()
         self._client.open(self.host, self.port)
 
-    def create_recognizer(self):
-        command = struct.pack('<B', ipc_vi._CMD_CREATE_RECOGNIZER)
-        self._client.sendall(command)
-
-    def register_commands(self, clear, strings):
+    def start(self, strings):
         command = bytearray()
-        command.extend(struct.pack('<BBB', ipc_vi._CMD_REGISTER_COMMANDS, 1 if (clear) else 0, len(strings)))
+        command.extend(struct.pack('<H', len(strings)))
         for string in strings:
             encoded = string.encode('utf-16')
             command.extend(struct.pack('<H', len(encoded)))
             command.extend(encoded)
-        self._client.sendall(command)
-        data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
-        return struct.unpack('<B', data)[0] != 0
-    
-    def start(self):
-        command = struct.pack('<B', ipc_vi._CMD_START)
         self._client.sendall(command)
 
     def pop(self):
@@ -2461,10 +2529,6 @@ class ipc_vi(_context_manager):
         count = struct.unpack('<I', data)[0]
         data = self._client.download(32*count, ChunkSize.SINGLE_TRANSFER)
         return [vi_result(data[(i*32):(i*32+4)], data[(i*32+4):(i*32+8)], data[(i*32+8):(i*32+16)], data[(i*32+16):(i*32+24)], data[(i*32+24):(i*32+32)]) for i in range(0, count)]
-    
-    def clear(self):
-        command = struct.pack('<B', ipc_vi._CMD_CLEAR)
-        self._client.sendall(command)
 
     def stop(self):
         command = struct.pack('<B', ipc_vi._CMD_STOP)
