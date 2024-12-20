@@ -1555,7 +1555,7 @@ HL2SS_CLIENT_IMPORT
 int32_t HL2SS_CALL rc_get_application_version(void* ipc, hl2ss::version& version);
 
 HL2SS_CLIENT_IMPORT
-int32_t HL2SS_CALL rc_get_utc_offset(void* ipc, uint32_t samples, uint64_t& offset);
+int32_t HL2SS_CALL rc_get_utc_offset(void* ipc, uint64_t& offset);
 
 HL2SS_CLIENT_IMPORT
 int32_t HL2SS_CALL rc_set_hs_marker_state(void* ipc, uint32_t state);
@@ -1622,16 +1622,13 @@ int32_t HL2SS_CALL rc_set_interface_priority(void* ipc, uint16_t port, int32_t p
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t HL2SS_CALL sm_create_observer(void* ipc);
-
-HL2SS_CLIENT_IMPORT
 int32_t HL2SS_CALL sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size);
 
 HL2SS_CLIENT_IMPORT
 void* HL2SS_CALL sm_get_observed_surfaces(void* ipc, uint64_t& size, hl2ss::sm_surface_info*& data);
 
 HL2SS_CLIENT_IMPORT
-void* HL2SS_CALL sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads);
+void* HL2SS_CALL sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size);
 
 HL2SS_CLIENT_IMPORT
 int32_t HL2SS_CALL sm_unpack_mesh(void* reference, uint32_t index, hl2ss::ulm::sm_mesh& mesh);
@@ -1654,19 +1651,10 @@ int32_t HL2SS_CALL su_unpack_item_mesh(void* meshes, uint32_t index, hl2ss::ulm:
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_IMPORT
-int32_t HL2SS_CALL vi_create_recognizer(void* ipc);
-
-HL2SS_CLIENT_IMPORT
-int32_t HL2SS_CALL vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status);
-
-HL2SS_CLIENT_IMPORT
-int32_t HL2SS_CALL vi_start(void* ipc);
+int32_t HL2SS_CALL vi_start(void* ipc, char const* utf8_array);
 
 HL2SS_CLIENT_IMPORT
 void* HL2SS_CALL vi_pop(void* ipc, uint64_t& size, hl2ss::vi_result*& data);
-
-HL2SS_CLIENT_IMPORT
-int32_t HL2SS_CALL vi_clear(void* ipc);
 
 HL2SS_CLIENT_IMPORT
 int32_t HL2SS_CALL vi_stop(void* ipc);
@@ -1939,10 +1927,10 @@ public:
         return version;
     }
 
-    uint64_t get_utc_offset(uint32_t samples)
+    uint64_t get_utc_offset()
     {
         uint64_t offset;
-        check_result(hl2ss::ulm::rc_get_utc_offset(m_handle, samples, offset));
+        check_result(hl2ss::ulm::rc_get_utc_offset(m_handle, offset));
         return offset;
     }
 
@@ -2066,7 +2054,7 @@ class sm_mesh_collection : protected handle
 public:
     std::vector<hl2ss::ulm::sm_mesh> meshes;
 
-    sm_mesh_collection(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads) : handle(hl2ss::ulm::sm_get_meshes(ipc, count, data, size, threads)), meshes{ count }
+    sm_mesh_collection(void* ipc, uint32_t count, uint8_t const* data, uint64_t size) : handle(hl2ss::ulm::sm_get_meshes(ipc, count, data, size)), meshes{ count }
     {
         for (uint32_t i = 0; i < count; ++i) { check_result(hl2ss::ulm::sm_unpack_mesh(m_handle, i, meshes[i])); }
     }
@@ -2079,11 +2067,6 @@ public:
     {
     }
 
-    void create_observer()
-    {
-        check_result(hl2ss::ulm::sm_create_observer(m_handle));
-    }
-
     void set_volumes(hl2ss::sm_bounding_volume const& volumes)
     {
         check_result(hl2ss::ulm::sm_set_volumes(m_handle, volumes.get_count(), volumes.get_data(), volumes.get_size()));
@@ -2094,9 +2077,9 @@ public:
         return std::make_unique<sm_surface_info_collection>(m_handle);
     }
 
-    std::unique_ptr<sm_mesh_collection> get_meshes(hl2ss::sm_mesh_task const& tasks, uint32_t threads)
+    std::unique_ptr<sm_mesh_collection> get_meshes(hl2ss::sm_mesh_task const& tasks)
     {
-        return std::make_unique<sm_mesh_collection>(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size(), threads);
+        return std::make_unique<sm_mesh_collection>(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size());
     }
 };
 
@@ -2190,31 +2173,14 @@ public:
     {
     }
 
-    void create_recognizer()
+    void start(char const* utf8_array)
     {
-        check_result(hl2ss::ulm::vi_create_recognizer(m_handle));
-    }
-
-    bool register_commands(bool clear, char const* utf8_array)
-    {
-        uint32_t status;
-        check_result(hl2ss::ulm::vi_register_commands(m_handle, clear, utf8_array, status));
-        return status;
-    }
-
-    void start()
-    {
-        check_result(hl2ss::ulm::vi_start(m_handle));
+        check_result(hl2ss::ulm::vi_start(m_handle, utf8_array));
     }
 
     std::unique_ptr<vi_result> pop()
     {
         return std::make_unique<vi_result>(m_handle);
-    }
-
-    void clear()
-    {
-        check_result(hl2ss::ulm::vi_clear(m_handle));
     }
 
     void stop()

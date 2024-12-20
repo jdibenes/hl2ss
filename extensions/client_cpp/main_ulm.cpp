@@ -564,7 +564,7 @@ void test_rc(char const* host)
 
     hl2ss::version v = ipc->get_application_version();
     std::cout << "version: " << v.field[0] << "." << v.field[1] << "." << v.field[2] << "." << v.field[3] << std::endl;
-    std::cout << "utf_offset: " << ipc->get_utc_offset(32) << std::endl;
+    std::cout << "utf_offset: " << ipc->get_utc_offset() << std::endl;
     ipc->set_hs_marker_state(hl2ss::hs_marker_state::Disable);
     std::cout << "pv status: " << ipc->get_pv_subsystem_status() << std::endl;
     ipc->wait_for_pv_subsystem(false);
@@ -599,14 +599,13 @@ void test_sm(char const* host)
 
     volumes.add_sphere({ 0.0f, 0.0f, 0.0f, 8.0f });
 
-    ipc->create_observer();
     ipc->set_volumes(volumes);
 
     auto surfaces = ipc->get_observed_surfaces();
     std::cout << "got " << surfaces->size << " surfaces" << std::endl;
 
     for (uint64_t i = 0; i < surfaces->size; ++i) { tasks.add_task(surfaces->data[i].id, 1000.0, hl2ss::sm_vertex_position_format::R32G32B32A32Float, hl2ss::sm_triangle_index_format::R32Uint, hl2ss::sm_vertex_normal_format::R32G32B32A32Float, true, false); }
-    auto data = ipc->get_meshes(tasks, threads);
+    auto data = ipc->get_meshes(tasks);
 
     int index = 0;
     for (auto const& mesh : data->meshes)
@@ -687,11 +686,7 @@ void test_vi(char const* host)
 
     auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_vi>(host, port);
 
-    ipc->create_recognizer();
-    bool ok = ipc->register_commands(true, "cat\0dog\0red\0blue\0");
-    std::cout << "register_commands: " << ok << std::endl;
-    if (!ok) { return; }
-    ipc->start();
+    ipc->start("cat\0dog\0red\0blue\0");
 
     std::cout << "waiting for voice command..." << std::endl;
     while (true)
@@ -706,7 +701,6 @@ void test_vi(char const* host)
         break;
     }
 
-    ipc->clear();
     ipc->stop();
 }
 

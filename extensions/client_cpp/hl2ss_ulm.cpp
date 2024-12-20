@@ -595,10 +595,10 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
-int32_t HL2SS_CALL rc_get_utc_offset(void* ipc, uint32_t samples, uint64_t& offset)
+int32_t HL2SS_CALL rc_get_utc_offset(void* ipc, uint64_t& offset)
 HL2SS_ULM_BEGIN
 {
-    offset = typed_handle<hl2ss::ipc_rc>::get(ipc)->get_utc_offset(samples);
+    offset = typed_handle<hl2ss::ipc_rc>::get(ipc)->get_utc_offset();
     return 0;
 }
 HL2SS_ULM_END(-1)
@@ -788,15 +788,6 @@ HL2SS_ULM_END(-1)
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t HL2SS_CALL sm_create_observer(void* ipc)
-HL2SS_ULM_BEGIN
-{
-    typed_handle<hl2ss::ipc_sm>::get(ipc)->create_observer();
-    return 0;
-}
-HL2SS_ULM_END(-1)
-
-HL2SS_CLIENT_EXPORT
 int32_t HL2SS_CALL sm_set_volumes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size)
 HL2SS_ULM_BEGIN
 {
@@ -819,12 +810,12 @@ HL2SS_ULM_BEGIN
 HL2SS_ULM_END(nullptr)
 
 HL2SS_CLIENT_EXPORT
-void* HL2SS_CALL sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size, uint32_t threads)
+void* HL2SS_CALL sm_get_meshes(void* ipc, uint32_t count, uint8_t const* data, uint64_t size)
 HL2SS_ULM_BEGIN
 {
     hl2ss::sm_mesh_task tasks(count, data, size);
     std::shared_ptr<std::vector<hl2ss::sm_mesh>> meshes = std::make_shared<std::vector<hl2ss::sm_mesh>>();
-    typed_handle<hl2ss::ipc_sm>::get(ipc)->get_meshes(tasks, threads, *meshes);
+    typed_handle<hl2ss::ipc_sm>::get(ipc)->get_meshes(tasks, *meshes);
     return typed_handle<std::vector<hl2ss::sm_mesh>>::create(meshes);
 }
 HL2SS_ULM_END(nullptr)
@@ -934,16 +925,7 @@ HL2SS_ULM_END(-1)
 //------------------------------------------------------------------------------
 
 HL2SS_CLIENT_EXPORT
-int32_t HL2SS_CALL vi_create_recognizer(void* ipc)
-HL2SS_ULM_BEGIN
-{
-    typed_handle<hl2ss::ipc_vi>::get(ipc)->create_recognizer();
-    return 0;
-}
-HL2SS_ULM_END(-1)
-
-HL2SS_CLIENT_EXPORT
-int32_t HL2SS_CALL vi_register_commands(void* ipc, uint32_t clear, char const* utf8_array, uint32_t& status)
+int32_t HL2SS_CALL vi_start(void* ipc, char const* utf8_array)
 HL2SS_ULM_BEGIN
 {
     char const* current = utf8_array;
@@ -957,16 +939,7 @@ HL2SS_ULM_BEGIN
         current += count + 1;
     }
 
-    status = typed_handle<hl2ss::ipc_vi>::get(ipc)->register_commands(clear, commands);
-    return 0;
-}
-HL2SS_ULM_END(-1)
-
-HL2SS_CLIENT_EXPORT
-int32_t HL2SS_CALL vi_start(void* ipc)
-HL2SS_ULM_BEGIN
-{
-    typed_handle<hl2ss::ipc_vi>::get(ipc)->start();
+    typed_handle<hl2ss::ipc_vi>::get(ipc)->start(commands);
     return 0;
 }
 HL2SS_ULM_END(-1)
@@ -984,15 +957,6 @@ HL2SS_ULM_BEGIN
     return typed_handle<std::vector<hl2ss::vi_result>>::create(results);
 }
 HL2SS_ULM_END(nullptr)
-
-HL2SS_CLIENT_EXPORT
-int32_t HL2SS_CALL vi_clear(void* ipc)
-HL2SS_ULM_BEGIN
-{
-    typed_handle<hl2ss::ipc_vi>::get(ipc)->clear();
-    return 0;
-}
-HL2SS_ULM_END(-1)
 
 HL2SS_CLIENT_EXPORT
 int32_t HL2SS_CALL vi_stop(void* ipc)
