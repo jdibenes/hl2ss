@@ -4,6 +4,11 @@
 using namespace winrt::Windows::Foundation::Collections;
 using namespace winrt::Windows::Media::Effects;
 
+//-----------------------------------------------------------------------------
+// Functions
+//-----------------------------------------------------------------------------
+
+// OK
 MRCAudioEffect::MRCAudioEffect(MRCAudioOptions const& options)
 {
     m_propertySet.Insert(L"MixerMode", winrt::box_value<uint32_t>((options.mixer_mode & 3) % 3));
@@ -11,11 +16,13 @@ MRCAudioEffect::MRCAudioEffect(MRCAudioOptions const& options)
     m_propertySet.Insert(L"MicrophoneGain", winrt::box_value<float>(options.microphone_gain));
 }
 
+// OK
 IPropertySet MRCAudioEffect::Properties()
 {
     return m_propertySet;
 }
 
+// OK
 winrt::hstring MRCAudioEffect::ActivatableClassId()
 {
     return L"Windows.Media.MixedRealityCapture.MixedRealityCaptureAudioEffect";

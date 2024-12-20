@@ -2,7 +2,7 @@
 #pragma once
 
 #include <Windows.h>
-#include "plugin.h"
+#include <functional>
 
 class CriticalSection
 {
@@ -25,6 +25,18 @@ public:
     ~SRWLock();
 };
 
+class Cleaner
+{
+private:
+    std::function<void()> m_f;
+    bool m_enable;
+
+public:
+    Cleaner(std::function<void()> f);
+    ~Cleaner();
+    void Set(bool enable);
+};
+
 class NamedMutex
 {
 private:
@@ -38,8 +50,3 @@ public:
     bool Acquire(DWORD timeout) const;
     bool Release() const;
 };
-
-HL2SS_PLUGIN_EXPORT void* NamedMutex_Create(wchar_t const* name);
-HL2SS_PLUGIN_EXPORT void NamedMutex_Destroy(void* p);
-HL2SS_PLUGIN_EXPORT int NamedMutex_Acquire(void* p, uint32_t timeout);
-HL2SS_PLUGIN_EXPORT int NamedMutex_Release(void* p);

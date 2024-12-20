@@ -2,7 +2,6 @@
 #pragma once
 
 #include <stdint.h>
-#include "configuration.h"
 
 #define HL2SS_PLUGIN_IMPORT extern "C" __declspec(dllimport)
 
@@ -24,6 +23,9 @@ void GetLocalIPv4Address(wchar_t* buffer, int size);
 
 HL2SS_PLUGIN_IMPORT
 int OverrideWorldCoordinateSystem(void* scs_ptr);
+
+HL2SS_PLUGIN_IMPORT
+void CheckExceptions();
 
 //-----------------------------------------------------------------------------
 // Message Queue
@@ -58,10 +60,10 @@ void MQX_Restart();
 //-----------------------------------------------------------------------------
 
 HL2SS_PLUGIN_IMPORT
-void* NamedMutex_Create(wchar_t const* name);
+void NamedMutex_Destroy(void* p);
 
 HL2SS_PLUGIN_IMPORT
-void NamedMutex_Destroy(void* p);
+void* NamedMutex_Create(wchar_t const* name);
 
 HL2SS_PLUGIN_IMPORT
 int NamedMutex_Acquire(void* p, uint32_t timeout);

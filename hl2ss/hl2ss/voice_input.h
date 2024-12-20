@@ -14,12 +14,13 @@ struct VoiceInput_Result
     double   RawConfidence;
 };
 
-void VoiceInput_Initialize();
-void VoiceInput_CreateRecognizer();
-bool VoiceInput_RegisterCommands(std::vector<winrt::hstring> const& strings, bool clear);
+void VoiceInput_Startup();
+void VoiceInput_Cleanup();
+void VoiceInput_Open();
+void VoiceInput_Close();
+bool VoiceInput_RegisterCommands(std::vector<winrt::hstring> const& strings);
 void VoiceInput_Start();
 void VoiceInput_Stop();
-size_t VoiceInput_GetCount();
+bool VoiceInput_Status();
+uint32_t VoiceInput_GetCount();
 VoiceInput_Result VoiceInput_Pop();
-void VoiceInput_Clear();
-bool VoiceInput_IsRunning();

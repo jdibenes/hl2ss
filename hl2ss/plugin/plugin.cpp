@@ -1,74 +1,27 @@
 ﻿
-#include <mfapi.h>
-#include "configuration.h"
+#include <Windows.h>
 
-#include "../hl2ss/plugin.h"
-#include "../hl2ss/server.h"
-#include "../hl2ss/timestamps.h"
-#include "../hl2ss/log.h"
-#include "../hl2ss/nfo.h"
-#include "../hl2ss/types.h"
-#include "../hl2ss/lock.h"
+#include "../hl2ss/ipl.h"
+#include "../hl2ss/extended_execution.h"
 #include "../hl2ss/locator.h"
-#include "../hl2ss/research_mode.h"
-#include "../hl2ss/spatial_input.h"
+#include "../hl2ss/server.h"
 #include "../hl2ss/personal_video.h"
-#include "../hl2ss/spatial_mapping.h"
-#include "../hl2ss/scene_understanding.h"
-#include "../hl2ss/voice_input.h"
-#include "../hl2ss/stream_rm.h"
-#include "../hl2ss/stream_mc.h"
-#include "../hl2ss/stream_pv.h"
-#include "../hl2ss/stream_si.h"
-#include "../hl2ss/ipc_rc.h"
-#include "../hl2ss/ipc_sm.h"
-#include "../hl2ss/ipc_su.h"
-#include "../hl2ss/ipc_vi.h"
-#include "../hl2ss/ipc_mq.h"
-#include "../hl2ss/stream_eet.h"
-#include "../hl2ss/stream_ea.h"
-#include "../hl2ss/stream_ev.h"
+#include "../hl2ss/extended_video.h"
+#include "../hl2ss/message_queue.h"
+#include "../hl2ss/lock.h"
+#include "../hl2ss/log.h"
 
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.UI.Core.h>
-#include <winrt/Windows.ApplicationModel.Core.h>
-
-using namespace winrt::Windows::UI::Core;
-using namespace winrt::Windows::ApplicationModel::Core;
+#define HL2SS_PLUGIN_EXPORT extern "C" __declspec(dllexport)
 
 //-----------------------------------------------------------------------------
-// Functions
+// Main
 //-----------------------------------------------------------------------------
 
 // OK
 HL2SS_PLUGIN_EXPORT
 void InitializeStreams(uint32_t enable)
 {
-    InitializeSockets();
-    MFStartup(MF_VERSION);
-
-    Locator_Initialize();
-
-    if (enable & HL2SS_ENABLE_RM) { ResearchMode_Initialize(); }
-    if (enable & HL2SS_ENABLE_PV) { PersonalVideo_Initialize(); }
-    if (enable & HL2SS_ENABLE_SI) { SpatialInput_Initialize(); }
-    if (enable & HL2SS_ENABLE_SM) { SpatialMapping_Initialize(); }
-    if (enable & HL2SS_ENABLE_SU) { SceneUnderstanding_Initialize(); }
-    if (enable & HL2SS_ENABLE_VI) { VoiceInput_Initialize(); }
-
-    if (enable & HL2SS_ENABLE_RM) { RM_Initialize(); }
-    if (enable & HL2SS_ENABLE_PV) { PV_Initialize(); }
-    if (enable & HL2SS_ENABLE_MC) { MC_Initialize(); }
-    if (enable & HL2SS_ENABLE_SI) { SI_Initialize(); }
-    if (enable & HL2SS_ENABLE_RC) { RC_Initialize(); }
-    if (enable & HL2SS_ENABLE_SM) { SM_Initialize(); }
-    if (enable & HL2SS_ENABLE_SU) { SU_Initialize(); }
-    if (enable & HL2SS_ENABLE_VI) { VI_Initialize(); }
-    if (enable & HL2SS_ENABLE_MQ) { MQ_Initialize(); }
-    if (enable & HL2SS_ENABLE_EET) { EET_Initialize(); }
-    if (enable & HL2SS_ENABLE_EA) { EA_Initialize(); }
-    if (enable & HL2SS_ENABLE_EV) { EV_Initialize(); }
-    if (enable & HL2SS_ENABLE_MQX) { MQX_Initialize(); }
+    HL2SS_Load(false); 
 }
 
 // OK
@@ -76,7 +29,7 @@ HL2SS_PLUGIN_EXPORT
 void InitializeStreamsOnUI(uint32_t enable)
 {
     HANDLE event_done = CreateEvent(NULL, TRUE, FALSE, NULL);
-    CoreApplication::Views().GetAt(0).Dispatcher().RunAsync(CoreDispatcherPriority::High, [=]() { InitializeStreams(enable); SetEvent(event_done); }).get();
+    ExtendedExecution_RunOnMainThread([=]() { InitializeStreams(enable); SetEvent(event_done); });
     WaitForSingleObject(event_done, INFINITE);
     CloseHandle(event_done);
 }
@@ -92,9 +45,8 @@ void DebugMessage(char const* str)
 HL2SS_PLUGIN_EXPORT
 void GetLocalIPv4Address(wchar_t *buffer, int size)
 {
-    std::vector<wchar_t> address;
-    GetLocalIPv4Address(address);
-    wcscpy_s(buffer, size / sizeof(wchar_t), address.data());
+    winrt::hstring address = Server_GetLocalIPv4Address();
+    wcscpy_s(buffer, size / sizeof(wchar_t), address.c_str());
 }
 
 // OK
@@ -110,4 +62,129 @@ int OverrideWorldCoordinateSystem(void* scs_ptr)
     }
     Locator_OverrideWorldCoordinateSystem(scs);
     return true;
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void CheckExceptions()
+{
+    HL2SS_Process_EE();
+}
+
+//-----------------------------------------------------------------------------
+// Message Queue
+//-----------------------------------------------------------------------------
+
+// OK
+HL2SS_PLUGIN_EXPORT
+uint32_t MQ_SI_Peek()
+{
+    return MessageQueue_Server_RX_Peek();
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void MQ_SI_Pop(uint32_t& command, uint8_t* data)
+{
+    MessageQueue_Server_RX_Pull(command, data);
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void MQ_SO_Push(uint32_t id)
+{
+    MessageQueue_Server_TX_Push(id);
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void MQ_Restart()
+{
+    MessageQueue_Server_Restart();
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+uint32_t MQX_CO_Peek()
+{
+    return MessageQueue_Client_RX_Peek();
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT 
+void MQX_CO_Pop(uint32_t& id)
+{
+    MessageQueue_Client_RX_Pull(id);
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT 
+void MQX_CI_Push(uint32_t command, uint32_t size, uint8_t const* data)
+{
+    MessageQueue_Client_TX_Push(command, size, data);
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT 
+void MQX_Restart()
+{
+    MessageQueue_Client_Restart();
+}
+
+//-----------------------------------------------------------------------------
+// Lock
+//-----------------------------------------------------------------------------
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void NamedMutex_Destroy(void* p)
+{
+    delete static_cast<NamedMutex*>(p);
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void* NamedMutex_Create(wchar_t const* name)
+{
+    NamedMutex* mutex = new (std::nothrow) NamedMutex(); // delete
+    if (mutex == nullptr) { return NULL; }
+    if (mutex->Create(name)) { return mutex; }
+    NamedMutex_Destroy(mutex);
+    return NULL;
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+int NamedMutex_Acquire(void* p, uint32_t timeout)
+{
+    return static_cast<NamedMutex*>(p)->Acquire(timeout);
+}
+
+// OK
+HL2SS_PLUGIN_EXPORT
+int NamedMutex_Release(void* p)
+{
+    return static_cast<NamedMutex*>(p)->Release();
+}
+
+//-----------------------------------------------------------------------------
+// PV
+//-----------------------------------------------------------------------------
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void PersonalVideo_RegisterNamedMutex(wchar_t const* name)
+{
+    PersonalVideo_CreateNamedMutex(name);
+}
+
+//-----------------------------------------------------------------------------
+// EV
+//-----------------------------------------------------------------------------
+
+// OK
+HL2SS_PLUGIN_EXPORT
+void ExtendedVideo_RegisterNamedMutex(wchar_t const* name)
+{
+    ExtendedVideo_CreateNamedMutex(name);
 }

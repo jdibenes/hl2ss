@@ -4,10 +4,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stream_rm.cpp">
-      <Filter>Source Files\interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="stream_rm_imu.cpp">
+    <ClCompile Include="stream_rm_acc.cpp">
       <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm_vlc.cpp">
@@ -16,13 +13,7 @@
     <ClCompile Include="stream_rm_zht.cpp">
       <Filter>Source Files\interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="custom_hook_callback.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
     <ClCompile Include="custom_media_sink.cpp">
-      <Filter>Source Files\sink</Filter>
-    </ClCompile>
-    <ClCompile Include="custom_media_type_handler.cpp">
       <Filter>Source Files\sink</Filter>
     </ClCompile>
     <ClCompile Include="custom_media_types.cpp">
@@ -39,9 +30,6 @@
     </ClCompile>
     <ClCompile Include="stream_mc.cpp">
       <Filter>Source Files\interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="locator.cpp">
-      <Filter>Source Files\devices</Filter>
     </ClCompile>
     <ClCompile Include="personal_video.cpp">
       <Filter>Source Files\devices</Filter>
@@ -61,25 +49,16 @@
     <ClCompile Include="lock.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
-    <ClCompile Include="holographic_space.cpp">
-      <Filter>Source Files\devices</Filter>
-    </ClCompile>
     <ClCompile Include="server.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
     <ClCompile Include="research_mode.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
-    <ClCompile Include="timestamps.cpp">
-      <Filter>Source Files\utilities</Filter>
-    </ClCompile>
     <ClCompile Include="nfo.cpp">
       <Filter>Source Files\utilities</Filter>
     </ClCompile>
-    <ClCompile Include="neon.cpp">
-      <Filter>Source Files\utilities</Filter>
-    </ClCompile>
-    <ClCompile Include="ipc_sc.cpp">
+    <ClCompile Include="server_settings.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
     <ClCompile Include="display7s.cpp">
@@ -229,9 +208,6 @@
     <ClCompile Include="stream_ea.cpp">
       <Filter>Source Files\interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="extended_execution.cpp">
-      <Filter>Source Files\devices</Filter>
-    </ClCompile>
     <ClCompile Include="extended_video.cpp">
       <Filter>Source Files\devices</Filter>
     </ClCompile>
@@ -240,6 +216,69 @@
     </ClCompile>
     <ClCompile Include="ipc_mq.cpp">
       <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_media_type_handler.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_rm_vlc.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_rm_zlt.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_rm_zht.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_pv.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_mc.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_ea.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="custom_encoder.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
+    <ClCompile Include="server_channel.cpp">
+      <Filter>Source Files\server</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_rm_gyr.cpp">
+      <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_rm_mag.cpp">
+      <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="holographic_space.cpp">
+      <Filter>Source Files\system</Filter>
+    </ClCompile>
+    <ClCompile Include="extended_execution.cpp">
+      <Filter>Source Files\system</Filter>
+    </ClCompile>
+    <ClCompile Include="locator.cpp">
+      <Filter>Source Files\system</Filter>
+    </ClCompile>
+    <ClCompile Include="timestamp.cpp">
+      <Filter>Source Files\system</Filter>
+    </ClCompile>
+    <ClCompile Include="ipc_mqx.cpp">
+      <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="message_queue.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="ipl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="extended_depth.cpp">
+      <Filter>Source Files\devices</Filter>
+    </ClCompile>
+    <ClCompile Include="stream_ez.cpp">
+      <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_ez.cpp">
+      <Filter>Source Files\encoders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -329,6 +368,18 @@
     <Filter Include="Header Files\interfaces">
       <UniqueIdentifier>{f3e105db-3dac-4194-b4dd-8cd6f1fbc8a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\encoders">
+      <UniqueIdentifier>{41387a57-6898-4aef-bcfe-ee4029ad847e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\encoders">
+      <UniqueIdentifier>{72f4d006-e21d-42fa-99ab-87e1511ff1f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\system">
+      <UniqueIdentifier>{20149fbf-39a8-40b6-bfdf-4cd5b5e91bb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\system">
+      <UniqueIdentifier>{16c9eaae-2c95-4ad0-8b0c-255f0316aaa6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
@@ -351,10 +402,7 @@
     <ClInclude Include="research_mode.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
-    <ClInclude Include="stream_rm.h">
-      <Filter>Header Files\interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="stream_rm_imu.h">
+    <ClInclude Include="stream_rm_acc.h">
       <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm_vlc.h">
@@ -366,16 +414,7 @@
     <ClInclude Include="microphone_capture.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
-    <ClInclude Include="custom_hook_callback.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
     <ClInclude Include="custom_media_sink.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_media_type_handler.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_sink_hook.h">
       <Filter>Header Files\sink</Filter>
     </ClInclude>
     <ClInclude Include="custom_media_types.h">
@@ -386,9 +425,6 @@
     </ClInclude>
     <ClInclude Include="custom_stream_sink.h">
       <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="locator.h">
-      <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="stream_mc.h">
       <Filter>Header Files\interfaces</Filter>
@@ -411,25 +447,16 @@
     <ClInclude Include="lock.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
-    <ClInclude Include="holographic_space.h">
-      <Filter>Header Files\devices</Filter>
-    </ClInclude>
     <ClInclude Include="server.h">
       <Filter>Header Files\server</Filter>
     </ClInclude>
-    <ClInclude Include="ports.h">
+    <ClInclude Include="server_ports.h">
       <Filter>Header Files\server</Filter>
-    </ClInclude>
-    <ClInclude Include="timestamps.h">
-      <Filter>Header Files\utilities</Filter>
     </ClInclude>
     <ClInclude Include="nfo.h">
       <Filter>Header Files\utilities</Filter>
     </ClInclude>
-    <ClInclude Include="neon.h">
-      <Filter>Header Files\utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="ipc_sc.h">
+    <ClInclude Include="server_settings.h">
       <Filter>Header Files\server</Filter>
     </ClInclude>
     <ClInclude Include="display7s.h">
@@ -585,20 +612,11 @@
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\zstd.h">
       <Filter>Libraries\Zdepth\zstd</Filter>
     </ClInclude>
-    <ClInclude Include="custom_video_effect.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
-    <ClInclude Include="custom_audio_effect.h">
-      <Filter>Header Files\sink</Filter>
-    </ClInclude>
     <ClInclude Include="extended_audio.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="stream_ea.h">
       <Filter>Header Files\interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="extended_execution.h">
-      <Filter>Header Files\devices</Filter>
     </ClInclude>
     <ClInclude Include="extended_video.h">
       <Filter>Header Files\devices</Filter>
@@ -609,8 +627,77 @@
     <ClInclude Include="ipc_mq.h">
       <Filter>Header Files\interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="plugin.h">
+    <ClInclude Include="custom_audio_effect.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_video_effect.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_media_type_handler.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_rm_vlc.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_rm_zlt.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_rm_zht.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_pv.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_mc.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_ea.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_encoder.h">
+      <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="server_channel.h">
+      <Filter>Header Files\server</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rm_gyr.h">
+      <Filter>Header Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rm_mag.h">
+      <Filter>Header Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="message_queue.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="extended_execution.h">
+      <Filter>Header Files\system</Filter>
+    </ClInclude>
+    <ClInclude Include="holographic_space.h">
+      <Filter>Header Files\system</Filter>
+    </ClInclude>
+    <ClInclude Include="locator.h">
+      <Filter>Header Files\system</Filter>
+    </ClInclude>
+    <ClInclude Include="timestamp.h">
+      <Filter>Header Files\system</Filter>
+    </ClInclude>
+    <ClInclude Include="ipc_mqx.h">
+      <Filter>Header Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="ipl.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="extended_depth.h">
+      <Filter>Header Files\devices</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_ez.h">
+      <Filter>Header Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_ez.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="queue.h">
+      <Filter>Header Files\utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

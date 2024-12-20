@@ -1,11 +1,12 @@
 
 #pragma once
 
-#include <researchmode/ResearchModeApi.h>
-#include <WinSock2.h>
+void RM_VLF_Startup();
+void RM_VLL_Startup();
+void RM_VRF_Startup();
+void RM_VRR_Startup();
 
-#include <winrt/Windows.Perception.Spatial.h>
-
-void RM_VLC_Mode0(IResearchModeSensor* sensor, SOCKET clientsocket);
-void RM_VLC_Mode1(IResearchModeSensor* sensor, SOCKET clientsocket, winrt::Windows::Perception::Spatial::SpatialLocator const& locator);
-void RM_VLC_Mode2(IResearchModeSensor* sensor, SOCKET clientsocket);
+void RM_VLF_Cleanup();
+void RM_VLL_Cleanup();
+void RM_VRF_Cleanup();
+void RM_VRR_Cleanup();

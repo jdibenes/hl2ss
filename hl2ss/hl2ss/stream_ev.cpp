@@ -1,340 +1,235 @@
 
-#include <mfapi.h>
-#include "custom_media_sink.h"
-#include "custom_media_buffers.h"
 #include "extended_video.h"
-#include "log.h"
-#include "ports.h"
-#include "timestamps.h"
-#include "ipc_sc.h"
-#include "extended_execution.h"
+#include "server_channel.h"
+#include "server_settings.h"
+#include "encoder_pv.h"
 
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
-#include <winrt/Windows.Media.Devices.Core.h>
-#include <winrt/Windows.Foundation.Numerics.h>
 
-using namespace winrt::Windows::Media::Capture;
 using namespace winrt::Windows::Media::Capture::Frames;
-using namespace winrt::Windows::Media::Devices::Core;
-using namespace winrt::Windows::Foundation::Numerics;
 
-struct uint64x2
+class Channel_EV : public Channel
 {
-    uint64_t val[2];
-};
+private:
+    std::unique_ptr<Encoder_PV> m_pEncoder;
+    bool m_enable_location;
+    uint32_t m_counter;
+    uint32_t m_divisor;
+    uint16_t m_width;
+    uint16_t m_height;
 
-struct PV_Projection
-{
-    float2   f;
-    float2   c;
-    uint64_t exposure_time;
-    uint64x2 exposure_compensation;
-    uint32_t lens_position;
-    uint32_t focus_state;
-    uint32_t iso_speed;
-    uint32_t white_balance;
-    float2   iso_gains;
-    float3   white_balance_gains;
-    uint32_t _reserved;
-    uint64_t timestamp;
-    float4x4 pose;
+    bool Startup();
+    void Run();
+    void Cleanup();
+
+    void Execute_Mode0(bool enable_location);
+    void Execute_Mode2();
+
+    void OnFrameArrived(MediaFrameReference const& frame);
+    void OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
+    
+    static void TranslateEncoderOptions(std::vector<uint64_t> const& options, uint32_t& stride_mask, MediaFrameReaderAcquisitionMode& acquisition_mode);
+
+    static void Thunk_Sensor(MediaFrameReference const& frame, void* self);
+    static void Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
+
+public:
+    Channel_EV(char const* name, char const* port, uint32_t id);
 };
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_event_quit = NULL; // CloseHandle
-static HANDLE g_thread = NULL; // CloseHandle
-static SRWLOCK g_lock;
-
-// Mode: 0, 1
-static IMFSinkWriter* g_pSinkWriter = NULL; // Release
-static DWORD g_dwVideoIndex = 0;
-static uint32_t g_counter = 0;
-static uint32_t g_divisor = 1;
-static PV_Projection g_pvp_sh;
+static std::unique_ptr<Channel_EV> g_channel;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-void EV_OnVideoFrameArrived(MediaFrameReader const& sender, MediaFrameArrivedEventArgs const& args)
+void Channel_EV::TranslateEncoderOptions(std::vector<uint64_t> const& options, uint32_t& stride_mask, MediaFrameReaderAcquisitionMode& acquisition_mode)
 {
-    (void)args;
+    stride_mask      = 0x3F;
+    acquisition_mode = MediaFrameReaderAcquisitionMode::Buffered;
 
-    IMFSample* pSample; // Release
-    SoftwareBitmapBuffer* pBuffer; // Release
-    PV_Projection pj;
-
-    if (TryAcquireSRWLockShared(&g_lock) != 0)
+    for (int i = 0; i < static_cast<int>(options.size() & ~1ULL); i += 2)
     {
-    auto const& frame = sender.TryAcquireLatestFrame();
-    if (frame) 
+    switch (options[i])
     {
-    if (g_counter == 0)
-    {
-    SoftwareBitmapBuffer::CreateInstance(&pBuffer, frame);
-
-    MFCreateSample(&pSample);
-
-    int64_t timestamp = frame.SystemRelativeTime().Value().count();
-
-    pSample->AddBuffer(pBuffer);
-    pSample->SetSampleDuration(frame.Duration().count());
-    pSample->SetSampleTime(timestamp);
-
-    memset(&pj, 0, sizeof(pj));
-
-    pj.timestamp = timestamp;
-
-    pSample->SetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&pj, sizeof(pj));
-
-    g_pSinkWriter->WriteSample(g_dwVideoIndex, pSample);
-
-    pSample->Release();
-    pBuffer->Release();
+    case HL2SSAPI::HL2SSAPI_VideoStrideMask: stride_mask      = static_cast<uint32_t>(options[i + 1]);                                                                        break;
+    case HL2SSAPI::HL2SSAPI_AcquisitionMode: acquisition_mode = (options[i + 1] & 1) ? MediaFrameReaderAcquisitionMode::Buffered : MediaFrameReaderAcquisitionMode::Realtime; break;
     }
-    g_counter = (g_counter + 1) % g_divisor;
-    }
-    ReleaseSRWLockShared(&g_lock);
     }
 }
 
 // OK
-template<bool ENABLE_LOCATION>
-void EV_SendSample(IMFSample* pSample, void* param)
+void Channel_EV::Thunk_Sensor(MediaFrameReference const& frame, void* self)
 {
-    IMFMediaBuffer* pBuffer; // Release
-    LONGLONG sampletime;
-    BYTE* pBytes;
-    DWORD cbData;
-    WSABUF wsaBuf[ENABLE_LOCATION ? 5 : 4];    
-
-    HookCallbackSocket* user = (HookCallbackSocket*)param;
-    H26xFormat* format = (H26xFormat*)user->format;
-    bool sh = format->profile != H26xProfile::H26xProfile_None;
-
-    pSample->GetSampleTime(&sampletime);
-    pSample->ConvertToContiguousBuffer(&pBuffer);
-
-    if (!sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
-
-    pBuffer->Lock(&pBytes, NULL, &cbData);
-
-    int const metadata = sizeof(g_pvp_sh) - sizeof(g_pvp_sh.timestamp) - sizeof(g_pvp_sh.pose);
-    DWORD cbDataEx = cbData + metadata;
-
-    pack_buffer(wsaBuf, 0, &g_pvp_sh.timestamp, sizeof(g_pvp_sh.timestamp));
-    pack_buffer(wsaBuf, 1, &cbDataEx, sizeof(cbDataEx));
-    pack_buffer(wsaBuf, 2, pBytes, cbData);
-    pack_buffer(wsaBuf, 3, &g_pvp_sh, metadata);
-
-    if constexpr (ENABLE_LOCATION)
-    {
-    pack_buffer(wsaBuf, 4, &g_pvp_sh.pose, sizeof(g_pvp_sh.pose));
-    }
-
-    bool ok = send_multiple(user->clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok) { SetEvent(user->clientevent); }
-
-    pBuffer->Unlock();
-    pBuffer->Release();
-
-    if (sh) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, (UINT8*)&g_pvp_sh, sizeof(g_pvp_sh), NULL); }
+    static_cast<Channel_EV*>(self)->OnFrameArrived(frame);
 }
 
 // OK
-template<bool ENABLE_LOCATION>
-void EV_Stream(SOCKET clientsocket, HANDLE clientevent, MediaFrameReader const& reader, H26xFormat& format, VideoSubtype subtype)
+void Channel_EV::Thunk_Encoder(void* encoder, DWORD encoder_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
 {
-    CustomMediaSink* pSink; // Release
+    static_cast<Channel_EV*>(self)->OnEncodingComplete(encoder, encoder_size, clean_point, sample_time, metadata, metadata_size);
+}
+
+// OK
+void Channel_EV::OnFrameArrived(MediaFrameReference const& frame)
+{
+    PV_Metadata p;
+
+    if (m_counter == 0)
+    {
+    memset(&p, 0, sizeof(p));
+
+    p.timestamp  = frame.SystemRelativeTime().Value().count();
+    p.resolution = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
+
+    m_pEncoder->WriteSample(frame, &p);
+    }
+    m_counter = (m_counter + 1) % m_divisor;
+}
+
+// OK
+void Channel_EV::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
+{
+    (void)clean_point;
+    (void)sample_time;
+    (void)metadata_size;
+
+    ULONG const embed_size = sizeof(PV_Metadata) - sizeof(PV_Metadata::timestamp) - sizeof(PV_Metadata::pose);
+
+    PV_Metadata* p = static_cast<PV_Metadata*>(metadata);    
+    ULONG full_size = encoded_size + embed_size;
+    WSABUF wsaBuf[5];
+
+    pack_buffer(wsaBuf, 0, &p->timestamp, sizeof(p->timestamp));
+    pack_buffer(wsaBuf, 1, &full_size,    sizeof(full_size));
+    pack_buffer(wsaBuf, 2, encoded,       encoded_size);
+    pack_buffer(wsaBuf, 3, p,             embed_size);
+    pack_buffer(wsaBuf, 4, &p->pose,      sizeof(p->pose) * m_enable_location);
+
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
+// OK
+void Channel_EV::Execute_Mode0(bool enable_location)
+{
+    MediaFrameReaderAcquisitionMode acquisition_mode;
+    H26xFormat format;
     std::vector<uint64_t> options;
-    HookCallbackSocket user;
-    bool ok;
-
-    ok = ReceiveH26xFormat_Divisor(clientsocket, format);
-    if (!ok) { return; }
-
-    ok = ReceiveH26xFormat_Profile(clientsocket, format);
-    if (!ok) { return; }
-
-    ok = ReceiveH26xEncoder_Options(clientsocket, options);
-    if (!ok) { return; }
-
-    user.clientsocket = clientsocket;
-    user.clientevent  = clientevent;
-    user.format       = &format;
-
-    CreateSinkWriterVideo(&pSink, &g_pSinkWriter, &g_dwVideoIndex, subtype, format, options, EV_SendSample<ENABLE_LOCATION>, &user);
-
-    reader.FrameArrived(EV_OnVideoFrameArrived);
-
-    g_counter = 0;
-    g_divisor = format.divisor;
-    memset(&g_pvp_sh, 0, sizeof(g_pvp_sh));
-
-    ReleaseSRWLockExclusive(&g_lock);
-    reader.StartAsync().get();
-    WaitForSingleObject(clientevent, INFINITE);
-    reader.StopAsync().get();
-    AcquireSRWLockExclusive(&g_lock);
-
-    g_pSinkWriter->Flush(g_dwVideoIndex);
-    g_pSinkWriter->Release();
-    pSink->Shutdown();
-    pSink->Release();
-}
-
-// OK
-static void EV_DeviceQuery(SOCKET clientsocket)
-{
-    winrt::hstring query;
-    WSABUF wsaBuf[2];
-
-    ExtendedVideo_QueryDevices(query);
-
-    uint32_t bytes = query.size() * sizeof(wchar_t);
-
-    pack_buffer(wsaBuf, 0, &bytes, sizeof(bytes));
-    pack_buffer(wsaBuf, 1, query.c_str(), bytes);
-
-    send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-}
-
-// OK
-static void EV_Stream(SOCKET clientsocket, uint8_t mode, H26xFormat& format)
-{
-    HANDLE clientevent; // CloseHandle
     VideoSubtype subtype;
+    uint32_t stride_mask;    
     bool ok;
+
+    if (!ExtendedVideo_Status()) { return; }
+
+    ok = ReceiveH26xFormat_Video(m_socket_client, m_event_client, format);
+    if (!ok) { return; }
+
+    ok = ReceiveH26xFormat_Divisor(m_socket_client, m_event_client, format);
+    if (!ok) { return; }
+
+    ok = ReceiveH26xFormat_Profile(m_socket_client, m_event_client, format);
+    if (!ok) { return; }
+
+    ok = ReceiveEncoderOptions(m_socket_client, m_event_client, options);
+    if (!ok) { return; }
 
     ok = ExtendedVideo_SetFormat(format.width, format.height, format.framerate, subtype);
     if (!ok) { return; }
 
-    clientevent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    TranslateEncoderOptions(options, stride_mask, acquisition_mode);
 
-    ExtendedVideo_RegisterEvent(clientevent);
-    auto const& videoFrameReader = ExtendedVideo_CreateFrameReader();
-    videoFrameReader.AcquisitionMode(MediaFrameReaderAcquisitionMode::Buffered);
+    uint32_t stride = (format.width + stride_mask) & ~stride_mask;
 
-    switch (mode & 3)
-    {
-    case 0: EV_Stream<false>(clientsocket, clientevent, videoFrameReader, format, subtype); break;
-    case 1: EV_Stream<true>( clientsocket, clientevent, videoFrameReader, format, subtype); break;
-    }
+    m_pEncoder        = std::make_unique<Encoder_PV>(Thunk_Encoder, this, subtype, format, stride, options);    
+    m_enable_location = enable_location;
+    m_counter         = 0;
+    m_divisor         = format.divisor;
+    m_width           = format.width;
+    m_height          = format.height;
 
-    videoFrameReader.Close();
-    ExtendedVideo_RegisterEvent(NULL);
+    ExtendedVideo_ExecuteSensorLoop(acquisition_mode, Thunk_Sensor, this, m_event_client);
 
-    CloseHandle(clientevent);
+    m_pEncoder.reset();
 }
 
 // OK
-static void EV_Stream(SOCKET clientsocket)
+void Channel_EV::Execute_Mode2()
+{
+    winrt::hstring query = ExtendedVideo_QueryDevices();
+    WSABUF wsaBuf[2];    
+
+    uint32_t bytes = query.size() * sizeof(wchar_t);
+
+    pack_buffer(wsaBuf, 0, &bytes,        sizeof(bytes));
+    pack_buffer(wsaBuf, 1, query.c_str(), bytes);
+
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+}
+
+// OK
+Channel_EV::Channel_EV(char const* name, char const* port, uint32_t id) : 
+Channel(name, port, id)
+{
+}
+
+// OK
+bool Channel_EV::Startup()
+{
+    SetNoDelay(true);
+    return true;
+}
+
+// OK
+void Channel_EV::Run()
 {
     MRCVideoOptions options;
-    H26xFormat format;
     uint8_t mode;    
     bool ok;
 
-    ok = recv_u8(clientsocket, mode);
+    ok = ReceiveOperatingMode(m_socket_client, m_event_client, mode);
     if (!ok) { return; }
-
-    ok = ReceiveH26xFormat_Video(clientsocket, format);
-    if (!ok) { return; }
-
-    if ((mode & 3) == 2)
-    {
-    EV_DeviceQuery(clientsocket);
-    return;
-    }
 
     if (mode & 4)
     {
-    ok = ReceiveMRCVideoOptions(clientsocket, options);
+    ok = ReceiveMRCVideoOptions(m_socket_client, m_event_client, options);
     if (!ok) { return; }
+
     if (ExtendedVideo_Status()) { ExtendedVideo_Close(); }
+
     ExtendedVideo_Open(options);
     }
 
-    if (!ExtendedVideo_Status()) { return; }
-
-    if ((mode & 3) != 3) { EV_Stream(clientsocket, mode, format); }
-
-    if (mode & 8) { ExtendedVideo_Close(); }
-}
-
-// OK
-static DWORD WINAPI EV_EntryPoint(void *param)
-{
-    (void)param;
-
-    SOCKET listensocket; // closesocket
-    SOCKET clientsocket; // closesocket
-    int base_priority;
-
-    listensocket = CreateSocket(PORT_NAME_EV);
-
-    ShowMessage("EV: Listening at port %s", PORT_NAME_EV);
-
-    AcquireSRWLockExclusive(&g_lock);
-
-    base_priority = GetThreadPriority(GetCurrentThread());
-
-    do
+    switch (mode & 3)
     {
-    ShowMessage("EV: Waiting for client");
+    case 0: Execute_Mode0(false); break;
+    case 1: Execute_Mode0(true);  break;
+    case 2: Execute_Mode2();      break;
+    }
 
-    clientsocket = accept(listensocket, NULL, NULL); // block
-    if (clientsocket == INVALID_SOCKET) { break; }
-
-    ShowMessage("EV: Client connected");
-
-    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EV - PORT_NUMBER_BASE));
-
-    EV_Stream(clientsocket);
-
-    SetThreadPriority(GetCurrentThread(), base_priority);
-
-    closesocket(clientsocket);
-
-    ShowMessage("EV: Client disconnected");
-    } 
-    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
-
-    closesocket(listensocket);
-
-    ShowMessage("EV: Closed");
-
-    return 0;
+    if (mode & 8)
+    {
+    if (ExtendedVideo_Status()) { ExtendedVideo_Close(); }
+    }
 }
 
 // OK
-void EV_Initialize()
+void Channel_EV::Cleanup()
 {
-    InitializeSRWLock(&g_lock);
-    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_thread = CreateThread(NULL, 0, EV_EntryPoint, NULL, 0, NULL);
 }
 
 // OK
-void EV_Quit()
+void EV_Startup()
 {
-    SetEvent(g_event_quit);
+    g_channel = std::make_unique<Channel_EV>("EV", PORT_NAME_EV, PORT_ID_EV);
 }
 
 // OK
 void EV_Cleanup()
 {
-    WaitForSingleObject(g_thread, INFINITE);
-
-    CloseHandle(g_thread);
-    CloseHandle(g_event_quit);
-    
-    g_thread = NULL;
-    g_event_quit = NULL;
+    g_channel.reset();
 }

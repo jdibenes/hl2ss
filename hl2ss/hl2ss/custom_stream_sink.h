@@ -2,31 +2,22 @@
 #pragma once
 
 #include <mfidl.h>
-#include "custom_sink_hook.h"
 
-// OK
 class CustomStreamSink : public IMFStreamSink
 {
-    friend class CustomMediaSink;
-
 private:
     ULONG                m_nRefCount;
-    CRITICAL_SECTION     m_critSec;
-    bool                 m_isShutdown;
     DWORD                m_dwStreamSinkIdentifier;
-    IMFMediaSink*        m_pSink;
-    IMFMediaEventQueue*  m_pEventQueue;
-    IMFMediaTypeHandler* m_pHandler;
-    CustomStreamHook*    m_pHook;
+    IMFMediaSink*        m_pSink; // Release
+    IMFMediaEventQueue*  m_pEventQueue; // Release
+    IMFMediaTypeHandler* m_pHandler; // Release
 
-    static HRESULT CreateInstance(CustomStreamSink** ppStream, IMFMediaSink* pSink, DWORD dwStreamSinkIdentifier, IMFMediaType* pMediaType, CustomSinkHook* pHook);
-
-    CustomStreamSink(IMFMediaSink* pSink, DWORD dwStreamSinkIdentifier);
+    CustomStreamSink(IMFMediaSink* pSink, DWORD dwStreamSinkIdentifier, IMFMediaType* pMediaType);
     ~CustomStreamSink();
 
-    HRESULT Initialize(DWORD dwStreamSinkIdentifier, IMFMediaType* pMediaType, CustomSinkHook* pHook);
-
 public:
+    static HRESULT CreateInstance(CustomStreamSink** ppStream, IMFMediaSink* pSink, DWORD dwStreamSinkIdentifier, IMFMediaType* pMediaType);
+
     // IUnknown Methods
     ULONG   AddRef();
     ULONG   Release();
@@ -36,7 +27,7 @@ public:
     HRESULT BeginGetEvent(IMFAsyncCallback* pCallback, IUnknown* punkState);
     HRESULT EndGetEvent(IMFAsyncResult* pResult, IMFMediaEvent** ppEvent);
     HRESULT GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent);
-    HRESULT QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, const PROPVARIANT* pvValue);
+    HRESULT QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, PROPVARIANT const* pvValue);
 
     // IMFStreamSink Methods
     HRESULT Flush();
@@ -48,7 +39,6 @@ public:
 
     // CustomMediaSink Events
     void Shutdown();
-    void Detach();
     void Start(MFTIME hnsSystemTime, LONGLONG llClockStartOffset);
     void Stop(MFTIME hnsSystemTime);
     void Pause(MFTIME hnsSystemTime);

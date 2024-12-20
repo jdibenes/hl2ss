@@ -1,41 +1,65 @@
 
-#include <Windows.h>
-#include "server.h"
-#include "ports.h"
 #include "spatial_mapping.h"
-#include "log.h"
+#include "server_channel.h"
 
 #include <winrt/Windows.Perception.Spatial.h>
 
 using namespace winrt::Windows::Perception::Spatial;
 
+class Channel_SM : public Channel
+{
+private:
+    bool Startup();
+    void Run();
+    void Cleanup();
+
+    bool Dispatch();
+
+    bool MSG_SetVolumes();
+    bool MSG_GetObservedSurfaces();
+    bool MSG_GetMeshes();
+
+    void OnFrameArrived(SpatialMapping_MeshInfo const& mesh);
+
+    static void Thunk_Sensor(SpatialMapping_MeshInfo const& mesh, void* self);
+
+public:
+    Channel_SM(char const* name, char const* port, uint32_t id);
+};
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_thread = NULL;
-static HANDLE g_event_quit = NULL;
-static HANDLE g_event_client = NULL;
+static std::unique_ptr<Channel_SM> g_channel;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void SM_TransferError()
+void Channel_SM::Thunk_Sensor(SpatialMapping_MeshInfo const& mesh, void* self)
 {
-    SetEvent(g_event_client);
+    static_cast<Channel_SM*>(self)->OnFrameArrived(mesh);
 }
 
 // OK
-static void SM_MSG_CreateObserver(SOCKET clientsocket)
+void Channel_SM::OnFrameArrived(SpatialMapping_MeshInfo const& mesh)
 {
-    (void)clientsocket;
-    SpatialMapping_CreateObserver();
+    int const header_size = sizeof(SpatialMapping_MeshInfo) - (3 * sizeof(uint8_t*));
+
+    WSABUF wsaBuf[4];
+
+    pack_buffer(wsaBuf, 0, &mesh,     header_size);
+    pack_buffer(wsaBuf, 1,  mesh.vpd, mesh.vpl);
+    pack_buffer(wsaBuf, 2,  mesh.tid, mesh.til);
+    pack_buffer(wsaBuf, 3,  mesh.vnd, mesh.vnl);
+
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
-static void SM_MSG_SetVolumes(SOCKET clientsocket)
+bool Channel_SM::MSG_SetVolumes()
 {
     std::vector<SpatialMapping_VolumeDescription> vd;
     uint32_t type;
@@ -43,24 +67,17 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
     int size;
     bool ok;
 
-    ok = recv_u8(clientsocket, count);
-    if (!ok)
-    {
-        SM_TransferError();
-        return;
-    }
+    ok = recv_u8(m_socket_client, m_event_client, count);
+    if (!ok) { return false; }
 
     vd.resize(count);
-    SpatialMapping_VolumeDescription* data = vd.data();
 
     for (int i = 0; i < count; ++i)
     {
-    ok = recv_u32(clientsocket, type);
-    if (!ok) 
-    {
-        SM_TransferError();
-        return;
-    }
+    ok = recv_u32(m_socket_client, m_event_client, type);
+    if (!ok) { return false; }
+
+    vd[i].type = static_cast<SpatialMapping_VolumeType>(type);
 
     switch (type)
     {
@@ -68,213 +85,111 @@ static void SM_MSG_SetVolumes(SOCKET clientsocket)
     case SpatialMapping_VolumeType::VolumeType_Frustum:     size = sizeof(SpatialBoundingFrustum);     break;
     case SpatialMapping_VolumeType::VolumeType_OrientedBox: size = sizeof(SpatialBoundingOrientedBox); break;
     case SpatialMapping_VolumeType::VolumeType_Sphere:      size = sizeof(SpatialBoundingSphere);      break;
-    default:
-        SM_TransferError();
-        return;
+    default:                                                                                           return false;
     }
 
-    vd[i].type = (SpatialMapping_VolumeType)type;
-    ok = recv(clientsocket, (char*)&(data[i].data), size);
-    if (!ok)
-    {
-        SM_TransferError();
-        return;
-    }
+    ok = recv(m_socket_client, m_event_client, &(vd[i].data), size);
+    if (!ok) { return false; }
     }
 
-    SpatialMapping_SetVolumes(data, count);
+    SpatialMapping_SetVolumes(vd);
+
+    return true;
 }
 
 // OK
-static void SM_MSG_GetObservedSurfaces(SOCKET clientsocket)
+bool Channel_SM::MSG_GetObservedSurfaces()
 {
-    WSABUF wsaBuf[2];
-    SpatialMapping_SurfaceInfo const* ids;
-    size_t count;
-    bool ok;
-
-    SpatialMapping_GetObservedSurfaces(ids, count);
-
-    pack_buffer(wsaBuf, 0, &count, sizeof(count));
-    pack_buffer(wsaBuf, 1, ids, (ULONG)(count * sizeof(SpatialMapping_SurfaceInfo)));
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    if (!ok)
-    {
-        SM_TransferError();
-        return;
-    }
-}
-
-// OK
-static void SM_MSG_GetMeshes(SOCKET clientsocket)
-{
-    std::vector<SpatialMapping_MeshTask> md;
+    std::vector<SpatialMapping_SurfaceInfo> smsi;
     uint32_t count;
-    uint32_t maxtasks;
-    SpatialMapping_MeshTask* task;
-    SpatialMapping_MeshInfo* info;
-    WSABUF wsaBuf[4];
+    WSABUF wsaBuf[2];
     bool ok;
 
-    ok = recv_u32(clientsocket, count);
-    if (!ok)
-    {
-        SM_TransferError();
-        return;
-    }
+    SpatialMapping_GetObservedSurfaces(smsi);
 
-    ok = recv_u32(clientsocket, maxtasks);
-    if (!ok)
-    {
-        SM_TransferError();
-        return;
-    }
+    count = static_cast<uint32_t>(smsi.size());
+
+    pack_buffer(wsaBuf, 0, &count,      sizeof(count));
+    pack_buffer(wsaBuf, 1, smsi.data(), sizeof(SpatialMapping_SurfaceInfo) * count);
+
+    ok = send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { return false; }
+
+    return true;
+}
+
+// OK
+bool Channel_SM::MSG_GetMeshes()
+{
+    std::vector<SpatialMapping_MeshDescription> md;
+    uint32_t count;    
+    bool ok;
+
+    ok = recv_u32(m_socket_client, m_event_client, count);
+    if (!ok) { return false; }
 
     md.resize(count);
-    task = md.data();
-
+    
     for (uint32_t i = 0; i < count; ++i)
     {
-    ok = recv(clientsocket, (char*)(task + i), sizeof(SpatialMapping_MeshDescription));
-    if (!ok)
-    {
-        SM_TransferError();
-        return;
-    }
+    ok = recv(m_socket_client, m_event_client, &(md[i]), sizeof(SpatialMapping_MeshDescription));
+    if (!ok) { return false; }
     }
 
-    SpatialMapping_BeginComputeMeshes(task, count, maxtasks);
-
-    while (count > 0)
-    {
-    --count;
-
-    info = SpatialMapping_GetNextMesh();
-
-    pack_buffer(wsaBuf, 0, info, SM_MESH_INFO_HEADER_SIZE + info->bsz);
-    pack_buffer(wsaBuf, 1, info->vpd, info->vpl);
-    pack_buffer(wsaBuf, 2, info->tid, info->til);
-    pack_buffer(wsaBuf, 3, info->vnd, info->vnl);
-
-    ok = send_multiple(clientsocket, wsaBuf, (info->status == 0) ? (sizeof(wsaBuf) / sizeof(WSABUF)) : 1);
-    
-    SpatialMapping_DestroyMesh(info);
-    
-    if (!ok)
-    {
-        SM_TransferError();
-        break;
-    }
-    }
-
-    while (count > 0)
-    {
-    --count;
-
-    info = SpatialMapping_GetNextMesh();
-    SpatialMapping_DestroyMesh(info);
-    }
-
-    SpatialMapping_EndComputeMeshes();
+    return SpatialMapping_ExecuteSensorLoop(md, Thunk_Sensor, this, m_event_client);
 }
 
 // OK
-static void SM_Dispatch(SOCKET clientsocket)
+bool Channel_SM::Dispatch()
 {
     uint8_t state;
     bool ok;
 
-    ok = recv_u8(clientsocket, state);
-    if (!ok)
-    {
-        SM_TransferError();
-        return;
-    }
+    ok = recv_u8(m_socket_client, m_event_client, state);
+    if (!ok) { return false; }
 
     switch (state)
     {
-    case 0x00: SM_MSG_CreateObserver(clientsocket);      break;
-    case 0x01: SM_MSG_SetVolumes(clientsocket);          break;
-    case 0x02: SM_MSG_GetObservedSurfaces(clientsocket); break;
-    case 0x03: SM_MSG_GetMeshes(clientsocket);           break;
-    default:
-        SM_TransferError();
-        return;
+    case 0x00: return MSG_SetVolumes();
+    case 0x01: return MSG_GetObservedSurfaces();
+    case 0x02: return MSG_GetMeshes();
+    default:   return false;
     }
 }
 
 // OK
-static void SM_Translate(SOCKET clientsocket)
+Channel_SM::Channel_SM(char const* name, char const* port, uint32_t id) :
+Channel(name, port, id)
 {
-    ResetEvent(g_event_client);
-    do { SM_Dispatch(clientsocket); } while (WaitForSingleObject(g_event_client, 0) == WAIT_TIMEOUT);
 }
 
 // OK
-static DWORD WINAPI SM_EntryPoint(void* param)
+bool Channel_SM::Startup()
 {
-    (void)param;
-
-    SOCKET listensocket; // closesocket
-    SOCKET clientsocket; // closesocket
-
-    ShowMessage("SM: Waiting for consent");
-
-    SpatialMapping_WaitForConsent();
-
-    listensocket = CreateSocket(PORT_NAME_SM);
-
-    ShowMessage("SM: Listening at port %s", PORT_NAME_SM);
-
-    do
-    {
-    ShowMessage("SM: Waiting for client");
-
-    clientsocket = accept(listensocket, NULL, NULL); // block
-    if (clientsocket == INVALID_SOCKET) { break; }
-
-    ShowMessage("SM: Client connected");
-
-    SM_Translate(clientsocket);
-
-    closesocket(clientsocket);
-
-    ShowMessage("SM: Client disconnected");
-    }
-    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
-
-    closesocket(listensocket);
-
-    ShowMessage("SM: Closed");
-
-    return 0;
+    SetNoDelay(true);
+    return SpatialMapping_WaitForConsent();
 }
 
 // OK
-void SM_Initialize()
+void Channel_SM::Run()
 {
-    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_event_client = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_thread = CreateThread(NULL, 0, SM_EntryPoint, NULL, 0, NULL);
+    SpatialMapping_Open();
+    while (Dispatch());
+    SpatialMapping_Close();
 }
 
 // OK
-void SM_Quit()
+void Channel_SM::Cleanup()
 {
-    SetEvent(g_event_quit);
+}
+
+// OK
+void SM_Startup()
+{
+    g_channel = std::make_unique<Channel_SM>("SM", PORT_NAME_SM, PORT_ID_SM);
 }
 
 // OK
 void SM_Cleanup()
 {
-    WaitForSingleObject(g_thread, INFINITE);
-
-    CloseHandle(g_thread);
-    CloseHandle(g_event_client);
-    CloseHandle(g_event_quit);
-
-    g_thread = NULL;
-    g_event_client = NULL;
-    g_event_quit = NULL;
 }

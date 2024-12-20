@@ -69,6 +69,8 @@ def get_sync_period(rx):
         return 1
     if (rx.port == hl2ss.StreamPort.EXTENDED_VIDEO):
         return rx.options[hl2ss.H26xEncoderProperty.CODECAPI_AVEncMPVGOPSize]
+    if (rx.port == hl2ss.StreamPort.EXTENDED_DEPTH):
+        return 1
 
 
 #------------------------------------------------------------------------------
@@ -147,6 +149,14 @@ def rx_eet(host, port, chunk=hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps=30):
 
 def rx_extended_audio(host, port, chunk=hl2ss.ChunkSize.EXTENDED_AUDIO, mixer_mode=hl2ss.MixerMode.BOTH, loopback_gain=1.0, microphone_gain=1.0, profile=hl2ss.AudioProfile.AAC_24000, level=hl2ss.AACLevel.L2, decoded=True):
     return hl2ss.rx_decoded_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level) if (decoded) else hl2ss.rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
+
+
+def rx_exteneded_depth(host, port, chunk=hl2ss.ChunkSize.EXTENDED_DEPTH, mode=hl2ss.StreamMode.MODE_0, divisor=1, profile_z=hl2ss.DepthProfile.ZDEPTH, media_index=0xFFFFFFFF, stride_mask=0x3F):
+    options = dict()
+    options[hl2ss.H26xEncoderProperty.HL2SSAPI_VideoMediaIndex] = media_index
+    options[hl2ss.H26xEncoderProperty.HL2SSAPI_VideoStrideMask] = stride_mask
+
+    return hl2ss.rx_decoded_extended_depth(host, port, chunk, mode, divisor, profile_z, options)
 
 
 #------------------------------------------------------------------------------

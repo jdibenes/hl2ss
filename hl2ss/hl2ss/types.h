@@ -13,10 +13,20 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
-union v8  { u8 b; s8 c; };
+union v8  { char                   x; u8  b; s8  c; };
 union v16 { struct { v8  b0, b1; } b; u16 w; s16 s; };
 union v32 { struct { v16 w0, w1; } w; u32 d; s32 i; };
 union v64 { struct { v32 d0, d1; } d; u64 q; s64 l; };
+
+struct uint64x2
+{
+    uint64_t val[2];
+};
+
+struct float7
+{
+    float val[7];
+};
 
 constexpr uint32_t bit(uint32_t b)
 {

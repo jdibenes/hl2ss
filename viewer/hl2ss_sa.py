@@ -50,19 +50,15 @@ class _sm_manager_entry:
 class sm_manager:
     def __init__(self, host, triangles_per_cubic_meter, threads):
         self._tpcm = triangles_per_cubic_meter
-        self._threads = threads
         self._vpf = hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized
         self._tif = hl2ss.SM_TriangleIndexFormat.R16UInt
         self._vnf = hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized
-        self._normals = True
-        self._bounds = False
         self._ipc = hl2ss_lnm.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
         self._surfaces = {}
         self._volumes = None
 
     def open(self):
         self._ipc.open()
-        self._ipc.create_observer()
 
     def set_volumes(self, volumes):
         self._volumes = volumes
@@ -90,14 +86,14 @@ class sm_manager:
                 if (surface_info.update_time <= previous_entry.update_time):
                     self._updated_surfaces[surface_info.id] = previous_entry
                     continue
-            tasks.add_task(id, self._tpcm, self._vpf, self._tif, self._vnf, self._normals, self._bounds)
+            tasks.add_task(id, self._tpcm, self._vpf, self._tif, self._vnf)
             updated_surfaces.append(surface_info)
 
         count = len(updated_surfaces)
         if (count <= 0):
             return
 
-        for index, mesh in self._ipc.get_meshes(tasks, self._threads).items():
+        for index, mesh in self._ipc.get_meshes(tasks).items():
             if (mesh is None):
                 continue
             mesh.unpack(self._vpf, self._tif, self._vnf)

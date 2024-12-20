@@ -49,4 +49,9 @@ public class Hololens2SensorStreaming : MonoBehaviour
         hl2ss.UpdateCoordinateSystem();
         hl2ss.Initialize(enableRM, enablePV, enableMC, enableSI, enableRC, enableSM, enableSU, enableVI, enableMQ, enableEET, enableEA, enableEV, enableMQX);
     }
+
+    void Update()
+    {
+        hl2ss.CheckForErrors();        
+    }
 }

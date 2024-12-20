@@ -1,22 +1,12 @@
 
-#include "server.h"
-#include "locator.h"
 #include "extended_eye_tracking.h"
-#include "extended_execution.h"
-#include "ports.h"
-#include "timestamps.h"
-#include "log.h"
+#include "server_channel.h"
+#include "server_settings.h"
 
-#include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
-#include <winrt/Windows.Perception.h>
-#include <winrt/Windows.Perception.Spatial.h>
 #include <winrt/Microsoft.MixedReality.EyeTracking.h>
 
-using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
 using namespace winrt::Microsoft::MixedReality::EyeTracking;
 
 struct EET_Frame
@@ -42,163 +32,143 @@ struct EET_Packet
     float4x4  pose;
 };
 
+class Channel_EET : public Channel
+{
+private:
+    bool Startup();
+    void Run();
+    void Cleanup();
+
+    void Execute_Mode1();
+
+    void OnFrameArrived(EyeGazeTrackerReading const& frame, UINT64 host_ticks);
+    void OnEmptyArrived(UINT64 host_ticks);
+
+    static void Thunk_Sensor(EyeGazeTrackerReading const& frame, UINT64 host_ticks, void* self);
+
+public:
+    Channel_EET(char const* name, char const* port, uint32_t id);
+};
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-static HANDLE g_event_quit = NULL;
-static HANDLE g_thread = NULL;
+static std::unique_ptr<Channel_EET> g_channel;
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-static void EET_Stream(SOCKET clientsocket, SpatialLocator const &locator, uint64_t utc_offset)
+void Channel_EET::Thunk_Sensor(EyeGazeTrackerReading const& frame, UINT64 host_ticks, void* self)
 {
-    PerceptionTimestamp ts = nullptr;
-    EyeGazeTrackerReading egtr = nullptr;
-    DateTime td;
-    EET_Packet eet_packet;
-    uint8_t fps;
-    uint64_t delay;
-    int64_t max_delta;
-    int fps_index;
-    bool cg_valid;
-    bool lg_valid;
-    bool rg_valid;
-    bool lo_valid;
-    bool ro_valid;
-    bool vd_valid;
-    bool ec_valid;    
-    WSABUF wsaBuf[1];
-    bool ok;
-
-    ok = recv_u8(clientsocket, fps);
-    if (!ok) { return; }
-
-    switch (fps)
+    if (frame)
     {
-    case 30: fps_index = 0; break;
-    case 60: fps_index = 1; break;
-    case 90: fps_index = 2; break;
-    default: return;
-    }
-
-    max_delta = HNS_BASE / fps;
-    delay = max_delta * 1;
-
-    ExtendedEyeTracking_SetTargetFrameRate(fps_index);
-
-    pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
-
-    eet_packet.size = sizeof(uint32_t) + sizeof(EET_Frame);
-    eet_packet._reserved = 0;
-
-    do
-    {
-    eet_packet.timestamp = GetCurrentUTCTimestamp() - delay;
-
-    Sleep(1000 / fps);
-    
-    egtr = ExtendedEyeTracking_GetReading(DateTime(QPCTimestampToTimeSpan(eet_packet.timestamp)), max_delta);
-
-    if (egtr)
-    {
-    eet_packet.timestamp = egtr.Timestamp().time_since_epoch().count() - utc_offset;
-
-    cg_valid = egtr.TryGetCombinedEyeGazeInTrackerSpace(eet_packet.frame.c_origin, eet_packet.frame.c_direction);
-    lg_valid = egtr.TryGetLeftEyeGazeInTrackerSpace(eet_packet.frame.l_origin, eet_packet.frame.l_direction);
-    rg_valid = egtr.TryGetRightEyeGazeInTrackerSpace(eet_packet.frame.r_origin, eet_packet.frame.r_direction);
-    lo_valid = egtr.TryGetLeftEyeOpenness(eet_packet.frame.l_openness);
-    ro_valid = egtr.TryGetRightEyeOpenness(eet_packet.frame.r_openness);
-    vd_valid = egtr.TryGetVergenceDistance(eet_packet.frame.vergence_distance);
-    ec_valid = egtr.IsCalibrationValid();
-
-    eet_packet.frame.valid = (vd_valid << 6) | (ro_valid << 5) | (lo_valid << 4) | (rg_valid << 3) | (lg_valid << 2) | (cg_valid << 1) | (ec_valid << 0);
-
-    ts = QPCTimestampToPerceptionTimestamp(eet_packet.timestamp);
-    eet_packet.pose = Locator_Locate(ts, locator, Locator_GetWorldCoordinateSystem(ts));
+    static_cast<Channel_EET*>(self)->OnFrameArrived(frame, host_ticks);
     }
     else
     {
-    eet_packet.timestamp -= utc_offset;
-    eet_packet.frame.valid = 0;
+    static_cast<Channel_EET*>(self)->OnEmptyArrived(host_ticks);
     }
-
-    ok = send_multiple(clientsocket, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
-    }
-    while (ok);
 }
 
 // OK
-static DWORD WINAPI EET_EntryPoint(void* param)
+void Channel_EET::OnFrameArrived(EyeGazeTrackerReading const& frame, UINT64 host_ticks)
 {
-    (void)param;
+    EET_Packet eet_packet;
+    WSABUF wsaBuf[1];
 
-    SpatialLocator locator = nullptr;
-    uint64_t utc_offset;
-    SOCKET listensocket; // closesocket
-    SOCKET clientsocket; // closesocket
-    int base_priority;
+    memset(&eet_packet, 0, sizeof(eet_packet));
 
-    ShowMessage("EET: Waiting for consent");
+    bool cg_valid = frame.TryGetCombinedEyeGazeInTrackerSpace(eet_packet.frame.c_origin, eet_packet.frame.c_direction);
+    bool lg_valid = frame.TryGetLeftEyeGazeInTrackerSpace(eet_packet.frame.l_origin, eet_packet.frame.l_direction);
+    bool rg_valid = frame.TryGetRightEyeGazeInTrackerSpace(eet_packet.frame.r_origin, eet_packet.frame.r_direction);
+    bool lo_valid = frame.TryGetLeftEyeOpenness(eet_packet.frame.l_openness);
+    bool ro_valid = frame.TryGetRightEyeOpenness(eet_packet.frame.r_openness);
+    bool vd_valid = frame.TryGetVergenceDistance(eet_packet.frame.vergence_distance);
+    bool ec_valid = frame.IsCalibrationValid();
 
-    ExtendedEyeTracking_Initialize();
-    locator = ExtendedEyeTracking_CreateLocator();
-    utc_offset = GetQPCToUTCOffset(32);
+    eet_packet.timestamp   = host_ticks;
+    eet_packet.size        = sizeof(EET_Packet::_reserved) + sizeof(EET_Packet::frame);
+    eet_packet._reserved   = 0;
+    eet_packet.frame.valid = (vd_valid << 6) | (ro_valid << 5) | (lo_valid << 4) | (rg_valid << 3) | (lg_valid << 2) | (cg_valid << 1) | (ec_valid << 0);
+    eet_packet.pose        = ExtendedEyeTracking_GetNodeWorldPose(host_ticks);
 
-    listensocket = CreateSocket(PORT_NAME_EET);
+    pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
 
-    ShowMessage("EET: Listening at port %s", PORT_NAME_EET);
-
-    base_priority = GetThreadPriority(GetCurrentThread());
-
-    do
-    {
-    ShowMessage("EET: Waiting for client");
-
-    clientsocket = accept(listensocket, NULL, NULL); // block
-    if (clientsocket == INVALID_SOCKET) { break; }
-
-    ShowMessage("EET: Client connected");
-
-    SetThreadPriority(GetCurrentThread(), ExtendedExecution_GetInterfacePriority(PORT_NUMBER_EET - PORT_NUMBER_BASE));
-
-    EET_Stream(clientsocket, locator, utc_offset);
-
-    SetThreadPriority(GetCurrentThread(), base_priority);
-
-    closesocket(clientsocket);
-
-    ShowMessage("EET: Client disconnected");
-    }
-    while (WaitForSingleObject(g_event_quit, 0) == WAIT_TIMEOUT);
-
-    closesocket(listensocket);
-
-    ShowMessage("EET: Closed");
-
-    return 0;
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
-void EET_Initialize()
+void Channel_EET::OnEmptyArrived(UINT64 host_ticks)
 {
-    g_event_quit = CreateEvent(NULL, TRUE, FALSE, NULL);
-    g_thread = CreateThread(NULL, 0, EET_EntryPoint, NULL, 0, NULL);
+    EET_Packet eet_packet;
+    WSABUF wsaBuf[1];
+
+    memset(&eet_packet, 0, sizeof(eet_packet));
+
+    eet_packet.timestamp = host_ticks;
+    eet_packet.size      = sizeof(EET_Packet::_reserved) + sizeof(EET_Packet::frame);
+
+    pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
+
+    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
 // OK
-void EET_Quit()
+void Channel_EET::Execute_Mode1()
 {
-    SetEvent(g_event_quit);
+    uint8_t fps;
+    bool ok;
+
+    ok = ReceiveEETFramerate(m_socket_client, m_event_client, fps);
+    if (!ok) { return; }
+
+    ok = ExtendedEyeTracking_SetTargetFrameRate(fps);
+    if (!ok) { return; }
+
+    ExtendedEyeTracking_ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
+}
+
+// OK
+Channel_EET::Channel_EET(char const* name, char const* port, uint32_t id) : 
+Channel(name, port, id)
+{
+}
+
+// OK
+bool Channel_EET::Startup()
+{
+    SetNoDelay(true);
+    return ExtendedEyeTracking_WaitForConsent();
+}
+
+// OK
+void Channel_EET::Run()
+{
+    ExtendedEyeTracking_Open(true);
+
+    if (!ExtendedEyeTracking_Status()) { return; }
+
+    Execute_Mode1();
+
+    ExtendedEyeTracking_Close();
+}
+
+// OK
+void Channel_EET::Cleanup()
+{
+}
+
+// OK
+void EET_Startup()
+{
+    g_channel = std::make_unique<Channel_EET>("EET", PORT_NAME_EET, PORT_ID_EET);
 }
 
 // OK
 void EET_Cleanup()
 {
-    WaitForSingleObject(g_thread, INFINITE);
-    CloseHandle(g_thread);
-    CloseHandle(g_event_quit);
+    g_channel.reset();
 }

@@ -1,6 +1,5 @@
 
 #pragma once
 
-void PV_Initialize();
-void PV_Quit();
+void PV_Startup();
 void PV_Cleanup();

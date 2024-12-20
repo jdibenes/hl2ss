@@ -61,10 +61,10 @@ if __name__ == '__main__':
     # Wait for PV subsystem and fix exposure, iso speed, and white balance ----
     ipc_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
     ipc_rc.open()
-    ipc_rc.wait_for_pv_subsystem(True)
-    ipc_rc.set_pv_exposure(pv_exposure_mode, pv_exposure)
-    ipc_rc.set_pv_iso_speed(pv_iso_speed_mode, pv_iso_speed_value)
-    ipc_rc.set_pv_white_balance_preset(pv_white_balance)
+    ipc_rc.pv_wait_for_subsystem(True)
+    ipc_rc.pv_set_exposure(pv_exposure_mode, pv_exposure)
+    ipc_rc.pv_set_iso_speed(pv_iso_speed_mode, pv_iso_speed_value)
+    ipc_rc.pv_set_white_balance_preset(pv_white_balance)
     ipc_rc.close()
 
     # Get RM Depth Long Throw calibration -------------------------------------
