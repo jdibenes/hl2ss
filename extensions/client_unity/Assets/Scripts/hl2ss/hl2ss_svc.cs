@@ -225,10 +225,10 @@ public static partial class hl2ss
                 return version;
             }
 
-            public ulong get_utc_offset(uint samples)
+            public ulong get_utc_offset()
             {
                 ulong offset;
-                check_result(hl2ss.ulm.rc_get_utc_offset(m_handle, samples, out offset));
+                check_result(hl2ss.ulm.rc_get_utc_offset(m_handle, out offset));
                 return offset;
             }
 
@@ -356,7 +356,7 @@ public static partial class hl2ss
         {
             public hl2ss.ulm.sm_mesh[] meshes;
 
-            public sm_mesh_collection(IntPtr ipc, uint count, byte[] data, ulong size, uint threads) : base(hl2ss.ulm.sm_get_meshes(ipc, count, data, size, threads))
+            public sm_mesh_collection(IntPtr ipc, uint count, byte[] data, ulong size) : base(hl2ss.ulm.sm_get_meshes(ipc, count, data, size))
             {
                 meshes = new hl2ss.ulm.sm_mesh[count];
                 for (uint i = 0; i < count; ++i)
@@ -373,11 +373,6 @@ public static partial class hl2ss
             {
             }
 
-            public void create_observer()
-            {
-                check_result(hl2ss.ulm.sm_create_observer(m_handle));
-            }
-
             public void set_volumes(hl2ss.sm_bounding_volume volumes)
             {
                 check_result(hl2ss.ulm.sm_set_volumes(m_handle, volumes.get_count(), volumes.get_data(), volumes.get_size()));
@@ -388,9 +383,9 @@ public static partial class hl2ss
                 return new sm_surface_info_collection(m_handle);
             }
 
-            public sm_mesh_collection get_meshes(hl2ss.sm_mesh_task tasks, uint threads)
+            public sm_mesh_collection get_meshes(hl2ss.sm_mesh_task tasks)
             {
-                return new sm_mesh_collection(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size(), threads);
+                return new sm_mesh_collection(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size());
             }
         }
 
@@ -504,12 +499,7 @@ public static partial class hl2ss
             {
             }
 
-            public void create_recognizer()
-            {
-                check_result(hl2ss.ulm.vi_create_recognizer(m_handle));
-            }
-
-            public bool register_commands(bool clear, string[] commands)
+            public void start(string[] commands)
             {
                 List<byte> data = new List<byte>();
                 foreach (var s in commands)
@@ -518,24 +508,12 @@ public static partial class hl2ss
                     data.Add(0);
                 }
                 data.Add(0);
-                uint status;
-                check_result(hl2ss.ulm.vi_register_commands(m_handle, Convert.ToByte(clear), data.ToArray(), out status));
-                return status != 0;
-            }
-
-            public void start()
-            {
-                check_result(hl2ss.ulm.vi_start(m_handle));
+                check_result(hl2ss.ulm.vi_start(m_handle, data.ToArray()));
             }
 
             public vi_result pop()
             {
                 return new vi_result(m_handle);
-            }
-
-            public void clear()
-            {
-                check_result(hl2ss.ulm.vi_clear(m_handle));
             }
 
             public void stop()

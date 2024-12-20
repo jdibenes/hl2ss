@@ -12,7 +12,7 @@ public class test_ipc_rc : MonoBehaviour
 
         hl2ss.version version = ipc.get_application_version();
         Debug.Log(string.Format("version {0}.{1}.{2}.{3}", version.field_0, version.field_1, version.field_2, version.field_3));
-        Debug.Log(string.Format("utf_offset: {0}", ipc.get_utc_offset(32)));
+        Debug.Log(string.Format("utf_offset: {0}", ipc.get_utc_offset()));
         ipc.set_hs_marker_state(hl2ss.hs_marker_state.Disable);
         Debug.Log(string.Format("pv status: {0}", ipc.get_pv_subsystem_status()));
         ipc.wait_for_pv_subsystem(false);

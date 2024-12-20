@@ -14,13 +14,8 @@ public class test_ipc_vi : MonoBehaviour
         string[] commands = new string[] { "cat", "dog", "red", "blue" };
 
         hl2ss.svc.open_ipc(host, hl2ss.ipc_port.VOICE_INPUT, out ipc);
-
-        ipc.create_recognizer();
         
-        bool ok = ipc.register_commands(true, commands);
-        Debug.Log(string.Format("register_commands: {0}", ok));
-
-        ipc.start();
+        ipc.start(commands);
     }
 
     // Update is called once per frame
@@ -40,7 +35,6 @@ public class test_ipc_vi : MonoBehaviour
     {
         if (ipc == null) { return; }
 
-        ipc.clear();
         ipc.stop();
         ipc.Dispose();
     }

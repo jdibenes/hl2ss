@@ -297,7 +297,7 @@ public static partial class hl2ss
         public static extern int rc_get_application_version(IntPtr ipc, hl2ss.version version);
 
         [DllImport("hl2ss_ulm")]
-        public static extern int rc_get_utc_offset(IntPtr ipc, uint samples, out ulong offset);
+        public static extern int rc_get_utc_offset(IntPtr ipc, out ulong offset);
 
         [DllImport("hl2ss_ulm")]
         public static extern int rc_set_hs_marker_state(IntPtr ipc, uint state);
@@ -364,16 +364,13 @@ public static partial class hl2ss
         //------------------------------------------------------------------------------
 
         [DllImport("hl2ss_ulm")]
-        public static extern int sm_create_observer(IntPtr ipc);
-
-        [DllImport("hl2ss_ulm")]
         public static extern int sm_set_volumes(IntPtr ipc, uint count, byte[] data, ulong size);
 
         [DllImport("hl2ss_ulm")]
         public static extern IntPtr sm_get_observed_surfaces(IntPtr ipc, out ulong size, out IntPtr data);
 
         [DllImport("hl2ss_ulm")]
-        public static extern IntPtr sm_get_meshes(IntPtr ipc, uint count, byte[] data, ulong size, uint threads);
+        public static extern IntPtr sm_get_meshes(IntPtr ipc, uint count, byte[] data, ulong size);
 
         [DllImport("hl2ss_ulm")]
         public static extern int sm_unpack_mesh(IntPtr reference, uint index, sm_mesh mesh);
@@ -396,19 +393,10 @@ public static partial class hl2ss
         //------------------------------------------------------------------------------
 
         [DllImport("hl2ss_ulm")]
-        public static extern int vi_create_recognizer(IntPtr ipc);
-
-        [DllImport("hl2ss_ulm")]
-        public static extern int vi_register_commands(IntPtr ipc, uint clear, byte[] utf8_array, out uint status);
-
-        [DllImport("hl2ss_ulm")]
-        public static extern int vi_start(IntPtr ipc);
+        public static extern int vi_start(IntPtr ipc, byte[] utf8_array);
 
         [DllImport("hl2ss_ulm")]
         public static extern IntPtr vi_pop(IntPtr ipc, out ulong size, out IntPtr data);
-
-        [DllImport("hl2ss_ulm")]
-        public static extern int vi_clear(IntPtr ipc);
 
         [DllImport("hl2ss_ulm")]
         public static extern int vi_stop(IntPtr ipc);

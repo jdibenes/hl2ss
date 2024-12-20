@@ -9,7 +9,6 @@ public class test_ipc_sm : MonoBehaviour
     void Start()
     {
         string host = run_once.host_address;
-        uint threads = 2;
 
         hl2ss.sm_bounding_volume volumes = new hl2ss.sm_bounding_volume();
         hl2ss.sm_mesh_task tasks = new hl2ss.sm_mesh_task();
@@ -27,7 +26,6 @@ public class test_ipc_sm : MonoBehaviour
 
         hl2ss.svc.open_ipc(host, hl2ss.ipc_port.SPATIAL_MAPPING, out hl2ss.svc.ipc_sm ipc);
 
-        ipc.create_observer();
         ipc.set_volumes(volumes);
 
         using (var surfaces = ipc.get_observed_surfaces())
@@ -40,7 +38,7 @@ public class test_ipc_sm : MonoBehaviour
                 tasks.add_task(info.id, 1000.0f, hl2ss.sm_vertex_position_format.R32G32B32A32Float, hl2ss.sm_triangle_index_format.R32Uint, hl2ss.sm_vertex_normal_format.R32G32B32A32Float, true, false);
             }
 
-            using (var result = ipc.get_meshes(tasks, threads))
+            using (var result = ipc.get_meshes(tasks))
             {
                 Debug.Log(string.Format("got {0} meshes", result.meshes.Length));
 
