@@ -6,6 +6,7 @@
 from pynput import keyboard
 
 import time
+import numpy as np
 import multiprocessing as mp
 import cv2
 import hl2ss_imshow
@@ -62,12 +63,12 @@ if __name__ == '__main__':
         _, data_lt = sink_lt.get_most_recent_frame()
 
         if (data_ht is not None):
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-depth', data_ht.payload.depth * 64) # Scaled for visibility
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-ab', data_ht.payload.ab)
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-depth', cv2.applyColorMap(((data_ht.payload.depth / 1056) * 255).astype(np.uint8), cv2.COLORMAP_JET)) # Scaled for visibility
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-ab', np.sqrt(data_ht.payload.ab).astype(np.uint8)) # Scaled for visibility
 
         if (data_lt is not None):
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-depth', data_lt.payload.depth * 8) # Scaled for visibility
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-ab', data_lt.payload.ab)
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-depth', cv2.applyColorMap(((data_lt.payload.depth / 7500) * 255).astype(np.uint8), cv2.COLORMAP_JET)) # Scaled for visibility
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-ab', np.sqrt(data_lt.payload.ab).astype(np.uint8)) # Scaled for visibility
 
         cv2.waitKey(1)
 
