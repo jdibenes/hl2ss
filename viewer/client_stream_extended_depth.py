@@ -43,12 +43,17 @@ listener.start()
 client = hl2ss_lnm.rx_exteneded_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, profile_z=profile_z, media_index=media_index)
 client.open()
 
+max_depth = 8192 # Depends on your RGBD camera
+max_uint8 = 255
+
 while (enable):
     data = client.get_next_packet()
 
     print(f'Frame captured at {data.timestamp}')
 
-    cv2.imshow('Video', data.payload.depth)
+    depth = data.payload.depth
+
+    cv2.imshow('Depth', cv2.applyColorMap(((depth / max_depth) * max_uint8).astype(np.uint8), cv2.COLORMAP_JET))
     cv2.waitKey(1)
 
 client.close()

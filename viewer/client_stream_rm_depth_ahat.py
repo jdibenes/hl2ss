@@ -79,16 +79,22 @@ listener.start()
 client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=mode, divisor=divisor, profile_z=profile_z, profile_ab=profile_ab)
 client.open()
 
+max_depth = 1056
+max_uint8 = 255
+
 while (enable):
     data = client.get_next_packet()
 
     print(f'Frame captured at {data.timestamp}')
     print(f'Sensor Ticks: {data.payload.sensor_ticks}')
     print(f'Pose')
-    print(data.pose)    
+    print(data.pose)
+
+    depth = data.payload.depth
+    ab = data.payload.ab
     
-    cv2.imshow('Depth', data.payload.depth / np.max(data.payload.depth)) # Scaled for visibility
-    cv2.imshow('AB', data.payload.ab / np.max(data.payload.ab)) # Scaled for visibility
+    cv2.imshow('Depth', cv2.applyColorMap(((depth / max_depth) * max_uint8).astype(np.uint8), cv2.COLORMAP_JET)) # Scaled for visibility
+    cv2.imshow('AB', np.sqrt(ab).astype(np.uint8)) # Scaled for visibility
     cv2.waitKey(1)
 
 client.close()
