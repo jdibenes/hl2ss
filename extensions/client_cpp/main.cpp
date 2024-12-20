@@ -326,7 +326,7 @@ void test_rc(char const* host)
     client->open();
     hl2ss::version v = client->get_application_version();
     std::cout << "Version: " << v.field[0] << "." << v.field[1] << "." << v.field[2] << "." << v.field[3] << std::endl;
-    uint64_t offset = client->get_utc_offset(32);
+    uint64_t offset = client->get_utc_offset();
     std::cout << "UTC offset: " << offset << std::endl;
     client->close();
 }
@@ -345,15 +345,14 @@ void test_sm(char const* host)
 
     volumes.add_box({0.0f, 0.0f, 0.0f, 8.0f, 8.0f, 8.0f});
     client->open();
-    client->create_observer();
     client->set_volumes(volumes);
     client->get_observed_surfaces(surfaces);
     for (size_t i = 0; i < surfaces.size(); ++i)
     {
-    task.add_task(surfaces[i].id, 1000.0, hl2ss::sm_vertex_position_format::R32G32B32A32Float, hl2ss::sm_triangle_index_format::R32Uint, hl2ss::sm_vertex_normal_format::R32G32B32A32Float, true, false);
+    task.add_task(surfaces[i].id, 1000.0, hl2ss::sm_vertex_position_format::R32G32B32A32Float, hl2ss::sm_triangle_index_format::R32Uint, hl2ss::sm_vertex_normal_format::R32G32B32A32Float);
     std::cout << "SURFACE " << i << ": " << surfaces[i].update_time << std::endl;
     }
-    client->get_meshes(task, 2, meshes);
+    client->get_meshes(task, meshes);
     client->close();
 
     std::cout << "Observed surfaces: " << surfaces.size() << std::endl;
@@ -411,10 +410,7 @@ void test_vi(char const* host)
     commands.push_back(u"dog");
 
     client->open();
-    client->create_recognizer();
-    bool status = client->register_commands(true, commands);
-    std::cout << "Register commands: " << status << std::endl;
-    client->start();
+    client->start(commands);
     while (run)
     {
         client->pop(results);
@@ -429,7 +425,6 @@ void test_vi(char const* host)
         }
     }
     client->stop();
-    client->clear();
     client->close();
 }
 

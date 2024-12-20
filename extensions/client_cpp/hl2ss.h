@@ -67,6 +67,7 @@ namespace stream_mode
 uint8_t const MODE_0 = 0;
 uint8_t const MODE_1 = 1;
 uint8_t const MODE_2 = 2;
+uint8_t const MODE_3 = 3;
 }
 
 namespace video_profile
@@ -174,6 +175,9 @@ uint64_t const CODECAPI_AVEncVideoMinQP                = 15;
 uint64_t const CODECAPI_AVLowLatencyMode               = 16;
 uint64_t const CODECAPI_AVEncVideoMaxQP                = 17;
 uint64_t const CODECAPI_VideoEncoderDisplayContentType = 18;
+uint64_t const HL2SSAPI_VideoMediaIndex                = 0xFFFFFFFFFFFFFFFB;
+uint64_t const HL2SSAPI_VideoStrideMask                = 0xFFFFFFFFFFFFFFFC;
+uint64_t const HL2SSAPI_AcquisitionMode                = 0xFFFFFFFFFFFFFFFD;
 uint64_t const HL2SSAPI_VLCHostTicksOffsetConstant     = 0xFFFFFFFFFFFFFFFE;
 uint64_t const HL2SSAPI_VLCHostTicksOffsetExposure     = 0xFFFFFFFFFFFFFFFF;
 }
@@ -189,7 +193,7 @@ namespace mixer_mode
 uint32_t const MICROPHONE = 0;
 uint32_t const SYSTEM     = 1;
 uint32_t const BOTH       = 2;
-uint32_t const QUERY      = 0x80000000;
+uint32_t const QUERY      = 3;
 }
 
 namespace pv_decoded_format
@@ -1044,7 +1048,7 @@ public:
     ipc_rc(char const* host, uint16_t port);
 
     version get_application_version();
-    uint64_t get_utc_offset(uint32_t samples);
+    uint64_t get_utc_offset();
     void set_hs_marker_state(uint32_t state);
     bool get_pv_subsystem_status();
     void wait_for_pv_subsystem(bool status);
@@ -1065,6 +1069,7 @@ public:
     void set_pv_hdr_video(uint32_t mode);
     void set_pv_regions_of_interest(bool clear, bool set, bool auto_exposure, bool auto_focus, bool bounds_normalized, uint32_t type, uint32_t weight, float x, float y, float w, float h);
     void set_interface_priority(uint16_t port, int32_t priority);
+    void set_quiet_mode(uint32_t mode);
 };
 
 //------------------------------------------------------------------------------
@@ -1170,7 +1175,7 @@ public:
     sm_mesh_task(uint32_t count, uint8_t const* data, uint64_t size);
 
     void clear();
-    void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds);
+    void add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format);
 
     uint32_t get_count() const;
     uint8_t const* get_data() const;
@@ -1193,10 +1198,9 @@ class ipc_sm : public ipc
 public:
     ipc_sm(char const* host, uint16_t port);
 
-    void create_observer();
     void set_volumes(sm_bounding_volume const& volumes);
     void get_observed_surfaces(std::vector<sm_surface_info>& surfaces);
-    void get_meshes(sm_mesh_task const& tasks, uint32_t threads, std::vector<sm_mesh>& meshes);
+    void get_meshes(sm_mesh_task const& tasks, std::vector<sm_mesh>& meshes);
 };
 
 //------------------------------------------------------------------------------
@@ -1324,11 +1328,8 @@ class ipc_vi : public ipc
 public:
     ipc_vi(char const* host, uint16_t port);
 
-    void create_recognizer();
-    bool register_commands(bool clear, std::vector<std::u16string> const& strings);
-    void start();
+    void start(std::vector<std::u16string> const& strings);
     void pop(std::vector<vi_result>& results);
-    void clear();
     void stop();
 };
 

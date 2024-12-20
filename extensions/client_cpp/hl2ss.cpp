@@ -283,9 +283,9 @@ void create_configuration_for_audio_encoding(std::vector<uint8_t>& sc, uint8_t p
     push_u8(sc, level);
 }
 
-void create_configuration_for_png_encoding(std::vector<uint8_t>& sc, uint8_t png_filter)
+void create_configuration_for_png_encoding(std::vector<uint8_t>& sc, uint32_t png_filter)
 {
-    push_u8(sc, png_filter);
+    push_u32(sc, png_filter);
 }
 
 void create_configuration_for_h26x_encoding(std::vector<uint8_t>& sc, std::vector<uint64_t> const& options)
@@ -410,9 +410,8 @@ uint32_t extended_audio_device_mixer_mode(uint32_t mixer_mode, uint32_t device)
 
 namespace pv_control
 {
-uint8_t const START  = 0x04;
-uint8_t const STOP   = 0x08;
-uint8_t const MODE_3 = 0x03;
+uint8_t const START = 0x04;
+uint8_t const STOP  = 0x08;
 };
 
 void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool hologram_composition, bool recording_indicator, bool video_stabilization, bool blank_protected, bool show_mesh, bool shared, float global_opacity, float output_width, float output_height, uint32_t video_stabilization_length, uint32_t hologram_perspective)
@@ -420,7 +419,7 @@ void start_subsystem_pv(char const* host, uint16_t port, bool enable_mrc, bool h
     std::vector<uint8_t> sc;
     client c;
 
-    create_configuration_for_pv_mode_2(sc, pv_control::START | pv_control::MODE_3, 1920, 1080, 30);
+    create_configuration_for_mode(sc, pv_control::START | stream_mode::MODE_3);
     create_configuration_for_mrc_video(sc, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
 
     c.open(host, port);
@@ -433,7 +432,7 @@ void stop_subsystem_pv(char const* host, uint16_t port)
     std::vector<uint8_t> sc;
     client c;
 
-    create_configuration_for_pv_mode_2(sc, pv_control::STOP | pv_control::MODE_3, 1920, 1080, 30);
+    create_configuration_for_mode(sc, pv_control::STOP | stream_mode::MODE_3);
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
@@ -1232,7 +1231,7 @@ std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_audio(char co
     std::vector<uint8_t> sc;
     client c;
 
-    create_configuration_for_extended_audio(sc, mixer_mode::QUERY, 1.0, 1.0, audio_profile::AAC_24000, aac_level::L2);
+    create_configuration_for_mrc_audio(sc, mixer_mode::QUERY, 1.0, 1.0);
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
@@ -1251,7 +1250,7 @@ std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_video(char co
     std::vector<uint8_t> sc;
     client c;
 
-    create_configuration_for_pv_mode_2(sc, stream_mode::MODE_2, 1920, 1080, 30);
+    create_configuration_for_mode(sc, stream_mode::MODE_2);
 
     c.open(host, port);
     c.sendall(sc.data(), sc.size());
@@ -1348,6 +1347,7 @@ uint8_t const SET_PV_OPTICAL_IMAGE_STABILIZATION = 0x11;
 uint8_t const SET_PV_HDR_VIDEO                   = 0x12;
 uint8_t const SET_PV_REGIONS_OF_INTEREST         = 0x13;
 uint8_t const SET_INTERFACE_PRIORITY             = 0x14;
+uint8_t const SET_QUIET_MODE                     = 0x15;
 };
 
 ipc_rc::ipc_rc(char const* host, uint16_t port) : ipc(host, port)
@@ -1375,9 +1375,9 @@ version ipc_rc::get_application_version()
     return data;
 }
 
-uint64_t ipc_rc::get_utc_offset(uint32_t samples)
+uint64_t ipc_rc::get_utc_offset()
 {
-    send(cmd_ipc_rc::GET_UTC_OFFSET, {samples});
+    send(cmd_ipc_rc::GET_UTC_OFFSET, {});
     uint64_t data;
     recv(&data, sizeof(data));
     return data;
@@ -1487,16 +1487,20 @@ void ipc_rc::set_interface_priority(uint16_t port, int32_t priority)
     send(cmd_ipc_rc::SET_INTERFACE_PRIORITY, { (uint32_t)port, *(uint32_t*)&priority });
 }
 
+void ipc_rc::set_quiet_mode(uint32_t mode)
+{
+    send(cmd_ipc_rc::SET_QUIET_MODE, {mode});
+}
+
 //------------------------------------------------------------------------------
 // * Spatial Mapping
 //------------------------------------------------------------------------------
 
 namespace commmand_ipc_sm
 {
-uint8_t const CREATE_OBSERVER       = 0x00;
-uint8_t const SET_VOLUMES           = 0x01;
-uint8_t const GET_OBSERVED_SURFACES = 0x02;
-uint8_t const GET_MESHES            = 0x03;
+uint8_t const SET_VOLUMES           = 0x00;
+uint8_t const GET_OBSERVED_SURFACES = 0x01;
+uint8_t const GET_MESHES            = 0x02;
 };
 
 sm_bounding_volume::sm_bounding_volume()
@@ -1576,7 +1580,7 @@ void sm_mesh_task::clear()
     m_data.clear();
 }
 
-void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format, bool include_vertex_normals, bool include_bounds)
+void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint32_t vertex_position_format, uint32_t triangle_index_format, uint32_t vertex_normal_format)
 {
     m_count++;
     push_u64(m_data, id.l);
@@ -1585,7 +1589,7 @@ void sm_mesh_task::add_task(guid id, double max_triangles_per_cubic_meter, uint3
     push_u32(m_data, vertex_position_format);
     push_u32(m_data, triangle_index_format);
     push_u32(m_data, vertex_normal_format);
-    push_u32(m_data, (1*include_vertex_normals) | (2*include_bounds));
+    push_u32(m_data, 0);
 }
 
 uint32_t sm_mesh_task::get_count() const
@@ -1607,12 +1611,6 @@ ipc_sm::ipc_sm(char const* host, uint16_t port) : ipc(host, port)
 {
 }
 
-void ipc_sm::create_observer()
-{
-    uint8_t c = commmand_ipc_sm::CREATE_OBSERVER;
-    m_client.sendall(&c, sizeof(c));
-}
-
 void ipc_sm::set_volumes(sm_bounding_volume const& volumes)
 {
     std::vector<uint8_t> sc;
@@ -1626,18 +1624,17 @@ void ipc_sm::get_observed_surfaces(std::vector<sm_surface_info>& surfaces)
 {
     uint8_t c = commmand_ipc_sm::GET_OBSERVED_SURFACES;
     m_client.sendall(&c, sizeof(c));
-    uint64_t count;
+    uint32_t count;
     m_client.download(&count, sizeof(count), chunk_size::SINGLE_TRANSFER);
     surfaces.resize(count);
     m_client.download(surfaces.data(), count * sizeof(sm_surface_info), chunk_size::SINGLE_TRANSFER);
 }
 
-void ipc_sm::get_meshes(sm_mesh_task const& tasks, uint32_t threads, std::vector<sm_mesh>& meshes)
+void ipc_sm::get_meshes(sm_mesh_task const& tasks, std::vector<sm_mesh>& meshes)
 {
     std::vector<uint8_t> sc;
     push_u8(sc, commmand_ipc_sm::GET_MESHES);
     push_u32(sc, tasks.get_count());
-    push_u32(sc, threads);
     push(sc, tasks.get_data(), tasks.get_size());
     m_client.sendall(sc.data(), sc.size());
 
@@ -1653,19 +1650,16 @@ void ipc_sm::get_meshes(sm_mesh_task const& tasks, uint32_t threads, std::vector
 
     m_client.download(&mesh.status,                 sizeof(mesh.status),                chunk_size::SINGLE_TRANSFER);
 
-    if (mesh.status != 0) { continue; }
-
     uint32_t vpl;
     uint32_t til;
     uint32_t vnl;
-    uint32_t bsz;
+    uint32_t bsz = 40;
 
     m_client.download(&vpl,                         sizeof(vpl),                        chunk_size::SINGLE_TRANSFER);
     m_client.download(&til,                         sizeof(til),                        chunk_size::SINGLE_TRANSFER);
     m_client.download(&vnl,                         sizeof(vnl),                        chunk_size::SINGLE_TRANSFER);
     m_client.download(&mesh.vertex_position_scale,  sizeof(mesh.vertex_position_scale), chunk_size::SINGLE_TRANSFER);
-    m_client.download(&mesh.pose,                   sizeof(mesh.pose),                  chunk_size::SINGLE_TRANSFER);    
-    m_client.download(&bsz,                         sizeof(bsz),                        chunk_size::SINGLE_TRANSFER);
+    m_client.download(&mesh.pose,                   sizeof(mesh.pose),                  chunk_size::SINGLE_TRANSFER);
 
     mesh.bounds.resize(bsz);
     mesh.vertex_positions.resize(vpl);
@@ -1771,32 +1765,19 @@ void ipc_su::query(su_task const& task, su_result& result)
 
 namespace commmand_ipc_vi
 {
-uint8_t const CREATE_RECOGNIZER = 0x00;
-uint8_t const REGISTER_COMMANDS = 0x01;
-uint8_t const START             = 0x02;
-uint8_t const POP               = 0x03;
-uint8_t const CLEAR             = 0x04;
-uint8_t const STOP              = 0x05;
+uint8_t const POP  = 0x01;
+uint8_t const STOP = 0x00;
 };
 
 ipc_vi::ipc_vi(char const* host, uint16_t port) : ipc(host, port)
 {
 }
 
-void ipc_vi::create_recognizer()
-{
-    uint8_t c = commmand_ipc_vi::CREATE_RECOGNIZER;
-    m_client.sendall(&c, sizeof(c));
-}
-
-bool ipc_vi::register_commands(bool clear, std::vector<std::u16string> const& strings)
+void ipc_vi::start(std::vector<std::u16string> const& strings)
 {
     std::vector<uint8_t> data;
-    uint8_t response;
 
-    push_u8(data, commmand_ipc_vi::REGISTER_COMMANDS);
-    push_u8(data, clear);
-    push_u8(data, (uint8_t)strings.size());
+    push_u16(data, (uint16_t)strings.size());
 
     for (std::u16string string : strings)
     {
@@ -1806,15 +1787,6 @@ bool ipc_vi::register_commands(bool clear, std::vector<std::u16string> const& st
     }
 
     m_client.sendall(data.data(), data.size());
-    m_client.download(&response, sizeof(response), chunk_size::SINGLE_TRANSFER);
-
-    return response != 0;
-}
-
-void ipc_vi::start()
-{
-    uint8_t c = commmand_ipc_vi::START;
-    m_client.sendall(&c, sizeof(c));
 }
 
 void ipc_vi::pop(std::vector<vi_result>& results)
@@ -1826,12 +1798,6 @@ void ipc_vi::pop(std::vector<vi_result>& results)
     m_client.download(&count, sizeof(count), chunk_size::SINGLE_TRANSFER);
     results.resize(count);
     m_client.download(results.data(), count * sizeof(vi_result), chunk_size::SINGLE_TRANSFER);
-}
-
-void ipc_vi::clear()
-{
-    uint8_t c = commmand_ipc_vi::CLEAR;
-    m_client.sendall(&c, sizeof(c));
 }
 
 void ipc_vi::stop()
