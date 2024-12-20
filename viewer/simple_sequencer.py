@@ -39,9 +39,9 @@ while (True):
 
     # Display frames ----------------------------------------------------------
     if (data_lf is not None):
-        cv2.imshow('RM VLC LF', data_lf.payload)
+        cv2.imshow('RM VLC LF', data_lf.payload.image)
     if (data_rf is not None):
-        cv2.imshow('RM VLC RF', data_rf.payload)
+        cv2.imshow('RM VLC RF', data_rf.payload.image)
 
     cv2.imshow('PV', data_pv.payload.image)
     cv2.waitKey(1)
