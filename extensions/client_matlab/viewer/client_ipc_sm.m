@@ -15,8 +15,6 @@ client = hl2ss.mt.ipc_sm(host, hl2ss.ipc_port.SPATIAL_MAPPING);
 client.open();
 
 try
-client.create_observer();
-
 % sample sphere region
 buffer = hl2ss.sm_bounding_volume();
 buffer.add_sphere([0, 0, 0], 5);

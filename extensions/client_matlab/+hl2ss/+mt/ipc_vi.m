@@ -26,21 +26,9 @@ methods
     function close(self)
         self.module('close', self.port);
     end
-    
-    function create_recognizer(self)
-        self.module('ipc_call', self.port, 'create_recognizer');
-    end
-    
-    function response = register_commands(self, clear, commands)
-        response = self.module('ipc_call', self.port, 'register_commands', logical(clear), commands);
-    end
-    
-    function start(self)
-        self.module('ipc_call', self.port, 'start');
-    end
-    
-    function clear(self)
-        self.module('ipc_call', self.port, 'clear');
+        
+    function start(self, commands)
+        self.module('ipc_call', self.port, 'start', commands);
     end
     
     function response = pop(self)

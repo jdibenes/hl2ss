@@ -35,8 +35,8 @@ methods
         response = self.module('ipc_call', self.port, 'get_pv_subsystem_status');
     end
     
-    function response = get_utc_offset(self, samples)
-        response = self.module('ipc_call', self.port, 'get_utc_offset', uint32(samples));
+    function response = get_utc_offset(self)
+        response = self.module('ipc_call', self.port, 'get_utc_offset');
     end
     
     function set_hs_marker_state(self, state)

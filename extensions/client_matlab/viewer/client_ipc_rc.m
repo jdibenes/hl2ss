@@ -14,7 +14,7 @@ client.open();
 try
 version    = client.get_application_version();
 pv_status  = client.get_pv_subsystem_status();
-utc_offset = client.get_utc_offset(32);
+utc_offset = client.get_utc_offset();
 
 client.set_hs_marker_state(hl2ss.hs_marker_state.Disable);
 client.set_pv_backlight_compensation(hl2ss.pv_backlight_compensation_state.Disable);

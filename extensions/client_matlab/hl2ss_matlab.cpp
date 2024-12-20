@@ -1019,8 +1019,7 @@ public:
         }
         else if (f == "get_utc_offset")
         {
-        uint32_t samples = get_argument<uint32_t>(inputs);
-        outputs[0] = m_factory.createScalar<uint64_t>(ipc_rc->get_utc_offset(samples));
+        outputs[0] = m_factory.createScalar<uint64_t>(ipc_rc->get_utc_offset());
         }
         else if (f == "set_hs_marker_state")
         {
@@ -1142,11 +1141,7 @@ public:
 
         std::string f = get_argument_string(inputs);
 
-        if (f == "create_observer")
-        {
-        ipc_sm->create_observer();
-        }
-        else if (f == "set_volumes")
+        if (f == "set_volumes")
         {
         matlab::data::StructArray p = get_argument_array<matlab::data::Struct>(inputs);
 
@@ -1186,19 +1181,18 @@ public:
         }
         else if (f == "get_meshes")
         {
-        matlab::data::StructArray p       = get_argument_array<matlab::data::Struct>(inputs);
-        uint32_t                  threads = get_argument<uint32_t>(inputs);
+        matlab::data::StructArray p = get_argument_array<matlab::data::Struct>(inputs);
 
         hl2ss::sm_mesh_task tasks;
 
         for (size_t i = 0; i < p.getNumberOfElements(); ++i)
         {
-        tasks.add_task(get_field_guid(p[i]["id"]), get_field_scalar<double>(p[i]["max_triangles_per_cubic_meter"]), get_field_scalar<uint32_t>(p[i]["vertex_position_format"]), get_field_scalar<uint32_t>(p[i]["triangle_index_format"]), get_field_scalar<uint32_t>(p[i]["vertex_normal_format"]), get_field_scalar<bool>(p[i]["include_vertex_normals"]), get_field_scalar<bool>(p[i]["include_bounds"]));
+        tasks.add_task(get_field_guid(p[i]["id"]), get_field_scalar<double>(p[i]["max_triangles_per_cubic_meter"]), get_field_scalar<uint32_t>(p[i]["vertex_position_format"]), get_field_scalar<uint32_t>(p[i]["triangle_index_format"]), get_field_scalar<uint32_t>(p[i]["vertex_normal_format"]));
         }
 
         std::vector<hl2ss::sm_mesh> meshes;
 
-        ipc_sm->get_meshes(tasks, threads, meshes);
+        ipc_sm->get_meshes(tasks, meshes);
 
         matlab::data::StructArray o = m_factory.createStructArray({ meshes.size() }, { "status", "vertex_position_scale", "pose", "bounds", "vertex_positions", "triangle_indices", "vertex_normals" });
 
@@ -1342,29 +1336,14 @@ public:
 
         std::string f = get_argument_string(inputs);
 
-        if (f == "create_recognizer")
+        if (f == "start")
         {
-        ipc_vi->create_recognizer();
-        }
-        else if (f == "register_commands")
-        {
-        bool                      clear    = get_argument<bool>(inputs);
         matlab::data::StringArray commands = get_argument_array<matlab::data::MATLABString>(inputs);
 
         std::vector<std::u16string> strings;
         for (size_t i = 0; i < commands.getNumberOfElements(); ++i) { if (commands[i].has_value()) { strings.push_back(commands[i]); } }
 
-        bool ok = ipc_vi->register_commands(clear, strings);
-
-        outputs[0] = m_factory.createScalar<bool>(ok);
-        }
-        else if (f == "start")
-        {
-        ipc_vi->start();
-        }
-        else if (f == "clear")
-        {
-        ipc_vi->clear();
+        ipc_vi->start(strings);
         }
         else if (f == "pop")
         {

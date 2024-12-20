@@ -16,14 +16,7 @@ client = hl2ss.mt.ipc_vi(host, hl2ss.ipc_port.VOICE_INPUT);
 client.open();
 
 try
-client.create_recognizer();
-ok = client.register_commands(true, commands);
-if (~ok)
-    error('Failed to register commands');
-end
-
-client.start();
-client.clear();
+client.start(commands);
 
 % run until one of the commands is detected
 disp('Ready. Try saying any of the commands you defined.');

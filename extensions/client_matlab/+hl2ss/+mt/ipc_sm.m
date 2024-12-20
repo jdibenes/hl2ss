@@ -26,11 +26,7 @@ methods
     function close(self)
         self.module('close', self.port);
     end
-    
-    function create_observer(self)
-        self.module('ipc_call', self.port, 'create_observer');
-    end
-    
+        
     function set_volumes(self, volumes)
         self.module('ipc_call', self.port, 'set_volumes', volumes);
     end
