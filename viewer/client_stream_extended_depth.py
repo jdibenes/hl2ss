@@ -40,7 +40,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss_lnm.rx_exteneded_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, profile_z=profile_z, media_index=media_index)
+client = hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, profile_z=profile_z, media_index=media_index)
 client.open()
 
 max_depth = 8192 # Depends on your RGBD camera
