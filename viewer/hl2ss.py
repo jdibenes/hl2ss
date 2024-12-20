@@ -1897,6 +1897,7 @@ class _PortName:
         'extended_audio',
         'extended_video',
         'guest_message_queue',
+        'extended_depth',
     ]
 
 
