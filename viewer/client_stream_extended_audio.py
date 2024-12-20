@@ -46,7 +46,7 @@ profile = hl2ss.AudioProfile.AAC_24000
 
 #------------------------------------------------------------------------------
 
-if ((mixer_mode & hl2ss.MixerMode.QUERY) != 0):
+if (mixer_mode == hl2ss.MixerMode.QUERY):
     audio_devices = json.loads(hl2ss_lnm.download_devicelist_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO))
     print(json.dumps(audio_devices, indent=2))
     quit()

@@ -21,15 +21,6 @@ vpf = hl2ss.SM_VertexPositionFormat.R32G32B32A32Float
 tif = hl2ss.SM_TriangleIndexFormat.R32Uint
 vnf = hl2ss.SM_VertexNormalFormat.R32G32B32A32Float
 
-# Include normals
-normals = True
-
-# include bounds
-bounds = False
-
-# Maximum number of active threads (on the HoloLens) to compute meshes
-threads = 2
-
 # Region of 3D space to sample (bounding box)
 # All units are in meters
 center  = [0.0, 0.0, 0.0] # Position of the box
@@ -46,8 +37,6 @@ client = hl2ss_lnm.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
 
 client.open()
 
-client.create_observer()
-
 volumes = hl2ss.sm_bounding_volume()
 volumes.add_box(center, extents)
 client.set_volumes(volumes)
@@ -55,9 +44,9 @@ client.set_volumes(volumes)
 surface_infos = client.get_observed_surfaces()
 tasks = hl2ss.sm_mesh_task()
 for surface_info in surface_infos:
-    tasks.add_task(surface_info.id, tpcm, vpf, tif, vnf, normals, bounds)
+    tasks.add_task(surface_info.id, tpcm, vpf, tif, vnf)
 
-meshes = client.get_meshes(tasks, threads)
+meshes = client.get_meshes(tasks)
 
 client.close()
 

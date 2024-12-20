@@ -19,6 +19,9 @@ host = '192.168.1.7'
 # Spatial Input not supported in flat mode
 flat_mode = False
 
+# Disable hl2ss Popup warnings
+quiet_mode = False
+
 # Display marker state
 # Marks the FOV of the PV camera in the display
 marker_state = hl2ss.HS_MarkerState.Disable
@@ -73,32 +76,34 @@ eye_selection = False
 client = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 client.open()
 
-version = client.get_application_version()
+version = client.ee_get_application_version()
 print(f'Installed version {version[0]}.{version[1]}.{version[2]}.{version[3]}')
 
 # Add this offset to timestamps to convert to utc (Windows FILETIME)
-utc_offset = client.get_utc_offset(32)
+utc_offset = client.ts_get_utc_offset()
 print(f'QPC timestamp to UTC offset is {utc_offset} hundreds of nanoseconds')
 
-client.set_hs_marker_state(marker_state)
+client.hs_set_marker_state(marker_state)
 
 # PV camera configuration
-pv_status = client.get_pv_subsystem_status()
+pv_status = client.pv_get_subsystem_status()
 print(f'PV subsystem is {("On" if (pv_status) else "Off")}')
 
 # Ignored if PV subsystem is Off
-client.set_pv_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)
-client.set_pv_video_temporal_denoising(video_temporal_denoising)
-client.set_pv_white_balance_preset(white_balance_preset)
-client.set_pv_white_balance_value(white_balance_value)
-client.set_pv_exposure(exposure_mode, exposure_value)
-client.set_pv_exposure_priority_video(exposure_priority_video)
-client.set_pv_iso_speed(iso_speed_mode, iso_speed_value)
-client.set_pv_backlight_compensation(backlight_compensation_state)
-client.set_pv_scene_mode(scene_mode)
+client.pv_set_focus(focus_mode, auto_focus_range, manual_focus_distance, focus_value, driver_fallback)
+client.pv_set_video_temporal_denoising(video_temporal_denoising)
+client.pv_set_white_balance_preset(white_balance_preset)
+client.pv_set_white_balance_value(white_balance_value)
+client.pv_set_exposure(exposure_mode, exposure_value)
+client.pv_set_exposure_priority_video(exposure_priority_video)
+client.pv_set_iso_speed(iso_speed_mode, iso_speed_value)
+client.pv_set_backlight_compensation(backlight_compensation_state)
+client.pv_set_scene_mode(scene_mode)
 
-client.set_flat_mode(flat_mode)
+client.ee_set_flat_mode(flat_mode)
 
-client.set_rm_eye_selection(eye_selection)
+client.rm_set_eye_selection(eye_selection)
+
+client.ee_set_quiet_mode(quiet_mode)
 
 client.close()
