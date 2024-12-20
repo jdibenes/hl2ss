@@ -15,6 +15,8 @@ public static class hl2ss
     [DllImport("hl2ss")]
     private static extern int OverrideWorldCoordinateSystem(IntPtr scs);
     [DllImport("hl2ss")]
+    private static extern void CheckExceptions(); 
+    [DllImport("hl2ss")]
     private static extern uint MQ_SI_Peek();
     [DllImport("hl2ss")]
     private static extern void MQ_SI_Pop(out uint command, byte[] data);
@@ -59,6 +61,10 @@ public static class hl2ss
     private static int OverrideWorldCoordinateSystem(IntPtr scs)
     {
         return 1;
+    }
+
+    private static void CheckExceptions()
+    {
     }
 
     private static uint MQ_SI_Peek()
@@ -253,5 +259,10 @@ public static class hl2ss
         case Device.PERSONAL_VIDEO: PersonalVideo_RegisterNamedMutex(name); break;
         case Device.EXTENDED_VIDEO: ExtendedVideo_RegisterNamedMutex(name); break;
         }
+    }
+
+    public static void CheckForErrors()
+    {
+        CheckExceptions();
     }
 }
