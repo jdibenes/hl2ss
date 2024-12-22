@@ -2,6 +2,7 @@
 import argparse
 import hl2ss
 import hl2ss_3dcv
+import hl2ss_lnm
 
 parser = argparse.ArgumentParser(description='HL2SS PV Intrinsics Downloader Tool.')
 parser.add_argument('--host', help='HL2 IP address (e.g. 192.168.1.0)', required=True)
@@ -27,7 +28,7 @@ if ((focus < hl2ss.PV_FocusValue.Min) or (focus > hl2ss.PV_FocusValue.Max)):
 client_rc = hl2ss.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 client_rc.open()
 
-hl2ss.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 client_rc.wait_for_pv_subsystem(True)
 
 print('Setting PV focus to {focus}'.format(focus=focus))
@@ -38,6 +39,6 @@ print('PV calibration saved to ' + path)
 print('PV intrinsics:')
 print(calibration.intrinsics)
 
-hl2ss.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 client_rc.wait_for_pv_subsystem(False)
 client_rc.close()
