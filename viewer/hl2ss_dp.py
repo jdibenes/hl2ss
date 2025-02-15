@@ -11,6 +11,11 @@ class StreamPort:
     LIVE_LOW  = 'live_low'
 
 
+class StreamKind:
+    VIDEO = 1
+    AUDIO = 2
+
+
 #------------------------------------------------------------------------------
 # Network Client
 #------------------------------------------------------------------------------
@@ -166,9 +171,9 @@ class _gatherer:
                             sizes = stream_l[2]
                             if (id == self._video_id):
                                 avcc_to_annex_b(data)
-                                kind = 1
+                                kind = StreamKind.VIDEO
                             elif (id == self._audio_id):
-                                kind = 2
+                                kind = StreamKind.AUDIO
                             else:
                                 continue
                             if (len(sizes) <= 0):
@@ -264,9 +269,9 @@ class rx_decoded_mrc(rx_mrc):
         for packet in packets:
             kind = packet[0]
             payload = packet[1]
-            if (kind == 1):
+            if (kind == StreamKind.VIDEO):
                 frame = self._video_codec.decode(payload, self.format)
-            elif (kind == 2):
+            elif (kind == StreamKind.AUDIO):
                 frame = self._audio_codec.decode(payload)
             else:
                 continue
