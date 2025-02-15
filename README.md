@@ -34,7 +34,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - External USB-C Camera
 - Extended Depth (Experimental)
   - External USB-C Depth Camera
-- Device Portal (Mixed Reality Capture)
+- Device Portal Mixed Reality Capture (Experimental)
   - Front Camera (+ Holograms)
   - Microphone (+ Application audio)
   
