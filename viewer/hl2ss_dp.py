@@ -1,12 +1,6 @@
 
 import requests
-import json
-import av
-import io
 import struct
-import numpy as np
-import collections
-import cv2
 import hl2ss
 
 
@@ -172,6 +166,11 @@ class _gatherer:
                             sizes = stream_l[2]
                             if (id == self._video_id):
                                 avcc_to_annex_b(data)
+                                kind = 1
+                            elif (id == self._audio_id):
+                                kind = 2
+                            else:
+                                continue
                             if (len(sizes) <= 0):
                                 sizes.append(len(data))
                             offset = 0
@@ -180,7 +179,7 @@ class _gatherer:
                                 if (len(sample) > 0):
                                     if (id == self._audio_id):
                                         sample = raw_aac_to_adts(sample)
-                                    packets.append((id, sample))
+                                    packets.append((kind, sample))
                                 offset += size
                         self._state = 1
             if (len(packets) > 0):
@@ -263,17 +262,14 @@ class rx_decoded_mrc(rx_mrc):
         packets = super().get_next_packet()
         decoded = []
         for packet in packets:
-            id = packet[0]
+            kind = packet[0]
             payload = packet[1]
-            if (id == self._client._video_id):
-                kind = 1
+            if (kind == 1):
                 frame = self._video_codec.decode(payload, self.format)
-            elif (id == self._client._audio_id):
-                kind = 2
+            elif (kind == 2):
                 frame = self._audio_codec.decode(payload)
             else:
-                kind = 0
-                frame = None
+                continue
             if (frame is not None):
                 decoded.append((kind, frame))
         return decoded
