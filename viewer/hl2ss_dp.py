@@ -93,6 +93,7 @@ def avcc_to_annex_b(sample):
         branch = offset + 4 + struct.unpack('>I', sample[offset:(offset+4)])[0]
         sample[offset:offset+4] = b'\x00\x00\x00\x01'
         offset = branch
+    return sample
 
 
 def raw_aac_to_adts(sample):
@@ -138,9 +139,7 @@ class _gatherer:
                                                                     pps_data = stbl_data[133:141]
                                                                     sps_data[0:2] = b'\x00\x00'
                                                                     pps_data[0:2] = b'\x00\x00'
-                                                                    xps_data = sps_data + pps_data
-                                                                    avcc_to_annex_b(xps_data)
-                                                                    packets.append((id, xps_data))
+                                                                    packets.append((StreamKind.VIDEO, avcc_to_annex_b(sps_data + pps_data)))
                                                                 elif (stbl_type == 'mp4a'):
                                                                     self._audio_id = id
                         self._state = 1
@@ -167,24 +166,23 @@ class _gatherer:
                             stream_l = self._streams[i]
                             stream_h = self._streams[i+1]
                             id = stream_l[0]
-                            data = box.data[stream_l[1]:stream_h[1]]
-                            sizes = stream_l[2]
                             if (id == self._video_id):
-                                avcc_to_annex_b(data)
+                                pfnd = avcc_to_annex_b
                                 kind = StreamKind.VIDEO
                             elif (id == self._audio_id):
+                                pfnd = raw_aac_to_adts
                                 kind = StreamKind.AUDIO
                             else:
                                 continue
+                            data = box.data[stream_l[1]:stream_h[1]]
+                            sizes = stream_l[2]
                             if (len(sizes) <= 0):
                                 sizes.append(len(data))
                             offset = 0
                             for size in sizes:
                                 sample = data[offset:(offset+size)]
                                 if (len(sample) > 0):
-                                    if (id == self._audio_id):
-                                        sample = raw_aac_to_adts(sample)
-                                    packets.append((kind, sample))
+                                    packets.append((kind, pfnd(sample)))
                                 offset += size
                         self._state = 1
             if (len(packets) > 0):
@@ -269,12 +267,7 @@ class rx_decoded_mrc(rx_mrc):
         for packet in packets:
             kind = packet[0]
             payload = packet[1]
-            if (kind == StreamKind.VIDEO):
-                frame = self._video_codec.decode(payload, self.format)
-            elif (kind == StreamKind.AUDIO):
-                frame = self._audio_codec.decode(payload)
-            else:
-                continue
+            frame = self._video_codec.decode(payload, self.format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(payload) if (kind == StreamKind.AUDIO) else None
             if (frame is not None):
                 decoded.append((kind, frame))
         return decoded
