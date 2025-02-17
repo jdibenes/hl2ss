@@ -1,5 +1,6 @@
 #------------------------------------------------------------------------------
 # Experimental Audio/Video streaming using the HoloLens 2 Device Portal API.
+# Can be run with or without the hl2ss server running on the HoloLens.
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
@@ -9,6 +10,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_dp
+import hl2ss_lnm
 import hl2ss_utilities
 import pyaudio
 import queue
@@ -44,8 +46,6 @@ render_from_camera = True # Render Holograms from PV perspective
 vstab = False # Enable video stabilization
 vstabbuffer = 15 # Video stabilization buffer latency in frames [0, 30]
 
-chunk = 4096
-
 #------------------------------------------------------------------------------
 
 audio_format = pyaudio.paFloat32
@@ -75,7 +75,7 @@ listener.start()
 
 configuration = hl2ss_dp.create_configuration_for_mrc(pv, holo, mic, loopback, render_from_camera, vstab, vstabbuffer)
 
-client = hl2ss_dp.rx_decoded_mrc(host, port, chunk, user, password, configuration, decoded_format)
+client = hl2ss_lnm.rx_mrc(host, port, user, password, configuration=configuration, decoded_format=decoded_format)
 client.open()
 
 while (enable):
