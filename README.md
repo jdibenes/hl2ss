@@ -134,7 +134,7 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - Extended Video: [viewer/client_stream_extended_video.py](viewer/client_stream_extended_video.py)
 - Guest Message Queue: [viewer/client_ipc_gmq.py](viewer/client_ipc_gmq.py) (Plugin Only)
 - Extended Depth: [viewer/client_stream_extended_depth.py](viewer/client_stream_extended_depth.py)
-- Device Portal: [viewer/client_stream_mrc.py](viewer/client_stream_mrc.py)
+- Device Portal: [viewer/client_stream_mrc.py](viewer/client_stream_mrc.py) (hl2ss server optional)
 
 **Required packages**
 
