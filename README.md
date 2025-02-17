@@ -48,7 +48,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Client can configure the resolution and framerate of the Front Camera. See [here](etc/pv_configurations.txt) for a list of supported configurations.
 - Client can configure the focus, white balance, and exposure of the Front Camera [[example](viewer/client_ipc_rc.py)].
 - Frame timestamps can be converted to [Windows FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime) (UTC) for external synchronization [[example](viewer/client_ipc_rc.py)].
-- Client can exchange messages with a Unity, Unreal, or native UWP application using the plugin [[example](viewer/client_ipc_umq.py)].
+- Client can exchange messages with a Unity, Unreal, or native UWP application using the plugin [[send](viewer/client_ipc_umq.py)][[receive](viewer/client_ipc_gmq.py)].
 - Server application can run in background (alongside other applications) when running in flat mode [[example](viewer/client_ipc_rc.py)].
 
 **Integrations**
@@ -128,13 +128,13 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - Spatial Mapping: [viewer/client_ipc_sm.py](viewer/client_ipc_sm.py)
 - Scene Understanding: [viewer/client_ipc_su.py](viewer/client_ipc_su.py)
 - Voice Input: [viewer/client_ipc_vi.py](viewer/client_ipc_vi.py)
-- Unity Message Queue: [viewer/client_ipc_umq.py](viewer/client_ipc_umq.py) (Plugin Only)
+- Unity Message Queue: [viewer/client_ipc_umq.py](viewer/client_ipc_umq.py) (plugin only)
 - Extended Eye Tracking: [viewer/client_stream_eet.py](viewer/client_stream_eet.py)
 - Extended Audio: [viewer/client_stream_extended_audio.py](viewer/client_stream_extended_audio.py)
 - Extended Video: [viewer/client_stream_extended_video.py](viewer/client_stream_extended_video.py)
-- Guest Message Queue: [viewer/client_ipc_gmq.py](viewer/client_ipc_gmq.py) (Plugin Only)
+- Guest Message Queue: [viewer/client_ipc_gmq.py](viewer/client_ipc_gmq.py) (plugin only)
 - Extended Depth: [viewer/client_stream_extended_depth.py](viewer/client_stream_extended_depth.py)
-- Device Portal: [viewer/client_stream_mrc.py](viewer/client_stream_mrc.py)
+- Device Portal MRC: [viewer/client_stream_mrc.py](viewer/client_stream_mrc.py) (hl2ss server optional)
 
 **Required packages**
 
