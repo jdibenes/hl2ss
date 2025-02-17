@@ -16,12 +16,16 @@ class StreamKind:
     AUDIO = 2
 
 
+class ChunkSize:
+    MRC = 4096
+
+
 #------------------------------------------------------------------------------
 # Network Client
 #------------------------------------------------------------------------------
 
 class _client:
-    def open(self, host, port, chunk_size, user, password, configuration):
+    def open(self, host, port, user, password, chunk_size, configuration):
         self._response = requests.get(f'https://{host}/api/holographic/stream/{port}.mp4', params=configuration, auth=(user, password), verify=False, stream=True)
         self._iterator = self._response.iter_content(chunk_size)
 
@@ -102,12 +106,12 @@ def raw_aac_to_adts(sample):
 
 
 class _gatherer:
-    def open(self, host, port, chunk_size, user, password, configuration):
+    def open(self, host, port, user, password, chunk_size, configuration):
         self._client = _client()
         self._unpacker = _unpacker()
         self._state = 0
         self._unpacker.reset()
-        self._client.open(host, port, chunk_size, user, password, configuration)
+        self._client.open(host, port, user, password, chunk_size, configuration)
         self._video_id = None
         self._audio_id = None
 
@@ -200,7 +204,7 @@ def bool_to_str(v):
     return 'true' if (v) else 'false'
 
 
-def create_configuration_for_mrc(pv=True, holo=False, mic=True, loopback=False, RenderFromCamera=True, vstab=False, vstabbuffer=15):
+def create_configuration_for_mrc(pv, holo, mic, loopback, RenderFromCamera, vstab, vstabbuffer):
     return {
         'holo' : bool_to_str(holo), 
         'pv' :  bool_to_str(pv), 
@@ -216,9 +220,9 @@ def create_configuration_for_mrc(pv=True, holo=False, mic=True, loopback=False, 
 # Mode 0 Data Acquisition
 #------------------------------------------------------------------------------
 
-def _connect_client_mrc(host, port, chunk_size, user, password, configuration):
+def _connect_client_mrc(host, port, user, password, chunk_size, configuration):
     c = _gatherer()
-    c.open(host, port, chunk_size, user, password, configuration)
+    c.open(host, port, user, password, chunk_size, configuration)
     return c
 
 
@@ -227,16 +231,16 @@ def _connect_client_mrc(host, port, chunk_size, user, password, configuration):
 #------------------------------------------------------------------------------
 
 class rx_mrc(hl2ss._context_manager):
-    def __init__(self, host, port, chunk, user, password, configuration):
+    def __init__(self, host, port, user, password, chunk, configuration):
         self.host = host
         self.port = port
-        self.chunk = chunk
         self.user = user
         self.password = password
+        self.chunk = chunk
         self.configuration = configuration
 
     def open(self):
-        self._client = _connect_client_mrc(self.host, self.port, self.chunk, self.user, self.password, self.configuration)
+        self._client = _connect_client_mrc(self.host, self.port, self.user, self.password, self.chunk, self.configuration)
 
     def get_next_packet(self):
         return self._client.get_next_packet()
@@ -250,8 +254,8 @@ class rx_mrc(hl2ss._context_manager):
 #------------------------------------------------------------------------------
 
 class rx_decoded_mrc(rx_mrc):
-    def __init__(self, host, port, chunk, user, password, configuration, format):
-        super().__init__(host, port, chunk, user, password, configuration)
+    def __init__(self, host, port, user, password, chunk, configuration, format):
+        super().__init__(host, port, user, password, chunk, configuration)
         self.format = format
         self._video_codec = hl2ss.decode_pv(hl2ss.VideoProfile.H264_MAIN)
         self._audio_codec = hl2ss.decode_microphone(hl2ss.AudioProfile.AAC_12000, hl2ss.AACLevel.L2)
