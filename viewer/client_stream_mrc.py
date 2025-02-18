@@ -1,6 +1,7 @@
 #------------------------------------------------------------------------------
 # Experimental Audio/Video streaming using the HoloLens 2 Device Portal API.
-# Can be run with or without the hl2ss server running on the HoloLens.
+# Can be run without the hl2ss server running on the HoloLens, and can also be 
+# run even when hl2ss (or another app) is already using the Front Camera.
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
