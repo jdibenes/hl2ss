@@ -27,6 +27,9 @@ class ChunkSize:
 class _client:
     def open(self, host, port, user, password, chunk_size, configuration):
         self._response = requests.get(f'https://{host}/api/holographic/stream/{port}.mp4', params=configuration, auth=(user, password), verify=False, stream=True)
+        if (self._response.status_code != 200):
+            self._response.close()
+            self._response.raise_for_status()
         self._iterator = self._response.iter_content(chunk_size)
 
     def recv(self):
