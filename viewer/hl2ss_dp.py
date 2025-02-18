@@ -152,8 +152,6 @@ class _gatherer:
                         self._streams = []
                         for moof_box in flatten_box(box):
                             if (moof_box.type == 'traf'):
-                                offset = 0
-                                sample_sizes = []
                                 for traf_box in flatten_box(moof_box):
                                     if (traf_box.type == 'tfhd'):
                                         id = struct.unpack('>I', traf_box.data[4:8])[0]
@@ -161,7 +159,7 @@ class _gatherer:
                                         sample_count = struct.unpack('>I', traf_box.data[4:8])[0]
                                         offset = struct.unpack('>i', traf_box.data[8:12])[0]
                                         sample_sizes = [struct.unpack('>I', traf_box.data[12+(16*i)+4:12+(16*i)+8])[0] for i in range(0, sample_count)]
-                                self._streams.append((id, offset, sample_sizes))
+                                        self._streams.append((id, offset, sample_sizes))
                         self._state = 2
                 elif (self._state == 2):
                     if (box.type == 'mdat'):
@@ -180,8 +178,6 @@ class _gatherer:
                                 continue
                             data = box.data[stream_l[1]:stream_h[1]]
                             sizes = stream_l[2]
-                            if (len(sizes) <= 0):
-                                sizes.append(len(data))
                             offset = 0
                             for size in sizes:
                                 sample = data[offset:(offset+size)]
