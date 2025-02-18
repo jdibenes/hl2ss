@@ -82,8 +82,7 @@ client.open()
 while (enable):
     packets = client.get_next_packet()
     for packet in packets:
-        kind = packet[0]
-        frame = packet[1]
+        kind, frame = packet
         if (kind == hl2ss_dp.StreamKind.AUDIO):
             audio = hl2ss_utilities.microphone_planar_to_packed(frame)
             pcmqueue.put(audio.tobytes())
