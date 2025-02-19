@@ -49,14 +49,12 @@ vstabbuffer = 15 # Video stabilization buffer latency in frames [0, 30]
 
 #------------------------------------------------------------------------------
 
-audio_format = pyaudio.paFloat32
 enable = True
 
 def pcmworker(pcmqueue):
     global enable
-    global audio_format
     p = pyaudio.PyAudio()
-    stream = p.open(format=audio_format, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
+    stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
     stream.start_stream()
     while (enable):
         stream.write(pcmqueue.get())
@@ -82,17 +80,16 @@ client.open()
 while (enable):
     packets = client.get_next_packet()
     for packet in packets:
-        kind, frame = packet
-        if (kind == hl2ss_dp.StreamKind.AUDIO):
-            audio = hl2ss_utilities.microphone_planar_to_packed(frame)
+        if (packet.payload.kind == hl2ss_dp.StreamKind.AUDIO):
+            print(f'got audio packet at {packet.timestamp}')
+            audio = hl2ss_utilities.microphone_planar_to_packed(packet.payload.sample)
             pcmqueue.put(audio.tobytes())
-        elif (kind == hl2ss_dp.StreamKind.VIDEO):
-            cv2.imshow('video', frame)
+        elif (packet.payload.kind == hl2ss_dp.StreamKind.VIDEO):
+            print(f'got video packet at {packet.timestamp} (key_frame={packet.payload.key_frame})')
+            cv2.imshow('video', packet.payload.sample)
             cv2.waitKey(1)
 
 client.close()
-
-enable = False
 pcmqueue.put(b'')
 thread.join()
 listener.join()
