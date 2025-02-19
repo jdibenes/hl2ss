@@ -108,6 +108,17 @@ def raw_aac_to_adts(sample):
     return header + sample
 
 
+def compute_timestamp(ct, et, tb):
+    return ((ct + et) * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // tb
+
+
+class _MRC_Frame:
+    def __init__(self, kind, sample, key_frame):
+        self.kind = kind
+        self.sample = sample
+        self.key_frame = key_frame
+
+
 class _gatherer:
     def open(self, host, port, user, password, chunk_size, configuration):
         self._client = _client()
@@ -117,6 +128,12 @@ class _gatherer:
         self._client.open(host, port, user, password, chunk_size, configuration)
         self._video_id = None
         self._audio_id = None
+        self._video_ct = 0
+        self._audio_ct = 0
+        self._video_tb = 30000
+        self._audio_tb = 48000
+        self._video_et = 0
+        self._audio_et = 0
 
     def get_next_packet(self):
         packets = []
@@ -133,6 +150,9 @@ class _gatherer:
                                         id = struct.unpack('>I', trak_box.data[12:16])[0]
                                     elif (trak_box.type == 'mdia'):
                                         for mdia_box in flatten_box(trak_box):
+                                            if (mdia_box.type == 'mdhd'):
+                                                ct = struct.unpack('>I', trak_box.data[4:8])[0]
+                                                tb = struct.unpack('>I', mdia_box.data[12:16])[0]
                                             if (mdia_box.type == 'minf'):
                                                 for minf_box in flatten_box(mdia_box):
                                                     if (minf_box.type == 'stbl'):
@@ -142,13 +162,21 @@ class _gatherer:
                                                                 stbl_type = stbl_data[12:16].decode()
                                                                 if (stbl_type == 'avc1'):
                                                                     self._video_id = id
+                                                                    # Video/Audio ahead/delayed about ~1 second
+                                                                    # Also observed in device portal player
+                                                                    # Force 1 second delay on video stream
+                                                                    self._video_ct = (ct + 1) * tb
+                                                                    self._video_tb = tb
                                                                     sps_data = stbl_data[106:134]
                                                                     pps_data = stbl_data[133:141]
                                                                     sps_data[0:2] = b'\x00\x00'
                                                                     pps_data[0:2] = b'\x00\x00'
-                                                                    packets.append((StreamKind.VIDEO, avcc_to_annex_b(sps_data + pps_data)))
+                                                                    t = compute_timestamp(self._video_ct, self._video_et, self._video_tb)
+                                                                    packets.append(hl2ss._packet(t, _MRC_Frame(StreamKind.VIDEO, avcc_to_annex_b(sps_data + pps_data), True), None))
                                                                 elif (stbl_type == 'mp4a'):
                                                                     self._audio_id = id
+                                                                    self._audio_ct = ct * tb
+                                                                    self._audio_tb = tb
                         self._state = 1
                 elif (self._state == 1):
                     if (box.type == 'moof'):
@@ -161,31 +189,37 @@ class _gatherer:
                                     elif (traf_box.type == 'trun'):
                                         sample_count = struct.unpack('>I', traf_box.data[4:8])[0]
                                         offset = struct.unpack('>i', traf_box.data[8:12])[0]
-                                        sample_sizes = [struct.unpack('>I', traf_box.data[12+(16*i)+4:12+(16*i)+8])[0] for i in range(0, sample_count)]
-                                        self._streams.append((id, offset, sample_sizes))
+                                        sample_spans = [struct.unpack('>I', traf_box.data[12+(16*i)  :12+(16*i)+ 4])[0] for i in range(0, sample_count)]
+                                        sample_sizes = [struct.unpack('>I', traf_box.data[12+(16*i)+4:12+(16*i)+ 8])[0] for i in range(0, sample_count)]
+                                        sample_flags = [struct.unpack('>I', traf_box.data[12+(16*i)+8:12+(16*i)+12])[0] for i in range(0, sample_count)]
+                                        self._streams.append((id, offset, sample_count, sample_spans, sample_sizes, sample_flags))
                         self._state = 2
                 elif (self._state == 2):
                     if (box.type == 'mdat'):
-                        self._streams.append((-1, len(box.data), []))
+                        self._streams.append((-1, len(box.data), 0, [], [], []))
                         for i in range(0, len(self._streams) - 1):
                             stream_l = self._streams[i]
                             stream_h = self._streams[i+1]
                             id = stream_l[0]
-                            if (id == self._video_id):
-                                pfnd = avcc_to_annex_b
-                                kind = StreamKind.VIDEO
-                            elif (id == self._audio_id):
-                                pfnd = raw_aac_to_adts
-                                kind = StreamKind.AUDIO
-                            else:
-                                continue
                             data = box.data[stream_l[1]:stream_h[1]]
-                            sizes = stream_l[2]
+                            count = stream_l[2]
+                            spans = stream_l[3]
+                            sizes = stream_l[4]
+                            flags = stream_l[5]
                             offset = 0
-                            for size in sizes:
+                            for j in range(0, count):
+                                span = spans[j]
+                                size = sizes[j]
+                                keyf = (flags[j] & 0x00010000) == 0
                                 sample = data[offset:(offset+size)]
-                                if (len(sample) > 0):
-                                    packets.append((kind, pfnd(sample)))
+                                if (id == self._video_id):
+                                    t = compute_timestamp(self._video_ct, self._video_et, self._video_tb)
+                                    packets.append(hl2ss._packet(t, _MRC_Frame(StreamKind.VIDEO, avcc_to_annex_b(sample), keyf), None))
+                                    self._video_et += span
+                                elif (id == self._audio_id):
+                                    t = compute_timestamp(self._audio_ct, self._audio_et, self._audio_tb)
+                                    packets.append(hl2ss._packet(t, _MRC_Frame(StreamKind.AUDIO, raw_aac_to_adts(sample), keyf), None))
+                                    self._audio_et += span
                                 offset += size
                         self._state = 1
             if (len(packets) > 0):
@@ -268,11 +302,9 @@ class rx_decoded_mrc(rx_mrc):
         packets = super().get_next_packet()
         decoded = []
         for packet in packets:
-            kind = packet[0]
-            payload = packet[1]
-            frame = self._video_codec.decode(payload, self.format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(payload) if (kind == StreamKind.AUDIO) else None
-            if (frame is not None):
-                decoded.append((kind, frame))
+            packet.payload.sample = self._video_codec.decode(packet.payload.sample, self.format) if (packet.payload.kind == StreamKind.VIDEO) else self._audio_codec.decode(packet.payload.sample) if (packet.payload.kind == StreamKind.AUDIO) else None
+            if (packet.payload.sample is not None):
+                decoded.append(packet)
         return decoded
 
     def close(self):
