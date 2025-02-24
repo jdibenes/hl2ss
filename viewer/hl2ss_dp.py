@@ -145,9 +145,9 @@ class _gatherer:
                                     elif (trak_box.type == 'mdia'):
                                         for mdia_box in _flatten_box(trak_box):
                                             if (mdia_box.type == 'mdhd'):
-                                                ct = struct.unpack('>I', trak_box.data[4:8])[0]
+                                                ct = struct.unpack('>I', mdia_box.data[4:8])[0]
                                                 tb = struct.unpack('>I', mdia_box.data[12:16])[0]
-                                            if (mdia_box.type == 'minf'):
+                                            elif (mdia_box.type == 'minf'):
                                                 for minf_box in _flatten_box(mdia_box):
                                                     if (minf_box.type == 'stbl'):
                                                         for stbl_box in _flatten_box(minf_box):
