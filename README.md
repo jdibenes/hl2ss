@@ -17,7 +17,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
   - Gyroscope (deg/s)
   - Magnetometer
 - Front Camera (1920x1080 @ 30 FPS, RGB, H264 or HEVC encoded)
-- Microphone (2 channels @ 48000 Hz, 16-bit PCM, AAC encoded or 5 channels @ 48000 Hz, 32-bit Float)
+- Microphone (2 channels @ 48000 Hz, 16-bit PCM, AAC encoded or 5 channels @ 48000 Hz, 32-bit Float, RAW)
 - Spatial Input (30 Hz)
   - Head Tracking
   - Eye Tracking
@@ -29,12 +29,12 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Extended Audio (Microphone + Application audio, 2 channels @ 48000 Hz, 16-bit PCM, AAC encoded)
   - Internal Microphone mirror
   - External USB-C Microphone
-- Extended Video
+- Extended Video (H264 or HEVC encoded)
   - Internal Front Camera mirror
   - External USB-C Camera
-- Extended Depth (Experimental)
+- Extended Depth (Lossless* Zdepth encoded)
   - External USB-C Depth Camera
-- Device Portal Mixed Reality Capture (Experimental)
+- Device Portal Mixed Reality Capture (H264/AAC encoded)
   - Front Camera (+ Holograms)
   - Microphone (+ Application audio)
   
@@ -57,7 +57,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - [MATLAB and Simulink client library](extensions).
 - [Unity client plugin](extensions).
 - [LabVIEW client library](extensions).
-- [Android client library](extensions). (Experimental)
+- [Android client library](extensions).
 
 **Subprojects**
 
