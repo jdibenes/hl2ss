@@ -78,16 +78,15 @@ client = hl2ss_lnm.rx_mrc(host, port, user, password, configuration=configuratio
 client.open()
 
 while (enable):
-    packets = client.get_next_packet()
-    for packet in packets:
-        if (packet.payload.kind == hl2ss_dp.StreamKind.AUDIO):
-            print(f'got audio packet at {packet.timestamp}')
-            audio = hl2ss_utilities.microphone_planar_to_packed(packet.payload.sample)
-            pcmqueue.put(audio.tobytes())
-        elif (packet.payload.kind == hl2ss_dp.StreamKind.VIDEO):
-            print(f'got video packet at {packet.timestamp} (key_frame={packet.payload.key_frame})')
-            cv2.imshow('video', packet.payload.sample)
-            cv2.waitKey(1)
+    data = client.get_next_packet()
+    if (data.payload.kind == hl2ss_dp.StreamKind.AUDIO):
+        print(f'got audio packet at {data.timestamp}')
+        audio = hl2ss_utilities.microphone_planar_to_packed(data.payload.sample)
+        pcmqueue.put(audio.tobytes())
+    elif (data.payload.kind == hl2ss_dp.StreamKind.VIDEO):
+        print(f'got video packet at {data.timestamp} (key_frame={data.payload.key_frame})')
+        cv2.imshow('video', data.payload.sample)
+        cv2.waitKey(1)
 
 client.close()
 pcmqueue.put(b'')
