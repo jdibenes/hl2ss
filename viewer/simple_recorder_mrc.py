@@ -1,3 +1,7 @@
+#------------------------------------------------------------------------------
+# Device Portal MRC recording example. Data is recorded to MP4 file.
+# Press esc to stop recording.
+#------------------------------------------------------------------------------
 
 from pynput import keyboard
 
@@ -66,33 +70,33 @@ first_timestamp = None
 audio_pending = []
 
 while (enable):
-    packets = client.get_next_packet()
-    for packet in packets:
-        if (packet.payload.kind == hl2ss_dp.StreamKind.VIDEO):
-            if ((first_timestamp is None)):
-                first_timestamp = packet.timestamp
-            t = packet.timestamp - first_timestamp
-            for p in codec_video.parse(packet.payload.sample):
-                p.stream = stream_video
+    data = client.get_next_packet()
+    data.payload = hl2ss_dp.unpack_mrc(data.payload)
+    if (data.payload.kind == hl2ss_dp.StreamKind.VIDEO):
+        if ((first_timestamp is None)):
+            first_timestamp = data.timestamp
+        t = data.timestamp - first_timestamp
+        for p in codec_video.parse(data.payload.sample):
+            p.stream = stream_video
+            p.pts = t
+            p.dts = t
+            p.time_base = time_base
+            container.mux(p)
+    elif (data.payload.kind == hl2ss_dp.StreamKind.AUDIO):
+        audio_pending.append(data)
+        if (first_timestamp is None):
+            continue
+        for a in audio_pending:
+            t = a.timestamp - first_timestamp
+            if (t < 0):
+                continue
+            for p in codec_audio.parse(a.payload.sample):
+                p.stream = stream_audio
                 p.pts = t
                 p.dts = t
                 p.time_base = time_base
                 container.mux(p)
-        elif (packet.payload.kind == hl2ss_dp.StreamKind.AUDIO):
-            audio_pending.append(packet)
-            if (first_timestamp is None):
-                continue
-            for a in audio_pending:
-                t = a.timestamp - first_timestamp
-                if (t < 0):
-                    continue
-                for p in codec_audio.parse(a.payload.sample):
-                    p.stream = stream_audio
-                    p.pts = t
-                    p.dts = t
-                    p.time_base = time_base
-                    container.mux(p)
-            audio_pending.clear()
+        audio_pending.clear()
 
 client.close()
 container.close()
