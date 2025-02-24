@@ -2,7 +2,7 @@
 # Recording example. Data is recorded to binary files. See simple player for
 # how to extract recorded data.
 # Press space to start recording.
-# Press stop to stop recording.
+# Press esc to stop recording.
 #------------------------------------------------------------------------------
 
 from pynput import keyboard
