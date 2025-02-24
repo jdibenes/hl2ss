@@ -386,6 +386,14 @@ void create_configuration_for_extended_audio(std::vector<uint8_t>& sc, uint32_t 
     create_configuration_for_audio_encoding(sc, profile, level);
 }
 
+void create_configuration_for_extended_depth(std::vector<uint8_t>& sc, uint8_t mode, uint8_t divisor, uint8_t profile_z, std::vector<uint64_t> const& options)
+{
+    create_configuration_for_mode(sc, mode);
+    create_configuration_for_video_divisor(sc, divisor);
+    create_configuration_for_depth_encoding(sc, profile_z);
+    create_configuration_for_h26x_encoding(sc, options);
+}
+
 void create_configuration_for_rm_mode_2(std::vector<uint8_t>& sc, uint8_t mode)
 {
     create_configuration_for_mode(sc, mode);
@@ -581,6 +589,18 @@ rx_extended_audio::rx_extended_audio(char const* host, uint16_t port, uint64_t c
 void rx_extended_audio::create_configuration(std::vector<uint8_t>& sc)
 {
     create_configuration_for_extended_audio(sc, mixer_mode, loopback_gain, microphone_gain, profile, level);
+}
+
+rx_extended_depth::rx_extended_depth(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
+{
+    this->divisor = divisor;
+    this->profile_z = profile_z;
+    this->options = options;
+}
+
+void rx_extended_depth::create_configuration(std::vector<uint8_t>& sc)
+{
+    create_configuration_for_extended_depth(sc, mode, divisor, profile_z, options);
 }
 
 //------------------------------------------------------------------------------
@@ -975,7 +995,8 @@ void decoder_microphone::open(uint8_t profile)
 std::unique_ptr<uint8_t[]> decoder_microphone::decode(uint8_t* data, uint32_t size)
 {
     std::unique_ptr<uint8_t[]> out;
-    if (m_profile != audio_profile::RAW) { 
+    if (m_profile != audio_profile::RAW)
+    { 
     out = std::make_unique<uint8_t[]>(DECODED_SIZE);
     std::shared_ptr<frame> f = m_codec.decode(data, size);
     uint32_t offset = f->av_frame->linesize[0] / 2;
@@ -993,6 +1014,58 @@ std::unique_ptr<uint8_t[]> decoder_microphone::decode(uint8_t* data, uint32_t si
 void decoder_microphone::close()
 {
     if (m_profile != audio_profile::RAW) { m_codec.close(); }
+}
+
+void decoder_extended_depth::open(uint8_t profile_z)
+{
+    m_profile_z = profile_z;
+}
+
+std::unique_ptr<uint8_t[]> decoder_extended_depth::decode(uint8_t* data, uint32_t size, uint32_t& decoded_size, uint16_t& width, uint16_t& height)
+{
+    uint8_t* data_z  = data;
+    uint8_t* data_md = data + (size - METADATA_SIZE);
+    uint16_t* md = (uint16_t*)data_md; 
+
+    std::unique_ptr<uint8_t[]> out;
+
+    if (m_profile_z == depth_profile::ZDEPTH)
+    {
+#ifdef HL2SS_ENABLE_ZDEPTH
+    std::vector<uint8_t> v_z(data_z, data_md);
+    int w;
+    int h;
+    std::vector<uint16_t> v_d;
+
+    zdepth::DepthResult result = m_zdc.Decompress(v_z, w, h, v_d);
+    if (result != zdepth::DepthResult::Success) { throw std::runtime_error("hl2ss::decoder_extended_depth::decode : zdepth::DepthCompressor::Decompress failed"); }
+    
+    decoded_size = (uint32_t)(v_d.size() * sizeof(uint16_t));
+    width = w;
+    height = h;
+
+    out = std::make_unique<uint8_t[]>(decoded_size + METADATA_SIZE);
+    memcpy(out.get(), v_d.data(), decoded_size);
+    memcpy(out.get() + decoded_size, data_md, METADATA_SIZE);
+#else
+    throw std::runtime_error("hl2ss::decoder_extended_depth::decode : ZDEPTH decompression not implemented");
+#endif
+    }
+    else
+    {
+    decoded_size = size - METADATA_SIZE;
+    width = md[0];
+    height = md[1];
+
+    out = std::make_unique<uint8_t[]>(size);
+    memcpy(out.get(), data, size);
+    }
+    
+    return out;
+}
+
+void decoder_extended_depth::close()
+{
 }
 
 //------------------------------------------------------------------------------
@@ -1137,6 +1210,31 @@ std::shared_ptr<packet> rx_decoded_extended_audio::get_next_packet()
 void rx_decoded_extended_audio::close()
 {
     rx_extended_audio::close();
+    m_decoder.close();
+}
+
+rx_decoded_extended_depth::rx_decoded_extended_depth(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, std::vector<uint64_t> const& options) : rx_extended_depth(host, port, chunk, mode, divisor, profile_z, options)
+{
+}
+
+void rx_decoded_extended_depth::open()
+{
+    m_decoder.open(profile_z);
+    rx_extended_depth::open();
+}
+
+std::shared_ptr<packet> rx_decoded_extended_depth::get_next_packet()
+{
+    std::shared_ptr<packet> p = rx_extended_depth::get_next_packet();
+    uint32_t size;
+    std::unique_ptr<uint8_t[]> payload = m_decoder.decode(p->payload.get(), p->sz_payload, size, width, height);
+    p->set_payload(size + decoder_extended_depth::METADATA_SIZE, std::move(payload));
+    return p;
+}
+
+void rx_decoded_extended_depth::close()
+{
+    rx_extended_depth::close();
     m_decoder.close();
 }
 
@@ -1288,6 +1386,7 @@ char const* const port_name[] = {
     "extended_audio",
     "extended_video",
     "guest_message_queue",
+    "extended_depth",
 };
 
 char const* get_port_name(uint16_t port)
@@ -1950,5 +2049,10 @@ map_extended_audio_raw unpack_extended_audio_raw(uint8_t* payload)
 map_extended_audio_aac unpack_extended_audio_aac(uint8_t* payload)
 {
     return { (float*)payload };
+}
+
+map_extended_depth unpack_extended_depth(uint8_t* payload, uint32_t size)
+{
+    return { (uint16_t*)payload, (extended_depth_metadata*)(payload + size - sizeof(extended_depth_metadata)) };
 }
 }

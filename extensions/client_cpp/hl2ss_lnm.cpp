@@ -77,7 +77,9 @@ uint64_t get_sync_period(hl2ss::rx const* rx)
     case hl2ss::stream_port::MICROPHONE:           return 1;
     case hl2ss::stream_port::SPATIAL_INPUT:        return 1;
     case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return 1;
+    case hl2ss::stream_port::EXTENDED_AUDIO:       return 1;
     case hl2ss::stream_port::EXTENDED_VIDEO:       return ((hl2ss::rx_pv*)rx)->options[hl2ss::h26x_encoder_property::CODECAPI_AVEncMPVGOPSize];
+    case hl2ss::stream_port::EXTENDED_DEPTH:       return 1;
     default:                                       return 1;
     }
 }
@@ -164,6 +166,17 @@ std::unique_ptr<hl2ss::rx_eet> rx_eet(char const* host, uint16_t port, uint64_t 
 std::unique_ptr<hl2ss::rx_extended_audio> rx_extended_audio(char const* host, uint16_t port, uint64_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level, bool decoded)
 {
     return decoded ? std::make_unique<hl2ss::rx_decoded_extended_audio>(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level) : std::make_unique<hl2ss::rx_extended_audio>(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level);
+}
+
+std::unique_ptr<hl2ss::rx_extended_depth> rx_extended_depth(char const* host, uint16_t port, uint64_t media_index, uint64_t stride_mask, uint16_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, bool decoded)
+{
+    std::vector<uint64_t> options;
+    options.push_back(hl2ss::h26x_encoder_property::HL2SSAPI_VideoMediaIndex);
+    options.push_back(media_index);
+    options.push_back(hl2ss::h26x_encoder_property::HL2SSAPI_VideoStrideMask);
+    options.push_back(stride_mask);
+
+    return decoded ? std::make_unique<hl2ss::rx_decoded_extended_depth>(host, port, chunk, mode, divisor, profile_z, options) : std::make_unique<hl2ss::rx_extended_depth>(host, port, chunk, mode, divisor, profile_z, options);
 }
 
 //------------------------------------------------------------------------------

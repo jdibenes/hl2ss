@@ -36,6 +36,7 @@ uint16_t const SPATIAL_INPUT        = 3812;
 uint16_t const EXTENDED_EYE_TRACKER = 3817;
 uint16_t const EXTENDED_AUDIO       = 3818;
 uint16_t const EXTENDED_VIDEO       = 3819;
+uint16_t const EXTENDED_DEPTH       = 3821;
 }
 
 namespace ipc_port
@@ -59,6 +60,8 @@ uint64_t const MICROPHONE           = 512;
 uint64_t const SPATIAL_INPUT        = 1024;
 uint64_t const EXTENDED_EYE_TRACKER = 256;
 uint64_t const EXTENDED_AUDIO       = 512;
+uint64_t const EXTENDED_VIDEO       = 4096;
+uint64_t const EXTENDED_DEPTH       = 4096;
 uint64_t const SINGLE_TRANSFER      = 4096;
 }
 
@@ -547,6 +550,19 @@ public:
     rx_extended_audio(char const* host, uint16_t port, uint64_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
 };
 
+class rx_extended_depth : public rx
+{
+protected:
+    void create_configuration(std::vector<uint8_t>& sc) override;
+
+public:
+    uint8_t divisor;
+    uint8_t profile_z;
+    std::vector<uint64_t> options;
+
+    rx_extended_depth(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, std::vector<uint64_t> const& options);
+};
+
 //------------------------------------------------------------------------------
 // * Frame
 //------------------------------------------------------------------------------
@@ -617,7 +633,14 @@ struct pv_metadata
     uint32_t white_balance;
     vector_2 iso_gains;
     vector_3 white_balance_gains;
-    uint32_t _reserved;
+    uint16_t width;
+    uint16_t height;
+};
+
+struct extended_depth_metadata
+{
+    uint16_t width;
+    uint16_t height;
 };
 
 class decoder_rm_vlc
@@ -699,6 +722,22 @@ public:
     void close();
 };
 
+class decoder_extended_depth
+{
+private:
+#ifdef HL2SS_ENABLE_ZDEPTH
+    zdepth::DepthCompressor m_zdc;
+#endif
+    uint8_t m_profile_z;
+
+public:
+    static uint32_t const METADATA_SIZE = sizeof(extended_depth_metadata);
+
+    void open(uint8_t profile_z);
+    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint32_t& decoded_size, uint16_t& width, uint16_t& height);
+    void close();
+};
+
 //------------------------------------------------------------------------------
 // * Modes 0, 1 Data Acquisition (Decoded)
 //------------------------------------------------------------------------------
@@ -777,6 +816,22 @@ protected:
 
 public:
     rx_decoded_extended_audio(char const* host, uint16_t port, uint64_t chunk, uint32_t mixer_mode, float loopback_gain, float microphone_gain, uint8_t profile, uint8_t level);
+
+    void open() override;
+    std::shared_ptr<packet> get_next_packet() override;
+    void close() override;
+};
+
+class rx_decoded_extended_depth : public rx_extended_depth
+{
+protected:
+    decoder_extended_depth m_decoder;
+
+public:
+    uint16_t width;
+    uint16_t height;
+
+    rx_decoded_extended_depth(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, std::vector<uint64_t> const& options);
 
     void open() override;
     std::shared_ptr<packet> get_next_packet() override;
@@ -1559,6 +1614,12 @@ struct map_extended_audio_aac
     float* samples;
 };
 
+struct map_extended_depth
+{
+    uint16_t* depth;
+    extended_depth_metadata* metadata;
+};
+
 map_rm_vlc unpack_rm_vlc(uint8_t* payload);
 map_rm_depth_ahat unpack_rm_depth_ahat(uint8_t* payload);
 map_rm_depth_longthrow unpack_rm_depth_longthrow(uint8_t* payload);
@@ -1571,4 +1632,5 @@ map_si unpack_si(uint8_t* payload);
 map_eet unpack_eet(uint8_t* payload);
 map_extended_audio_raw unpack_extended_audio_raw(uint8_t* payload);
 map_extended_audio_aac unpack_extended_audio_aac(uint8_t* payload);
+map_extended_depth unpack_extended_depth(uint8_t* payload, uint32_t size);
 }

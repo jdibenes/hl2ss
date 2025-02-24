@@ -721,6 +721,7 @@ void test_extended_video(char const* host)
 
         std::cout << "Focal length: "    << region.metadata->f.x << ", " << region.metadata->f.y << std::endl;
         std::cout << "Principal point: " << region.metadata->c.x << ", " << region.metadata->c.y << std::endl;
+        std::cout << "Resolution: " << region.metadata->width << "x" << region.metadata->height << std::endl;
 
         cv::Mat mat_image = cv::Mat(height, width, CV_8UC3, region.image);
         cv::imshow(port_name, mat_image);
@@ -782,13 +783,49 @@ void test_pv_shared(char const* host)
 }
 
 //-----------------------------------------------------------------------------
+// Extended Depth
+//-----------------------------------------------------------------------------
+
+void test_extended_depth(char const* host)
+{
+    uint16_t port = hl2ss::stream_port::EXTENDED_DEPTH;
+    float group_index = 1;
+    float source_index = 0;
+    float profile_index = 0;
+    uint64_t media_index = 15;
+
+    std::unique_ptr<hl2ss::rx_extended_depth> client = hl2ss::lnm::rx_extended_depth(host, port, media_index);
+    std::string port_name = hl2ss::get_port_name(port);
+
+    hl2ss::lnm::start_subsystem_pv(host, port, false, false, false, false, false, false, false, group_index, source_index, profile_index, 0, 0);
+
+    client->open();
+    for (;;)
+    {
+        std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
+        hl2ss::map_extended_depth region = hl2ss::unpack_extended_depth(data->payload.get(), data->sz_payload);
+
+        print_packet_metadata(data->timestamp, data->pose.get());
+
+        std::cout << "resolution: " << region.metadata->width << " x " << region.metadata->height << std::endl;
+
+        cv::Mat depth = cv::Mat(region.metadata->height, region.metadata->width, CV_16UC1, region.depth) * 4;
+        cv::imshow(port_name, depth);
+        if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+    }
+    client->close();
+
+    hl2ss::lnm::stop_subsystem_pv(host, port);
+}
+
+//-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
 
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 24;
+    int test_id = 25;
 
     try
     {
@@ -820,7 +857,8 @@ int main()
         case 21: test_gmq(host); break; // OK
         case 22: test_pv_umq(host); break; // OK
         case 23: test_extended_video(host); break; // OK
-        case 24: test_pv_shared(host); break;
+        case 24: test_pv_shared(host); break; // OK
+        case 25: test_extended_depth(host); break; // OK
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }
