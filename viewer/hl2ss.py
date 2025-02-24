@@ -1146,7 +1146,7 @@ class PV_FocusState:
 
 
 class _PV_Frame:
-    def __init__(self, image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains):
+    def __init__(self, image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains, resolution):
         self.image                 = image
         self.focal_length          = focal_length
         self.principal_point       = principal_point
@@ -1158,6 +1158,7 @@ class _PV_Frame:
         self.white_balance         = white_balance
         self.iso_gains             = iso_gains
         self.white_balance_gains   = white_balance_gains
+        self.resolution            = resolution
 
 
 def create_pv_intrinsics(focal_length, principal_point):
@@ -1190,8 +1191,9 @@ def unpack_pv(payload):
     white_balance         = np.frombuffer(metadata, dtype=np.uint32,  offset=52, count=1)
     iso_gains             = np.frombuffer(metadata, dtype=np.float32, offset=56, count=2)
     white_balance_gains   = np.frombuffer(metadata, dtype=np.float32, offset=64, count=3)
+    resolution            = np.frombuffer(metadata, dtype=np.uint16,  offset=76, count=2)
 
-    return _PV_Frame(image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains)
+    return _PV_Frame(image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains, resolution)
 
 
 def get_video_stride(width):

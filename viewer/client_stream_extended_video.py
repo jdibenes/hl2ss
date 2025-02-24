@@ -96,7 +96,7 @@ client.open()
 while (enable):
     data = client.get_next_packet()
 
-    print(f'Frame captured at {data.timestamp}')
+    print(f'Frame captured at {data.timestamp} with resolution {data.payload.resolution}')
 
     cv2.imshow('Video', data.payload.image)
     cv2.waitKey(1)

@@ -104,6 +104,7 @@ else:
         print(f'White Balance: {data.payload.white_balance}')
         print(f'ISO Gains: {data.payload.iso_gains}')
         print(f'White Balance Gains: {data.payload.white_balance_gains}')
+        print(f'Resolution {data.payload.resolution}')
         print(f'Pose')
         print(data.pose)
 

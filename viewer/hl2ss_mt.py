@@ -129,8 +129,9 @@ def unpack_pv(payload, width, height, bpp):
     white_balance         = np.frombuffer(payload, dtype=np.uint32,  offset=b + 52, count=1)
     iso_gains             = np.frombuffer(payload, dtype=np.float32, offset=b + 56, count=2)
     white_balance_gains   = np.frombuffer(payload, dtype=np.float32, offset=b + 64, count=3)
+    resolution            = np.frombuffer(payload, dtype=np.uint16,  offset=b + 76, count=2)
 
-    return hl2ss._PV_Frame(image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains)
+    return hl2ss._PV_Frame(image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains, resolution)
 
 
 def unpack_microphone(payload, profile, level):
