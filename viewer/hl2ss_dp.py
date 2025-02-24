@@ -81,7 +81,7 @@ class _unpacker:
         return _box(self._box_l, self._box_t, self._box_d)
 
 
-def flatten_box(box):
+def _flatten_box(box):
     subboxes = []
     offset = 0
     while (offset < len(box.data)):
@@ -95,7 +95,7 @@ def flatten_box(box):
 # Packet Gatherer
 #------------------------------------------------------------------------------
 
-def avcc_to_annex_b(sample):
+def _avcc_to_annex_b(sample):
     offset = 0
     while (offset < len(sample)):
         branch = offset + 4 + struct.unpack('>I', sample[offset:(offset+4)])[0]
@@ -104,12 +104,12 @@ def avcc_to_annex_b(sample):
     return sample
 
 
-def raw_aac_to_adts(sample):
+def _raw_aac_to_adts(sample):
     header = b'\xFF\xF1\x4C' + struct.pack('>I', 0x800001EC | ((len(sample) + 7) << 13))
     return header + sample
 
 
-def compute_timestamp(ct, et, tb):
+def _compute_timestamp(ct, et, tb):
     return ((ct + et) * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // tb
 
 
@@ -137,20 +137,20 @@ class _gatherer:
                 box = self._unpacker.get()
                 if (self._state == 0):
                     if (box.type == 'moov'):
-                        for moov_box in flatten_box(box):
+                        for moov_box in _flatten_box(box):
                             if (moov_box.type == 'trak'):
-                                for trak_box in flatten_box(moov_box):
+                                for trak_box in _flatten_box(moov_box):
                                     if (trak_box.type == 'tkhd'):
                                         id = struct.unpack('>I', trak_box.data[12:16])[0]
                                     elif (trak_box.type == 'mdia'):
-                                        for mdia_box in flatten_box(trak_box):
+                                        for mdia_box in _flatten_box(trak_box):
                                             if (mdia_box.type == 'mdhd'):
                                                 ct = struct.unpack('>I', trak_box.data[4:8])[0]
                                                 tb = struct.unpack('>I', mdia_box.data[12:16])[0]
                                             if (mdia_box.type == 'minf'):
-                                                for minf_box in flatten_box(mdia_box):
+                                                for minf_box in _flatten_box(mdia_box):
                                                     if (minf_box.type == 'stbl'):
-                                                        for stbl_box in flatten_box(minf_box):
+                                                        for stbl_box in _flatten_box(minf_box):
                                                             if (stbl_box.type == 'stsd'):
                                                                 stbl_data = stbl_box.data
                                                                 stbl_type = stbl_data[12:16].decode()
@@ -165,8 +165,8 @@ class _gatherer:
                                                                     pps_data = stbl_data[133:141]
                                                                     sps_data[0:2] = b'\x00\x00'
                                                                     pps_data[0:2] = b'\x00\x00'
-                                                                    t = compute_timestamp(self._video_ct, self._video_et, self._video_tb)
-                                                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | 0x04) + avcc_to_annex_b(sps_data + pps_data), None))
+                                                                    t = _compute_timestamp(self._video_ct, self._video_et, self._video_tb)
+                                                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | 0x04) + _avcc_to_annex_b(sps_data + pps_data), None))
                                                                 elif (stbl_type == 'mp4a'):
                                                                     self._audio_id = id
                                                                     self._audio_ct = ct * tb
@@ -175,9 +175,9 @@ class _gatherer:
                 elif (self._state == 1):
                     if (box.type == 'moof'):
                         self._streams = []
-                        for moof_box in flatten_box(box):
+                        for moof_box in _flatten_box(box):
                             if (moof_box.type == 'traf'):
-                                for traf_box in flatten_box(moof_box):
+                                for traf_box in _flatten_box(moof_box):
                                     if (traf_box.type == 'tfhd'):
                                         id = struct.unpack('>I', traf_box.data[4:8])[0]
                                     elif (traf_box.type == 'trun'):
@@ -207,12 +207,12 @@ class _gatherer:
                                 keyf = (~flags[j] >> 14) & 0x04
                                 sample = data[offset:(offset+size)]
                                 if (id == self._video_id):
-                                    t = compute_timestamp(self._video_ct, self._video_et, self._video_tb)
-                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | keyf) + avcc_to_annex_b(sample), None))
+                                    t = _compute_timestamp(self._video_ct, self._video_et, self._video_tb)
+                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | keyf) + _avcc_to_annex_b(sample), None))
                                     self._video_et += span
                                 elif (id == self._audio_id):
-                                    t = compute_timestamp(self._audio_ct, self._audio_et, self._audio_tb)
-                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.AUDIO | keyf) + raw_aac_to_adts(sample), None))
+                                    t = _compute_timestamp(self._audio_ct, self._audio_et, self._audio_tb)
+                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.AUDIO | keyf) + _raw_aac_to_adts(sample), None))
                                     self._audio_et += span
                                 offset += size
                         self._state = 1
@@ -227,18 +227,18 @@ class _gatherer:
 # Stream Configuration
 #------------------------------------------------------------------------------
 
-def bool_to_str(v):
+def _bool_to_str(v):
     return 'true' if (v) else 'false'
 
 
 def create_configuration_for_mrc(pv, holo, mic, loopback, RenderFromCamera, vstab, vstabbuffer):
     return {
-        'holo' : bool_to_str(holo), 
-        'pv' :  bool_to_str(pv), 
-        'mic' : bool_to_str(mic), 
-        'loopback' : bool_to_str(loopback), 
-        'RenderFromCamera' : bool_to_str(RenderFromCamera), 
-        'vstab' : bool_to_str(vstab),
+        'holo' : _bool_to_str(holo), 
+        'pv' :  _bool_to_str(pv), 
+        'mic' : _bool_to_str(mic), 
+        'loopback' : _bool_to_str(loopback), 
+        'RenderFromCamera' : _bool_to_str(RenderFromCamera), 
+        'vstab' : _bool_to_str(vstab),
         'vstabbuffer' : str(vstabbuffer)
     }
 
