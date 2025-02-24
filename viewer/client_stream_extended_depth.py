@@ -49,7 +49,7 @@ max_uint8 = 255
 while (enable):
     data = client.get_next_packet()
 
-    print(f'Frame captured at {data.timestamp}')
+    print(f'Frame captured at {data.timestamp} with resolution {data.payload.width}x{data.payload.height}')
 
     depth = data.payload.depth
 
