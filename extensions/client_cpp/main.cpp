@@ -819,13 +819,48 @@ void test_extended_depth(char const* host)
 }
 
 //-----------------------------------------------------------------------------
+// Device Portal MRC
+//-----------------------------------------------------------------------------
+
+void test_dp_mrc(char const* host)
+{
+#ifdef HL2SS_ENABLE_DP
+    hl2ss::dp::mrc_configuration configuration{true, true, true, true, true, false, 0};
+    
+    std::unique_ptr<hl2ss::dp::rx_mrc> client = hl2ss::lnm::rx_mrc(host, "live", "user", "pass");
+
+    client->open();
+    for (;;)
+    {
+        std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
+
+        print_packet_metadata(data->timestamp, data->pose.get());
+
+        uint32_t kind = hl2ss::dp::mrc_get_kind(data->payload[0]);        
+
+        if (kind == hl2ss::dp::stream_kind::VIDEO)
+        {
+            hl2ss::dp::map_mrc_video region = hl2ss::dp::unpack_mrc_video(data->payload.get());
+
+            cv::Mat mat_image = cv::Mat(region.header->height, region.header->width, CV_8UC(3), region.data);
+            cv::imshow("mrc", mat_image);
+            if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+        }
+    }
+    client->close();
+#else
+    throw std::runtime_error("main : HL2SS_ENABLE_DP not defined");
+#endif
+}
+
+//-----------------------------------------------------------------------------
 // Main
 //-----------------------------------------------------------------------------
 
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 25;
+    int test_id = 26;
 
     try
     {
@@ -859,6 +894,7 @@ int main()
         case 23: test_extended_video(host); break; // OK
         case 24: test_pv_shared(host); break; // OK
         case 25: test_extended_depth(host); break; // OK
+        case 26: test_dp_mrc(host); break;
         default: std::cout << "NO TEST" << std::endl; break;
         }
     }
