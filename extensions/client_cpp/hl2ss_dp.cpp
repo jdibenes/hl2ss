@@ -18,6 +18,24 @@ char const* client::bool_to_str(bool v)
     return v ? "true" : "false";
 }
 
+void client::check_status()
+{
+    switch (m_response[0].wait_for(std::chrono::milliseconds(0)))
+    {
+    case std::future_status::ready:
+        break;
+    default:
+        return;
+    }
+
+    cpr::Response r = m_response[0].get();
+
+    m_run = false;
+    m_stopped.set_value(true);
+
+    throw std::runtime_error("hl2ss::dp::client : request terminated with status " + std::to_string(r.status_code));
+}
+
 bool client::on_write(std::string_view const& data, intptr_t userdata)
 {
     uint64_t size = data.end() - data.begin();
@@ -62,6 +80,8 @@ uint64_t client::recv(void* buffer, uint64_t count)
     uint8_t* base      = (uint8_t*)buffer;
     uint64_t remaining = count;
 
+    check_status();
+
     while (remaining > 0)
     {
     chunk_descriptor cd;
@@ -103,7 +123,7 @@ void client::download(void* buffer, uint64_t total, uint64_t chunk)
     uint64_t bytes = recv((uint8_t*)buffer + received, chunk);
     total    -= bytes;
     received += bytes;
-    if (bytes == 0) { std::this_thread::sleep_for(std::chrono::milliseconds(16)); }
+    if (bytes == 0) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
     }
 }
 

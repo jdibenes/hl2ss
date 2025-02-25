@@ -64,6 +64,7 @@ private:
     std::queue<chunk_descriptor> m_buffer;
     uint64_t m_read;
 
+    void check_status();
     bool on_write(std::string_view const& data, intptr_t userdata);
 
     static char const* bool_to_str(bool v);
