@@ -1,6 +1,10 @@
 
 #include "hl2ss.h"
 
+#ifdef HL2SS_ENABLE_DP
+#include "hl2ss_dp.h"
+#endif
+
 namespace hl2ss
 {
 namespace lnm
@@ -14,6 +18,10 @@ uint8_t get_video_coded_default_gop_size(uint8_t framerate, uint8_t divisor, uin
 uint32_t get_video_codec_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, float factor);
 uint32_t get_video_codec_default_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile);
 std::vector<uint64_t> get_video_codec_default_options(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile);
+
+#ifdef HL2SS_ENABLE_DP
+dp::mrc_configuration get_mrc_configuration(bool pv=true, bool holo=false, bool mic=true, bool loopback=false, bool RenderFromCamera=true, bool vstab=false, int vstabbuffer=15);
+#endif
 
 //------------------------------------------------------------------------------
 // Stream Sync Period
@@ -43,6 +51,10 @@ std::unique_ptr<hl2ss::rx_si> rx_si(char const* host, uint16_t port, uint64_t ch
 std::unique_ptr<hl2ss::rx_eet> rx_eet(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_EYE_TRACKER, uint8_t framerate=hl2ss::eet_framerate::FPS_30);
 std::unique_ptr<hl2ss::rx_extended_audio> rx_extended_audio(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_AUDIO, uint32_t mixer_mode=hl2ss::mixer_mode::BOTH, float loopback_gain=1.0f, float microphone_gain=1.0f, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, bool decoded=true);
 std::unique_ptr<hl2ss::rx_extended_depth> rx_extended_depth(char const* host, uint16_t port, uint64_t media_index=0xFFFFFFFF, uint64_t stride_mask=0x3F, uint16_t chunk=hl2ss::chunk_size::EXTENDED_DEPTH, uint8_t mode=hl2ss::stream_mode::MODE_0, uint8_t divisor=1, uint8_t profile_z=hl2ss::depth_profile::ZDEPTH, bool decoded=true);
+
+#ifdef HL2SS_ENABLE_DP
+std::unique_ptr<hl2ss::dp::rx_mrc> rx_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk=dp::chunk_size::MRC, dp::mrc_configuration const* configuration=nullptr, uint8_t decoded_format=hl2ss::pv_decoded_format::BGR);
+#endif
 
 //------------------------------------------------------------------------------
 // Mode 2

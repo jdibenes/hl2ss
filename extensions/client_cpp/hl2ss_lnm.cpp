@@ -51,6 +51,13 @@ std::vector<uint64_t> get_video_codec_default_options(uint16_t width, uint16_t h
     return default_options;
 }
 
+#ifdef HL2SS_ENABLE_DP
+dp::mrc_configuration get_mrc_configuration(bool pv, bool holo, bool mic, bool loopback, bool RenderFromCamera, bool vstab, int vstabbuffer)
+{
+    return {holo, pv, mic, loopback, RenderFromCamera, vstab, vstabbuffer};
+}
+#endif
+
 //------------------------------------------------------------------------------
 // Stream Sync Period
 //------------------------------------------------------------------------------
@@ -178,6 +185,19 @@ std::unique_ptr<hl2ss::rx_extended_depth> rx_extended_depth(char const* host, ui
 
     return decoded ? std::make_unique<hl2ss::rx_decoded_extended_depth>(host, port, chunk, mode, divisor, profile_z, options) : std::make_unique<hl2ss::rx_extended_depth>(host, port, chunk, mode, divisor, profile_z, options);
 }
+
+#ifdef HL2SS_ENABLE_DP
+std::unique_ptr<hl2ss::dp::rx_mrc> rx_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk, dp::mrc_configuration const* configuration, uint8_t decoded_format)
+{
+    dp::mrc_configuration default_configuration;
+    if (configuration == nullptr)
+    {
+    default_configuration = get_mrc_configuration();
+    configuration = &default_configuration;
+    }
+    return (decoded_format != hl2ss::video_profile::RAW) ? std::make_unique<hl2ss::dp::rx_decoded_mrc>(host, port, user, password, chunk, *configuration, decoded_format) : std::make_unique<hl2ss::dp::rx_mrc>(host, port, user, password, chunk, *configuration);
+}
+#endif
 
 //------------------------------------------------------------------------------
 // Mode 2
