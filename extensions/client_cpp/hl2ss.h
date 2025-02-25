@@ -281,6 +281,11 @@ uint8_t  const CHANNELS       = 2;
 uint16_t const GROUP_SIZE_AAC = 1024;
 }
 
+namespace time_base
+{
+uint64_t const HUNDREDS_OF_NANOSECONDS = 10000000ULL;
+}
+
 //------------------------------------------------------------------------------
 // Geometry
 //------------------------------------------------------------------------------
