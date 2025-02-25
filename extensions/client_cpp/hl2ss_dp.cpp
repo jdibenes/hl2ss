@@ -77,9 +77,13 @@ void client::open(char const* host, char const* port, char const* user, char con
 
 uint64_t client::recv(void* buffer, uint64_t count)
 {
+    std::chrono::steady_clock::time_point wd_stp = std::chrono::steady_clock::now();
+
     uint8_t* base      = (uint8_t*)buffer;
     uint64_t remaining = count;
 
+    do
+    {
     check_status();
 
     while (remaining > 0)
@@ -111,7 +115,17 @@ uint64_t client::recv(void* buffer, uint64_t count)
     }
     }
 
-    return count - remaining;
+    uint64_t received = count - remaining;
+    if (received > 0) { return received; }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    while ((std::chrono::steady_clock::now() - wd_stp) < std::chrono::seconds{30});
+
+    m_run = false;
+    m_stopped.set_value(true);
+
+    throw std::runtime_error("hl2ss::dp::client::recv : timeout");
 }
 
 void client::download(void* buffer, uint64_t total, uint64_t chunk)
@@ -123,7 +137,6 @@ void client::download(void* buffer, uint64_t total, uint64_t chunk)
     uint64_t bytes = recv((uint8_t*)buffer + received, chunk);
     total    -= bytes;
     received += bytes;
-    if (bytes == 0) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
     }
 }
 
