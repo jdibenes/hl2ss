@@ -10,42 +10,13 @@ namespace hl2ss
 namespace dp
 {
 //------------------------------------------------------------------------------
-// * Utilities
+// * Client
 //------------------------------------------------------------------------------
 
-char const* bool_to_str(bool v)
+char const* client::bool_to_str(bool v)
 {
     return v ? "true" : "false";
 }
-
-uint64_t compute_timestamp(uint64_t ct, uint64_t et, uint32_t tb)
-{
-    return ((ct + et) * 10000000ULL) / tb;
-}
-
-void avcc_to_annex_b(uint8_t* sample, uint32_t size)
-{
-    uint32_t offset = 0;
-    while (offset < size)
-    {
-    uint8_t* base    = sample + offset;
-    uint32_t branch  = offset + 4 + ntohl(*(uint32_t*)(base));
-    *(uint32_t*)base = *(uint32_t*)"\x00\x00\x00\x01";
-    offset           = branch;
-    }
-}
-
-void raw_aac_to_adts(uint8_t* sample, uint32_t size)
-{
-    sample[0] = 0xFF;
-    sample[1] = 0xF1;
-    sample[2] = 0x4C;
-    *(uint32_t*)(sample + 3) = htonl(0x800001EC | ((size + 7) << 13));
-}
-
-//------------------------------------------------------------------------------
-// * Client
-//------------------------------------------------------------------------------
 
 bool client::on_write(std::string_view const& data, intptr_t userdata)
 {
@@ -149,8 +120,33 @@ void client::close()
 }
 
 //------------------------------------------------------------------------------
-// * Unpacker
+// * Packet Gatherer
 //------------------------------------------------------------------------------
+
+uint64_t gatherer::compute_timestamp(uint64_t ct, uint64_t et, uint32_t tb)
+{
+    return ((ct + et) * hl2ss::time_base::HUNDREDS_OF_NANOSECONDS) / tb;
+}
+
+void gatherer::avcc_to_annex_b(uint8_t* sample, uint32_t size)
+{
+    uint32_t offset = 0;
+    while (offset < size)
+    {
+    uint8_t* base    = sample + offset;
+    uint32_t branch  = offset + 4 + ntohl(*(uint32_t*)(base));
+    *(uint32_t*)base = *(uint32_t*)"\x00\x00\x00\x01";
+    offset           = branch;
+    }
+}
+
+void gatherer::raw_aac_to_adts(uint8_t* sample, uint32_t size)
+{
+    sample[0] = 0xFF;
+    sample[1] = 0xF1;
+    sample[2] = 0x4C;
+    *(uint32_t*)(sample + 3) = htonl(0x800001EC | ((size + 7) << 13));
+}
 
 box_hold gatherer::get_next_box()
 {

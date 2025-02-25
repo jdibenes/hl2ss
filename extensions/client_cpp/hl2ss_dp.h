@@ -62,9 +62,11 @@ private:
     std::promise<bool> m_stopped;
     std::mutex m_mutex;
     std::queue<chunk_descriptor> m_buffer;
-    uint64_t m_read;    
+    uint64_t m_read;
 
     bool on_write(std::string_view const& data, intptr_t userdata);
+
+    static char const* bool_to_str(bool v);
 
 public:
     void open(char const* host, char const* port, char const* user, char const* password, mrc_configuration const& configuration);
@@ -133,7 +135,11 @@ private:
     uint64_t m_audio_et;
 
     box_hold get_next_box();
-    std::vector<box_view> flatten_box(box_view const& top);
+
+    static uint64_t compute_timestamp(uint64_t ct, uint64_t et, uint32_t tb);
+    static void avcc_to_annex_b(uint8_t* sample, uint32_t size);
+    static void raw_aac_to_adts(uint8_t* sample, uint32_t size);
+    static std::vector<box_view> flatten_box(box_view const& top);
 
 public:
     void open(char const* host, char const* port, char const* user, char const* password, uint64_t chunk, mrc_configuration const& configuration);
