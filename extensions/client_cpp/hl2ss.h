@@ -704,6 +704,10 @@ public:
     static uint32_t const METADATA_SIZE = sizeof(pv_metadata);
 
     static uint8_t decoded_bpp(uint8_t decoded_format);
+    static int decoded_cv_type(uint8_t decoded_format);
+    static int decoded_cv_i420(uint8_t decoded_format);
+    static int decoded_cv_nv12(uint8_t decoded_format);
+
     static void resolution(uint32_t bytes, uint16_t& width, uint16_t& height, uint16_t& stride);
     static void resolution_decoded(uint32_t payload_size, uint8_t decoded_format, uint16_t& width, uint16_t& height, uint8_t& channels);
 

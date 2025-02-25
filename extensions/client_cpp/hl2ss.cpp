@@ -908,6 +908,21 @@ uint8_t decoder_pv::decoded_bpp(uint8_t decoded_format)
     return cv_format[decoded_format][0];
 }
 
+int decoder_pv::decoded_cv_type(uint8_t decoded_format)
+{
+    return cv_format[decoded_format][1];
+}
+
+int decoder_pv::decoded_cv_i420(uint8_t decoded_format)
+{
+    return cv_format[decoded_format][2];
+}
+
+int decoder_pv::decoded_cv_nv12(uint8_t decoded_format)
+{
+    return cv_format[decoded_format][3];
+}
+
 void decoder_pv::resolution(uint32_t bytes, uint16_t& width, uint16_t& height, uint16_t& stride)
 {
     switch (bytes)
@@ -1215,6 +1230,8 @@ void rx_decoded_extended_audio::close()
 
 rx_decoded_extended_depth::rx_decoded_extended_depth(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, std::vector<uint64_t> const& options) : rx_extended_depth(host, port, chunk, mode, divisor, profile_z, options)
 {
+    this->width = 0;
+    this->height = 0;
 }
 
 void rx_decoded_extended_depth::open()
