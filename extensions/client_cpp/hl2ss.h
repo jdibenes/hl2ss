@@ -603,6 +603,10 @@ public:
 // * Decoders
 //------------------------------------------------------------------------------
 
+void trim_plane(uint8_t* dst, uint8_t const* src, uint16_t height, uint16_t width, uint16_t stride);
+void collect_i420(uint8_t* dst, int width, int height, uint8_t* data[8], int linesize[8]);
+void collect_nv12(uint8_t* dst, uint16_t width, uint16_t height, uint8_t const* src, uint16_t stride);
+
 struct rm_vlc_metadata
 {
     uint64_t sensor_ticks;
