@@ -50,7 +50,7 @@ std::unique_ptr<hl2ss::rx_microphone> rx_microphone(char const* host, uint16_t p
 std::unique_ptr<hl2ss::rx_si> rx_si(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::SPATIAL_INPUT);
 std::unique_ptr<hl2ss::rx_eet> rx_eet(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_EYE_TRACKER, uint8_t framerate=hl2ss::eet_framerate::FPS_30);
 std::unique_ptr<hl2ss::rx_extended_audio> rx_extended_audio(char const* host, uint16_t port, uint64_t chunk=hl2ss::chunk_size::EXTENDED_AUDIO, uint32_t mixer_mode=hl2ss::mixer_mode::BOTH, float loopback_gain=1.0f, float microphone_gain=1.0f, uint8_t profile=hl2ss::audio_profile::AAC_24000, uint8_t level=hl2ss::aac_level::L2, bool decoded=true);
-std::unique_ptr<hl2ss::rx_extended_depth> rx_extended_depth(char const* host, uint16_t port, uint64_t media_index=0xFFFFFFFF, uint64_t stride_mask=0x3F, uint16_t chunk=hl2ss::chunk_size::EXTENDED_DEPTH, uint8_t mode=hl2ss::stream_mode::MODE_0, uint8_t divisor=1, uint8_t profile_z=hl2ss::depth_profile::ZDEPTH, bool decoded=true);
+std::unique_ptr<hl2ss::rx_extended_depth> rx_extended_depth(char const* host, uint16_t port, uint64_t media_index=0xFFFFFFFF, uint64_t stride_mask=0x3F, uint64_t chunk=hl2ss::chunk_size::EXTENDED_DEPTH, uint8_t mode=hl2ss::stream_mode::MODE_0, uint8_t divisor=1, uint8_t profile_z=hl2ss::depth_profile::ZDEPTH, bool decoded=true);
 
 #ifdef HL2SS_ENABLE_DP
 std::unique_ptr<hl2ss::dp::rx_mrc> rx_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk=dp::chunk_size::MRC, dp::mrc_configuration const* configuration=nullptr, uint8_t decoded_format=hl2ss::pv_decoded_format::BGR);
