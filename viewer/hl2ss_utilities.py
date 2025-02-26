@@ -580,10 +580,8 @@ def unpack_to_mp4(input_filenames, output_filename):
 
     for stream in streams:
         stream.time_base = time_base
-    for codec in codecs:
-        codec.time_base = time_base
 
-    base = 0#hl2ss._RANGEOF.U64_MAX
+    base = 0
 
     for reader in readers:
         data = reader.get_next_packet()
