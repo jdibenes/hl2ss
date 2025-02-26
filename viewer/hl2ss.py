@@ -919,6 +919,66 @@ def get_audio_codec_bitrate(profile):
     return None
 
 
+class _codec_h264:
+    _aud = b'\x00\x00\x00\x01\x09\x10'
+
+    def __init__(self):
+        self._codec = self._codec = av.CodecContext.create('h264', 'r')
+
+    def decode(self, payload):
+        for packet in self._codec.parse(payload[6:] + _codec_h264._aud):
+            for frame in self._codec.decode(packet):
+                return frame
+
+
+class _codec_hevc:
+    _aud = b'\x00\x00\x00\x01\x46\x01\x03'
+
+    def __init__(self):
+        self._codec = self._codec = av.CodecContext.create('hevc', 'r')
+
+    def decode(self, payload):
+        for packet in self._codec.parse(payload + _codec_hevc._aud):
+            for frame in self._codec.decode(packet):
+                return frame
+
+
+class _codec_aac:
+    def __init__(self):
+        self._codec = av.CodecContext.create('aac', 'r')
+
+    def decode(self, payload):
+        for packet in self._codec.parse(payload):
+            for frame in self._codec.decode(packet):
+                return frame
+
+
+def get_video_codec(profile):
+    if (profile == VideoProfile.H264_BASE):
+        return _codec_h264()
+    if (profile == VideoProfile.H264_MAIN):
+        return _codec_h264()
+    if (profile == VideoProfile.H264_HIGH):
+        return _codec_h264()
+    if (profile == VideoProfile.H265_MAIN):
+        return _codec_hevc()
+
+    return None
+
+
+def get_audio_codec(profile):
+    if (profile == AudioProfile.AAC_12000):
+        return _codec_aac()
+    if (profile == AudioProfile.AAC_16000):
+        return _codec_aac()
+    if (profile == AudioProfile.AAC_20000):
+        return _codec_aac()
+    if (profile == AudioProfile.AAC_24000):
+        return _codec_aac()
+    
+    return None
+
+
 #------------------------------------------------------------------------------
 # RM VLC Decoder
 #------------------------------------------------------------------------------
@@ -947,13 +1007,10 @@ class _decode_rm_vlc:
         self.profile = profile
 
     def create(self):
-        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+        self._codec = get_video_codec(self.profile)
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return frame.to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
-        return None
+        return self._codec.decode(payload).to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
 
 
 class _unpack_rm_vlc:
@@ -1016,13 +1073,10 @@ class _decode_rm_depth_ahat:
         self.profile = profile
    
     def create(self):
-        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+        self._codec = get_video_codec(self.profile)
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload[_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE:-8]):
-            for frame in self._codec.decode(packet):
-                return _unpack_rm_depth_ahat_nv12_as_yuv420p(frame.to_ndarray(), np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1))
-        return None
+        return _unpack_rm_depth_ahat_nv12_as_yuv420p(self._codec.decode(payload[_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE:-8]).to_ndarray(), np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1))
 
 
 class _unpack_rm_depth_ahat:
@@ -1042,8 +1096,6 @@ class _decompress_zdepth:
         self._codec = pyzdepth.DepthCompressor()
 
     def decode(self, payload):
-        if (len(payload) <= 0):
-            return None
         result, width, height, decompressed = self._codec.Decompress(bytes(payload))
         return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
 
@@ -1053,13 +1105,10 @@ class _decode_ab_rm_depth_ahat:
         self.profile = profile
 
     def create(self):
-        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+        self._codec = get_video_codec(self.profile)
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return np.square(frame.to_ndarray()[:Parameters_RM_DEPTH_AHAT.HEIGHT, :Parameters_RM_DEPTH_AHAT.WIDTH], dtype=np.uint16)
-        return None
+        return np.square(self._codec.decode(payload).to_ndarray()[:Parameters_RM_DEPTH_AHAT.HEIGHT, :Parameters_RM_DEPTH_AHAT.WIDTH], dtype=np.uint16)
 
 
 class _unpack_ab_rm_depth_ahat:
@@ -1205,13 +1254,10 @@ class _decode_pv:
         self.profile = profile
 
     def create(self, width, height):
-        self._codec = av.CodecContext.create(get_video_codec_name(self.profile), 'r')
+        self._codec = get_video_codec(self.profile)
 
     def decode(self, payload, format):
-        for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return frame.to_ndarray(format=format)
-        return None
+        return self._codec.decode(payload).to_ndarray(format=format)
 
 
 class _unpack_pv:
@@ -1262,13 +1308,10 @@ class _decode_microphone:
         self.profile = profile
 
     def create(self):
-        self._codec = av.CodecContext.create(get_audio_codec_name(self.profile), 'r')
+        self._codec = get_audio_codec(self.profile)
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload):
-            for frame in self._codec.decode(packet):
-                return frame.to_ndarray()
-        return None
+        return self._codec.decode(payload).to_ndarray()
 
 
 class _unpack_microphone:
@@ -1511,7 +1554,6 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
     def open(self):
         self._codec.create()
         super().open()
-        self.get_next_packet()
 
     def get_next_packet(self):
         data = super().get_next_packet()
@@ -1531,7 +1573,6 @@ class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
     def open(self):
         self._codec.create()
         super().open()
-        self.get_next_packet()
 
     def get_next_packet(self):
         data = super().get_next_packet()
@@ -1567,7 +1608,6 @@ class rx_decoded_pv(rx_pv):
     def open(self):        
         self._codec.create(self.width, self.height)
         super().open()
-        self.get_next_packet()
 
     def get_next_packet(self):
         data = super().get_next_packet()

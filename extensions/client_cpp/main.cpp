@@ -827,7 +827,7 @@ void test_dp_mrc(char const* host)
 #ifdef HL2SS_ENABLE_DP
     hl2ss::dp::mrc_configuration configuration{true, true, true, true, true, false, 0};
     
-    std::unique_ptr<hl2ss::dp::rx_mrc> client = hl2ss::lnm::rx_mrc(host, "live", "user", "pass");
+    std::unique_ptr<hl2ss::dp::rx_mrc> client = hl2ss::lnm::rx_mrc(host, hl2ss::dp::stream_port::LIVE, "user", "pass");
 
     client->open();
     for (;;)

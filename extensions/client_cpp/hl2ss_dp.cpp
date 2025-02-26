@@ -148,7 +148,7 @@ void client::close()
 
 uint64_t gatherer::compute_timestamp(uint64_t ct, uint64_t et, uint32_t tb)
 {
-    return ((ct + et) * hl2ss::time_base::HUNDREDS_OF_NANOSECONDS) / tb;
+    return (uint64_t)(((ct + et) / (double)tb) * hl2ss::time_base::HUNDREDS_OF_NANOSECONDS);
 }
 
 void gatherer::avcc_to_annex_b(uint8_t* sample, uint32_t size)

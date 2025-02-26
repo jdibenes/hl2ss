@@ -128,6 +128,7 @@ class _gatherer:
         self._audio_tb = 48000
         self._video_et = 0
         self._audio_et = 0
+        self._video_init = None
 
     def get_next_packet(self):
         packets = []
@@ -165,8 +166,7 @@ class _gatherer:
                                                                     pps_data = stbl_data[133:141]
                                                                     sps_data[0:2] = b'\x00\x00'
                                                                     pps_data[0:2] = b'\x00\x00'
-                                                                    t = _compute_timestamp(self._video_ct, self._video_et, self._video_tb)
-                                                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | 0x04) + _avcc_to_annex_b(sps_data + pps_data), None))
+                                                                    self._video_init = sps_data + pps_data
                                                                 elif (stbl_type == 'mp4a'):
                                                                     self._audio_id = id
                                                                     self._audio_ct = ct * tb
@@ -208,6 +208,9 @@ class _gatherer:
                                 sample = data[offset:(offset+size)]
                                 if (id == self._video_id):
                                     t = _compute_timestamp(self._video_ct, self._video_et, self._video_tb)
+                                    if (self._video_init is not None):
+                                        sample = sample[:6] + self._video_init + sample[6:] # AUD + SPS + PPS + IDR
+                                        self._video_init = None
                                     packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | keyf) + _avcc_to_annex_b(sample), None))
                                     self._video_et += span
                                 elif (id == self._audio_id):
@@ -299,16 +302,12 @@ def unpack_mrc(payload):
 
 
 class decode_mrc:
-    def __init__(self):
-        self._video_codec = hl2ss.decode_pv(hl2ss.VideoProfile.H264_MAIN)
-        self._audio_codec = hl2ss.decode_microphone(hl2ss.AudioProfile.AAC_12000, hl2ss.AACLevel.L2)
-
     def create(self):
-        self._video_codec.create(0, 0)
-        self._audio_codec.create()
+        self._video_codec = hl2ss.get_video_codec(hl2ss.VideoProfile.H264_MAIN)
+        self._audio_codec = hl2ss.get_audio_codec(hl2ss.AudioProfile.AAC_24000)
 
     def decode(self, payload, kind, format):
-        return self._video_codec.decode(payload, format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(payload) if (kind == StreamKind.AUDIO) else None
+        return self._video_codec.decode(payload).to_ndarray(format=format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(payload).to_ndarray() if (kind == StreamKind.AUDIO) else None
 
 
 #------------------------------------------------------------------------------
@@ -322,21 +321,14 @@ class rx_decoded_mrc(rx_mrc):
         self._codec = decode_mrc()
 
     def open(self):
-        self._d_t = 0
-        self._d_k = False
         self._codec.create()
         super().open()
 
     def get_next_packet(self):
-        while (True):
-            data = super().get_next_packet()
-            data.payload = unpack_mrc(data.payload)
-            data.payload.sample = self._codec.decode(data.payload.sample, data.payload.kind, self.format)
-            if (data.payload.kind == StreamKind.VIDEO):
-                data.timestamp,         self._d_t = (self._d_t, data.timestamp)
-                data.payload.key_frame, self._d_k = (self._d_k, data.payload.key_frame)
-            if (data.payload.sample is not None):
-                return data
+        data = super().get_next_packet()
+        data.payload = unpack_mrc(data.payload)
+        data.payload.sample = self._codec.decode(data.payload.sample, data.payload.kind, self.format)
+        return data
 
     def close(self):
         super().close()

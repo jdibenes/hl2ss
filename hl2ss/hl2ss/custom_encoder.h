@@ -14,12 +14,11 @@ private:
     std::unique_ptr<CustomSinkWriter> m_pSinkWriter;
     std::unique_ptr<uint8_t[]> m_metadata;
     uint32_t m_metadata_size;
-    bool m_shift;
     HOOK_ENCODER_PROC m_pHookCallback;
     void* m_pHookParam;
     HOOK_METADATA_PROC m_pMetadataFree;
 
-    CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, bool shift);
+    CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size);
 
     void ProcessSample(IMFSample* pSample);
 
