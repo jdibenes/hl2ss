@@ -2,11 +2,12 @@
 
 ## client_cpp
 
-C++ client library. Requires [OpenCV](https://opencv.org/releases/) and [FFmpeg](https://ffmpeg.org/download.html). You can get prebuilt FFmpeg binaries from https://github.com/BtbN/FFmpeg-Builds and OpenCV binaries from https://opencv.org/releases/.
+C++ client library. Requires [OpenCV](https://opencv.org/releases/) and [FFmpeg](https://ffmpeg.org/download.html). You can get prebuilt FFmpeg binaries from https://github.com/BtbN/FFmpeg-Builds and OpenCV binaries from https://opencv.org/releases/. Device Portal MRC streamer requires [cpr](https://github.com/libcpr/cpr).
 
 **Build**
 
 Add `hl2ss.cpp`, `hl2ss.h`, `hl2ss_lnm.cpp`, `hl2ss_lnm.h`, `hl2ss_mt.cpp`, and `hl2ss_mt.h` to your C++ project.
+Optionally, add  `hl2ss_dp.cpp` and `hl2ss_dp.h` for Device Portal MRC streamer support.
 See `main.cpp` for examples.
 The `tasks_[...].json` files are provided as a reference for building with `cl.exe` (Windows) and `g++` (Linux).
 
