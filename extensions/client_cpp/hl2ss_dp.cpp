@@ -64,6 +64,8 @@ void client::open(char const* host, char const* port, char const* user, char con
 
 uint64_t client::recv(void* buffer, uint64_t count)
 {
+    if (count <= 0) { return 0; }
+
     std::chrono::steady_clock::time_point wd_stp = std::chrono::steady_clock::now();
 
     uint8_t* base      = (uint8_t*)buffer;
