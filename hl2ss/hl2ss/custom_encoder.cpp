@@ -7,11 +7,10 @@
 //-----------------------------------------------------------------------------
 
 // OK
-CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, bool shift)
+CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size)
 {
     m_metadata      = std::make_unique<uint8_t[]>(metadata_size);
     m_metadata_size = metadata_size;
-    m_shift         = shift;
     m_pHookCallback = pHookCallback;
     m_pHookParam    = pHookParam;
     m_pMetadataFree = pMetadataFree;
@@ -21,14 +20,14 @@ CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, 
 
 // OK
 CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, AudioSubtype input_subtype, AACFormat  const& format) :
-CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size, false)
+CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size)
 {
     m_pSinkWriter = CustomSinkWriter::CreateForAudio(Thunk_Sink, this, input_subtype, format);
 }
 
 // OK
 CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, VideoSubtype input_subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& encoder_options) :
-CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size, format.profile != H26xProfile::H26xProfile_None)
+CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size)
 {
     m_pSinkWriter = CustomSinkWriter::CreateForVideo(Thunk_Sink, this, input_subtype, format, stride, encoder_options);
 }
@@ -36,8 +35,6 @@ CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size, format.pr
 // OK
 CustomEncoder::~CustomEncoder()
 {
-    if (!m_shift) { return; }
-    if (m_pMetadataFree) { m_pMetadataFree(m_metadata.get(), m_metadata_size); }
 }
 
 // OK
@@ -54,7 +51,7 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
     pSample->ConvertToContiguousBuffer(&pBuffer);
     pSample->GetSampleTime(&hnsSampleTime);
 
-    if (!m_shift) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, m_metadata.get(), m_metadata_size, NULL); }
+    pSample->GetBlob(MF_USER_DATA_PAYLOAD, m_metadata.get(), m_metadata_size, NULL);
     
     pBuffer->Lock(&pFrame, NULL, &cbFrameBytes);
 
@@ -64,8 +61,6 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
     pBuffer->Release();
 
     if (m_pMetadataFree) { m_pMetadataFree(m_metadata.get(), m_metadata_size); }
-
-    if ( m_shift) { pSample->GetBlob(MF_USER_DATA_PAYLOAD, m_metadata.get(), m_metadata_size, NULL); }
 }
 
 // OK
