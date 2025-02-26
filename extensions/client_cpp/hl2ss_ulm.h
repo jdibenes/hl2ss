@@ -43,6 +43,7 @@ uint16_t const SPATIAL_INPUT        = 3812;
 uint16_t const EXTENDED_EYE_TRACKER = 3817;
 uint16_t const EXTENDED_AUDIO       = 3818;
 uint16_t const EXTENDED_VIDEO       = 3819;
+uint16_t const EXTENDED_DEPTH       = 3821;
 }
 
 namespace ipc_port
@@ -66,6 +67,8 @@ uint64_t const MICROPHONE           = 512;
 uint64_t const SPATIAL_INPUT        = 1024;
 uint64_t const EXTENDED_EYE_TRACKER = 256;
 uint64_t const EXTENDED_AUDIO       = 512;
+uint64_t const EXTENDED_VIDEO       = 4096;
+uint64_t const EXTENDED_DEPTH       = 4096;
 uint64_t const SINGLE_TRANSFER      = 4096;
 }
 
@@ -74,6 +77,7 @@ namespace stream_mode
 uint8_t const MODE_0 = 0;
 uint8_t const MODE_1 = 1;
 uint8_t const MODE_2 = 2;
+uint8_t const MODE_3 = 3;
 }
 
 namespace video_profile
@@ -181,6 +185,9 @@ uint64_t const CODECAPI_AVEncVideoMinQP                = 15;
 uint64_t const CODECAPI_AVLowLatencyMode               = 16;
 uint64_t const CODECAPI_AVEncVideoMaxQP                = 17;
 uint64_t const CODECAPI_VideoEncoderDisplayContentType = 18;
+uint64_t const HL2SSAPI_VideoMediaIndex                = 0xFFFFFFFFFFFFFFFB;
+uint64_t const HL2SSAPI_VideoStrideMask                = 0xFFFFFFFFFFFFFFFC;
+uint64_t const HL2SSAPI_AcquisitionMode                = 0xFFFFFFFFFFFFFFFD;
 uint64_t const HL2SSAPI_VLCHostTicksOffsetConstant     = 0xFFFFFFFFFFFFFFFE;
 uint64_t const HL2SSAPI_VLCHostTicksOffsetExposure     = 0xFFFFFFFFFFFFFFFF;
 }
@@ -196,7 +203,7 @@ namespace mixer_mode
 uint32_t const MICROPHONE = 0;
 uint32_t const SYSTEM     = 1;
 uint32_t const BOTH       = 2;
-uint32_t const QUERY      = 0x80000000;
+uint32_t const QUERY      = 3;
 }
 
 namespace pv_decoded_format
@@ -279,6 +286,11 @@ namespace parameters_extended_audio
 uint32_t const SAMPLE_RATE    = 48000;
 uint8_t  const CHANNELS       = 2;
 uint16_t const GROUP_SIZE_AAC = 1024;
+}
+
+namespace time_base
+{
+uint64_t const HUNDREDS_OF_NANOSECONDS = 10000000ULL;
 }
 
 //------------------------------------------------------------------------------
@@ -433,7 +445,14 @@ struct pv_metadata
     uint32_t white_balance;
     vector_2 iso_gains;
     vector_3 white_balance_gains;
-    uint32_t _reserved;
+    uint16_t width;
+    uint16_t height;
+};
+
+struct extended_depth_metadata
+{
+    uint16_t width;
+    uint16_t height;
 };
 
 //------------------------------------------------------------------------------
@@ -514,6 +533,7 @@ char const* get_port_name(uint16_t port)
     case hl2ss::stream_port::EXTENDED_AUDIO:       return "extended_audio";
     case hl2ss::stream_port::EXTENDED_VIDEO:       return "extended_video";
     case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     return "guest_message_queue";
+    case hl2ss::stream_port::EXTENDED_DEPTH:       return "extended_depth";
     default:                                       return nullptr;
     }
 }
@@ -1188,6 +1208,12 @@ struct map_extended_audio_aac
     float* samples;
 };
 
+struct map_extended_depth
+{
+    uint16_t* depth;
+    extended_depth_metadata* metadata;
+};
+
 constexpr
 map_rm_vlc unpack_rm_vlc(uint8_t* payload)
 {
@@ -1258,6 +1284,12 @@ constexpr
 map_extended_audio_aac unpack_extended_audio_aac(uint8_t* payload)
 {
     return { (float*)payload };
+}
+
+constexpr
+map_extended_depth unpack_extended_depth(uint8_t* payload, uint32_t size)
+{
+    return { (uint16_t*)payload, (extended_depth_metadata*)(payload + size - sizeof(extended_depth_metadata)) };
 }
 
 }
@@ -1385,6 +1417,17 @@ struct configuration_extended_audio
     uint8_t profile;
     uint8_t level;
     uint8_t _reserved[2];
+};
+
+struct configuration_extended_depth
+{
+    uint64_t chunk;
+    uint64_t media_index;
+    uint64_t stride_mask;
+    uint8_t mode;
+    uint8_t divisor;
+    uint8_t profile_z;
+    uint8_t _reserved[5];
 };
 
 struct configuration_pv_subsystem
@@ -1791,7 +1834,7 @@ template<>
 class payload_map<hl2ss::map_microphone_raw> : public hl2ss::map_microphone_raw
 {
 public:
-    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_microphone_raw{ hl2ss::unpack_microphone_raw(payload) }
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_microphone_raw{ hl2ss::unpack_microphone_raw(payload) }
     {
     }
 };
@@ -1800,7 +1843,7 @@ template<>
 class payload_map<hl2ss::map_microphone_aac> : public hl2ss::map_microphone_aac
 {
 public:
-    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_microphone_aac{ hl2ss::unpack_microphone_aac(payload) }
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_microphone_aac{ hl2ss::unpack_microphone_aac(payload) }
     {
     }
 };
@@ -1809,7 +1852,7 @@ template<>
 class payload_map<hl2ss::map_microphone_array> : public hl2ss::map_microphone_array
 {
 public:
-    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_microphone_array{ hl2ss::unpack_microphone_array(payload) }
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_microphone_array{ hl2ss::unpack_microphone_array(payload) }
     {
     }
 };
@@ -1818,7 +1861,7 @@ template<>
 class payload_map<hl2ss::map_si> : public hl2ss::map_si
 {
 public:
-    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_si{ hl2ss::unpack_si(payload) }
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_si{ hl2ss::unpack_si(payload) }
     {
     }
 };
@@ -1827,7 +1870,7 @@ template<>
 class payload_map<hl2ss::map_eet> : public hl2ss::map_eet
 {
 public:
-    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_eet{ hl2ss::unpack_eet(payload) }
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_eet{ hl2ss::unpack_eet(payload) }
     {
     }
 };
@@ -1836,7 +1879,7 @@ template<>
 class payload_map<hl2ss::map_extended_audio_raw> : public hl2ss::map_extended_audio_raw
 {
 public:
-    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_extended_audio_raw{ hl2ss::unpack_extended_audio_raw(payload) }
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_extended_audio_raw{ hl2ss::unpack_extended_audio_raw(payload) }
     {
     }
 };
@@ -1845,7 +1888,16 @@ template<>
 class payload_map<hl2ss::map_extended_audio_aac> : public hl2ss::map_extended_audio_aac
 {
 public:
-    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_extended_audio_aac{ hl2ss::unpack_extended_audio_aac(payload) }
+    payload_map(uint8_t* payload, uint32_t) : hl2ss::map_extended_audio_aac{ hl2ss::unpack_extended_audio_aac(payload) }
+    {
+    }
+};
+
+template<>
+class payload_map<hl2ss::map_extended_depth> : public hl2ss::map_extended_depth
+{
+public:
+    payload_map(uint8_t* payload, uint32_t size) : hl2ss::map_extended_depth{ hl2ss::unpack_extended_depth(payload, size) }
     {
     }
 };
@@ -2381,6 +2433,21 @@ hl2ss::ulm::configuration_extended_audio create_configuration()
     c.microphone_gain = 1.0f;
     c.profile = hl2ss::audio_profile::AAC_24000;
     c.level = hl2ss::aac_level::L2;
+
+    return c;
+}
+
+template<>
+hl2ss::ulm::configuration_extended_depth create_configuration()
+{
+    hl2ss::ulm::configuration_extended_depth c;
+
+    c.chunk = hl2ss::chunk_size::EXTENDED_DEPTH;
+    c.media_index = 0xFFFFFFFF;
+    c.stride_mask = 0x3F;
+    c.mode = hl2ss::stream_mode::MODE_0;
+    c.divisor = 1;
+    c.profile_z = hl2ss::depth_profile::ZDEPTH;
 
     return c;
 }

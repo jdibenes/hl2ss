@@ -174,6 +174,17 @@ struct configuration_extended_audio
     uint8_t _reserved[2];
 };
 
+struct configuration_extended_depth
+{
+    uint64_t chunk;
+    uint64_t media_index;
+    uint64_t stride_mask;
+    uint8_t mode;
+    uint8_t divisor;
+    uint8_t profile_z;
+    uint8_t _reserved[5];
+};
+
 struct configuration_pv_subsystem
 {
     uint8_t enable_mrc;
@@ -375,6 +386,13 @@ HL2SS_ULM_BEGIN
         rx = hl2ss::lnm::rx_extended_audio(host, port, p.chunk, p.mixer_mode, p.loopback_gain, p.microphone_gain, p.profile, p.level, decoded);
         break;
     }
+    case hl2ss::stream_port::EXTENDED_DEPTH:
+    {
+        configuration_extended_depth const& p = *(configuration_extended_depth*)configuration;
+        bool decoded = true;
+        rx = hl2ss::lnm::rx_extended_depth(host, port, p.media_index, p.stride_mask, p.chunk, p.mode, p.divisor, p.profile_z, decoded);
+        break;
+    }
     default:
         return nullptr;
     }
@@ -480,11 +498,29 @@ int32_t HL2SS_CALL get_pv_dimensions(void* source, uint16_t& width, uint16_t& he
 HL2SS_ULM_BEGIN
 {
     std::shared_ptr<hl2ss::mt::source> s = typed_handle<hl2ss::mt::source>::get(source);
-    hl2ss::rx_pv const* rx = s->get_rx<hl2ss::rx_pv>();
-    if (!rx) { throw std::runtime_error("hl2ss::ulm::get_pv_dimensions : source is not pv"); }
-    width = rx->width;
-    height = rx->height;
-    return 0;
+    hl2ss::rx const* rx_base = s->get_rx<hl2ss::rx>();
+    switch (rx_base->port)
+    {
+    case hl2ss::stream_port::PERSONAL_VIDEO:
+    case hl2ss::stream_port::EXTENDED_VIDEO:
+    {
+        hl2ss::rx_decoded_pv const* rx_pv = dynamic_cast<hl2ss::rx_decoded_pv const*>(rx_base);
+        if (!rx_pv) { break; }
+        width = rx_pv->width;
+        height = rx_pv->height;
+        return 0;
+    }
+    case hl2ss::stream_port::EXTENDED_DEPTH:
+    {
+        hl2ss::rx_decoded_extended_depth const* rx_ez = dynamic_cast<hl2ss::rx_decoded_extended_depth const*>(rx_base);
+        if (!rx_ez) { break; }
+        width = rx_ez->width;
+        height = rx_ez->height;
+        return 0;
+    }
+    }
+
+    throw std::runtime_error("hl2ss::ulm::get_pv_dimensions : source is not compatible");
 }
 HL2SS_ULM_END(-1)
 

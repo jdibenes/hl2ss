@@ -64,6 +64,7 @@ void print(hl2ss::pv_metadata* metadata)
     std::cout << "white_balance: " << metadata->white_balance << std::endl;
     std::cout << "iso_gains: [" << metadata->iso_gains.x << "," << metadata->iso_gains.y << "]" << std::endl;
     std::cout << "white_balance_gains: [" << metadata->white_balance_gains.x << "," << metadata->white_balance_gains.y << "," << metadata->white_balance_gains.z << "]" << std::endl;
+    std::cout << "resolution: " << metadata->width << "x" << metadata->height << std::endl;
 }
 
 void print(hl2ss::rm_imu_sample* sample)
@@ -82,6 +83,11 @@ void print(char const* name, hl2ss::matrix_4x4* m)
         std::cout << ";" << std::endl;
     }
     std::cout << "]" << std::endl;
+}
+
+void print(hl2ss::extended_depth_metadata* metadata)
+{
+    std::cout << "embedded dimensions: " << metadata->width << "x" << metadata->height << std::endl;
 }
 
 void test_rm_vlc(char const* host)
@@ -751,10 +757,66 @@ void test_gmq(char const* host)
     ipc->push(response, sizeof(response) / sizeof(uint32_t));
 }
 
+void test_extended_depth(char const* host)
+{
+    uint16_t port = hl2ss::stream_port::EXTENDED_DEPTH;
+    float group_index = 0;
+    float source_index = 0;
+    float profile_index = 0;
+    uint64_t media_index = 15;
+    uint64_t buffer_size = 300;
+
+    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
+
+    configuration_subsystem.global_opacity = group_index;
+    configuration_subsystem.output_width = source_index;
+    configuration_subsystem.output_height = profile_index;
+
+    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_depth>();
+
+    configuration.media_index = 15;
+
+    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
+
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+
+    std::string window_name = hl2ss::get_port_name(port);
+
+    cv::namedWindow(window_name);
+
+    while (true)
+    {
+        if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+
+        auto data = source->get_by_index(-1);
+        if (data->status != 0)
+        {
+            sleep(1000);
+            continue;
+        }
+
+        auto region = data->unpack<hl2ss::map_extended_depth>();
+
+        uint16_t width;
+        uint16_t height;
+        source->get_pv_dimensions(width, height);
+        
+        cv::Mat image = cv::Mat(height, width, CV_16UC1, region.depth) * 16;
+        cv::imshow(window_name, image);
+
+        std::cout << "timestamp: " << data->timestamp << std::endl;
+        print(region.metadata);
+        print("pose", data->pose);
+        std::cout << "dimensions: " << width << " x " << height << std::endl;
+    }
+
+    hl2ss::svc::stop_subsystem_pv(host, port);
+}
+
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 16;
+    int test_id = 17;
 
     try
     {
@@ -779,6 +841,7 @@ int main()
         case 14: test_umq(host); break;
         case 15: test_gmq(host); break;
         case 16: test_pv_shared(host); break;
+        case 17: test_extended_depth(host); break;
         }
     }
     catch(const std::exception& e)
