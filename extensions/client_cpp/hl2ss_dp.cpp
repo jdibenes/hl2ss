@@ -18,24 +18,6 @@ char const* client::bool_to_str(bool v)
     return v ? "true" : "false";
 }
 
-void client::check_status()
-{
-    switch (m_response[0].wait_for(std::chrono::milliseconds(0)))
-    {
-    case std::future_status::ready:
-        break;
-    default:
-        return;
-    }
-
-    cpr::Response r = m_response[0].get();
-
-    m_run = false;
-    m_stopped.set_value(true);
-
-    throw std::runtime_error("hl2ss::dp::client : request terminated with status " + std::to_string(r.status_code));
-}
-
 bool client::on_write(std::string_view const& data, intptr_t userdata)
 {
     uint64_t size = data.end() - data.begin();
@@ -50,15 +32,20 @@ bool client::on_write(std::string_view const& data, intptr_t userdata)
     }
     }
     
-    if (!m_run) { m_stopped.set_value(true); }
+    return m_run;
+}
+
+bool client::on_progress(cpr::cpr_off_t downloadTotal, cpr::cpr_off_t downloadNow, cpr::cpr_off_t uploadTotal, cpr::cpr_off_t uploadNow, intptr_t userdata)
+{
     return m_run;
 }
 
 void client::open(char const* host, char const* port, char const* user, char const* password, mrc_configuration const& configuration)
 {
     cpr::Url url = cpr::Url{"https://" + std::string(host) + "/api/holographic/stream/" + std::string(port) + ".mp4"};
-    cpr::WriteCallback cb = cpr::WriteCallback([=](std::string_view const& data, intptr_t userdata){ return this->on_write(data, userdata); });
+    cpr::WriteCallback wb = cpr::WriteCallback([=](std::string_view const& data, intptr_t userdata){ return this->on_write(data, userdata); });
     cpr::Authentication auth = cpr::Authentication{user, password, cpr::AuthMode::BASIC};
+    cpr::ProgressCallback pb = cpr::ProgressCallback([=](cpr::cpr_off_t downloadTotal, cpr::cpr_off_t downloadNow, cpr::cpr_off_t uploadTotal, cpr::cpr_off_t uploadNow, intptr_t userdata){ return this->on_progress(downloadTotal, downloadNow, uploadTotal, uploadNow, userdata); });
     cpr::SslOptions verify = cpr::Ssl(cpr::ssl::VerifyHost{false}, cpr::ssl::VerifyPeer{false}, cpr::ssl::VerifyStatus{false});
     cpr::Parameters params = cpr::Parameters{
         {"holo",             bool_to_str(configuration.holo)},
@@ -72,7 +59,7 @@ void client::open(char const* host, char const* port, char const* user, char con
     
     m_read = 0;
     m_run = true;
-    m_response.emplace_back(cpr::GetAsync(url, params, auth, verify, cb));
+    m_response.emplace_back(cpr::GetAsync(url, params, auth, verify, pb, wb));
 }
 
 uint64_t client::recv(void* buffer, uint64_t count)
@@ -84,7 +71,11 @@ uint64_t client::recv(void* buffer, uint64_t count)
 
     do
     {
-    check_status();
+    if (m_response[0].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+    {
+    m_run = false;
+    throw std::runtime_error("hl2ss::dp::client : request terminated with status " + std::to_string(m_response[0].get().status_code));
+    }
 
     while (remaining > 0)
     {
@@ -120,11 +111,9 @@ uint64_t client::recv(void* buffer, uint64_t count)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    while ((std::chrono::steady_clock::now() - wd_stp) < std::chrono::seconds{30});
+    while ((std::chrono::steady_clock::now() - wd_stp) < std::chrono::seconds{8});
 
     m_run = false;
-    m_stopped.set_value(true);
-
     throw std::runtime_error("hl2ss::dp::client::recv : timeout");
 }
 
@@ -143,13 +132,12 @@ void client::download(void* buffer, uint64_t total, uint64_t chunk)
 void client::close()
 {
     m_run = false;
-    m_stopped.get_future().get();
+    (void)m_response[0].get();
     m_response.clear();
     {
     std::lock_guard<std::mutex> guard(m_mutex);
     m_buffer = {};
     }
-    m_stopped = std::promise<bool>();
 }
 
 //------------------------------------------------------------------------------

@@ -3,7 +3,6 @@
 #include <mutex>
 #include <memory>
 #include <atomic>
-#include <future>
 #include <cpr/cpr.h>
 
 namespace hl2ss
@@ -59,13 +58,12 @@ class client
 private:
     std::vector<cpr::AsyncResponse> m_response;
     std::atomic<bool> m_run;
-    std::promise<bool> m_stopped;
     std::mutex m_mutex;
     std::queue<chunk_descriptor> m_buffer;
     uint64_t m_read;
 
-    void check_status();
     bool on_write(std::string_view const& data, intptr_t userdata);
+    bool on_progress(cpr::cpr_off_t downloadTotal, cpr::cpr_off_t downloadNow, cpr::cpr_off_t uploadTotal, cpr::cpr_off_t uploadNow, intptr_t userdata);
 
     static char const* bool_to_str(bool v);
 
