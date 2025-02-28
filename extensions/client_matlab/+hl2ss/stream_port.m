@@ -16,5 +16,6 @@ properties (Constant)
     EXTENDED_EYE_TRACKER = uint16(3817);
     EXTENDED_AUDIO       = uint16(3818);
     EXTENDED_VIDEO       = uint16(3819);
+    EXTENDED_DEPTH       = uint16(3821);
 end
 end

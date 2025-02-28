@@ -110,5 +110,9 @@ methods
     function set_interface_priority(self, port, priority)
         self.module('ipc_call', self.port, 'set_interface_priority', uint16(port), int32(priority));
     end
+
+    function set_quiet_mode(self, mode)
+        self.module('ipc_call', self.port, 'set_quiet_mode', uint32(mode));
+    end
 end
 end

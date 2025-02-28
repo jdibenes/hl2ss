@@ -40,6 +40,7 @@ private:
     std::unique_ptr<hl2ss::mt::source> source_eet;
     std::unique_ptr<hl2ss::mt::source> source_extended_audio;
     std::unique_ptr<hl2ss::mt::source> source_ev;
+    std::unique_ptr<hl2ss::mt::source> source_extended_depth;
     std::unique_ptr<hl2ss::ipc_rc>     ipc_rc;
     std::unique_ptr<hl2ss::ipc_sm>     ipc_sm;
     std::unique_ptr<hl2ss::ipc_su>     ipc_su;
@@ -251,6 +252,20 @@ public:
         (source_extended_audio = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level, decoded)))->start();
     }
 
+    void open_extended_depth(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
+    {
+        uint64_t chunk       = get_argument<uint64_t>(inputs);
+        uint64_t media_index = get_argument<uint64_t>(inputs);
+        uint64_t stride_mask = get_argument<uint64_t>(inputs);
+        uint8_t  mode        = get_argument<uint8_t>(inputs);
+        uint8_t  divisor     = get_argument<uint8_t>(inputs);
+        uint8_t  profile_z   = get_argument<uint8_t>(inputs);
+        bool     decoded     = true;
+        uint64_t buffer_size = get_argument<uint64_t>(inputs);
+
+        (source_extended_depth = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_extended_depth(host, port, media_index, stride_mask, chunk, mode, divisor, profile_z)))->start();
+    }
+
     void open(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         std::string host = get_argument_string(inputs);
@@ -274,6 +289,7 @@ public:
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: open_eet(               host.c_str(), port, inputs); break;
         case hl2ss::stream_port::EXTENDED_AUDIO:       open_extended_audio(    host.c_str(), port, inputs); break;
         case hl2ss::stream_port::EXTENDED_VIDEO:       open_pv(                host.c_str(), port, inputs); break;
+        case hl2ss::stream_port::EXTENDED_DEPTH:       open_extended_depth(    host.c_str(), port, inputs); break;
         // IPC
         case hl2ss::ipc_port::REMOTE_CONFIGURATION:    (ipc_rc  = hl2ss::lnm::ipc_rc( host.c_str(), port))->open(); break;
         case hl2ss::ipc_port::SPATIAL_MAPPING:         (ipc_sm  = hl2ss::lnm::ipc_sm( host.c_str(), port))->open(); break;
@@ -311,6 +327,7 @@ public:
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: source_eet                                                      = nullptr; break;
         case hl2ss::stream_port::EXTENDED_AUDIO:       source_extended_audio                                           = nullptr; break;
         case hl2ss::stream_port::EXTENDED_VIDEO:       source_ev                                                       = nullptr; break;
+        case hl2ss::stream_port::EXTENDED_DEPTH:       source_extended_depth                                           = nullptr; break;
         // IPC
         case hl2ss::ipc_port::REMOTE_CONFIGURATION:    ipc_rc  = nullptr; break;
         case hl2ss::ipc_port::SPATIAL_MAPPING:         ipc_sm  = nullptr; break;
@@ -619,6 +636,28 @@ public:
         outputs[0] = std::move(o);
     }
 
+    void pack_extended_depth(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint16_t width, uint16_t height, matlab::mex::ArgumentList outputs)
+    {
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "depth" });
+
+        o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
+        o[0]["status"]      = m_factory.createScalar<int32_t>(status);
+
+        if (packet)
+        {
+        o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
+        if (packet->payload)
+        {
+        uint32_t size = width * height * sizeof(uint16_t);
+        hl2ss::map_extended_depth region = hl2ss::unpack_extended_depth(packet->payload.get(), packet->sz_payload);
+
+        o[0]["depth"]       = unpack_payload<uint16_t>(region.depth, 0, size, { height, width });
+        }
+        }
+
+        outputs[0] = std::move(o);
+    }
+
     std::shared_ptr<hl2ss::packet> grab(hl2ss::mt::source* source, int64_t&frame_index, int32_t& status, matlab::mex::ArgumentList inputs)
     {
         if (!source) { throw std::runtime_error("Port not open"); }
@@ -782,6 +821,34 @@ public:
         pack_extended_audio(frame_index, status, packet.get(), p_rx->profile, outputs);        
     }
 
+    void get_packet_extended_depth(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        (void)port;
+
+        hl2ss::mt::source* source = source_extended_depth.get();
+
+        int64_t frame_index;
+        int32_t status;
+        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
+
+        uint16_t width;
+        uint16_t height;
+
+        if (packet)
+        {
+        hl2ss::rx_decoded_extended_depth const* p_rx = source->get_rx<hl2ss::rx_decoded_extended_depth>();
+        
+        width    = p_rx->width;
+        height   = p_rx->height;
+        }
+        else
+        {
+        width = height = 0;
+        }
+
+        pack_extended_depth(frame_index, status, packet.get(), width, height, outputs);
+    }
+
     void get_packet(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         uint16_t port = get_argument<uint16_t>(inputs);
@@ -804,6 +871,7 @@ public:
         case hl2ss::stream_port::EXTENDED_EYE_TRACKER: get_packet_eet(               port, outputs, inputs); break;
         case hl2ss::stream_port::EXTENDED_AUDIO:       get_packet_extended_audio(    port, outputs, inputs); break;
         case hl2ss::stream_port::EXTENDED_VIDEO:       get_packet_pv(                port, outputs, inputs); break;
+        case hl2ss::stream_port::EXTENDED_DEPTH:       get_packet_extended_depth(    port, outputs, inputs); break;
         default:                                       throw std::runtime_error("Unsupported port");
         }
     }
@@ -831,9 +899,10 @@ public:
 
         switch (port)
         {
-        case hl2ss::stream_port::PERSONAL_VIDEO: if (source_pv) { throw std::runtime_error("Cannot start subsystem while streaming"); } break;
-        case hl2ss::stream_port::EXTENDED_VIDEO: if (source_ev) { throw std::runtime_error("Cannot start subsystem while streaming"); } break;
-        default:                                                  throw std::runtime_error("Unsupported operation");
+        case hl2ss::stream_port::PERSONAL_VIDEO: if (source_pv)             { throw std::runtime_error("Cannot start subsystem while streaming"); } break;
+        case hl2ss::stream_port::EXTENDED_VIDEO: if (source_ev)             { throw std::runtime_error("Cannot start subsystem while streaming"); } break;
+        case hl2ss::stream_port::EXTENDED_DEPTH: if (source_extended_depth) { throw std::runtime_error("Cannot start subsystem while streaming"); } break;
+        default:                                                              throw std::runtime_error("Unsupported operation");
         }
 
         hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
@@ -846,9 +915,10 @@ public:
 
         switch (port)
         {
-        case hl2ss::stream_port::PERSONAL_VIDEO: if (source_pv) { throw std::runtime_error("Cannot stop subsystem while streaming"); } break;
-        case hl2ss::stream_port::EXTENDED_VIDEO: if (source_ev) { throw std::runtime_error("Cannot stop subsystem while streaming"); } break;
-        default:                                                  throw std::runtime_error("Unsupported operation");
+        case hl2ss::stream_port::PERSONAL_VIDEO: if (source_pv)             { throw std::runtime_error("Cannot stop subsystem while streaming"); } break;
+        case hl2ss::stream_port::EXTENDED_VIDEO: if (source_ev)             { throw std::runtime_error("Cannot stop subsystem while streaming"); } break;
+        case hl2ss::stream_port::EXTENDED_DEPTH: if (source_extended_depth) { throw std::runtime_error("Cannot stop subsystem while streaming"); } break;
+        default:                                                              throw std::runtime_error("Unsupported operation");
         }
 
         hl2ss::lnm::stop_subsystem_pv(host.c_str(), port);
@@ -1128,6 +1198,11 @@ public:
         uint16_t port     = get_argument<uint16_t>(inputs);
         int32_t  priority = get_argument<int32_t>(inputs);
         ipc_rc->set_interface_priority(port, priority);
+        }
+        else if (f == "set_quiet_mode")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->set_quiet_mode(mode);
         }
         else
         {
