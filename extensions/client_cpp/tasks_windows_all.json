@@ -2,7 +2,7 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: cl.exe build active file MAIN",
+            "label": "C/C++: cl.exe build main application",
             "command": "cl.exe",
             "args": [
                 "/I",
@@ -13,8 +13,13 @@
                 "../../3rdparty/Zdepth/include",
                 "/I",
                 "../../3rdparty/Zdepth/zstd/include",
+                "/I",
+                "../../../vcpkg/installed/x64-windows/include",
                 "/D",
                 "HL2SS_ENABLE_ZDEPTH",
+                "/D",
+                "HL2SS_ENABLE_DP",
+                "/std:c++17",
                 "/permissive-",
                 "/GS",
                 "/GL",
@@ -36,10 +41,11 @@
                 "/EHsc",
                 "/nologo",
                 "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "${file}",
+                "main.cpp",
                 "hl2ss.cpp",
                 "hl2ss_lnm.cpp",
                 "hl2ss_mt.cpp",
+                "hl2ss_dp.cpp",
                 "../../3rdparty/Zdepth/src/*.cpp",
                 "../../3rdparty/Zdepth/zstd/src/*.c",
                 "/link",
@@ -47,6 +53,7 @@
                 "/DYNAMICBASE",
                 "/LIBPATH:\"C:\\Users\\jcds\\SDK\\opencv\\build\\x64\\vc16\\lib\"",
                 "/LIBPATH:\"C:\\Users\\jcds\\SDK\\ffmpeg-master-latest-win64-gpl-shared\\lib\"",
+                "/LIBPATH:\"C:\\Users\\jcds\\Documents\\GitHub\\vcpkg\\installed\\x64-windows\\lib\"",
                 "/MACHINE:X64",
                 "/SUBSYSTEM:CONSOLE",
                 "/OPT:ICF",
@@ -66,7 +73,9 @@
                 "Ws2_32.lib",
                 "opencv_world480.lib",
                 "avcodec.lib",
-                "avutil.lib"
+                "avutil.lib",
+                "cpr.lib",
+                "libcurl.lib"
             ],
             "options": {
                 "cwd": "${fileDirname}"
@@ -82,7 +91,7 @@
         },
         {
             "type": "cppbuild",
-            "label": "C/C++: cl.exe build active file DLL ULM",
+            "label": "C/C++: cl.exe build hl2ss_ulm shared library",
             "command": "cl.exe",
             "args": [
                 "/I",
@@ -163,7 +172,7 @@
         },
         {
             "type": "cppbuild",
-            "label": "C/C++: cl.exe build active file MAIN ULM",
+            "label": "C/C++: cl.exe build main_ulm application",
             "command": "cl.exe",
             "args": [
                 "/I",
@@ -189,7 +198,7 @@
                 "/EHsc",
                 "/nologo",
                 "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "${file}",
+                "main_ulm.cpp",
                 "/link",
                 "/NXCOMPAT",
                 "/DYNAMICBASE",
