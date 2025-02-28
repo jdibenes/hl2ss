@@ -33,6 +33,7 @@ public class test_ipc_rc : MonoBehaviour
         ipc.set_pv_hdr_video(hl2ss.pv_hdr_video_mode.Off);
         ipc.set_pv_regions_of_interest(true, true, true, true, true, hl2ss.pv_region_of_interest_type.Unknown, 100, 0.0f, 0.0f, 1.0f, 1.0f);
         ipc.set_interface_priority(hl2ss.stream_port.PERSONAL_VIDEO, hl2ss.interface_priority.ABOVE_NORMAL);
+        ipc.set_quiet_mode(false);
 
         ipc.Dispose();
     }

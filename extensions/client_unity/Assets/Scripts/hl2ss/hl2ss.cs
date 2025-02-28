@@ -26,6 +26,7 @@ public static partial class hl2ss
         public const ushort EXTENDED_EYE_TRACKER = 3817;
         public const ushort EXTENDED_AUDIO       = 3818;
         public const ushort EXTENDED_VIDEO       = 3819;
+        public const ushort EXTENDED_DEPTH       = 3821;
     }
 
     public static class ipc_port
@@ -49,6 +50,8 @@ public static partial class hl2ss
         public const ulong SPATIAL_INPUT        = 1024;
         public const ulong EXTENDED_EYE_TRACKER = 256;
         public const ulong EXTENDED_AUDIO       = 512;
+        public const ulong EXTENDED_VIDEO       = 4096;
+        public const ulong EXTENDED_DEPTH       = 4096;
         public const ulong SINGLE_TRANSFER      = 4096;
     }
 
@@ -179,7 +182,7 @@ public static partial class hl2ss
         public const uint MICROPHONE = 0;
         public const uint SYSTEM     = 1;
         public const uint BOTH       = 2;
-        public const uint QUERY      = 0x80000000;
+        public const uint QUERY      = 3;
     }
 
     public static class pv_decoded_format
@@ -479,6 +482,13 @@ public static partial class hl2ss
         public uint _reserved;
     }
 
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct extended_depth_metadata
+    {
+        public ushort width;
+        public ushort height;
+    }
+
     //------------------------------------------------------------------------------
     // Mode 2 Data Acquisition
     //------------------------------------------------------------------------------
@@ -582,6 +592,7 @@ public static partial class hl2ss
         case hl2ss.stream_port.EXTENDED_AUDIO:       return "extended_audio";
         case hl2ss.stream_port.EXTENDED_VIDEO:       return "extended_video";
         case hl2ss.ipc_port.GUEST_MESSAGE_QUEUE:     return "guest_message_queue";
+        case hl2ss.stream_port.EXTENDED_DEPTH:       return "extended_depth";
         default:                                     return null;
         }
     }
@@ -1290,6 +1301,13 @@ public static partial class hl2ss
         public IntPtr samples;
     }
 
+    // NO LAYOUT
+    public class map_extended_depth
+    {
+        public IntPtr depth;
+        public IntPtr metadata;
+    }
+
     public static map_rm_vlc unpack_rm_vlc(IntPtr payload)
     {
         var r = new map_rm_vlc();
@@ -1377,6 +1395,14 @@ public static partial class hl2ss
     {
         var r = new map_extended_audio_aac();
         r.samples = payload;
+        return r;
+    }
+
+    public static map_extended_depth unpack_extended_depth(IntPtr payload, uint size)
+    {
+        var r = new map_extended_depth();
+        r.depth = payload;
+        r.metadata = IntPtr.Add(payload, (int)size - Marshal.SizeOf<extended_depth_metadata>());
         return r;
     }
 }

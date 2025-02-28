@@ -121,6 +121,19 @@ public static partial class hl2ss
             public ushort _reserved_0;
         }
 
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
+        public class configuration_extended_depth
+        {
+            public ulong chunk;
+            public ulong media_index;
+            public ulong stride_mask;
+            public byte mode;
+            public byte divisor;
+            public byte profile_z;
+            public byte _reserved_0;
+            public uint _reserved_1;
+        }
+
         [StructLayout(LayoutKind.Sequential, Pack = 4)]
         public class configuration_pv_subsystem
         {
@@ -358,6 +371,9 @@ public static partial class hl2ss
 
         [DllImport("hl2ss_ulm")]
         public static extern int rc_set_interface_priority(IntPtr ipc, ushort port, int priority);
+
+        [DllImport("hl2ss_ulm")]
+        public static extern int rc_set_quiet_mode(IntPtr ipc, uint mode);
 
         //------------------------------------------------------------------------------
         // Spatial Mapping

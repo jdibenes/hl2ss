@@ -158,6 +158,11 @@ public static partial class hl2ss
             {
                 region = hl2ss.unpack_extended_audio_raw(payload);
             }
+
+            public void unpack(out hl2ss.map_extended_depth region)
+            {
+                region = hl2ss.unpack_extended_depth(payload, sz_payload);
+            }
         }
 
         public class source : handle
@@ -332,6 +337,11 @@ public static partial class hl2ss
             public void set_interface_priority(ushort port, int priority)
             {
                 check_result(hl2ss.ulm.rc_set_interface_priority(m_handle, port, priority));
+            }
+
+            public void set_quiet_mode(bool mode)
+            {
+                check_result(hl2ss.ulm.rc_set_quiet_mode(m_handle, Convert.ToByte(mode)));
             }
         }
 
@@ -692,6 +702,18 @@ public static partial class hl2ss
             c.microphone_gain = 1.0f;
             c.profile = hl2ss.audio_profile.AAC_24000;
             c.level = hl2ss.aac_level.L2;
+        }
+
+        public static void create_configuration(out hl2ss.ulm.configuration_extended_depth c)
+{
+            c = new hl2ss.ulm.configuration_extended_depth();
+
+            c.chunk = hl2ss.chunk_size.EXTENDED_DEPTH;
+            c.media_index = 0xFFFFFFFF;
+            c.stride_mask = 0x3F;
+            c.mode = hl2ss.stream_mode.MODE_0;
+            c.divisor = 1;
+            c.profile_z = hl2ss.depth_profile.ZDEPTH;
         }
 
         public static void create_configuration(out hl2ss.ulm.configuration_pv_subsystem c)
