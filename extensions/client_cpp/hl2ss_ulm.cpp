@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <codecvt>
+#include <locale>
 #include "hl2ss.h"
 #include "hl2ss_lnm.h"
 #include "hl2ss_mt.h"

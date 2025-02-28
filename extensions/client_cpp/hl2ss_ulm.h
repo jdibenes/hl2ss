@@ -1214,79 +1214,79 @@ struct map_extended_depth
     extended_depth_metadata* metadata;
 };
 
-constexpr
+HL2SS_INLINE
 map_rm_vlc unpack_rm_vlc(uint8_t* payload)
 {
     return { payload, (rm_vlc_metadata*)(payload + parameters_rm_vlc::PIXELS) };
 }
 
-constexpr
+HL2SS_INLINE
 map_rm_depth_ahat unpack_rm_depth_ahat(uint8_t* payload)
 {
     return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))), (rm_depth_ahat_metadata*)(payload + (2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))) };
 }
 
-constexpr
+HL2SS_INLINE
 map_rm_depth_longthrow unpack_rm_depth_longthrow(uint8_t* payload)
 {
     return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))), (rm_depth_longthrow_metadata*)(payload + (2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))) };
 }
 
-constexpr
+HL2SS_INLINE
 map_rm_imu unpack_rm_imu(uint8_t* payload)
 {
     return { (rm_imu_sample*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_pv unpack_pv(uint8_t* payload, uint32_t size)
 {
     return { payload, (pv_metadata*)(payload + size - sizeof(pv_metadata)) };
 }
 
-constexpr
+HL2SS_INLINE
 map_microphone_raw unpack_microphone_raw(uint8_t* payload)
 {
     return { (int16_t*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_microphone_aac unpack_microphone_aac(uint8_t* payload)
 {
     return { (float*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_microphone_array unpack_microphone_array(uint8_t* payload)
 {
     return { (float*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_si unpack_si(uint8_t* payload)
 {
     return { (si_frame*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_eet unpack_eet(uint8_t* payload)
 {
     return { (eet_frame*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_extended_audio_raw unpack_extended_audio_raw(uint8_t* payload)
 {
     return { (int16_t*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_extended_audio_aac unpack_extended_audio_aac(uint8_t* payload)
 {
     return { (float*)payload };
 }
 
-constexpr
+HL2SS_INLINE
 map_extended_depth unpack_extended_depth(uint8_t* payload, uint32_t size)
 {
     return { (uint16_t*)payload, (extended_depth_metadata*)(payload + size - sizeof(extended_depth_metadata)) };
