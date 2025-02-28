@@ -617,7 +617,7 @@ void test_gmq(char const* host)
     switch (msg.command)
     {
     case 0xFFFFFFFE:
-        std::cout << msg.data << std::endl;
+        std::cout << msg.data.get() << std::endl;
         break;
     default:
         std::cout << "Received command id=" << msg.command << std::endl;
