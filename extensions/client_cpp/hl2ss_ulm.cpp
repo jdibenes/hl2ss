@@ -820,6 +820,15 @@ HL2SS_ULM_BEGIN
 }
 HL2SS_ULM_END(-1)
 
+HL2SS_CLIENT_EXPORT
+int32_t HL2SS_CALL rc_set_quiet_mode(void* ipc, uint32_t mode)
+HL2SS_ULM_BEGIN
+{
+    typed_handle<hl2ss::ipc_rc>::get(ipc)->set_quiet_mode(mode);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------

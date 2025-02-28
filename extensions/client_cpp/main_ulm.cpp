@@ -591,6 +591,7 @@ void test_rc(char const* host)
     ipc->set_pv_hdr_video(hl2ss::pv_hdr_video_mode::Off);
     ipc->set_pv_regions_of_interest(true, true, true, true, true, hl2ss::pv_region_of_interest_type::Unknown, 100, 0.0, 0.0, 1.0, 1.0);
     ipc->set_interface_priority(hl2ss::stream_port::PERSONAL_VIDEO, hl2ss::interface_priority::ABOVE_NORMAL);
+    ipc->set_quiet_mode(false);
 }
 
 void test_sm(char const* host)
@@ -816,7 +817,7 @@ void test_extended_depth(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 17;
+    int test_id = 10;
 
     try
     {

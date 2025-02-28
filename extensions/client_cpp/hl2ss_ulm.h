@@ -1660,6 +1660,9 @@ int32_t HL2SS_CALL rc_set_pv_regions_of_interest(void* ipc, uint32_t clear, uint
 HL2SS_CLIENT_IMPORT
 int32_t HL2SS_CALL rc_set_interface_priority(void* ipc, uint16_t port, int32_t priority);
 
+HL2SS_CLIENT_IMPORT
+int32_t HL2SS_CALL rc_set_quiet_mode(void* ipc, uint32_t mode);
+
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
@@ -2086,6 +2089,11 @@ public:
     void set_interface_priority(uint16_t port, int32_t priority)
     {
         check_result(hl2ss::ulm::rc_set_interface_priority(m_handle, port, priority));
+    }
+
+    void set_quiet_mode(uint32_t mode)
+    {
+        check_result(hl2ss::ulm::rc_set_quiet_mode(m_handle, mode));
     }
 };
 
