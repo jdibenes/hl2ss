@@ -142,6 +142,17 @@ def unpack_extended_audio(payload, profile):
     return np.frombuffer(payload, dtype=np.float32).reshape((2, -1)) if (profile != hl2ss.AudioProfile.RAW) else np.frombuffer(payload, dtype=np.int16).reshape((1, -1))
 
 
+def unpack_extended_depth(payload, width, height):
+    shape = (height, width)
+    count = width * height
+    b = count * hl2ss._SIZEOF.WORD
+
+    depth      = np.frombuffer(payload, dtype=np.uint16, offset=0, count=count).reshape(shape)
+    resolution = np.frombuffer(payload, dtype=np.uint16, offset=b, count=2)
+
+    return hl2ss._EZ_Frame(depth, resolution[0], resolution[1])
+
+
 class rx_decoded_rm_vlc(_rx):
     def _unpack_payload(self, payload):
         return unpack_rm_vlc(payload)
@@ -195,3 +206,11 @@ class rx_decoded_extended_audio(_rx):
     def _unpack_payload(self, payload):
         return unpack_extended_audio(payload, self._configuration['profile'])
 
+
+class rx_decoded_extended_depth(_rx):
+    def _unpack_payload(self, payload):
+        if (not self._pv_wxh):
+            self._width, self._height = self._get_pv_dimensions()
+            self._pv_wxh = True
+        return unpack_extended_depth(payload, self._width, self._height)
+    

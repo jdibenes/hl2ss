@@ -20,13 +20,21 @@ ports = [
     hl2ss.StreamPort.RM_DEPTH_LONGTHROW,
     hl2ss.StreamPort.PERSONAL_VIDEO,
     #hl2ss.StreamPort.EXTENDED_VIDEO,
+    #hl2ss.StreamPort.EXTENDED_DEPTH
 ]
 
 # Camera selection for EV
 # realsense
-group_index = 2
-source_index = 0
-profile_index = 0
+ev_group_index = 2
+ev_source_index = 0
+ev_profile_index = 0
+
+# Camera selection for EZ
+# realsense
+ez_group_index = 0
+ez_source_index = 0
+ez_profile_index = 0
+ez_media_index = 15
 
 #------------------------------------------------------------------------------
 
@@ -38,7 +46,8 @@ rx = {
     hl2ss.StreamPort.RM_DEPTH_AHAT        : hl2ss_mt.rx_decoded_rm_depth_ahat,
     hl2ss.StreamPort.RM_DEPTH_LONGTHROW   : hl2ss_mt.rx_decoded_rm_depth_longthrow,
     hl2ss.StreamPort.PERSONAL_VIDEO       : hl2ss_mt.rx_decoded_pv,
-    hl2ss.StreamPort.EXTENDED_VIDEO       : hl2ss_mt.rx_decoded_pv
+    hl2ss.StreamPort.EXTENDED_VIDEO       : hl2ss_mt.rx_decoded_pv,
+    hl2ss.StreamPort.EXTENDED_DEPTH       : hl2ss_mt.rx_decoded_extended_depth,
 }
 
 def create_default_rx(host, port, buffer_size):
@@ -46,6 +55,7 @@ def create_default_rx(host, port, buffer_size):
     configuration['width'] = 1280
     configuration['height'] = 720
     configuration['framerate'] = 30
+    configuration['media_index'] = ez_media_index
     return rx[port](host, port, buffer_size, configuration)
 
 def display_rm_vlc(data):
@@ -57,6 +67,9 @@ def display_rm_depth(data):
 def display_pv(data):
     return data.payload.image
 
+def display_ez(data):
+    return cv2.applyColorMap(((data.payload.depth / 4096) * hl2ss._RANGEOF.U8_MAX).astype(np.uint8), cv2.COLORMAP_JET)
+
 display = {
     hl2ss.StreamPort.RM_VLC_LEFTFRONT     : display_rm_vlc,
     hl2ss.StreamPort.RM_VLC_LEFTLEFT      : display_rm_vlc,
@@ -65,7 +78,8 @@ display = {
     hl2ss.StreamPort.RM_DEPTH_AHAT        : display_rm_depth,
     hl2ss.StreamPort.RM_DEPTH_LONGTHROW   : display_rm_depth,
     hl2ss.StreamPort.PERSONAL_VIDEO       : display_pv,
-    hl2ss.StreamPort.EXTENDED_VIDEO       : display_pv
+    hl2ss.StreamPort.EXTENDED_VIDEO       : display_pv,
+    hl2ss.StreamPort.EXTENDED_DEPTH       : display_ez,
 }
 
 streams = { port : create_default_rx(host, port, buffer_size) for port in ports }
@@ -74,7 +88,10 @@ if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
 if (hl2ss.StreamPort.EXTENDED_VIDEO in ports):
-    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, global_opacity=group_index, output_width=source_index, output_height=profile_index)
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, global_opacity=ev_group_index, output_width=ev_source_index, output_height=ev_profile_index)
+
+if (hl2ss.StreamPort.EXTENDED_DEPTH in ports):
+    hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH, global_opacity=ez_group_index, output_width=ez_source_index, output_height=ez_profile_index)
 
 for stream in streams.items():
     cv2.namedWindow(hl2ss.get_port_name(stream[0]))
@@ -96,3 +113,6 @@ if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
 
 if (hl2ss.StreamPort.EXTENDED_VIDEO in ports):
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO)
+
+if (hl2ss.StreamPort.EXTENDED_DEPTH in ports):
+    hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH)

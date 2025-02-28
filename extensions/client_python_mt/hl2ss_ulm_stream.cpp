@@ -162,6 +162,23 @@ PyObject* create_configuration<hl2ss::ulm::configuration_extended_audio>()
     return r;
 }
 
+template<>
+PyObject* create_configuration<hl2ss::ulm::configuration_extended_depth>()
+{
+    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_depth>();
+
+    PyObject* r = PyDict_New();
+
+    PyDict_SetItemString(r, "chunk",       PyLong_FromUnsignedLongLong(c.chunk));
+    PyDict_SetItemString(r, "media_index", PyLong_FromUnsignedLongLong(c.media_index));
+    PyDict_SetItemString(r, "stride_mask", PyLong_FromUnsignedLongLong(c.stride_mask));
+    PyDict_SetItemString(r, "mode",        PyLong_FromUnsignedLong(c.mode));
+    PyDict_SetItemString(r, "divisor",     PyLong_FromUnsignedLong(c.divisor));
+    PyDict_SetItemString(r, "profile_z",   PyLong_FromUnsignedLong(c.profile_z));
+
+    return r;
+}
+
 static PyObject* create_configuration(PyObject *self, PyObject *args)
 HL2SS_ULM_BEGIN
 {
@@ -186,6 +203,7 @@ HL2SS_ULM_BEGIN
     case hl2ss::stream_port::SPATIAL_INPUT:        return create_configuration<hl2ss::ulm::configuration_si>();
     case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return create_configuration<hl2ss::ulm::configuration_eet>();
     case hl2ss::stream_port::EXTENDED_AUDIO:       return create_configuration<hl2ss::ulm::configuration_extended_audio>();
+    case hl2ss::stream_port::EXTENDED_DEPTH:       return create_configuration<hl2ss::ulm::configuration_extended_depth>();
     default:                                       throw std::runtime_error("Unsupported port");
     }
 }
@@ -392,6 +410,21 @@ std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_extend
     return hl2ss::svc::open_stream(host, port, buffer_size, &c);
 }
 
+template<>
+std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_extended_depth>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+{
+    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_depth>();
+
+    c.chunk       = dict_get_item(configuration, "chunk",       PyLong_AsUnsignedLongLong, c.chunk);
+    c.media_index = dict_get_item(configuration, "media_index", PyLong_AsUnsignedLongLong, c.media_index);
+    c.stride_mask = dict_get_item(configuration, "stride_mask", PyLong_AsUnsignedLongLong, c.stride_mask);
+    c.mode        = dict_get_item(configuration, "mode",        PyLong_AsUnsignedLong,     c.mode);
+    c.divisor     = dict_get_item(configuration, "divisor",     PyLong_AsUnsignedLong,     c.divisor);
+    c.profile_z   = dict_get_item(configuration, "profile_z",   PyLong_AsUnsignedLong,     c.profile_z);
+
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+}
+
 static PyObject* open_stream(PyObject *self, PyObject *args)
 HL2SS_ULM_BEGIN
 {
@@ -420,6 +453,7 @@ HL2SS_ULM_BEGIN
     case hl2ss::stream_port::SPATIAL_INPUT:        p = open_stream<hl2ss::ulm::configuration_si>(host, port, buffer_size, configuration);                 break;
     case hl2ss::stream_port::EXTENDED_EYE_TRACKER: p = open_stream<hl2ss::ulm::configuration_eet>(host, port, buffer_size, configuration);                break;
     case hl2ss::stream_port::EXTENDED_AUDIO:       p = open_stream<hl2ss::ulm::configuration_extended_audio>(host, port, buffer_size, configuration);     break;
+    case hl2ss::stream_port::EXTENDED_DEPTH:       p = open_stream<hl2ss::ulm::configuration_extended_depth>(host, port, buffer_size, configuration);     break;
     default:                                       throw std::runtime_error("Unsupported port");
     }
 
