@@ -39,11 +39,18 @@ configuration = hl2ss_mt.create_configuration(hl2ss.StreamPort.SPATIAL_INPUT)
 client = hl2ss_mt.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT, buffer_size, configuration)
 client.open()
 
+frame_index = -1
+
 while (enable):
-    data = client.get_by_index(-1)
-    if (data.status != hl2ss_mt.Status.OK):
+    data = client.get_by_index(frame_index)
+    if (data.status == hl2ss_mt.Status.WAIT):
         time.sleep(1/1000)
         continue
+    elif (data.status == hl2ss_mt.Status.DISCARDED):
+        frame_index = -1
+        continue
+
+    frame_index = data.frame_stamp + 1
 
     si = hl2ss.unpack_si(data.payload)
 
