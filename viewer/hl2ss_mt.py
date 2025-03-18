@@ -79,7 +79,7 @@ class _rx(hl2ss._context_manager):
     def get_by_index(self, frame_stamp):
         return self._unpack(_packet(hl2ss_ulm_stream.get_by_index(self._handle, frame_stamp)))
     
-    def get_by_timestamp(self, timestamp, time_preference, tiebreak_right):
+    def get_by_timestamp(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
         return self._unpack(_packet(hl2ss_ulm_stream.get_by_timestamp(self._handle, timestamp, int(time_preference), int(tiebreak_right))))
     
     def _get_pv_dimensions(self):
