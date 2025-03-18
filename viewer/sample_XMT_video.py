@@ -1,10 +1,13 @@
+#------------------------------------------------------------------------------
+# C++ Multithreaded Client Python Extension Test.
+# Requires building the hl2ss_ulm_stream extension.
+#------------------------------------------------------------------------------
 
 import numpy as np
 import cv2
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mt
-
 
 # Settings --------------------------------------------------------------------
 
