@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# C++ Multithreaded Client Python Extension Test.
+# Low-Latency C++ Multithreaded Client Python Extension Test.
 # Requires building the hl2ss_ulm_stream extension.
 #
 # Sample audio/video player (Experimental).
