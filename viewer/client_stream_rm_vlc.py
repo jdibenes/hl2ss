@@ -65,7 +65,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss_lnm.rx_rm_vlc(host, port, mode=mode, divisor=divisor, profile=profile)
+client = hl2ss_lnm.rx_rm_vlc(host, port, mode=mode, divisor=divisor, profile=profile, bitrate=bitrate)
 client.open()
 
 while (enable):
