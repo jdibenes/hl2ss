@@ -76,7 +76,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=mode, divisor=divisor, profile_z=profile_z, profile_ab=profile_ab)
+client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=mode, divisor=divisor, profile_z=profile_z, profile_ab=profile_ab, bitrate=bitrate)
 client.open()
 
 max_depth = 1056
