@@ -13,9 +13,15 @@ class PV_DecodedFormat:
 
 
 class TimePreference:
-    PREFER_PAST = -1
+    PREFER_PAST    = -1
     PREFER_NEAREST = 0
-    PREFER_FUTURE = 1
+    PREFER_FUTURE  = 1
+
+
+class Status:
+    DISCARDED = -1
+    OK        = 0
+    WAIT      = 1
 
 
 def create_configuration(port):
@@ -31,14 +37,14 @@ class _packet:
         self.pose = data['pose']
         self._handle = data['_handle']
 
-    def destroy(self):
+    def _destroy(self):
         if (self._handle is None):
             return
         hl2ss_ulm_stream.release_packet(self._handle)
         self._handle = None
         
     def __del__(self):
-        self.destroy()
+        self._destroy()
 
 
 class _rx(hl2ss._context_manager):
