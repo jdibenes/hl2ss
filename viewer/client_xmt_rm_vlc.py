@@ -87,7 +87,6 @@ while (enable):
     cv2.waitKey(1)
 
     data = client.get_by_index(-1)
-
     if (data.status != hl2ss_mt.Status.OK):
         continue
 
