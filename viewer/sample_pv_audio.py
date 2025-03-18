@@ -61,7 +61,7 @@ if __name__ == "__main__":
     enable = True
     presentation_clk = 0
     
-    def pcmcallback(in_data, frame_count, time_info, status):
+    def pcm_callback(in_data, frame_count, time_info, status):
         global pcm_queue
         global pcm_audio_buffer
         global pcm_ts_buffer
@@ -72,7 +72,8 @@ if __name__ == "__main__":
                 return (b'', pyaudio.paAbort)
             pcm_data_ev = pcm_queue.get()
             pcm_payload = pcm_data_ev.payload
-            pcm_ts = pcm_data_ev.timestamp + (np.arange(0, pcm_payload.shape[1], 1, dtype=np.int64) * ((hl2ss.Parameters_MICROPHONE.GROUP_SIZE_AAC * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // hl2ss.Parameters_MICROPHONE.SAMPLE_RATE))
+            pcm_group_size = pcm_payload.shape[1]
+            pcm_ts = pcm_data_ev.timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * ((pcm_group_size * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // hl2ss.Parameters_MICROPHONE.SAMPLE_RATE))
             pcm_audio_buffer = np.hstack((pcm_audio_buffer, pcm_payload))
             pcm_ts_buffer = np.hstack((pcm_ts_buffer, pcm_ts.reshape((1, -1))))
         out_data = hl2ss_utilities.microphone_planar_to_packed(pcm_audio_buffer[:, 0:frame_count]).tobytes()
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     
     # Open PyAudio Stream -----------------------------------------------------
     p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True, stream_callback=pcmcallback)
+    stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True, stream_callback=pcm_callback)
 
     # Main Loop ---------------------------------------------------------------
     while (True):
