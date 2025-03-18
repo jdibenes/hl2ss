@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Sample audio/video player.
+# Sample audio/video player (Experimental).
 # Press ESC to stop.
 #------------------------------------------------------------------------------
 
@@ -30,7 +30,6 @@ mixer_mode = hl2ss.MixerMode.MICROPHONE
 
 # Buffer parameters
 full_buffer_size = 5 # in seconds
-load_buffer_size = 1 # in seconds and less than full_buffer_size
 
 #------------------------------------------------------------------------------
 
@@ -55,28 +54,13 @@ if __name__ == "__main__":
     fs_pv = sink_pv.get_attach_response()
     fs_ev = sink_ev.get_attach_response()
 
-    # Initial audio buffering for stability -----------------------------------
-    fill_count = math.ceil((load_buffer_size * hl2ss.Parameters_MICROPHONE.SAMPLE_RATE) / hl2ss.Parameters_MICROPHONE.GROUP_SIZE_AAC)
+    # Setup Multimedia Player -------------------------------------------------
     pcm_queue = queue.Queue()
     pcm_audio_buffer = np.empty((2, 0), dtype=np.float32)
     pcm_ts_buffer = np.empty((1, 0), dtype=np.int64)
     enable = True
     presentation_clk = 0
     
-    print('Buffering...')
-
-    for _ in range(0, fill_count):
-        # Audio must be read sequentially
-        # using get_most_recent_frame will result in audio glitches since 
-        # get_most_recent_frame repeats or drops frames as necessary
-        sink_ev.acquire()
-        fs_ev += 1
-        _, _, data_ev = sink_ev.get_buffered_frame(fs_ev)
-        pcm_queue.put(data_ev)
-
-    print('Buffering done!')
-
-    # Setup Multimedia Player -------------------------------------------------
     def pcmcallback(in_data, frame_count, time_info, status):
         global pcm_queue
         global pcm_audio_buffer
@@ -98,7 +82,7 @@ if __name__ == "__main__":
         return (out_data, pyaudio.paContinue if (enable) else pyaudio.paAbort)
     
     cv2.namedWindow('Video')
-
+    
     # Open PyAudio Stream -----------------------------------------------------
     p = pyaudio.PyAudio()
     stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True, stream_callback=pcmcallback)
@@ -106,6 +90,9 @@ if __name__ == "__main__":
     # Main Loop ---------------------------------------------------------------
     while (True):
         # Buffer audio packets
+        # audio must be read sequentially
+        # using get_most_recent_frame will result in audio glitches since 
+        # get_most_recent_frame repeats or drops frames as necessary
         sink_ev.acquire()
         fs_ev += 1
         _, _, data_ev = sink_ev.get_buffered_frame(fs_ev)
