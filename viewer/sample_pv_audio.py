@@ -49,10 +49,10 @@ if __name__ == "__main__":
     consumer = hl2ss_mp.consumer()
     manager = mp.Manager()
     sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
-    sink_ev = consumer.create_sink(producer, hl2ss.StreamPort.EXTENDED_AUDIO, manager, ...)
+    sink_ea = consumer.create_sink(producer, hl2ss.StreamPort.EXTENDED_AUDIO, manager, ...)
 
     fs_pv = sink_pv.get_attach_response()
-    fs_ev = sink_ev.get_attach_response()
+    fs_ea = sink_ea.get_attach_response()
 
     # Setup Multimedia Player -------------------------------------------------
     pcm_queue = queue.Queue()
@@ -70,10 +70,10 @@ if __name__ == "__main__":
         while (pcm_audio_buffer.shape[1] < frame_count):
             if (not enable):
                 return (b'', pyaudio.paAbort)
-            pcm_data_ev = pcm_queue.get()
-            pcm_payload = pcm_data_ev.payload
+            pcm_data_ea = pcm_queue.get()
+            pcm_payload = pcm_data_ea.payload
             pcm_group_size = pcm_payload.shape[1]
-            pcm_ts = pcm_data_ev.timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * ((pcm_group_size * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // hl2ss.Parameters_MICROPHONE.SAMPLE_RATE))
+            pcm_ts = pcm_data_ea.timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * ((pcm_group_size * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // hl2ss.Parameters_MICROPHONE.SAMPLE_RATE))
             pcm_audio_buffer = np.hstack((pcm_audio_buffer, pcm_payload))
             pcm_ts_buffer = np.hstack((pcm_ts_buffer, pcm_ts.reshape((1, -1))))
         out_data = hl2ss_utilities.microphone_planar_to_packed(pcm_audio_buffer[:, 0:frame_count]).tobytes()
@@ -94,10 +94,10 @@ if __name__ == "__main__":
         # audio must be read sequentially
         # using get_most_recent_frame will result in audio glitches since 
         # get_most_recent_frame repeats or drops frames as necessary
-        sink_ev.acquire()
-        fs_ev += 1
-        _, _, data_ev = sink_ev.get_buffered_frame(fs_ev)
-        pcm_queue.put(data_ev)
+        sink_ea.acquire()
+        fs_ea += 1
+        _, _, data_ea = sink_ea.get_buffered_frame(fs_ea)
+        pcm_queue.put(data_ea)
         if (not enable):
             break
         # Coarse audio/video synchronization based on audio frame timestamps
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     # Stop PV and Extended Audio streams --------------------------------------
     sink_pv.detach()
-    sink_ev.detach()
+    sink_ea.detach()
 
     producer.stop(hl2ss.StreamPort.EXTENDED_AUDIO)
     producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
