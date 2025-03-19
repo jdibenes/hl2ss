@@ -58,6 +58,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - [Unity client plugin](extensions).
 - [LabVIEW client library](extensions).
 - [Android client library](extensions).
+- [Holographic Remoting Player + hl2ss](https://github.com/jdibenes/MixedReality-HolographicRemoting-Samples-hl2ss)
 
 **Subprojects**
 
