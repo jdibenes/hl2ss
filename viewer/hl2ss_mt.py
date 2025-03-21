@@ -1,5 +1,6 @@
 
 import numpy as np
+import weakref
 import hl2ss
 import hl2ss_ulm_stream
 
@@ -28,6 +29,14 @@ def create_configuration(port):
     return hl2ss_ulm_stream.create_configuration(port)
 
 
+def _release_packet(handle):
+    hl2ss_ulm_stream.release_packet(handle)
+
+
+def _release_stream(handle):
+    hl2ss_ulm_stream.release_stream(handle)
+
+
 class _packet:
     def __init__(self, data):
         self.frame_stamp = data['frame_stamp']
@@ -36,15 +45,14 @@ class _packet:
         self.payload = data['payload']
         self.pose = data['pose']
         self._handle = data['_handle']
+        self._f = weakref.finalize(self, _release_packet, self._handle)
 
     def _destroy(self):
         if (self._handle is None):
             return
+        self._f.detach()
         hl2ss_ulm_stream.release_packet(self._handle)
         self._handle = None
-        
-    def __del__(self):
-        self._destroy()
 
 
 class _rx(hl2ss._context_manager):
@@ -60,6 +68,7 @@ class _rx(hl2ss._context_manager):
         if (self._handle is not None):
             return
         self._handle = hl2ss_ulm_stream.open_stream(self._host, self._port, self._buffer_size, self._configuration)
+        self._f = weakref.finalize(self, _release_stream, self._handle)
 
     def _unpack_payload(self, payload):
         return payload
@@ -88,11 +97,9 @@ class _rx(hl2ss._context_manager):
     def close(self):
         if (self._handle is None):
             return
+        self._f.detach()
         hl2ss_ulm_stream.release_stream(self._handle)
         self._handle = None
-
-    def __del__(self):
-        self.close()
 
 
 def _unpack_rm_vlc(payload):
