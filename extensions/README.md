@@ -13,6 +13,7 @@ The `tasks_[...].json` files are provided as a reference for building with `cl.e
 
 Alternatively, you can build `hl2ss_ulm.cpp` as a shared library (.dll, .so, ...) and include `hl2ss_ulm.h` in your C++ project.
 See `main_ulm.cpp` for examples.
+You can use the included Python scripts `build_ulm_[...].py` to build the shared library.
 
 If you build `main.cpp` or `main_ulm.cpp` on Windows, you may need to copy the FFmpeg and OpenCV DLLs to the client_cpp folder.
 
@@ -58,7 +59,7 @@ Multithreaded client extension for Python.
 
 Build the hl2ss_ulm shared library then run:
 
-`python3 extension_hl2ss_ulm_stream.py build`
+`python3 extension_hl2ss_ulm_stream_[...].py build`
 
 After building copy the `hl2ss_ulm_stream.[...].pyd` (or `hl2ss_ulm_stream.[...].so`) file in the `build/lib.[...]` folder to the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) folder.
 Also, copy the hl2ss_ulm shared library and the shared libraries for OpenCV and FFmpeg if necessary.
