@@ -1,11 +1,14 @@
 
 #include "extended_video.h"
+#include "research_mode.h"
 #include "server_channel.h"
 #include "server_settings.h"
 #include "encoder_pv.h"
 
+#include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 
+using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::Media::Capture::Frames;
 
 class Channel_EV : public Channel
@@ -84,8 +87,9 @@ void Channel_EV::OnFrameArrived(MediaFrameReference const& frame)
     {
     memset(&p, 0, sizeof(p));
 
-    p.timestamp  = frame.SystemRelativeTime().Value().count();
     p.resolution = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
+    p.timestamp  = frame.SystemRelativeTime().Value().count();
+    p.pose       = ResearchMode_Status() ? ResearchMode_GetRigNodeWorldPose(p.timestamp) : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     m_pEncoder->WriteSample(frame, &p);
     }
