@@ -380,6 +380,9 @@
     <Filter Include="Header Files\system">
       <UniqueIdentifier>{16c9eaae-2c95-4ad0-8b0c-255f0316aaa6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libraries\researchmode">
+      <UniqueIdentifier>{f211e702-0c11-4443-8253-3c29daccb5e9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
@@ -698,6 +701,9 @@
     </ClInclude>
     <ClInclude Include="queue.h">
       <Filter>Header Files\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\researchmode\ResearchModeApi.h">
+      <Filter>Libraries\researchmode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

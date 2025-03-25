@@ -43,6 +43,9 @@
     <Filter Include="Libraries\hl2ss\interfaces">
       <UniqueIdentifier>{b2521679-bda0-4fe7-89ab-57ac1663b3dc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libraries\researchmode">
+      <UniqueIdentifier>{dc5a22d9-31cc-4138-9ccd-8347196625f3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="plugin.cpp">
@@ -565,6 +568,9 @@
     </ClInclude>
     <ClInclude Include="..\hl2ss\stream_ez.h">
       <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\researchmode\ResearchModeApi.h">
+      <Filter>Libraries\researchmode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

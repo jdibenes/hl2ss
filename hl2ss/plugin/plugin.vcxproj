@@ -337,6 +337,7 @@
     <ClCompile Include="plugin.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\researchmode\ResearchModeApi.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\include\zdepth.hpp" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\fse.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\include\huf.h" />
