@@ -15,26 +15,26 @@ using namespace winrt::Windows::Storage::Streams;
 // OK
 void Encoder_RM_ZLT::ToBGRA8(uint8_t const* pSigma, uint16_t const* pDepth, uint16_t const* pAb, uint32_t* pBGRA8)
 {
-	uint16x8_t threshold = vdupq_n_u16(RM_ZLT_MASK);
+    uint16x8_t threshold = vdupq_n_u16(RM_ZLT_MASK);
 
-	for (int i = 0; i < (RM_ZLT_PIXELS / 32); ++i)
-	{
-	uint8x8x4_t  s = vld1_u8_x4(pSigma);
-	uint16x8x4_t d = vld1q_u16_x4(pDepth);
+    for (int i = 0; i < (RM_ZLT_PIXELS / 32); ++i)
+    {
+    uint8x8x4_t  s = vld1_u8_x4(pSigma);
+    uint16x8x4_t d = vld1q_u16_x4(pDepth);
 
-	d.val[0] = vandq_u16(d.val[0], vcltq_u16(vmovl_u8(s.val[0]), threshold));
-	d.val[1] = vandq_u16(d.val[1], vcltq_u16(vmovl_u8(s.val[1]), threshold));
-	d.val[2] = vandq_u16(d.val[2], vcltq_u16(vmovl_u8(s.val[2]), threshold));
-	d.val[3] = vandq_u16(d.val[3], vcltq_u16(vmovl_u8(s.val[3]), threshold));
+    d.val[0] = vandq_u16(d.val[0], vcltq_u16(vmovl_u8(s.val[0]), threshold));
+    d.val[1] = vandq_u16(d.val[1], vcltq_u16(vmovl_u8(s.val[1]), threshold));
+    d.val[2] = vandq_u16(d.val[2], vcltq_u16(vmovl_u8(s.val[2]), threshold));
+    d.val[3] = vandq_u16(d.val[3], vcltq_u16(vmovl_u8(s.val[3]), threshold));
 
-	vst1q_u16_x4(pBGRA8, d);
+    vst1q_u16_x4(pBGRA8, d);
 
-	pSigma += 32;
-	pDepth += 32;
-	pBGRA8 += 16;
-	}
+    pSigma += 32;
+    pDepth += 32;
+    pBGRA8 += 16;
+    }
 
-	memcpy(pBGRA8, pAb, RM_ZLT_ABSIZE);
+    memcpy(pBGRA8, pAb, RM_ZLT_ABSIZE);
 }
 
 // OK

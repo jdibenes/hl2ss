@@ -45,164 +45,164 @@ static long g_log_error = 0;
 // OK
 static DWORD WINAPI ExtendedExecution_MailboxService(void* param)
 {
-	(void)param;
+    (void)param;
 
-	do
-	{
-	WaitForSingleObject(g_event, INFINITE);
-	winrt::hstring message = L"";
-	{
-	CriticalSection cs(&g_lock);
-	if (g_mailbox.size() <= 0) { continue; }	
-	while (!g_mailbox.empty()) { message = message + pull(g_mailbox) + L"\n"; }
-	}
-	IAsyncOperation<IUICommand> ao;
-	ExtendedExecution_RunOnMainThread([&]() { ao = MessageDialog(message, L"HL2SS").ShowAsync(); });
-	ao.get();
-	}
-	while (true);
+    do
+    {
+    WaitForSingleObject(g_event, INFINITE);
+    winrt::hstring message = L"";
+    {
+    CriticalSection cs(&g_lock);
+    if (g_mailbox.size() <= 0) { continue; }	
+    while (!g_mailbox.empty()) { message = message + pull(g_mailbox) + L"\n"; }
+    }
+    IAsyncOperation<IUICommand> ao;
+    ExtendedExecution_RunOnMainThread([&]() { ao = MessageDialog(message, L"HL2SS").ShowAsync(); });
+    ao.get();
+    }
+    while (true);
 }
 
 // OK
 static void ExtendedExecution_OnRevoked(IInspectable const& sender, ExtendedExecutionForegroundRevokedEventArgs const& args)
 {
-	(void)sender;
-	ShowMessage("EEFS Revoked: %d", static_cast<int>(args.Reason()));
-	g_status = false;
+    (void)sender;
+    ShowMessage("EEFS Revoked: %d", static_cast<int>(args.Reason()));
+    g_status = false;
 }
 
 // OK
 static void ExtendedExecution_SetFileRegister(winrt::hstring option, bool value)
 {
-	StorageFolder folder = ApplicationData::Current().LocalFolder();
-	winrt::hstring name{ option };
+    StorageFolder folder = ApplicationData::Current().LocalFolder();
+    winrt::hstring name{ option };
 
-	try
-	{
-	if (value)
-	{
-	folder.CreateFileAsync(name).get();
-	}
-	else
-	{
-	StorageFile file = folder.GetFileAsync(name).get();
-	file.DeleteAsync().get();
-	}
-	}
-	catch (...)
-	{
-	}
+    try
+    {
+    if (value)
+    {
+    folder.CreateFileAsync(name).get();
+    }
+    else
+    {
+    StorageFile file = folder.GetFileAsync(name).get();
+    file.DeleteAsync().get();
+    }
+    }
+    catch (...)
+    {
+    }
 }
 
 // OK
 static bool ExtendedExecution_GetFileRegister(winrt::hstring option)
 {
-	StorageFolder folder = ApplicationData::Current().LocalFolder();
-	winrt::hstring name{ option };
+    StorageFolder folder = ApplicationData::Current().LocalFolder();
+    winrt::hstring name{ option };
 
-	try
-	{
-	folder.GetFileAsync(name).get();
-	return true;
-	}
-	catch (...)
-	{
-	}
+    try
+    {
+    folder.GetFileAsync(name).get();
+    return true;
+    }
+    catch (...)
+    {
+    }
 
-	return false;
+    return false;
 }
 
 // OK
 void ExtendedExecution_Initialize()
 {
-	InitializeCriticalSection(&g_lock);
-	g_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	g_thread = CreateThread(NULL, 0, ExtendedExecution_MailboxService, NULL, 0, NULL);
+    InitializeCriticalSection(&g_lock);
+    g_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    g_thread = CreateThread(NULL, 0, ExtendedExecution_MailboxService, NULL, 0, NULL);
 }
 
 // OK
 void ExtendedExecution_Request()
 {
-	g_eefs = ExtendedExecutionForegroundSession();
-	g_eefs.Reason(ExtendedExecutionForegroundReason::Unconstrained);
-	g_eefs.Description(L"Background Capture");
-	g_eefs.Revoked(ExtendedExecution_OnRevoked);
-	g_status = g_eefs.RequestExtensionAsync().get() == ExtendedExecutionForegroundResult::Allowed;
-	ShowMessage("EEFS Result: %d", g_status);
+    g_eefs = ExtendedExecutionForegroundSession();
+    g_eefs.Reason(ExtendedExecutionForegroundReason::Unconstrained);
+    g_eefs.Description(L"Background Capture");
+    g_eefs.Revoked(ExtendedExecution_OnRevoked);
+    g_status = g_eefs.RequestExtensionAsync().get() == ExtendedExecutionForegroundResult::Allowed;
+    ShowMessage("EEFS Result: %d", g_status);
 }
 
 // OK
 void ExtendedExecution_GetApplicationVersion(uint16_t data[4])
 {
-	PackageVersion version = Package::Current().Id().Version();
+    PackageVersion version = Package::Current().Id().Version();
 
-	data[0] = version.Major;
-	data[1] = version.Minor;
-	data[2] = version.Build;
-	data[3] = version.Revision;
+    data[0] = version.Major;
+    data[1] = version.Minor;
+    data[2] = version.Build;
+    data[3] = version.Revision;
 }
 
 // OK
 void ExtendedExecution_RunOnMainThread(std::function<void()> f)
 {
-	CoreApplication::MainView().Dispatcher().RunAsync(CoreDispatcherPriority::High, f).get();
+    CoreApplication::MainView().Dispatcher().RunAsync(CoreDispatcherPriority::High, f).get();
 }
 
 // OK
 void ExtendedExecution_EnterException(Exception e)
 {
-	InterlockedOr(&g_log_error, static_cast<long>(e));
+    InterlockedOr(&g_log_error, static_cast<long>(e));
 }
 
 // OK
 Exception ExtendedExecution_GetExceptions()
 {
-	return static_cast<Exception>(g_log_error);
+    return static_cast<Exception>(g_log_error);
 }
 
 // OK
 void ExtendedExecution_MessageBox(winrt::hstring message)
 {
-	CriticalSection cs(&g_lock);
-	g_mailbox.push(message);
-	SetEvent(g_event);
+    CriticalSection cs(&g_lock);
+    g_mailbox.push(message);
+    SetEvent(g_event);
 }
 
 // OK
 void ExtendedExecution_SetFlatMode(bool flat)
 {
-	ExtendedExecution_SetFileRegister(g_name_flat, flat);
+    ExtendedExecution_SetFileRegister(g_name_flat, flat);
 }
 
 // OK
 bool ExtendedExecution_GetFlatMode()
 {
-	return ExtendedExecution_GetFileRegister(g_name_flat);
+    return ExtendedExecution_GetFileRegister(g_name_flat);
 }
 
 // OK
 void ExtendedExecution_SetInterfacePriority(uint32_t id, int32_t priority)
 {
-	if (id >= INTERFACE_SLOTS) { return; }
-	if ((priority < THREAD_PRIORITY_LOWEST) || (priority > THREAD_PRIORITY_HIGHEST)) { return; }
-	g_interface_priority[id] = priority;
+    if (id >= INTERFACE_SLOTS) { return; }
+    if ((priority < THREAD_PRIORITY_LOWEST) || (priority > THREAD_PRIORITY_HIGHEST)) { return; }
+    g_interface_priority[id] = priority;
 }
 
 // OK
 int32_t ExtendedExecution_GetInterfacePriority(uint32_t id)
 {
-	if (id >= INTERFACE_SLOTS) { return THREAD_PRIORITY_NORMAL; }
-	return g_interface_priority[id];
+    if (id >= INTERFACE_SLOTS) { return THREAD_PRIORITY_NORMAL; }
+    return g_interface_priority[id];
 }
 
 // OK
 void ExtendedExecution_SetQuietMode(bool quiet)
 {
-	ExtendedExecution_SetFileRegister(g_name_quiet, quiet);
+    ExtendedExecution_SetFileRegister(g_name_quiet, quiet);
 }
 
 // OK
 bool ExtendedExecution_GetQuietMode()
 {
-	return ExtendedExecution_GetFileRegister(g_name_quiet);
+    return ExtendedExecution_GetFileRegister(g_name_quiet);
 }

@@ -14,16 +14,16 @@ using namespace winrt::Windows::UI::Core;
 
 struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 {
-	bool m_windowClosed = false;
+    bool m_windowClosed = false;
 
-	IFrameworkView CreateView();
-	void OnWindowClosed(CoreWindow const& sender, CoreWindowEventArgs const& args);
-	void OnSuspending(IInspectable const& sender, SuspendingEventArgs const& args);
-	void Initialize(CoreApplicationView const& applicationView);
-	void Load(winrt::hstring const& entryPoint);
-	void SetWindow(CoreWindow const& window);
-	void Run();
-	void Uninitialize();
+    IFrameworkView CreateView();
+    void OnWindowClosed(CoreWindow const& sender, CoreWindowEventArgs const& args);
+    void OnSuspending(IInspectable const& sender, SuspendingEventArgs const& args);
+    void Initialize(CoreApplicationView const& applicationView);
+    void Load(winrt::hstring const& entryPoint);
+    void SetWindow(CoreWindow const& window);
+    void Run();
+    void Uninitialize();
 };
 
 //-----------------------------------------------------------------------------
@@ -33,62 +33,62 @@ struct App : winrt::implements<App, IFrameworkViewSource, IFrameworkView>
 // OK
 IFrameworkView App::CreateView()
 {
-	return *this;
+    return *this;
 }
 
 // OK
 void App::OnWindowClosed(CoreWindow const& sender, CoreWindowEventArgs const& args)
 {
-	(void)sender;
-	(void)args;
+    (void)sender;
+    (void)args;
 
-	m_windowClosed = true;
+    m_windowClosed = true;
 }
 
 // OK
 void App::OnSuspending(IInspectable const& sender, SuspendingEventArgs const& args)
 {
-	(void)sender;
-	(void)args;
+    (void)sender;
+    (void)args;
 
-	CoreApplication::Exit(); // Suspending is not supported
+    CoreApplication::Exit(); // Suspending is not supported
 }
 
 // OK
 void App::Initialize(CoreApplicationView const& applicationView)
 {
-	(void)applicationView;
-	CoreApplication::Suspending({ this, &App::OnSuspending });
+    (void)applicationView;
+    CoreApplication::Suspending({ this, &App::OnSuspending });
 }
 
 // OK
 void App::Load(winrt::hstring const& entryPoint)
 {
-	(void)entryPoint;
-	HL2SS_Load(true);
+    (void)entryPoint;
+    HL2SS_Load(true);
 }
 
 // OK
 void App::SetWindow(CoreWindow const& window)
 {
-	window.Closed({ this, &App::OnWindowClosed });
+    window.Closed({ this, &App::OnWindowClosed });
 }
 
 // OK
 void App::Run()
 {
-	auto window = CoreWindow::GetForCurrentThread();
-	window.Activate();
+    auto window = CoreWindow::GetForCurrentThread();
+    window.Activate();
 
-	while (!m_windowClosed)
-	{
-	window.Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+    while (!m_windowClosed)
+    {
+    window.Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
-	HL2SS_Process_HS();
-	HL2SS_Process_MQ();
-	HL2SS_Process_MQX();
-	HL2SS_Process_EE();
-	}
+    HL2SS_Process_HS();
+    HL2SS_Process_MQ();
+    HL2SS_Process_MQX();
+    HL2SS_Process_EE();
+    }
 }
 
 // OK
@@ -103,11 +103,11 @@ void App::Uninitialize()
 // OK
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nShowCmd)
 {
-	(void)hInstance;
-	(void)hPrevInstance;
-	(void)lpCmdLine;
-	(void)nShowCmd;
+    (void)hInstance;
+    (void)hPrevInstance;
+    (void)lpCmdLine;
+    (void)nShowCmd;
 
-	CoreApplication::Run(winrt::make<App>());
-	return 0;
+    CoreApplication::Run(winrt::make<App>());
+    return 0;
 }

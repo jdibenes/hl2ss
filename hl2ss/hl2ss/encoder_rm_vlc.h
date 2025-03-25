@@ -24,19 +24,19 @@ struct RM_VLC_VideoTransform
 class Encoder_RM_VLC : public CustomEncoder
 {
 private:
-	uint32_t m_framebytes;
-	uint32_t m_lumasize;
-	uint32_t m_chromasize;
-	LONGLONG m_duration;
+    uint32_t m_framebytes;
+    uint32_t m_lumasize;
+    uint32_t m_chromasize;
+    LONGLONG m_duration;
 
     static RM_VLC_VideoTransform const m_vt_lut[2];
 
     static RM_VLC_VideoTransform GetTransform(H26xFormat const& format);
 
 public:
-	Encoder_RM_VLC(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format, std::vector<uint64_t> const& options);
+    Encoder_RM_VLC(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, H26xFormat const& format, std::vector<uint64_t> const& options);
 
-	void WriteSample(BYTE const* pImage, LONGLONG timestamp, RM_VLC_Metadata* metadata);
+    void WriteSample(BYTE const* pImage, LONGLONG timestamp, RM_VLC_Metadata* metadata);
 
     static void SetH26xFormat(H26xFormat& format);
 };

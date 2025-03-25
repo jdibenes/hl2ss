@@ -378,24 +378,24 @@ HRESULT CreateTypeVideo(IMFMediaType** ppType, uint32_t width, uint32_t height, 
 // OK
 void TranslateEncoderOptions(std::vector<uint64_t> const& options, IMFAttributes **pEncoderAttr)
 {
-	size_t size = options.size() & ~1ULL;
+    size_t size = options.size() & ~1ULL;
 
-	MFCreateAttributes(pEncoderAttr, static_cast<UINT32>(size / 2));
+    MFCreateAttributes(pEncoderAttr, static_cast<UINT32>(size / 2));
 
-	for (int i = 0; i < static_cast<int>(size); i += 2)
-	{
-	uint64_t option = options[i];
-	uint64_t value  = options[i + 1];
+    for (int i = 0; i < static_cast<int>(size); i += 2)
+    {
+    uint64_t option = options[i];
+    uint64_t value  = options[i + 1];
 
-	if (option >= (sizeof(g_AVLUT) / sizeof(AVOption))) { continue; }
+    if (option >= (sizeof(g_AVLUT) / sizeof(AVOption))) { continue; }
 
-	AVOption entry = g_AVLUT[option];
+    AVOption entry = g_AVLUT[option];
 
-	switch (entry.vt)
-	{
-	case VT_UI4:  (*pEncoderAttr)->SetUINT32(entry.guid, static_cast<UINT32>(value));                  break;
-	case VT_UI8:  (*pEncoderAttr)->SetUINT64(entry.guid, value);                                       break;
-	case VT_BOOL: (*pEncoderAttr)->SetUINT32(entry.guid, (value == 0) ? VARIANT_FALSE : VARIANT_TRUE); break;
-	}
-	}
+    switch (entry.vt)
+    {
+    case VT_UI4:  (*pEncoderAttr)->SetUINT32(entry.guid, static_cast<UINT32>(value));                  break;
+    case VT_UI8:  (*pEncoderAttr)->SetUINT64(entry.guid, value);                                       break;
+    case VT_BOOL: (*pEncoderAttr)->SetUINT32(entry.guid, (value == 0) ? VARIANT_FALSE : VARIANT_TRUE); break;
+    }
+    }
 }

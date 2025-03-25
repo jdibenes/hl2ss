@@ -24,46 +24,46 @@ EA_AudioTransform const Encoder_EA::m_at_lut[4] =
 // OK
 void Encoder_EA::AudioF32ToS16(int16_t* out, float const* in, int32_t samples)
 {
-	float32x4_t s = vdupq_n_f32(32767.0f);
+    float32x4_t s = vdupq_n_f32(32767.0f);
 
-	for (int i = 0; i < (samples / 16); ++i)
-	{
-	float32x4x4_t f = vld1q_f32_x4(in);
-	uint16x4x4_t d;
+    for (int i = 0; i < (samples / 16); ++i)
+    {
+    float32x4x4_t f = vld1q_f32_x4(in);
+    uint16x4x4_t d;
 
-	d.val[0] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[0], s)));
-	d.val[1] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[1], s)));
-	d.val[2] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[2], s)));
-	d.val[3] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[3], s)));
+    d.val[0] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[0], s)));
+    d.val[1] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[1], s)));
+    d.val[2] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[2], s)));
+    d.val[3] = vmovn_s32(vcvtq_s32_f32(vmulq_f32(f.val[3], s)));
 
-	vst1_u16_x4(out, d);
+    vst1_u16_x4(out, d);
 
-	in  += 16;
-	out += 16;
-	}
+    in  += 16;
+    out += 16;
+    }
 }
 
 // OK
 void Encoder_EA::AudioS16MonoToStereo(int16_t* out, int16_t const* in, int32_t samples)
 {
-	for (int i = 0; i < (samples / 32); ++i)
-	{
-	int16x8x4_t f = vld1q_s16_x4(in);
+    for (int i = 0; i < (samples / 32); ++i)
+    {
+    int16x8x4_t f = vld1q_s16_x4(in);
 
-	for (int j = 0; j < 4; ++j)
-	{
-	int16x8x2_t d;
+    for (int j = 0; j < 4; ++j)
+    {
+    int16x8x2_t d;
 
-	d.val[0] = f.val[j];
-	d.val[1] = f.val[j];
+    d.val[0] = f.val[j];
+    d.val[1] = f.val[j];
 
-	vst2q_s16(out, d);
+    vst2q_s16(out, d);
     
-	out += 16;
-	}
+    out += 16;
+    }
 
-	in  += 32;
-	}
+    in  += 32;
+    }
 }
 
 // OK

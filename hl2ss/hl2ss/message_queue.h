@@ -7,13 +7,13 @@
 struct MQ_Item
 {
 public:
-	uint32_t command;
-	uint32_t size;
-	uint32_t data[1];
+    uint32_t command;
+    uint32_t size;
+    uint32_t data[1];
 
 private:
-	MQ_Item();
-	~MQ_Item();
+    MQ_Item();
+    ~MQ_Item();
 };
 
 uint32_t const MQ_MARKER = ~0UL;
