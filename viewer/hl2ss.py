@@ -1917,34 +1917,34 @@ def download_devicelist_extended_video(host, port):
 #------------------------------------------------------------------------------
 
 class _PortName:
-    OF = [
-        'rm_vlc_leftfront',
-        'rm_vlc_leftleft',
-        'rm_vlc_rightfront', 
-        'rm_vlc_rightright', 
-        'rm_depth_ahat', 
-        'rm_depth_longthrow', 
-        'rm_imu_accelerometer', 
-        'rm_imu_gyroscope', 
-        'rm_imu_magnetometer', 
-        'remote_configuration', 
-        'personal_video', 
-        'microphone', 
-        'spatial_input', 
-        'spatial_mapping', 
-        'scene_understanding',
-        'voice_input',
-        'unity_message_queue',
-        'extended_eye_tracker',
-        'extended_audio',
-        'extended_video',
-        'guest_message_queue',
-        'extended_depth',
-    ]
+    OF = {
+        StreamPort.RM_VLC_LEFTFRONT     : 'rm_vlc_leftfront',
+        StreamPort.RM_VLC_LEFTLEFT      : 'rm_vlc_leftleft',
+        StreamPort.RM_VLC_RIGHTFRONT    : 'rm_vlc_rightfront', 
+        StreamPort.RM_VLC_RIGHTRIGHT    : 'rm_vlc_rightright', 
+        StreamPort.RM_DEPTH_AHAT        : 'rm_depth_ahat', 
+        StreamPort.RM_DEPTH_LONGTHROW   : 'rm_depth_longthrow', 
+        StreamPort.RM_IMU_ACCELEROMETER : 'rm_imu_accelerometer', 
+        StreamPort.RM_IMU_GYROSCOPE     : 'rm_imu_gyroscope', 
+        StreamPort.RM_IMU_MAGNETOMETER  : 'rm_imu_magnetometer', 
+        IPCPort.REMOTE_CONFIGURATION    : 'remote_configuration', 
+        StreamPort.PERSONAL_VIDEO       : 'personal_video', 
+        StreamPort.MICROPHONE           : 'microphone', 
+        StreamPort.SPATIAL_INPUT        : 'spatial_input', 
+        IPCPort.SPATIAL_MAPPING         : 'spatial_mapping', 
+        IPCPort.SCENE_UNDERSTANDING     : 'scene_understanding',
+        IPCPort.VOICE_INPUT             : 'voice_input',
+        IPCPort.UNITY_MESSAGE_QUEUE     : 'unity_message_queue',
+        StreamPort.EXTENDED_EYE_TRACKER : 'extended_eye_tracker',
+        StreamPort.EXTENDED_AUDIO       : 'extended_audio',
+        StreamPort.EXTENDED_VIDEO       : 'extended_video',
+        IPCPort.GUEST_MESSAGE_QUEUE     : 'guest_message_queue',
+        StreamPort.EXTENDED_DEPTH       : 'extended_depth',
+    }
 
 
 def get_port_name(port):
-    return _PortName.OF[port - StreamPort.RM_VLC_LEFTFRONT]
+    return _PortName.OF[port]
 
 
 #------------------------------------------------------------------------------
