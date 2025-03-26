@@ -58,3 +58,5 @@ void ResearchMode_ProcessSample_GYR(IResearchModeSensorFrame* pSensorFrame, HOOK
 void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_MAG_PROC hook, void* param);
 
 void ResearchMode_SetEyeSelection(bool enable);
+void ResearchMode_MapImagePointToCameraUnitPlane(IResearchModeSensor* sensor, std::vector<winrt::Windows::Foundation::Numerics::float2> const& in, std::vector<winrt::Windows::Foundation::Numerics::float2>& out);
+void ResearchMode_MapCameraSpaceToImagePoint(IResearchModeSensor* sensor, std::vector<winrt::Windows::Foundation::Numerics::float2> const& in, std::vector<winrt::Windows::Foundation::Numerics::float2>& out);
