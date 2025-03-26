@@ -128,7 +128,12 @@ bool ExtendedEyeTracking_SetTargetFrameRate(uint8_t fps)
 // OK
 void ExtendedEyeTracking_ExecuteSensorLoop(HOOK_EET_PROC hook, void* param, HANDLE event_stop)
 {
-    DateTime utc_ts = DateTime(Timestamp_U64ToTimeSpan(Timestamp_GetCurrentUTC()));
+    int64_t const dt_wait = (9LL * HNS_BASE) / g_fps;
+    int32_t const dt_idle = 1000 / g_fps;
+    int64_t const dt_send = (HNS_BASE / 2LL) / 90LL; // filter 0,1,2,3 dt noise? 180 hz
+
+    int64_t  last_ts = Timestamp_GetCurrentUTC();
+    DateTime utc_ts  = DateTime(Timestamp_U64ToTimeSpan(last_ts));
 
     do
     {
@@ -137,21 +142,20 @@ void ExtendedEyeTracking_ExecuteSensorLoop(HOOK_EET_PROC hook, void* param, HAND
     if (frame)
     {
     utc_ts = frame.Timestamp();
-    hook(frame, utc_ts.time_since_epoch().count() - g_utc_offset, param);
-    continue;
+    int64_t ts = utc_ts.time_since_epoch().count();
+    if ((ts - last_ts) <= dt_send) { continue; }
+    last_ts = ts;
     }
-
-    int64_t now = Timestamp_GetCurrentUTC();
-    int64_t dt  = now - utc_ts.time_since_epoch().count();
-
-    if (dt < static_cast<int64_t>((9LL * HNS_BASE) / g_fps))
+    else
     {
-    Sleep(1000 / g_fps);
-    continue;
+    Sleep(dt_idle);
+    int64_t ts = Timestamp_GetCurrentUTC();
+    if ((ts - last_ts) <= dt_wait) { continue; }
+    last_ts = ts;
+    utc_ts = DateTime(Timestamp_U64ToTimeSpan(last_ts));
     }
 
-    utc_ts = DateTime(Timestamp_U64ToTimeSpan(now));
-    hook(frame, utc_ts.time_since_epoch().count() - g_utc_offset, param);
+    hook(frame, last_ts - g_utc_offset, param);
     }
     while (WaitForSingleObject(event_stop, 0) == WAIT_TIMEOUT);
 }
