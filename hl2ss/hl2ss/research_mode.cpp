@@ -460,6 +460,27 @@ void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK
 // OK
 void ResearchMode_SetEyeSelection(bool enable)
 {
-    if (!g_ready) { return; }
     if (enable) { g_pSensorDevice->EnableEyeSelection(); } else { g_pSensorDevice->DisableEyeSelection(); }
+}
+
+// OK
+void ResearchMode_MapImagePointToCameraUnitPlane(IResearchModeSensor* sensor, std::vector<float2> const& in, std::vector<float2>& out)
+{
+    IResearchModeCameraSensor* pCameraSensor; // Release
+
+    out.resize(in.size());
+    sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
+    for (size_t i = 0; i < in.size(); ++i) { pCameraSensor->MapImagePointToCameraUnitPlane((float(&)[2])in[i], (float(&)[2])out[i]); }    
+    pCameraSensor->Release();
+}
+
+// OK
+void ResearchMode_MapCameraSpaceToImagePoint(IResearchModeSensor* sensor, std::vector<float2> const& in, std::vector<float2>& out)
+{
+    IResearchModeCameraSensor* pCameraSensor; // Release
+
+    out.resize(in.size());
+    sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
+    for (size_t i = 0; i < in.size(); ++i) { pCameraSensor->MapCameraSpaceToImagePoint((float(&)[2])in[i], (float(&)[2])out[i]); }
+    pCameraSensor->Release();
 }
