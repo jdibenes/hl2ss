@@ -2077,40 +2077,60 @@ class PV_HdrVideoMode:
     Auto = 2
 
 
+class PV_RegionOfInterestWeight:
+    Min = 0
+    Max = 100
+
+
 class PV_RegionOfInterestType:
     Unknown = 0
     Face = 1
 
-class InterfacePriority:
+
+class EE_InterfacePriority:
     LOWEST = -2
     BELOW_NORMAL = -1
     NORMAL = 0
     ABOVE_NORMAL = 1
     HIGHEST = 2
 
+
+class RM_MapCameraPointOperation:
+    ImagePointToCameraUnitPlane = 0
+    CameraSpaceToImagePoint = 1
+
+
+class TS_Source:
+    QPC = 0
+    UTC = 1
+
+
 class ipc_rc(_context_manager):
-    _CMD_GET_APPLICATION_VERSION = 0x00
-    _CMD_GET_UTC_OFFSET = 0x01
-    _CMD_SET_HS_MARKER_STATE = 0x02
-    _CMD_GET_PV_SUBSYSTEM_STATUS = 0x03
-    _CMD_SET_PV_FOCUS = 0x04
-    _CMD_SET_PV_VIDEO_TEMPORAL_DENOISING = 0x05
-    _CMD_SET_PV_WHITE_BALANCE_PRESET = 0x06
-    _CMD_SET_PV_WHITE_BALANCE_VALUE = 0x07
-    _CMD_SET_PV_EXPOSURE = 0x08
-    _CMD_SET_PV_EXPOSURE_PRIORITY_VIDEO = 0x09
-    _CMD_SET_PV_ISO_SPEED = 0x0A
-    _CMD_SET_PV_BACKLIGHT_COMPENSATION = 0x0B
-    _CMD_SET_PV_SCENE_MODE = 0x0C
-    _CMD_SET_FLAT_MODE = 0x0D
-    _CMD_SET_RM_EYE_SELECTION = 0x0E
-    _CMD_SET_PV_DESIRED_OPTIMIZATION = 0x0F
-    _CMD_SET_PV_PRIMARY_USE = 0x10
-    _CMD_SET_PV_OPTICAL_IMAGE_STABILIZATION = 0x11
-    _CMD_SET_PV_HDR_VIDEO = 0x12
-    _CMD_SET_PV_REGIONS_OF_INTEREST = 0x13
-    _CMD_SET_INTERFACE_PRIORITY = 0x14
-    _CMD_SET_QUIET_MODE = 0x15
+    _CMD_EE_GET_APPLICATION_VERSION = 0x00
+    _CMD_TS_GET_UTC_OFFSET = 0x01
+    _CMD_HS_SET_MARKER_STATE = 0x02
+    _CMD_PV_GET_SUBSYSTEM_STATUS = 0x03
+    _CMD_PV_SET_FOCUS = 0x04
+    _CMD_PV_SET_VIDEO_TEMPORAL_DENOISING = 0x05
+    _CMD_PV_SET_WHITE_BALANCE_PRESET = 0x06
+    _CMD_PV_SET_WHITE_BALANCE_VALUE = 0x07
+    _CMD_PV_SET_EXPOSURE = 0x08
+    _CMD_PV_SET_EXPOSURE_PRIORITY_VIDEO = 0x09
+    _CMD_PV_SET_ISO_SPEED = 0x0A
+    _CMD_PV_SET_BACKLIGHT_COMPENSATION = 0x0B
+    _CMD_PV_SET_SCENE_MODE = 0x0C
+    _CMD_EE_SET_FLAT_MODE = 0x0D
+    _CMD_RM_SET_EYE_SELECTION = 0x0E
+    _CMD_PV_SET_DESIRED_OPTIMIZATION = 0x0F
+    _CMD_PV_SET_PRIMARY_USE = 0x10
+    _CMD_PV_SET_OPTICAL_IMAGE_STABILIZATION = 0x11
+    _CMD_PV_SET_HDR_VIDEO = 0x12
+    _CMD_PV_SET_REGIONS_OF_INTEREST = 0x13
+    _CMD_EE_SET_INTERFACE_PRIORITY = 0x14
+    _CMD_EE_SET_QUIET_MODE = 0x15
+    _CMD_RM_MAP_CAMERA_POINTS = 0x16
+    _CMD_RM_GET_RIGNODE_WORLD_POSES = 0x17
+    _CMD_TS_GET_CURRENT_TIME = 0x18
 
     def __init__(self, host, port):
         self.host = host
@@ -2124,24 +2144,23 @@ class ipc_rc(_context_manager):
         self._client.close()
 
     def ee_get_application_version(self):
-        command = struct.pack('<B', ipc_rc._CMD_GET_APPLICATION_VERSION)
+        command = struct.pack('<B', ipc_rc._CMD_EE_GET_APPLICATION_VERSION)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.SHORT * 4, ChunkSize.SINGLE_TRANSFER)
-        version = struct.unpack('<HHHH', data)
-        return version
+        return struct.unpack('<HHHH', data)
 
     def ts_get_utc_offset(self):
-        command = struct.pack('<B', ipc_rc._CMD_GET_UTC_OFFSET)
+        command = struct.pack('<B', ipc_rc._CMD_TS_GET_UTC_OFFSET)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.LONGLONG, ChunkSize.SINGLE_TRANSFER)
         return struct.unpack('<Q', data)[0]
 
     def hs_set_marker_state(self, state):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_HS_MARKER_STATE, state)
+        command = struct.pack('<BI', ipc_rc._CMD_HS_SET_MARKER_STATE, state)
         self._client.sendall(command)
 
     def pv_get_subsystem_status(self):
-        command = struct.pack('<B', ipc_rc._CMD_GET_PV_SUBSYSTEM_STATUS)
+        command = struct.pack('<B', ipc_rc._CMD_PV_GET_SUBSYSTEM_STATUS)
         self._client.sendall(command)
         data = self._client.download(_SIZEOF.BYTE, ChunkSize.SINGLE_TRANSFER)
         return struct.unpack('<B', data)[0] != 0
@@ -2151,77 +2170,102 @@ class ipc_rc(_context_manager):
             pass
 
     def pv_set_focus(self, focusmode, autofocusrange, distance, value, driverfallback):
-        command = struct.pack('<BIIIII', ipc_rc._CMD_SET_PV_FOCUS, focusmode, autofocusrange, distance, value, driverfallback)
+        command = struct.pack('<BIIIII', ipc_rc._CMD_PV_SET_FOCUS, focusmode, autofocusrange, distance, value, driverfallback)
         self._client.sendall(command)
 
     def pv_set_video_temporal_denoising(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_VIDEO_TEMPORAL_DENOISING, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_VIDEO_TEMPORAL_DENOISING, mode)
         self._client.sendall(command)
 
     def pv_set_white_balance_preset(self, preset):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_PRESET, preset)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_WHITE_BALANCE_PRESET, preset)
         self._client.sendall(command)
 
     def pv_set_white_balance_value(self, value):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_WHITE_BALANCE_VALUE, value)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_WHITE_BALANCE_VALUE, value)
         self._client.sendall(command)
 
     def pv_set_exposure(self, mode, value):
-        command = struct.pack('<BII', ipc_rc._CMD_SET_PV_EXPOSURE, mode, value)
+        command = struct.pack('<BII', ipc_rc._CMD_PV_SET_EXPOSURE, mode, value)
         self._client.sendall(command)
     
     def pv_set_exposure_priority_video(self, enabled):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_EXPOSURE_PRIORITY_VIDEO, enabled)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_EXPOSURE_PRIORITY_VIDEO, enabled)
         self._client.sendall(command)
 
     def pv_set_iso_speed(self, mode, value):
-        command = struct.pack('<BII', ipc_rc._CMD_SET_PV_ISO_SPEED, mode, value)
+        command = struct.pack('<BII', ipc_rc._CMD_PV_SET_ISO_SPEED, mode, value)
         self._client.sendall(command)
 
     def pv_set_backlight_compensation(self, state):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_BACKLIGHT_COMPENSATION, state)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_BACKLIGHT_COMPENSATION, state)
         self._client.sendall(command)
 
     def pv_set_scene_mode(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_SCENE_MODE, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_SCENE_MODE, mode)
         self._client.sendall(command)
 
     def ee_set_flat_mode(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_FLAT_MODE, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_EE_SET_FLAT_MODE, mode)
         self._client.sendall(command)
 
     def rm_set_eye_selection(self, enable):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_RM_EYE_SELECTION, 1 if (enable) else 0)
+        command = struct.pack('<BI', ipc_rc._CMD_RM_SET_EYE_SELECTION, 1 if (enable) else 0)
         self._client.sendall(command)
 
     def pv_set_desired_optimization(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_DESIRED_OPTIMIZATION, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_DESIRED_OPTIMIZATION, mode)
         self._client.sendall(command)
 
     def pv_set_primary_use(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_PRIMARY_USE, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_PRIMARY_USE, mode)
         self._client.sendall(command)
 
     def pv_set_optical_image_stabilization(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_OPTICAL_IMAGE_STABILIZATION, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_OPTICAL_IMAGE_STABILIZATION, mode)
         self._client.sendall(command)
 
     def pv_set_hdr_video(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_PV_HDR_VIDEO, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_PV_SET_HDR_VIDEO, mode)
         self._client.sendall(command)
 
     def pv_set_regions_of_interest(self, clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h):
         mode = (0x1000 if (clear) else 0) | (0x0800 if (set) else 0) | (0x0400 if (auto_exposure) else 0) | (0x0200 if (auto_focus) else 0) | (0x0100 if (bounds_normalized) else 0) | ((type & 1) << 7) | (weight & 0x007F)
-        command = struct.pack('<BIffff', ipc_rc._CMD_SET_PV_REGIONS_OF_INTEREST, mode, x, y, w, h)
+        command = struct.pack('<BIffff', ipc_rc._CMD_PV_SET_REGIONS_OF_INTEREST, mode, x, y, w, h)
         self._client.sendall(command)
 
     def ee_set_interface_priority(self, port, priority):
-        command = struct.pack('<BIi', ipc_rc._CMD_SET_INTERFACE_PRIORITY, port, priority)
+        command = struct.pack('<BIi', ipc_rc._CMD_EE_SET_INTERFACE_PRIORITY, port, priority)
         self._client.sendall(command)
 
     def ee_set_quiet_mode(self, mode):
-        command = struct.pack('<BI', ipc_rc._CMD_SET_QUIET_MODE, mode)
+        command = struct.pack('<BI', ipc_rc._CMD_EE_SET_QUIET_MODE, mode)
         self._client.sendall(command)
+
+    def rm_map_camera_points(self, port, operation, points):
+        data = points.tobytes()
+        count = len(data) // (2 * _SIZEOF.FLOAT)
+        size = count * 2 * _SIZEOF.FLOAT
+        command = struct.pack('<BIII', ipc_rc._CMD_RM_MAP_CAMERA_POINTS, port, operation, count) + data[:size]
+        self._client.sendall(command)
+        response = self._client.download(size, ChunkSize.SINGLE_TRANSFER)
+        return np.frombuffer(response, dtype=np.float32).reshape(points.shape)
+
+    def rm_get_rignode_world_poses(self, timestamps):
+        data = timestamps.tobytes()
+        count = len(data) // _SIZEOF.QWORD
+        size_in = count * _SIZEOF.QWORD
+        size_out = count * 4 * 4 * _SIZEOF.FLOAT
+        command = struct.pack('<BI', ipc_rc._CMD_RM_GET_RIGNODE_WORLD_POSES, count) + data[:size_in]
+        self._client.sendall(command)
+        response = self._client.download(size_out, ChunkSize.SINGLE_TRANSFER)
+        return np.frombuffer(response, dtype=np.float32).reshape((count, 4, 4))
+
+    def ts_get_current_time(self, source):
+        command = struct.pack('<BI', ipc_rc._CMD_TS_GET_CURRENT_TIME, source)
+        self._client.sendall(command)
+        response = self._client.download(_SIZEOF.QWORD, ChunkSize.SINGLE_TRANSFER)
+        return struct.unpack('<Q', response)[0]
 
 
 #------------------------------------------------------------------------------
