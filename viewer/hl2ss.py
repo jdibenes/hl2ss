@@ -413,30 +413,30 @@ class _gatherer:
 #------------------------------------------------------------------------------
 
 class H26xEncoderProperty:
-    CODECAPI_AVEncCommonRateControlMode = 0
-    CODECAPI_AVEncCommonQuality = 1
-    CODECAPI_AVEncAdaptiveMode = 2
-    CODECAPI_AVEncCommonBufferSize = 3
-    CODECAPI_AVEncCommonMaxBitRate = 4
-    CODECAPI_AVEncCommonMeanBitRate = 5
-    CODECAPI_AVEncCommonQualityVsSpeed = 6
-    CODECAPI_AVEncH264CABACEnable = 7
-    CODECAPI_AVEncH264SPSID = 8
-    CODECAPI_AVEncMPVDefaultBPictureCount = 9
-    CODECAPI_AVEncMPVGOPSize = 10
-    CODECAPI_AVEncNumWorkerThreads = 11 
-    CODECAPI_AVEncVideoContentType = 12
-    CODECAPI_AVEncVideoEncodeQP = 13
-    CODECAPI_AVEncVideoForceKeyFrame = 14 
-    CODECAPI_AVEncVideoMinQP = 15
-    CODECAPI_AVLowLatencyMode = 16
-    CODECAPI_AVEncVideoMaxQP = 17
+    CODECAPI_AVEncCommonRateControlMode     = 0
+    CODECAPI_AVEncCommonQuality             = 1
+    CODECAPI_AVEncAdaptiveMode              = 2
+    CODECAPI_AVEncCommonBufferSize          = 3
+    CODECAPI_AVEncCommonMaxBitRate          = 4
+    CODECAPI_AVEncCommonMeanBitRate         = 5
+    CODECAPI_AVEncCommonQualityVsSpeed      = 6
+    CODECAPI_AVEncH264CABACEnable           = 7
+    CODECAPI_AVEncH264SPSID                 = 8
+    CODECAPI_AVEncMPVDefaultBPictureCount   = 9
+    CODECAPI_AVEncMPVGOPSize                = 10
+    CODECAPI_AVEncNumWorkerThreads          = 11 
+    CODECAPI_AVEncVideoContentType          = 12
+    CODECAPI_AVEncVideoEncodeQP             = 13
+    CODECAPI_AVEncVideoForceKeyFrame        = 14 
+    CODECAPI_AVEncVideoMinQP                = 15
+    CODECAPI_AVLowLatencyMode               = 16
+    CODECAPI_AVEncVideoMaxQP                = 17
     CODECAPI_VideoEncoderDisplayContentType = 18
-    HL2SSAPI_VideoMediaIndex            = 0xFFFFFFFFFFFFFFFB
-    HL2SSAPI_VideoStrideMask            = 0xFFFFFFFFFFFFFFFC
-    HL2SSAPI_AcquisitionMode            = 0xFFFFFFFFFFFFFFFD
-    HL2SSAPI_VLCHostTicksOffsetConstant = 0xFFFFFFFFFFFFFFFE
-    HL2SSAPI_VLCHostTicksOffsetExposure = 0xFFFFFFFFFFFFFFFF
+    HL2SSAPI_VideoMediaIndex                = 0xFFFFFFFFFFFFFFFB
+    HL2SSAPI_VideoStrideMask                = 0xFFFFFFFFFFFFFFFC
+    HL2SSAPI_AcquisitionMode                = 0xFFFFFFFFFFFFFFFD
+    HL2SSAPI_VLCHostTicksOffsetConstant     = 0xFFFFFFFFFFFFFFFE
+    HL2SSAPI_VLCHostTicksOffsetExposure     = 0xFFFFFFFFFFFFFFFF
 
 
 def _create_configuration_for_mode(mode):
@@ -639,7 +639,7 @@ def _connect_client_extended_depth(host, port, chunk_size, mode, divisor, profil
     c.open(host, port, chunk_size, mode)
     c.sendall(_create_configuration_for_extended_depth(mode, divisor, profile_z, options))
     return c
-  
+
 
 class _PVCNT:
     START =  0x04
