@@ -388,7 +388,7 @@ class _unpacker:
         self._buffer = bytearray()
         self._size = None
         self._packet = None
-        self._pose_size = (4 * 4 * _SIZEOF.FLOAT) if (mode == StreamMode.MODE_1) else 0
+        self._pose_size = 64 if (mode == StreamMode.MODE_1) else 0
 
     def extend(self, chunk):
         self._buffer.extend(chunk)
