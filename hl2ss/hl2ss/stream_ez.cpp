@@ -87,7 +87,11 @@ void Channel_EZ::OnFrameArrived(MediaFrameReference const& frame)
     {
     p.resolution = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
     p.timestamp  = frame.SystemRelativeTime().Value().count();
-    p.pose       = ResearchMode_Status() ? ResearchMode_GetRigNodeWorldPose(p.timestamp) : float4x4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    if (m_enable_location && ResearchMode_Status())
+    {
+    p.pose = ResearchMode_GetRigNodeWorldPose(p.timestamp);
+    }
 
     if (!m_pEncoder->WriteSample(frame, &p)) { SetEvent(m_event_client); }
     }
