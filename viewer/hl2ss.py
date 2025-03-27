@@ -43,10 +43,10 @@ class ChunkSize:
     RM_DEPTH_LONGTHROW   = 4096
     RM_IMU               = 4096
     PERSONAL_VIDEO       = 4096
-    MICROPHONE           = 512
-    SPATIAL_INPUT        = 1024
-    EXTENDED_EYE_TRACKER = 256
-    EXTENDED_AUDIO       = 512
+    MICROPHONE           = 4096
+    SPATIAL_INPUT        = 4096
+    EXTENDED_EYE_TRACKER = 4096
+    EXTENDED_AUDIO       = 4096
     EXTENDED_VIDEO       = 4096
     EXTENDED_DEPTH       = 4096
     SINGLE_TRANSFER      = 4096
@@ -170,11 +170,47 @@ class PNGFilterMode:
     ADAPTIVE  = 6
 
 
+# Encoder Properties
+class H26xEncoderProperty:
+    CODECAPI_AVEncCommonRateControlMode     = 0
+    CODECAPI_AVEncCommonQuality             = 1
+    CODECAPI_AVEncAdaptiveMode              = 2
+    CODECAPI_AVEncCommonBufferSize          = 3
+    CODECAPI_AVEncCommonMaxBitRate          = 4
+    CODECAPI_AVEncCommonMeanBitRate         = 5
+    CODECAPI_AVEncCommonQualityVsSpeed      = 6
+    CODECAPI_AVEncH264CABACEnable           = 7
+    CODECAPI_AVEncH264SPSID                 = 8
+    CODECAPI_AVEncMPVDefaultBPictureCount   = 9
+    CODECAPI_AVEncMPVGOPSize                = 10
+    CODECAPI_AVEncNumWorkerThreads          = 11 
+    CODECAPI_AVEncVideoContentType          = 12
+    CODECAPI_AVEncVideoEncodeQP             = 13
+    CODECAPI_AVEncVideoForceKeyFrame        = 14 
+    CODECAPI_AVEncVideoMinQP                = 15
+    CODECAPI_AVLowLatencyMode               = 16
+    CODECAPI_AVEncVideoMaxQP                = 17
+    CODECAPI_VideoEncoderDisplayContentType = 18
+    HL2SSAPI_VideoMediaIndex                = 0xFFFFFFFFFFFFFFFB
+    HL2SSAPI_VideoStrideMask                = 0xFFFFFFFFFFFFFFFC
+    HL2SSAPI_AcquisitionMode                = 0xFFFFFFFFFFFFFFFD
+    HL2SSAPI_VLCHostTicksOffsetConstant     = 0xFFFFFFFFFFFFFFFE
+    HL2SSAPI_VLCHostTicksOffsetExposure     = 0xFFFFFFFFFFFFFFFF
+
+
+# Mixed Reality Capture Hologram Rendering Perspective
+# 0: Render holograms from display viewpoint
+# 1: Render holograms from PV camera viewpoint
 class HologramPerspective:
     DISPLAY = 0
     PV      = 1
 
 
+# Audio Mixer Mode
+# 0: Capture microphone audio
+# 1: Capture application audio
+# 2: Capture microphone and application audio
+# 3: Get list of audio capture devices
 class MixerMode:
     MICROPHONE = 0
     SYSTEM     = 1
@@ -229,6 +265,8 @@ class Parameters_RM_IMU_MAGNETOMETER:
 
 # Microphone Parameters
 class Parameters_MICROPHONE:
+    CHANNELS = 2
+
     ARRAY_CHANNELS     = 5
     ARRAY_TOP_LEFT     = 0
     ARRAY_TOP_CENTER   = 1
@@ -237,7 +275,6 @@ class Parameters_MICROPHONE:
     ARRAY_BOTTOM_RIGHT = 4
 
     SAMPLE_RATE    = 48000
-    CHANNELS       = 2
     PERIOD         = 1 / SAMPLE_RATE
     GROUP_SIZE_RAW = 768
     GROUP_SIZE_AAC = 1024
@@ -411,32 +448,6 @@ class _gatherer:
 #------------------------------------------------------------------------------
 # Stream Configuration
 #------------------------------------------------------------------------------
-
-class H26xEncoderProperty:
-    CODECAPI_AVEncCommonRateControlMode     = 0
-    CODECAPI_AVEncCommonQuality             = 1
-    CODECAPI_AVEncAdaptiveMode              = 2
-    CODECAPI_AVEncCommonBufferSize          = 3
-    CODECAPI_AVEncCommonMaxBitRate          = 4
-    CODECAPI_AVEncCommonMeanBitRate         = 5
-    CODECAPI_AVEncCommonQualityVsSpeed      = 6
-    CODECAPI_AVEncH264CABACEnable           = 7
-    CODECAPI_AVEncH264SPSID                 = 8
-    CODECAPI_AVEncMPVDefaultBPictureCount   = 9
-    CODECAPI_AVEncMPVGOPSize                = 10
-    CODECAPI_AVEncNumWorkerThreads          = 11 
-    CODECAPI_AVEncVideoContentType          = 12
-    CODECAPI_AVEncVideoEncodeQP             = 13
-    CODECAPI_AVEncVideoForceKeyFrame        = 14 
-    CODECAPI_AVEncVideoMinQP                = 15
-    CODECAPI_AVLowLatencyMode               = 16
-    CODECAPI_AVEncVideoMaxQP                = 17
-    CODECAPI_VideoEncoderDisplayContentType = 18
-    HL2SSAPI_VideoMediaIndex                = 0xFFFFFFFFFFFFFFFB
-    HL2SSAPI_VideoStrideMask                = 0xFFFFFFFFFFFFFFFC
-    HL2SSAPI_AcquisitionMode                = 0xFFFFFFFFFFFFFFFD
-    HL2SSAPI_VLCHostTicksOffsetConstant     = 0xFFFFFFFFFFFFFFFE
-    HL2SSAPI_VLCHostTicksOffsetExposure     = 0xFFFFFFFFFFFFFFFF
 
 
 def _create_configuration_for_mode(mode):
