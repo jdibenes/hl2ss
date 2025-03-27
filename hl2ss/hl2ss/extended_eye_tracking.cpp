@@ -133,7 +133,7 @@ void ExtendedEyeTracking_ExecuteSensorLoop(HOOK_EET_PROC hook, void* param, HAND
     int64_t const dt_send = (HNS_BASE / 2LL) / 90LL; // filter 0,1,2,3 dt noise? 180 hz
 
     int64_t  last_ts = Timestamp_GetCurrentUTC();
-    DateTime utc_ts  = DateTime(Timestamp_U64ToTimeSpan(last_ts));
+    DateTime utc_ts  = Timestamp_UTCToDateTime(last_ts);
 
     do
     {
@@ -152,7 +152,7 @@ void ExtendedEyeTracking_ExecuteSensorLoop(HOOK_EET_PROC hook, void* param, HAND
     int64_t ts = Timestamp_GetCurrentUTC();
     if ((ts - last_ts) <= dt_wait) { continue; }
     last_ts = ts;
-    utc_ts = DateTime(Timestamp_U64ToTimeSpan(last_ts));
+    utc_ts = Timestamp_UTCToDateTime(last_ts);
     }
 
     hook(frame, last_ts - g_utc_offset, param);
