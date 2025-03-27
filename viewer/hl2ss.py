@@ -365,8 +365,7 @@ def pack_packet(packet):
     buffer = bytearray()
     buffer.extend(struct.pack('<QI', packet.timestamp, len(packet.payload)))
     buffer.extend(packet.payload)
-    if (packet.pose is not None):
-        buffer.extend(packet.pose.tobytes())
+    buffer.extend(packet.pose.tobytes() if (packet.pose is not None) else b'')
     return buffer
 
 
@@ -410,7 +409,7 @@ class _unpacker:
         return False
 
     def get(self):
-        return self._packet
+        return unpack_packet(self._packet)
 
 
 #------------------------------------------------------------------------------
@@ -1564,7 +1563,6 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
         data = super().get_next_packet(wait)
         if (data is None):
             return None
-        data = unpack_packet(data)
         data.payload = unpack_rm_vlc(data.payload)
         data.payload.image = self._codec.decode(data.payload.image)
         return data
@@ -1586,7 +1584,6 @@ class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
         data = super().get_next_packet(wait)
         if (data is None):
             return None
-        data = unpack_packet(data)
         data.payload = self._codec.decode(data.payload)
         return data
 
@@ -1605,7 +1602,6 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
         data = super().get_next_packet(wait)
         if (data is None):
             return None
-        data = unpack_packet(data)
         data.payload = decode_rm_depth_longthrow(data.payload)
         return data
 
@@ -1630,7 +1626,6 @@ class rx_decoded_pv(rx_pv):
         data = super().get_next_packet(wait)
         if (data is None):
             return None
-        data = unpack_packet(data)
         data.payload = unpack_pv(data.payload)
         data.payload.image = self._codec.decode(data.payload.image, self.format)
         return data
@@ -1652,7 +1647,6 @@ class rx_decoded_microphone(rx_microphone):
         data = super().get_next_packet(wait)
         if (data is None):
             return None
-        data = unpack_packet(data)
         data.payload = self._codec.decode(data.payload)
         return data
 
@@ -1679,7 +1673,6 @@ class rx_decoded_extended_audio(rx_extended_audio):
         data = super().get_next_packet()
         if (data is None):
             return None
-        data = unpack_packet(data)
         data.payload = self._codec.decode(data.payload)
         return data
 
@@ -1703,7 +1696,6 @@ class rx_decoded_extended_depth(rx_extended_depth):
         data = super().get_next_packet()
         if (data is None):
             return None
-        data = unpack_packet(data)
         data.payload = unpack_extended_depth(data.payload)
         data.payload.depth = self._codec.decode(data.payload.depth, data.payload.width, data.payload.height)
         return data
