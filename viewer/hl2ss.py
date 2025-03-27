@@ -417,9 +417,11 @@ class _unpacker:
 #------------------------------------------------------------------------------
 
 class _gatherer:
-    def open(self, host, port, chunk_size, mode):
+    def __init__(self):
         self._client = _client()
         self._unpacker = _unpacker()
+
+    def open(self, host, port, chunk_size, mode):
         self._chunk_size = chunk_size
         self._unpacker.reset(mode)
         self._client.open(host, port)
@@ -983,6 +985,16 @@ def get_audio_codec(profile):
     return None
 
 
+class _decompress_zdepth:
+    def __init__(self):
+        import pyzdepth
+        self._codec = pyzdepth.DepthCompressor()
+
+    def decode(self, payload):
+        result, width, height, decompressed = self._codec.Decompress(bytes(payload))
+        return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
+
+
 #------------------------------------------------------------------------------
 # RM VLC Decoder
 #------------------------------------------------------------------------------
@@ -995,38 +1007,33 @@ class _RM_VLC_Frame:
         self.gain         = gain
 
 
-def unpack_rm_vlc(payload):
-    image    = payload[:-24]
-    metadata = payload[-24:]
-
-    sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0,  count=1)
-    exposure     = np.frombuffer(metadata, dtype=np.uint64, offset=8,  count=1)
-    gain         = np.frombuffer(metadata, dtype=np.uint32, offset=16, count=1)
-
-    return _RM_VLC_Frame(image, sensor_ticks, exposure, gain)
-
-
-class _decode_rm_vlc:
+class _decode_rm_vlc_h26x:
     def __init__(self, profile):
-        self.profile = profile
-
-    def create(self):
-        self._codec = get_video_codec(self.profile)
+        self._codec = get_video_codec(profile)
 
     def decode(self, payload):
         return self._codec.decode(payload).to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
 
 
-class _unpack_rm_vlc:
-    def create(self):
-        pass
-
+class _decode_rm_vlc_raw:
     def decode(self, payload):
         return np.frombuffer(payload, dtype=np.uint8).reshape(Parameters_RM_VLC.SHAPE)
-    
 
-def decode_rm_vlc(profile):
-    return _unpack_rm_vlc() if (profile == VideoProfile.RAW) else _decode_rm_vlc(profile)
+
+class decode_rm_vlc:
+    def __init__(self, profile):
+        self._codec = _decode_rm_vlc_raw() if (profile == VideoProfile.RAW) else _decode_rm_vlc_h26x(profile)
+
+    def decode(self, payload):
+        data     = payload[:-24]
+        metadata = payload[-24:]
+
+        image        = self._codec.decode(data)
+        sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0,  count=1)
+        exposure     = np.frombuffer(metadata, dtype=np.uint64, offset=8,  count=1)
+        gain         = np.frombuffer(metadata, dtype=np.uint32, offset=16, count=1)
+
+        return _RM_VLC_Frame(image, sensor_ticks, exposure, gain)
 
 
 #------------------------------------------------------------------------------
@@ -1040,123 +1047,127 @@ class _RM_Depth_Frame:
         self.sensor_ticks = sensor_ticks
 
 
-class _Mode0Layout_RM_DEPTH_AHAT_STRUCT:
-    BASE = 8
+class _decode_rm_depth_ahat_z_ab_h26x:
+    TRUNCATE = 4
 
+    YS = Parameters_RM_DEPTH_AHAT.HEIGHT
+    CS = Parameters_RM_DEPTH_AHAT.HEIGHT // 4
 
-class _Mode0Layout_RM_DEPTH_AHAT:
-    BEGIN_DEPTH_Y = 0
-    END_DEPTH_Y   = BEGIN_DEPTH_Y + Parameters_RM_DEPTH_AHAT.HEIGHT
-    BEGIN_AB_U_Y  = END_DEPTH_Y
-    END_AB_U_Y    = BEGIN_AB_U_Y + (Parameters_RM_DEPTH_AHAT.WIDTH // 4)
-    BEGIN_AB_V_Y  = END_AB_U_Y
-    END_AB_V_Y    = BEGIN_AB_V_Y + (Parameters_RM_DEPTH_AHAT.WIDTH // 4)
+    BEGIN_Z_Y = 0
+    END_Z_Y   = BEGIN_Z_Y + YS
+    BEGIN_I_U = END_Z_Y
+    END_I_U   = BEGIN_I_U + CS
+    BEGIN_I_V = END_I_U
+    END_I_V   = BEGIN_I_V + CS
 
-
-def _unpack_rm_depth_ahat_nv12_as_yuv420p(yuv, sensor_ticks):
-    y = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_DEPTH_Y : _Mode0Layout_RM_DEPTH_AHAT.END_DEPTH_Y, :]
-    u = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_AB_U_Y  : _Mode0Layout_RM_DEPTH_AHAT.END_AB_U_Y,  :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH // 4))
-    v = yuv[_Mode0Layout_RM_DEPTH_AHAT.BEGIN_AB_V_Y  : _Mode0Layout_RM_DEPTH_AHAT.END_AB_V_Y,  :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH // 4))
-
-    depth = np.multiply(y, 4, dtype=np.uint16)
-    ab = np.empty((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH), dtype=np.uint16)
-
-    u = np.square(u, dtype=np.uint16)
-    v = np.square(v, dtype=np.uint16)
-
-    ab[:, 0::4] = u
-    ab[:, 1::4] = u
-    ab[:, 2::4] = v
-    ab[:, 3::4] = v
-
-    return _RM_Depth_Frame(depth, ab, sensor_ticks)
-
-
-class _decode_rm_depth_ahat:
     def __init__(self, profile):
-        self.profile = profile
-   
-    def create(self):
-        self._codec = get_video_codec(self.profile)
+        self._codec = get_video_codec(profile)
 
     def decode(self, payload):
-        return _unpack_rm_depth_ahat_nv12_as_yuv420p(self._codec.decode(payload[_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE:-8]).to_ndarray(), np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1))
+        yuv = self._codec.decode(payload).to_ndarray()
+
+        y = yuv[_decode_rm_depth_ahat_z_ab_h26x.BEGIN_Z_Y : _decode_rm_depth_ahat_z_ab_h26x.END_Z_Y, :]
+        u = yuv[_decode_rm_depth_ahat_z_ab_h26x.BEGIN_I_U : _decode_rm_depth_ahat_z_ab_h26x.END_I_U, :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, -1))
+        v = yuv[_decode_rm_depth_ahat_z_ab_h26x.BEGIN_I_V : _decode_rm_depth_ahat_z_ab_h26x.END_I_V, :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, -1))
+
+        depth = np.multiply(y, _decode_rm_depth_ahat_z_ab_h26x.TRUNCATE, dtype=np.uint16)
+        ab    = np.empty((Parameters_RM_DEPTH_AHAT.HEIGHT, Parameters_RM_DEPTH_AHAT.WIDTH), dtype=np.uint16)
+
+        u = np.square(u, dtype=np.uint16)
+        v = np.square(v, dtype=np.uint16)
+
+        ab[:, 0::4] = u
+        ab[:, 1::4] = u
+        ab[:, 2::4] = v
+        ab[:, 3::4] = v
+
+        return depth, ab
 
 
-class _unpack_rm_depth_ahat:
-    def create(self):
-        pass
+class _decode_rm_depth_ahat_z_ab_raw:
+    _Z = 0
+    _I = Parameters_RM_DEPTH_AHAT.PIXELS * _SIZEOF.WORD
 
     def decode(self, payload):
-        depth        = np.frombuffer(payload,      dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE,                                                  count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        ab           = np.frombuffer(payload,      dtype=np.uint16, offset=_Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE + Parameters_RM_DEPTH_AHAT.PIXELS * _SIZEOF.WORD, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
-        sensor_ticks = np.frombuffer(payload[-8:], dtype=np.uint64, offset=0,                                                                                       count=1)
-        return _RM_Depth_Frame(depth, ab, sensor_ticks)
+        depth = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_ahat_z_ab_raw._Z, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        ab    = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_ahat_z_ab_raw._I, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
+        
+        return depth, ab
 
 
-class _decompress_zdepth:
-    def create(self):
-        import pyzdepth
-        self._codec = pyzdepth.DepthCompressor()
-
-    def decode(self, payload):
-        result, width, height, decompressed = self._codec.Decompress(bytes(payload))
-        return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
-
-
-class _decode_ab_rm_depth_ahat:
+class _decode_rm_depth_ahat_x_ab_h26x:
     def __init__(self, profile):
-        self.profile = profile
-
-    def create(self):
-        self._codec = get_video_codec(self.profile)
+        self._codec = get_video_codec(profile)
 
     def decode(self, payload):
         return np.square(self._codec.decode(payload).to_ndarray()[:Parameters_RM_DEPTH_AHAT.HEIGHT, :Parameters_RM_DEPTH_AHAT.WIDTH], dtype=np.uint16)
 
 
-class _unpack_ab_rm_depth_ahat:
-    def create(self):
-        pass
-
+class _decode_rm_depth_ahat_x_ab_raw:
     def decode(self, payload):
         return np.frombuffer(payload, dtype=np.uint16, offset=0, count=Parameters_RM_DEPTH_AHAT.PIXELS).reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
 
 
-class _decode_rm_depth_ahat_zdepth:
-    def __init__(self, profile):
-        self._codec_z  = _decompress_zdepth()
-        self._codec_ab = _unpack_ab_rm_depth_ahat() if (profile == VideoProfile.RAW) else _decode_ab_rm_depth_ahat(profile)
+class _decode_rm_depth_ahat:
+    BASE = 8
 
-    def create(self):
-        self._codec_z.create()
-        self._codec_ab.create()
+
+class _decode_rm_depth_ahat_same:
+    def __init__(self, profile):
+        self._codec_f = _decode_rm_depth_ahat_z_ab_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_ahat_z_ab_h26x(profile)
 
     def decode(self, payload):
-        size_z, size_ab = struct.unpack_from('<II', payload, 0)
+        start_f = _decode_rm_depth_ahat.BASE        
+        return self._codec_f.decode(payload[start_f:])
 
-        start_z  = _Mode0Layout_RM_DEPTH_AHAT_STRUCT.BASE
-        end_z    = start_z + size_z
-        start_ab = end_z
-        end_ab   = start_ab + size_ab
 
-        depth        = self._codec_z.decode(payload[start_z:end_z])
-        ab           = self._codec_ab.decode(payload[start_ab:end_ab])
-        sensor_ticks = np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1)
+class _decode_rm_depth_ahat_zdepth:
+    def __init__(self, profile):
+        self._codec_z = _decompress_zdepth()
+        self._codec_i = _decode_rm_depth_ahat_x_ab_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_ahat_x_ab_h26x(profile)
+
+    def decode(self, payload):
+        size_z, size_i = struct.unpack_from('<II', payload, 0)
+
+        start_z = _decode_rm_depth_ahat.BASE
+        end_z   = start_z + size_z
+        start_i = end_z
+        end_i   = start_i + size_i
+
+        depth = self._codec_z.decode(payload[start_z:end_z])
+        ab    = self._codec_i.decode(payload[start_i:end_i])
+        
+        return depth, ab
+
+
+class decode_rm_depth_ahat():
+    def __init__(self, profile_z, profile_ab):
+        self._codec = _decode_rm_depth_ahat_same(profile_ab) if (profile_z == DepthProfile.SAME) else _decode_rm_depth_ahat_zdepth(profile_ab)
+
+    def decode(self, payload):
+        data     = payload[:-8]
+        metadata = payload[-8:]
+
+        depth, ab    = self._codec.decode(data)
+        sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0, count=1)
 
         return _RM_Depth_Frame(depth, ab, sensor_ticks)
 
 
-def decode_rm_depth_ahat(profile_z, profile_ab):
-    return (_unpack_rm_depth_ahat() if (profile_ab == VideoProfile.RAW) else _decode_rm_depth_ahat(profile_ab)) if (profile_z == DepthProfile.SAME) else _decode_rm_depth_ahat_zdepth(profile_ab)
+class decode_rm_depth_longthrow():
+    def decode(self, payload):
+        data     = payload[:-8]
+        metadata = payload[-8:]
 
+        composite = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+        h, w, _   = composite.shape
+        image     = composite.view(np.uint16).reshape((-1, w))
 
-def decode_rm_depth_longthrow(payload):
-    composite    = cv2.imdecode(np.frombuffer(payload[:-8], dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-    h, w, _      = composite.shape
-    image        = composite.view(np.uint16).reshape((2*h, w))
-    sensor_ticks = np.frombuffer(payload[-8:], dtype=np.uint64, offset=0, count=1)
-    return _RM_Depth_Frame(image[:h, :], image[h:, :], sensor_ticks)
+        depth        = image[:h, :]
+        ab           = image[h:, :]
+        sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0, count=1)
+
+        return _RM_Depth_Frame(depth, ab, sensor_ticks)
 
 
 #------------------------------------------------------------------------------
@@ -1553,18 +1564,15 @@ def decode_extended_depth(profile_z):
 class rx_decoded_rm_vlc(rx_rm_vlc):
     def __init__(self, host, port, chunk, mode, divisor, profile, level, bitrate, options):
         super().__init__(host, port, chunk, mode, divisor, profile, level, bitrate, options)
-        self._codec = decode_rm_vlc(profile)
 
     def open(self):
-        self._codec.create()
+        self._codec = decode_rm_vlc(self.profile)
         super().open()
 
     def get_next_packet(self, wait=True):
         data = super().get_next_packet(wait)
-        if (data is None):
-            return None
-        data.payload = unpack_rm_vlc(data.payload)
-        data.payload.image = self._codec.decode(data.payload.image)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -1574,17 +1582,15 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
 class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
     def __init__(self, host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options):
         super().__init__(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options)
-        self._codec = decode_rm_depth_ahat(profile_z, profile_ab)
-
+        
     def open(self):
-        self._codec.create()
+        self._codec = decode_rm_depth_ahat(self.profile_z, self.profile_ab)
         super().open()
 
     def get_next_packet(self, wait=True):
         data = super().get_next_packet(wait)
-        if (data is None):
-            return None
-        data.payload = self._codec.decode(data.payload)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -1596,13 +1602,13 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
         super().__init__(host, port, chunk, mode, divisor, png_filter)
 
     def open(self):
+        self._codec = decode_rm_depth_longthrow()
         super().open()
 
     def get_next_packet(self, wait=True):
         data = super().get_next_packet(wait)
-        if (data is None):
-            return None
-        data.payload = decode_rm_depth_longthrow(data.payload)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
