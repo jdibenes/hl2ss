@@ -1,6 +1,7 @@
 
 import numpy as np
 import socket
+import select
 import struct
 import cv2
 import av
@@ -324,6 +325,9 @@ class _client:
     def sendall(self, data):
         self._socket.sendall(data)
 
+    def poll(self):
+        return len(select.select([self._socket], [], [], 0)[0]) > 0
+
     def recv(self, chunk_size):
         chunk = self._socket.recv(chunk_size)
         if (len(chunk) <= 0):
@@ -368,8 +372,9 @@ def pack_packet(packet):
 
 def unpack_packet(data):
     timestamp, payload_size = struct.unpack('<QI', data[:12])
-    payload = data[12:(12 + payload_size)]
-    pose = data[(12 + payload_size):]
+    pose_begin = 12 + payload_size
+    payload = data[12:pose_begin]
+    pose = data[pose_begin:]
     return _packet(timestamp, payload, np.frombuffer(pose, dtype=np.float32).reshape((4, 4)) if (len(pose) == 64) else None)
 
 
@@ -382,42 +387,30 @@ class _unpacker:
         self._mode = mode
         self._state = 0
         self._buffer = bytearray()
-        self._timestamp = None
         self._size = None
-        self._payload = None
-        self._pose = None
+        self._packet = None
+        self._pose_size = (4 * 4 * _SIZEOF.FLOAT) if (mode == StreamMode.MODE_1) else 0
 
     def extend(self, chunk):
         self._buffer.extend(chunk)
 
     def unpack(self):        
         length = len(self._buffer)
-        
-        while (True):
-            if (self._state == 0):
-                if (length >= 12):
-                    header = struct.unpack('<QI', self._buffer[:12])
-                    self._timestamp = header[0]
-                    self._size = 12 + header[1]
-                    if (self._mode == StreamMode.MODE_1):
-                        self._size += 64
-                    self._state = 1
-                    continue
-            elif (self._state == 1):
-                if (length >= self._size):
-                    if (self._mode == StreamMode.MODE_1):
-                        payload_end = self._size - 64
-                        self._pose = np.frombuffer(self._buffer[payload_end:self._size], dtype=np.float32).reshape((4, 4))
-                    else:
-                        payload_end = self._size
-                    self._payload = self._buffer[12:payload_end]
-                    self._buffer = self._buffer[self._size:]
-                    self._state = 0
-                    return True
-            return False
+
+        if ((self._state == 0) and (length >= 12)):
+            self._size   = 12 + struct.unpack('<I', self._buffer[8:12])[0] + self._pose_size
+            self._state  = 1
+
+        if ((self._state == 1) and (length >= self._size)):
+            self._packet = self._buffer[:self._size]
+            self._buffer = self._buffer[self._size:]
+            self._state  = 0
+            return True
+
+        return False
 
     def get(self):
-        return _packet(self._timestamp, self._payload, self._pose)
+        return self._packet
 
 
 #------------------------------------------------------------------------------
@@ -435,11 +428,12 @@ class _gatherer:
     def sendall(self, data):
         self._client.sendall(data)
 
-    def get_next_packet(self):
-        while (True):
+    def get_next_packet(self, wait=True):
+        while (wait or self._client.poll()):
             self._unpacker.extend(self._client.recv(self._chunk_size))
             if (self._unpacker.unpack()):
                 return self._unpacker.get()
+        return None
 
     def close(self):
         self._client.close()
@@ -704,8 +698,8 @@ class rx_rm_vlc(_context_manager):
     def open(self):
         self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile, self.level, self.bitrate, self.options)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -727,8 +721,8 @@ class rx_rm_depth_ahat(_context_manager):
     def open(self):
         self._client = _connect_client_rm_depth_ahat(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile_z, self.profile_ab, self.level, self.bitrate, self.options)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -746,8 +740,8 @@ class rx_rm_depth_longthrow(_context_manager):
     def open(self):
         self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.chunk, self.mode, self.divisor, self.png_filter)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -763,8 +757,8 @@ class rx_rm_imu(_context_manager):
     def open(self):
         self._client = _connect_client_rm_imu(self.host, self.port, self.chunk, self.mode)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -788,8 +782,8 @@ class rx_pv(_context_manager):
     def open(self):
         self._client = _connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.divisor, self.profile, self.level, self.bitrate, self.options)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -806,8 +800,8 @@ class rx_microphone(_context_manager):
     def open(self):
         self._client = _connect_client_microphone(self.host, self.port, self.chunk, self.profile, self.level)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -822,8 +816,8 @@ class rx_si(_context_manager):
     def open(self):
         self._client = _connect_client_si(self.host, self.port, self.chunk)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -839,8 +833,8 @@ class rx_eet(_context_manager):
     def open(self):
         self._client = _connect_client_eet(self.host, self.port, self.chunk, self.fps)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
     
     def close(self):
         self._client.close()
@@ -860,8 +854,8 @@ class rx_extended_audio:
     def open(self):
         self._client = _connect_client_extended_audio(self.host, self.port, self.chunk, self.mixer_mode, self.loopback_gain, self.microphone_gain, self.profile, self.level)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
     
     def close(self):
         self._client.close()
@@ -880,8 +874,8 @@ class rx_extended_depth:
     def open(self):
         self._client = _connect_client_extended_depth(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile_z, self.options)
 
-    def get_next_packet(self):
-        return self._client.get_next_packet()
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
 
     def close(self):
         self._client.close()
@@ -1566,8 +1560,11 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
         self._codec.create()
         super().open()
 
-    def get_next_packet(self):
-        data = super().get_next_packet()
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is None):
+            return None
+        data = unpack_packet(data)
         data.payload = unpack_rm_vlc(data.payload)
         data.payload.image = self._codec.decode(data.payload.image)
         return data
@@ -1585,8 +1582,11 @@ class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
         self._codec.create()
         super().open()
 
-    def get_next_packet(self):
-        data = super().get_next_packet()
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is None):
+            return None
+        data = unpack_packet(data)
         data.payload = self._codec.decode(data.payload)
         return data
 
@@ -1601,13 +1601,19 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
     def open(self):
         super().open()
 
-    def get_next_packet(self):
-        data = super().get_next_packet()
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is None):
+            return None
+        data = unpack_packet(data)
         data.payload = decode_rm_depth_longthrow(data.payload)
         return data
 
     def close(self):
         super().close()
+
+
+# IMU
 
 
 class rx_decoded_pv(rx_pv):
@@ -1620,8 +1626,11 @@ class rx_decoded_pv(rx_pv):
         self._codec.create(self.width, self.height)
         super().open()
 
-    def get_next_packet(self):
-        data = super().get_next_packet()
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is None):
+            return None
+        data = unpack_packet(data)
         data.payload = unpack_pv(data.payload)
         data.payload.image = self._codec.decode(data.payload.image, self.format)
         return data
@@ -1639,13 +1648,22 @@ class rx_decoded_microphone(rx_microphone):
         self._codec.create()
         super().open()
 
-    def get_next_packet(self):
-        data = super().get_next_packet()
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is None):
+            return None
+        data = unpack_packet(data)
         data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
         super().close()
+
+
+# SI
+
+
+# EET
 
 
 class rx_decoded_extended_audio(rx_extended_audio):
@@ -1657,13 +1675,19 @@ class rx_decoded_extended_audio(rx_extended_audio):
         self._codec.create()
         super().open()
 
-    def get_next_packet(self):
+    def get_next_packet(self, wait=True):
         data = super().get_next_packet()
+        if (data is None):
+            return None
+        data = unpack_packet(data)
         data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
         super().close()
+
+
+# EV
 
 
 class rx_decoded_extended_depth(rx_extended_depth):
@@ -1675,8 +1699,11 @@ class rx_decoded_extended_depth(rx_extended_depth):
         self._codec.create()
         super().open()
 
-    def get_next_packet(self):
+    def get_next_packet(self, wait=True):
         data = super().get_next_packet()
+        if (data is None):
+            return None
+        data = unpack_packet(data)
         data.payload = unpack_extended_depth(data.payload)
         data.payload.depth = self._codec.decode(data.payload.depth, data.payload.width, data.payload.height)
         return data
