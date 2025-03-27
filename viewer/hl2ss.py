@@ -2161,6 +2161,7 @@ class ipc_rc(_context_manager):
     _CMD_RM_MAP_CAMERA_POINTS = 0x16
     _CMD_RM_GET_RIGNODE_WORLD_POSES = 0x17
     _CMD_TS_GET_CURRENT_TIME = 0x18
+    _CMD_SI_SET_SAMPLING_DELAY = 0x19
 
     def __init__(self, host, port):
         self.host = host
@@ -2296,6 +2297,10 @@ class ipc_rc(_context_manager):
         self._client.sendall(command)
         response = self._client.download(_SIZEOF.QWORD, ChunkSize.SINGLE_TRANSFER)
         return struct.unpack('<Q', response)[0]
+    
+    def si_set_sampling_delay(self, delay):
+        command = struct.pack('<Bq', ipc_rc._CMD_SI_SET_SAMPLING_DELAY, delay)
+        self._client.sendall(command)
 
 
 #------------------------------------------------------------------------------
