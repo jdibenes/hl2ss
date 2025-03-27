@@ -131,6 +131,20 @@ static bool recv_u32(SOCKET socket, uint32_t& dword)
 }
 
 // OK
+static bool recv_u64(SOCKET socket, uint64_t& qword)
+{
+    v64& buf = reinterpret_cast<v64&>(qword);
+    bool ok;
+
+    ok = recv_u32(socket, buf.d.d0.d);
+    if (!ok) { return false; }
+    ok = recv_u32(socket, buf.d.d1.d);
+    if (!ok) { return false; }
+
+    return true;
+}
+
+// OK
 static bool recv(SOCKET socket, void* buffer, int bytes)
 {
     char* dst = static_cast<char*>(buffer);
@@ -174,6 +188,14 @@ bool recv_u16(SOCKET socket, HANDLE event_error, uint16_t& word)
 bool recv_u32(SOCKET socket, HANDLE event_error, uint32_t& dword)
 {
     bool ok = recv_u32(socket, dword);
+    if (!ok) { SetEvent(event_error); }
+    return ok;
+}
+
+// OK
+bool recv_u64(SOCKET socket, HANDLE event_error, uint64_t& qword)
+{
+    bool ok = recv_u64(socket, qword);
     if (!ok) { SetEvent(event_error); }
     return ok;
 }
