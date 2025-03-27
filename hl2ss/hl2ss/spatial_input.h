@@ -27,3 +27,4 @@ bool SpatialInput_WaitForConsent();
 void SpatialInput_Startup();
 void SpatialInput_Cleanup();
 void SpatialInput_ExecuteSensorLoop(HOOK_SI_PROC hook, void* param, HANDLE event_stop);
+void SpatialInput_SetSamplingDelay(int64_t delay);

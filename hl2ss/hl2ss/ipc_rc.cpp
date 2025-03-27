@@ -3,6 +3,7 @@
 #include "holographic_space.h"
 #include "extended_execution.h"
 #include "personal_video.h"
+#include "spatial_input.h"
 #include "research_mode.h"
 #include "server_channel.h"
 #include "types.h"
@@ -45,6 +46,7 @@ private:
     bool MSG_RM_MapCameraPoints();
     bool MSG_RM_GetRigNodeWorldPose();
     bool MSG_TS_GetCurrentTime();
+    bool MSG_SI_SetSamplingDelay();
 
 public:
     Channel_RC(char const* name, char const* port, uint32_t id);
@@ -536,6 +538,20 @@ bool Channel_RC::MSG_TS_GetCurrentTime()
 }
 
 // OK
+bool Channel_RC::MSG_SI_SetSamplingDelay()
+{
+    bool ok;
+    uint64_t delay;
+
+    ok = recv_u64(m_socket_client, m_event_client, delay);
+    if (!ok) { return false; }
+
+    SpatialInput_SetSamplingDelay(delay);
+
+    return true;
+}
+
+// OK
 bool Channel_RC::Dispatch()
 {
     uint8_t state;
@@ -571,6 +587,7 @@ bool Channel_RC::Dispatch()
     case 0x16: return MSG_RM_MapCameraPoints();
     case 0x17: return MSG_RM_GetRigNodeWorldPose();
     case 0x18: return MSG_TS_GetCurrentTime();
+    case 0x19: return MSG_SI_SetSamplingDelay();
     default:   return false;
     }
 }
