@@ -16,3 +16,4 @@ UINT64 Timestamp_GetCurrentUTC();
 
 winrt::Windows::Foundation::TimeSpan Timestamp_U64ToTimeSpan(UINT64 time);
 winrt::Windows::Perception::PerceptionTimestamp Timestamp_QPCToPerception(UINT64 qpctime);
+winrt::Windows::Foundation::DateTime Timestamp_UTCToDateTime(UINT64 utctime);
