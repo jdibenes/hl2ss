@@ -1,5 +1,6 @@
 
 import numpy as np
+import weakref
 import socket
 import select
 import struct
@@ -320,6 +321,7 @@ class _RANGEOF:
 class _client:
     def open(self, host, port):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._f = weakref.finalize(self, lambda s : s.close(), self._socket)
         self._socket.connect((host, port))
 
     def sendall(self, data):
@@ -347,6 +349,7 @@ class _client:
         return data
 
     def close(self):
+        self._f.detach()
         self._socket.close()
 
 
