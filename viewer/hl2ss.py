@@ -841,7 +841,7 @@ class rx_eet(_context_manager):
         self._client.close()
 
 
-class rx_extended_audio:
+class rx_extended_audio(_context_manager):
     def __init__(self, host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
         self.host = host
         self.port = port
@@ -862,7 +862,7 @@ class rx_extended_audio:
         self._client.close()
 
 
-class rx_extended_depth:
+class rx_extended_depth(_context_manager):
     def __init__(self, host, port, chunk, mode, divisor, profile_z, options):
         self.host = host
         self.port = port
@@ -1140,7 +1140,7 @@ class _decode_rm_depth_ahat_zdepth:
         return depth, ab
 
 
-class decode_rm_depth_ahat():
+class decode_rm_depth_ahat:
     def __init__(self, profile_z, profile_ab):
         self._codec = _decode_rm_depth_ahat_same(profile_ab) if (profile_z == DepthProfile.SAME) else _decode_rm_depth_ahat_zdepth(profile_ab)
 
@@ -1154,7 +1154,7 @@ class decode_rm_depth_ahat():
         return _RM_Depth_Frame(depth, ab, sensor_ticks)
 
 
-class decode_rm_depth_longthrow():
+class decode_rm_depth_longthrow:
     def decode(self, payload):
         data     = payload[:-8]
         metadata = payload[-8:]
@@ -1241,41 +1241,19 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
     return intrinsics
 
 
-def unpack_pv(payload):
-    image    = payload[0:-80]
-    metadata = payload[-80:]
-
-    focal_length          = np.frombuffer(metadata, dtype=np.float32, offset=0,  count=2)
-    principal_point       = np.frombuffer(metadata, dtype=np.float32, offset=8,  count=2)
-    exposure_time         = np.frombuffer(metadata, dtype=np.uint64,  offset=16, count=1)
-    exposure_compensation = np.frombuffer(metadata, dtype=np.uint64,  offset=24, count=2)
-    lens_position         = np.frombuffer(metadata, dtype=np.uint32,  offset=40, count=1)
-    focus_state           = np.frombuffer(metadata, dtype=np.uint32,  offset=44, count=1)
-    iso_speed             = np.frombuffer(metadata, dtype=np.uint32,  offset=48, count=1)
-    white_balance         = np.frombuffer(metadata, dtype=np.uint32,  offset=52, count=1)
-    iso_gains             = np.frombuffer(metadata, dtype=np.float32, offset=56, count=2)
-    white_balance_gains   = np.frombuffer(metadata, dtype=np.float32, offset=64, count=3)
-    resolution            = np.frombuffer(metadata, dtype=np.uint16,  offset=76, count=2)
-
-    return _PV_Frame(image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains, resolution)
-
-
 def get_video_stride(width):
     return (width + 63) & ~63
 
 
-class _decode_pv:
+class _decode_pv_h26x:
     def __init__(self, profile):
-        self.profile = profile
+        self._codec = get_video_codec(profile)
 
-    def create(self, width, height):
-        self._codec = get_video_codec(self.profile)
-
-    def decode(self, payload, format):
+    def decode(self, payload, width, height, format):
         return self._codec.decode(payload).to_ndarray(format=format)
 
 
-class _unpack_pv:
+class _decode_pv_raw:
     _cv2_nv12_format = {
         'rgb24' : cv2.COLOR_YUV2RGB_NV12,
         'bgr24' : cv2.COLOR_YUV2BGR_NV12,
@@ -1285,63 +1263,62 @@ class _unpack_pv:
         'nv12'  : None
     }
 
-    _resolution = {
-        get_video_stride(1952)*1100 : (1952, 1100, get_video_stride(1952)),
-        get_video_stride(1504)*846  : (1504,  846, get_video_stride(1504)),
-        get_video_stride(1920)*1080 : (1920, 1080, get_video_stride(1920)),
-        get_video_stride(1280)*720  : (1280,  720, get_video_stride(1280)),
-        get_video_stride(640)*360   : ( 640,  360, get_video_stride( 640)),
-        get_video_stride(760)*428   : ( 760,  428, get_video_stride( 760)),
-        get_video_stride(960)*540   : ( 960,  540, get_video_stride( 960)),
-        get_video_stride(1128)*636  : (1128,  636, get_video_stride(1128)),
-        get_video_stride(424)*240   : ( 424,  240, get_video_stride( 424)),
-        get_video_stride(500)*282   : ( 500,  282, get_video_stride( 500))
-    }
-
-    def create(self, width, height):
-        self.width = width
-        self.height = height
-        self.stride = get_video_stride(width)
-
-    def decode(self, payload, format):
-        width, height, stride = _unpack_pv._resolution[(len(payload) * 2) // 3]
-        image = np.frombuffer(payload, dtype=np.uint8).reshape(((height*3) //2, stride))[:, :width]
-        sf = _unpack_pv._cv2_nv12_format[format]
+    def decode(self, payload, width, height, format):
+        image = np.frombuffer(payload, dtype=np.uint8).reshape(((height * 3) // 2, -1))[:, :width]
+        sf = _decode_pv_raw._cv2_nv12_format[format]
         return image if (sf is None) else cv2.cvtColor(image, sf)
 
 
-def decode_pv(profile):
-    return _unpack_pv() if (profile == VideoProfile.RAW) else _decode_pv(profile)
+class decode_pv:
+    def __init__(self, profile):
+        self._codec =  _decode_pv_raw() if (profile == VideoProfile.RAW) else _decode_pv_h26x(profile)
+
+    def decode(self, payload, format):
+        data     = payload[:-80]
+        metadata = payload[-80:]
+
+        focal_length          = np.frombuffer(metadata, dtype=np.float32, offset=0,  count=2)
+        principal_point       = np.frombuffer(metadata, dtype=np.float32, offset=8,  count=2)
+        exposure_time         = np.frombuffer(metadata, dtype=np.uint64,  offset=16, count=1)
+        exposure_compensation = np.frombuffer(metadata, dtype=np.uint64,  offset=24, count=2)
+        lens_position         = np.frombuffer(metadata, dtype=np.uint32,  offset=40, count=1)
+        focus_state           = np.frombuffer(metadata, dtype=np.uint32,  offset=44, count=1)
+        iso_speed             = np.frombuffer(metadata, dtype=np.uint32,  offset=48, count=1)
+        white_balance         = np.frombuffer(metadata, dtype=np.uint32,  offset=52, count=1)
+        iso_gains             = np.frombuffer(metadata, dtype=np.float32, offset=56, count=2)
+        white_balance_gains   = np.frombuffer(metadata, dtype=np.float32, offset=64, count=3)
+        resolution            = np.frombuffer(metadata, dtype=np.uint16,  offset=76, count=2)
+        image                 = self._codec.decode(data, resolution[0], resolution[1], format)
+
+        return _PV_Frame(image, focal_length, principal_point, exposure_time, exposure_compensation, lens_position, focus_state, iso_speed, white_balance, iso_gains, white_balance_gains, resolution)
 
 
 #------------------------------------------------------------------------------
 # Microphone Decoder
 #------------------------------------------------------------------------------
 
-class _decode_microphone:
+class _decode_microphone_aac:
     def __init__(self, profile):
-        self.profile = profile
-
-    def create(self):
-        self._codec = get_audio_codec(self.profile)
+        self._codec = get_audio_codec(profile)
 
     def decode(self, payload):
         return self._codec.decode(payload).to_ndarray()
 
 
-class _unpack_microphone:
+class _decode_microphone_raw:
     def __init__(self, level):
-        self.level = level
-
-    def create(self):
-        self.dtype = np.float32 if (self.level == AACLevel.L5) else np.int16
+        self.dtype = np.float32 if (level == AACLevel.L5) else np.int16
 
     def decode(self, payload):
         return np.frombuffer(payload, dtype=self.dtype).reshape((1, -1))
 
 
-def decode_microphone(profile, level):
-    return _unpack_microphone(level) if (profile == AudioProfile.RAW) else _decode_microphone(profile)
+class decode_microphone:
+    def __init__(self, profile, level):
+        self._codec = _decode_microphone_raw(level) if (profile == AudioProfile.RAW) else _decode_microphone_aac(profile)
+    
+    def decode(self, payload):
+        return self._codec.decode(payload)
 
 
 #------------------------------------------------------------------------------
@@ -1522,39 +1499,36 @@ class unpack_eet:
 #------------------------------------------------------------------------------
 
 class _EZ_Frame:
-    def __init__(self, depth, width, height):
-        self.depth  = depth
-        self.width  = width
-        self.height = height
+    def __init__(self, depth, resolution):
+        self.depth      = depth
+        self.resolution = resolution
 
 
-def unpack_extended_depth(payload):
-    width, height = struct.unpack('<HH', payload[-4:])
-    return _EZ_Frame(payload[:-4], width, height)
+class _decode_extended_depth_zdepth:
+    def __init__(self):
+        self._codec = _decompress_zdepth()
+
+    def decode(self, payload, width, height):
+        return self._codec.decode(payload) if (len(payload) > 0) else None
 
 
-class _unpack_extended_depth:
-    def create(self):
-        pass
-
+class _decode_extended_depth_raw:
     def decode(self, payload, width, height):
         return np.frombuffer(payload, dtype=np.uint16).reshape((height, width))
 
 
-class _decode_extended_depth:
-    def create(self):
-        import pyzdepth
-        self._codec = pyzdepth.DepthCompressor()
+class decode_extended_depth:
+    def __init__(self, profile_z):
+        self._codec = _decode_extended_depth_zdepth() if (profile_z == DepthProfile.ZDEPTH) else _decode_extended_depth_raw()
 
-    def decode(self, payload, width, height):
-        if (len(payload) <= 0):
-            return None
-        result, width, height, decompressed = self._codec.Decompress(bytes(payload))
-        return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
+    def decode(self, payload):
+        data     = payload[:-4]
+        metadata = payload[-4:]
 
+        resolution = np.frombuffer(metadata, dtype=np.uint16, offset=0, count=2)
+        depth      = self._codec.decode(data, resolution[0], resolution[1])
 
-def decode_extended_depth(profile_z):
-    return _decode_extended_depth() if (profile_z == DepthProfile.ZDEPTH) else _unpack_extended_depth()
+        return _EZ_Frame(depth, resolution)
 
 
 #------------------------------------------------------------------------------
@@ -1622,18 +1596,15 @@ class rx_decoded_pv(rx_pv):
     def __init__(self, host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options, format):
         super().__init__(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
         self.format = format
-        self._codec = decode_pv(profile)
-
+        
     def open(self):        
-        self._codec.create(self.width, self.height)
+        self._codec = decode_pv(self.profile)
         super().open()
 
     def get_next_packet(self, wait=True):
         data = super().get_next_packet(wait)
-        if (data is None):
-            return None
-        data.payload = unpack_pv(data.payload)
-        data.payload.image = self._codec.decode(data.payload.image, self.format)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload, self.format)
         return data
 
     def close(self):
@@ -1643,17 +1614,15 @@ class rx_decoded_pv(rx_pv):
 class rx_decoded_microphone(rx_microphone):
     def __init__(self, host, port, chunk, profile, level):
         super().__init__(host, port, chunk, profile, level)
-        self._codec = decode_microphone(profile, level)
         
     def open(self):
-        self._codec.create()
+        self._codec = decode_microphone(self.profile, self.level)
         super().open()
 
     def get_next_packet(self, wait=True):
         data = super().get_next_packet(wait)
-        if (data is None):
-            return None
-        data.payload = self._codec.decode(data.payload)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
@@ -1669,41 +1638,33 @@ class rx_decoded_microphone(rx_microphone):
 class rx_decoded_extended_audio(rx_extended_audio):
     def __init__(self, host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
         super().__init__(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
-        self._codec = decode_microphone(profile, None)
-        
+    
     def open(self):
-        self._codec.create()
+        self._codec = decode_microphone(self.profile, None)
         super().open()
 
     def get_next_packet(self, wait=True):
-        data = super().get_next_packet()
-        if (data is None):
-            return None
-        data.payload = self._codec.decode(data.payload)
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
         return data
 
     def close(self):
         super().close()
 
 
-# EV
-
-
 class rx_decoded_extended_depth(rx_extended_depth):
     def __init__(self, host, port, chunk, mode, divisor, profile_z, options):
         super().__init__(host, port, chunk, mode, divisor, profile_z, options)
-        self._codec = decode_extended_depth(profile_z)
 
     def open(self):
-        self._codec.create()
+        self._codec = decode_extended_depth(self.profile_z)
         super().open()
 
     def get_next_packet(self, wait=True):
-        data = super().get_next_packet()
-        if (data is None):
-            return None
-        data.payload = unpack_extended_depth(data.payload)
-        data.payload.depth = self._codec.decode(data.payload.depth, data.payload.width, data.payload.height)
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
         return data
     
     def close(self):
