@@ -2358,13 +2358,19 @@ class sm_mesh_task:
     def __init__(self):
         self._count = 0
         self._data = bytearray()
+        self._vpf = []
+        self._tif = []
+        self._vnf = []
 
     def add_task(self, id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format):
         self._data.extend(struct.pack('<16sdIIII', id, max_triangles_per_cubic_meter, vertex_position_format, triangle_index_format, vertex_normal_format, 0))
+        self._vpf.append(vertex_position_format)
+        self._tif.append(triangle_index_format)
+        self._vnf.append(vertex_normal_format)
         self._count += 1
 
     def _get(self):
-        return self._count, self._data
+        return self._count, self._data, self._vpf, self._tif, self._vnf
 
 
 class _sm_mesh:
@@ -2376,13 +2382,16 @@ class _sm_mesh:
         self.triangle_indices      = triangle_indices
         self.vertex_normals        = vertex_normals
 
-    def unpack(self, vertex_position_format, triangle_index_format, vertex_normal_format):
-        self.vertex_position_scale = np.frombuffer(self.vertex_position_scale, dtype=np.float32).reshape((1, 3))
-        self.pose                  = np.frombuffer(self.pose,                  dtype=np.float32).reshape((4, 4))
-        self.bounds                = np.frombuffer(self.bounds,                dtype=np.float32)        
-        self.vertex_positions      = np.frombuffer(self.vertex_positions,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_position_format]).reshape((-1, 4))
-        self.triangle_indices      = np.frombuffer(self.triangle_indices,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[triangle_index_format]).reshape((-1, 3))
-        self.vertex_normals        = np.frombuffer(self.vertex_normals,        dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_normal_format]).reshape((-1, 4))
+
+def _sm_mesh_unpack(vertex_position_format, triangle_index_format, vertex_normal_format, vertex_position_scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals):
+    vertex_position_scale = np.frombuffer(vertex_position_scale, dtype=np.float32).reshape((1, 3))
+    pose                  = np.frombuffer(pose,                  dtype=np.float32).reshape((4, 4))
+    bounds                = np.frombuffer(bounds,                dtype=np.float32)        
+    vertex_positions      = np.frombuffer(vertex_positions,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_position_format]).reshape((-1, 4))
+    triangle_indices      = np.frombuffer(triangle_indices,      dtype=_SM_Convert.DirectXPixelFormatToNumPy[triangle_index_format]).reshape((-1, 3))
+    vertex_normals        = np.frombuffer(vertex_normals,        dtype=_SM_Convert.DirectXPixelFormatToNumPy[vertex_normal_format]).reshape((-1, 4))
+ 
+    return _sm_mesh(vertex_position_scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals)
 
 
 class ipc_sm(_context_manager):
@@ -2411,7 +2420,7 @@ class ipc_sm(_context_manager):
         ids = self._client.download(count * 24, ChunkSize.SINGLE_TRANSFER)
         return [_sm_surface_info(ids[(i*24):(i*24+16)], struct.unpack('<Q', ids[(i*24+16):(i*24+24)])[0]) for i in range(0, count)]
     
-    def _download_mesh(self):
+    def _download_mesh(self, vpf, tif, vnf):
         header = self._client.download(136, ChunkSize.SINGLE_TRANSFER)
 
         index, status, vpl, til, vnl = struct.unpack('<IIIII', header[:20])
@@ -2435,19 +2444,19 @@ class ipc_sm(_context_manager):
         triangle_indices = payload[tid_b:tid_e]
         vertex_normals   = payload[vnd_b:vnd_e]
 
-        return index, _sm_mesh(scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals)
+        return index, _sm_mesh_unpack(vpf[index], tif[index], vnf[index], scale, pose, bounds, vertex_positions, triangle_indices, vertex_normals)
     
-    def _download_meshes(self, count):
+    def _download_meshes(self, count, vpf, tif, vnf):
         for _ in range(0, count):
-            yield self._download_mesh()
+            yield self._download_mesh(vpf, tif, vnf)
     
     def get_meshes(self, tasks):
-        count, data = tasks._get()
+        count, data, vpf, tif, vnf = tasks._get()
         msg = bytearray()
         msg.extend(struct.pack('<BI', ipc_sm._CMD_GET_MESHES, count))
         msg.extend(data)
         self._client.sendall(msg)
-        meshes = {index : mesh for index, mesh in self._download_meshes(count)}
+        meshes = {index : mesh for index, mesh in self._download_meshes(count, vpf, tif, vnf)}
         return meshes
 
     def close(self):
@@ -2525,9 +2534,12 @@ class _su_mesh:
         self.vertex_positions = vertex_positions
         self.triangle_indices = triangle_indices
 
-    def unpack(self):
-        self.vertex_positions = np.frombuffer(self.vertex_positions, dtype=np.float32).reshape((-1, 3))
-        self.triangle_indices = np.frombuffer(self.triangle_indices, dtype=np.uint32).reshape((-1, 3))
+
+def _su_mesh_unpack(vertex_positions, triangle_indices):
+    vertex_positions = np.frombuffer(vertex_positions, dtype=np.float32).reshape((-1, 3))
+    triangle_indices = np.frombuffer(triangle_indices, dtype=np.uint32).reshape((-1, 3))
+
+    return _su_mesh(vertex_positions, triangle_indices)
 
 
 class _su_item:
@@ -2542,13 +2554,16 @@ class _su_item:
         self.meshes = meshes
         self.collider_meshes = collider_meshes
 
-    def unpack(self):
-        self.kind = np.frombuffer(self.kind, dtype=np.int32)
-        self.orientation = np.frombuffer(self.orientation, dtype=np.float32)
-        self.position = np.frombuffer(self.position, dtype=np.float32)
-        self.location = np.frombuffer(self.location, dtype=np.float32).reshape((-1, 4))
-        self.alignment = np.frombuffer(self.alignment, dtype=np.int32)
-        self.extents = np.frombuffer(self.extents, dtype=np.float32)
+
+def _su_item_unpack(id, kind, orientation, position, location, alignment, extents, meshes, collider_meshes):
+    kind = np.frombuffer(kind, dtype=np.int32)
+    orientation = np.frombuffer(orientation, dtype=np.float32)
+    position = np.frombuffer(position, dtype=np.float32)
+    location = np.frombuffer(location, dtype=np.float32).reshape((-1, 4))
+    alignment = np.frombuffer(alignment, dtype=np.int32)
+    extents = np.frombuffer(extents, dtype=np.float32)
+
+    return _su_item(id, kind, orientation, position, location, alignment, extents, meshes, collider_meshes)
 
 
 class _su_result:
@@ -2557,9 +2572,12 @@ class _su_result:
         self.pose = pose
         self.items = items
 
-    def unpack(self):
-        self.extrinsics = np.frombuffer(self.extrinsics, dtype=np.float32).reshape((4, 4))
-        self.pose = np.frombuffer(self.pose, dtype=np.float32).reshape((4, 4))
+
+def _su_result_unpack(extrinsics, pose, items):
+    extrinsics = np.frombuffer(extrinsics, dtype=np.float32).reshape((4, 4))
+    pose = np.frombuffer(pose, dtype=np.float32).reshape((4, 4))
+
+    return _su_result(extrinsics, pose, items)
 
 
 class ipc_su(_context_manager):
@@ -2576,14 +2594,14 @@ class ipc_su(_context_manager):
         vpl = elements_vertices * _SIZEOF.DWORD
         til = elements_indices * _SIZEOF.DWORD
         data = self._client.download(vpl + til, ChunkSize.SINGLE_TRANSFER)
-        return _su_mesh(data[:vpl], data[vpl:])
+        return _su_mesh_unpack(data[:vpl], data[vpl:])
 
     def _download_meshes(self):
         return [self._download_mesh() for _ in range(0, struct.unpack('<I', self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0])]
     
     def _download_item(self, bi, bk, bo, bp, bl, ba, be, bm, download_meshes, download_collider_meshes):
         d = self._client.download(bm, ChunkSize.SINGLE_TRANSFER)
-        return _su_item(d[bi:bk], d[bk:bo], d[bo:bp], d[bp:bl], d[bl:ba], d[ba:be], d[be:bm], self._download_meshes() if (download_meshes) else [], self._download_meshes() if (download_collider_meshes) else [])
+        return _su_item_unpack(d[bi:bk], d[bk:bo], d[bo:bp], d[bp:bl], d[bl:ba], d[ba:be], d[be:bm], self._download_meshes() if (download_meshes) else [], self._download_meshes() if (download_collider_meshes) else [])
     
     def query(self, task):
         self._client.sendall(task._get())
@@ -2602,7 +2620,7 @@ class ipc_su(_context_manager):
         ba = bl + (64 * task.get_location_matrix)
         be = ba + (4 * task.get_quad)
         bm = be + (8 * task.get_quad)
-        return _su_result(header[he:hp], header[hp:hi], [self._download_item(bi, bk, bo, bp, bl, ba, be, bm, task.get_meshes, task.get_collider_meshes) for _ in range(0, struct.unpack('<I', header[132:])[0])])
+        return _su_result_unpack(header[he:hp], header[hp:hi], [self._download_item(bi, bk, bo, bp, bl, ba, be, bm, task.get_meshes, task.get_collider_meshes) for _ in range(0, struct.unpack('<I', header[132:])[0])])
 
     def close(self):
         self._client.close()
@@ -2619,7 +2637,7 @@ class VI_SpeechRecognitionConfidence:
     Rejected = 3
 
 
-class vi_result:
+class _vi_result:
     def __init__(self, index, confidence, phrase_duration, phrase_start_time, raw_confidence):
         self.index = index
         self.confidence = confidence
@@ -2627,12 +2645,15 @@ class vi_result:
         self.phrase_start_time = phrase_start_time
         self.raw_confidence = raw_confidence
 
-    def unpack(self):
-        self.index = struct.unpack('<I', self.index)[0]
-        self.confidence = struct.unpack('<I', self.confidence)[0]
-        self.phrase_duration = struct.unpack('<Q', self.phrase_duration)[0]
-        self.phrase_start_time = struct.unpack('<Q', self.phrase_start_time)[0]
-        self.raw_confidence = struct.unpack('<d', self.raw_confidence)[0]
+
+def _vi_result_unpack(index, confidence, phrase_duration, phrase_start_time, raw_confidence):
+    index = struct.unpack('<I', index)[0]
+    confidence = struct.unpack('<I', confidence)[0]
+    phrase_duration = struct.unpack('<Q', phrase_duration)[0]
+    phrase_start_time = struct.unpack('<Q', phrase_start_time)[0]
+    raw_confidence = struct.unpack('<d', raw_confidence)[0]
+
+    return _vi_result(index, confidence, phrase_duration, phrase_start_time, raw_confidence)
 
 
 class ipc_vi(_context_manager):
@@ -2662,7 +2683,7 @@ class ipc_vi(_context_manager):
         data = self._client.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER)
         count = struct.unpack('<I', data)[0]
         data = self._client.download(32*count, ChunkSize.SINGLE_TRANSFER)
-        return [vi_result(data[(i*32):(i*32+4)], data[(i*32+4):(i*32+8)], data[(i*32+8):(i*32+16)], data[(i*32+16):(i*32+24)], data[(i*32+24):(i*32+32)]) for i in range(0, count)]
+        return [_vi_result_unpack(data[(i*32):(i*32+4)], data[(i*32+4):(i*32+8)], data[(i*32+8):(i*32+16)], data[(i*32+16):(i*32+24)], data[(i*32+24):(i*32+32)]) for i in range(0, count)]
 
     def stop(self):
         command = struct.pack('<B', ipc_vi._CMD_STOP)
@@ -2704,12 +2725,9 @@ class ipc_umq(_context_manager):
 
     def push(self, buffer):
         self._client.sendall(buffer.get_data())
-
-    def pull(self, buffer):
-        return self.pull_n(buffer.get_count())
     
-    def pull_n(self, count):
-        return np.frombuffer(self._client.download(_SIZEOF.DWORD * count, ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
+    def pull(self, buffer):
+        return np.frombuffer(self._client.download(_SIZEOF.DWORD * buffer.get_count(), ChunkSize.SINGLE_TRANSFER), dtype=np.uint32)
 
     def close(self):
         self._client.close()
