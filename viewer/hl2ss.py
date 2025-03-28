@@ -1205,7 +1205,7 @@ class decode_rm_imu:
         return _RM_IMU_Frame(count, vinyl_hup_ticks, soc_ticks, x, y, z, temperature)
 
 
-def fix_rm_imu_soc_ticks(vinyl_hup_ticks, soc_ticks):
+def rm_imu_fix_soc_ticks(vinyl_hup_ticks, soc_ticks):
     return soc_ticks + ((vinyl_hup_ticks - vinyl_hup_ticks[0]) // 100)
 
 
@@ -1237,15 +1237,15 @@ class _PV_Frame:
         self.resolution            = resolution
 
 
-def create_pv_intrinsics(focal_length, principal_point):
+def pv_create_intrinsics(focal_length, principal_point):
     return np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
 
 
-def create_pv_intrinsics_placeholder():
+def pv_create_intrinsics_placeholder():
     return np.eye(4, 4, dtype=np.float32)
 
 
-def update_pv_intrinsics(intrinsics, focal_length, principal_point):
+def pv_update_intrinsics(intrinsics, focal_length, principal_point):
     intrinsics[0, 0] = -focal_length[0]
     intrinsics[1, 1] =  focal_length[1]
     intrinsics[2, 0] = principal_point[0]
@@ -1253,7 +1253,7 @@ def update_pv_intrinsics(intrinsics, focal_length, principal_point):
     return intrinsics
 
 
-def get_video_stride(width):
+def pv_get_video_stride(width):
     return (width + 63) & ~63
 
 
