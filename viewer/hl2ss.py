@@ -1175,7 +1175,8 @@ class decode_rm_depth_longthrow:
 #------------------------------------------------------------------------------
 
 class _RM_IMU_Frame:
-    def __init__(self, vinyl_hup_ticks, soc_ticks, x, y, z, temperature):
+    def __init__(self, count, vinyl_hup_ticks, soc_ticks, x, y, z, temperature):
+        self.count           = count
         self.vinyl_hup_ticks = vinyl_hup_ticks
         self.soc_ticks       = soc_ticks
         self.x               = x
@@ -1184,17 +1185,25 @@ class _RM_IMU_Frame:
         self.temperature     = temperature
 
 
-class unpack_rm_imu:
-    def __init__(self, payload):
-        self._count = len(payload) // 32
-        self._batch = payload
+class decode_rm_imu:
+    def decode(self, payload):
+        data_u8  = np.frombuffer(payload, dtype=np.uint8)
+        data_u64 = data_u8.view(np.uint64)
+        data_f32 = data_u8.view(np.float32)
 
-    def get_count(self):
-        return self._count
+        count           = len(payload) // 32
+        vinyl_hup_ticks = data_u64[( 0 // 8)::(32 // 8)]
+        soc_ticks       = data_u64[( 8 // 8)::(32 // 8)]
+        x               = data_f32[(16 // 4)::(32 // 4)]
+        y               = data_f32[(20 // 4)::(32 // 4)]
+        z               = data_f32[(24 // 4)::(32 // 4)]
+        temperature     = data_f32[(28 // 4)::(32 // 4)]
 
-    def get_frame(self, index):
-        data = struct.unpack('<QQffff', self._batch[(index * 32):((index + 1) * 32)])
-        return _RM_IMU_Frame(data[0], data[1], data[2], data[3], data[4], data[5])
+        return _RM_IMU_Frame(count, vinyl_hup_ticks, soc_ticks, x, y, z, temperature)
+
+
+def fix_rm_imu_soc_ticks(vinyl_hup_ticks, soc_ticks):
+    return soc_ticks + ((vinyl_hup_ticks - vinyl_hup_ticks[0]) // 100)
 
 
 #------------------------------------------------------------------------------
@@ -1610,7 +1619,22 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
         super().close()
 
 
-# IMU
+class rx_decoded_rm_imu(rx_rm_imu):
+    def __init__(self, host, port, chunk, mode):
+        super().__init__(host, port, chunk, mode)
+
+    def open(self):
+        self._codec = decode_rm_imu()
+        super().open()
+
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
+        return data
+    
+    def close(self):
+        super().close()
 
 
 class rx_decoded_pv(rx_pv):
