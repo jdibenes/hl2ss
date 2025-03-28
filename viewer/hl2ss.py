@@ -1472,26 +1472,47 @@ class unpack_si:
 # EET Unpacker
 #------------------------------------------------------------------------------
 
-class unpack_eet:
-    def __init__(self, payload):
-        self._reserved = payload[:4]
-        f = np.frombuffer(payload[4:-4], dtype=np.float32)
-        valid = struct.unpack('<I', payload[-4:])[0]
+class _EET_Frame:
+    def __init__(self, combined_ray, left_ray, right_ray, left_openness, right_openness, vergence_distance, calibration_valid, combined_ray_valid, left_ray_valid, right_ray_valid, left_openness_valid, right_openness_valid, vergence_distance_valid):
+        self.combined_ray            = combined_ray
+        self.left_ray                = left_ray
+        self.right_ray               = right_ray
+        self.left_openness           = left_openness
+        self.right_openness          = right_openness
+        self.vergence_distance       = vergence_distance
+        self.calibration_valid       = calibration_valid
+        self.combined_ray_valid      = combined_ray_valid
+        self.left_ray_valid          = left_ray_valid
+        self.right_ray_valid         = right_ray_valid
+        self.left_openness_valid     = left_openness_valid
+        self.right_openness_valid    = right_openness_valid
+        self.vergence_distance_valid = vergence_distance_valid
 
-        self.combined_ray = _SI_EyeRay(f[0:3], f[3:6])
-        self.left_ray = _SI_EyeRay(f[6:9], f[9:12])
-        self.right_ray = _SI_EyeRay(f[12:15], f[15:18])
-        self.left_openness = f[18]
-        self.right_openness = f[19]
-        self.vergence_distance = f[20]
 
-        self.calibration_valid = valid & 0x01 != 0
-        self.combined_ray_valid = valid & 0x02 != 0
-        self.left_ray_valid = valid & 0x04 != 0
-        self.right_ray_valid = valid & 0x08 != 0
-        self.left_openness_valid = valid & 0x10 != 0
-        self.right_openness_valid = valid & 0x20 != 0
-        self.vergence_distance_valid = valid & 0x40 != 0
+class decode_eet:
+    def decode(self, payload):
+        reserved = payload[:4]
+        data     = payload[4:-4]
+        status   = payload[-4:]
+
+        f     = np.frombuffer(data, dtype=np.float32)
+        valid = struct.unpack('<I', status)[0]
+
+        combined_ray            = _SI_EyeRay(f[ 0: 3], f[ 3: 6])
+        left_ray                = _SI_EyeRay(f[ 6: 9], f[ 9:12])
+        right_ray               = _SI_EyeRay(f[12:15], f[15:18])
+        left_openness           = f[18]
+        right_openness          = f[19]
+        vergence_distance       = f[20]
+        calibration_valid       = (valid & 0x01) != 0
+        combined_ray_valid      = (valid & 0x02) != 0
+        left_ray_valid          = (valid & 0x04) != 0
+        right_ray_valid         = (valid & 0x08) != 0
+        left_openness_valid     = (valid & 0x10) != 0
+        right_openness_valid    = (valid & 0x20) != 0
+        vergence_distance_valid = (valid & 0x40) != 0
+
+        return _EET_Frame(combined_ray, left_ray, right_ray, left_openness, right_openness, vergence_distance, calibration_valid, combined_ray_valid, left_ray_valid, right_ray_valid, left_openness_valid, right_openness_valid, vergence_distance_valid)
 
 
 #------------------------------------------------------------------------------
@@ -1632,7 +1653,22 @@ class rx_decoded_microphone(rx_microphone):
 # SI
 
 
-# EET
+class rx_decoded_eet(rx_eet):
+    def __init__(self, host, port, chunk, fps):
+        super().__init__(host, port, chunk, fps)
+
+    def open(self):
+        self._codec = decode_eet()
+        super().open()
+
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
+        return data
+    
+    def close(self):
+        super().close()
 
 
 class rx_decoded_extended_audio(rx_extended_audio):
