@@ -42,8 +42,7 @@ void Channel_SI::Thunk_Sensor(uint32_t valid, SpatialInput_Frame* head_pose, Spa
 // OK
 void Channel_SI::OnFrameArrived(uint32_t valid, SpatialInput_Frame* head_pose, SpatialInput_Ray* eye_ray, JointPose* left_hand, JointPose* right_hand, UINT64 timestamp)
 {
-    int32_t const hand_size   = HAND_JOINTS * sizeof(JointPose);
-    int32_t const packet_size = sizeof(uint32_t) + sizeof(SpatialInput_Frame) + sizeof(SpatialInput_Ray) + (2 * hand_size);
+    int32_t const packet_size = sizeof(uint32_t) + sizeof(SpatialInput_Frame) + sizeof(SpatialInput_Ray) + (2 * HAND_SIZE);
 
     WSABUF wsaBuf[7];
 
@@ -52,8 +51,8 @@ void Channel_SI::OnFrameArrived(uint32_t valid, SpatialInput_Frame* head_pose, S
     pack_buffer(wsaBuf, 2, &valid,       sizeof(uint32_t));
     pack_buffer(wsaBuf, 3, head_pose,    sizeof(SpatialInput_Frame));
     pack_buffer(wsaBuf, 4, eye_ray,      sizeof(SpatialInput_Ray));
-    pack_buffer(wsaBuf, 5, left_hand,    hand_size);
-    pack_buffer(wsaBuf, 6, right_hand,   hand_size);
+    pack_buffer(wsaBuf, 5, left_hand,    HAND_SIZE);
+    pack_buffer(wsaBuf, 6, right_hand,   HAND_SIZE);
 
     send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

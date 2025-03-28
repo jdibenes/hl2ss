@@ -7,6 +7,7 @@
 #include <winrt/Windows.Perception.People.h>
 
 int const HAND_JOINTS = 26;
+int const HAND_SIZE = HAND_JOINTS * sizeof(winrt::Windows::Perception::People::JointPose);
 
 struct SpatialInput_Frame
 {

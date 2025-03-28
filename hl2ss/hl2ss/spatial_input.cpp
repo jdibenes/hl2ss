@@ -131,6 +131,11 @@ void SpatialInput_ExecuteSensorLoop(HOOK_SI_PROC hook, void* param, HANDLE event
 
     l_hand.resize(HAND_JOINTS);
     r_hand.resize(HAND_JOINTS);
+
+    memset(&head_pose,    0, sizeof(head_pose));
+    memset(&eye_ray,      0, sizeof(eye_ray));
+    memset(l_hand.data(), 0, HAND_SIZE);
+    memset(r_hand.data(), 0, HAND_SIZE);
     
     do
     {
