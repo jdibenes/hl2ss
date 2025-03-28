@@ -322,6 +322,7 @@ class _client:
     def open(self, host, port):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._f = weakref.finalize(self, lambda s : s.close(), self._socket)
+        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self._socket.connect((host, port))
 
     def sendall(self, data):
@@ -1188,6 +1189,10 @@ class _RM_IMU_Frame:
         self.temperature     = temperature
 
 
+def rm_imu_fix_soc_ticks(vinyl_hup_ticks, soc_ticks):
+    return soc_ticks + ((vinyl_hup_ticks - vinyl_hup_ticks[0]) // 100)
+
+
 class decode_rm_imu:
     def decode(self, payload):
         data_u8  = np.frombuffer(payload, dtype=np.uint8)
@@ -1201,12 +1206,9 @@ class decode_rm_imu:
         y               = data_f32[(20 // 4)::(32 // 4)]
         z               = data_f32[(24 // 4)::(32 // 4)]
         temperature     = data_f32[(28 // 4)::(32 // 4)]
+        patch_soc_ticks = rm_imu_fix_soc_ticks(vinyl_hup_ticks, soc_ticks) if (soc_ticks[0] == soc_ticks[-1]) else soc_ticks
 
-        return _RM_IMU_Frame(count, vinyl_hup_ticks, soc_ticks, x, y, z, temperature)
-
-
-def rm_imu_fix_soc_ticks(vinyl_hup_ticks, soc_ticks):
-    return soc_ticks + ((vinyl_hup_ticks - vinyl_hup_ticks[0]) // 100)
+        return _RM_IMU_Frame(count, vinyl_hup_ticks, patch_soc_ticks, x, y, z, temperature)
 
 
 #------------------------------------------------------------------------------
@@ -1235,22 +1237,6 @@ class _PV_Frame:
         self.iso_gains             = iso_gains
         self.white_balance_gains   = white_balance_gains
         self.resolution            = resolution
-
-
-def pv_create_intrinsics(focal_length, principal_point):
-    return np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
-
-
-def pv_create_intrinsics_placeholder():
-    return np.eye(4, 4, dtype=np.float32)
-
-
-def pv_update_intrinsics(intrinsics, focal_length, principal_point):
-    intrinsics[0, 0] = -focal_length[0]
-    intrinsics[1, 1] =  focal_length[1]
-    intrinsics[2, 0] = principal_point[0]
-    intrinsics[2, 1] = principal_point[1]
-    return intrinsics
 
 
 def pv_get_video_stride(width):
