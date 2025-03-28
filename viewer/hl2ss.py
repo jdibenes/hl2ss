@@ -1364,13 +1364,6 @@ class SI_HandJointKind:
     TOTAL = 26
 
 
-class _SI_Field:
-    HEAD  = 1
-    EYE   = 2
-    LEFT  = 4
-    RIGHT = 8
-
-
 class _SI_HeadPose:
     def __init__(self, position, forward, up):
         self.position = position
@@ -1384,7 +1377,7 @@ class _SI_EyeRay:
         self.direction = direction
 
 
-class _SI_HandJointPose:
+class _SI_HandPose:
     def __init__(self, orientation, position, radius, accuracy):
         self.orientation = orientation
         self.position    = position
@@ -1392,89 +1385,41 @@ class _SI_HandJointPose:
         self.accuracy    = accuracy
 
 
-class _Mode0Layout_SI_Hand:
-    BEGIN_ORIENTATION = 0
-    END_ORIENTATION   = BEGIN_ORIENTATION + 4*_SIZEOF.FLOAT
-    BEGIN_POSITION    = END_ORIENTATION
-    END_POSITION      = BEGIN_POSITION + 3*_SIZEOF.FLOAT
-    BEGIN_RADIUS      = END_POSITION
-    END_RADIUS        = BEGIN_RADIUS + 1*_SIZEOF.FLOAT
-    BEGIN_ACCURACY    = END_RADIUS
-    END_ACCURACY      = BEGIN_ACCURACY + 1*_SIZEOF.INT
-    BYTE_COUNT        = END_ACCURACY
+class _SI_Frame:
+    def __init__(self, head_pose, eye_ray, hand_left, hand_right, head_pose_valid, eye_ray_valid, hand_left_valid, hand_right_valid):
+        self.head_pose        = head_pose
+        self.eye_ray          = eye_ray
+        self.hand_left        = hand_left
+        self.hand_right       = hand_right
+        self.head_pose_valid  = head_pose_valid
+        self.eye_ray_valid    = eye_ray_valid
+        self.hand_left_valid  = hand_left_valid
+        self.hand_right_valid = hand_right_valid
 
 
-class _Mode0Layout_SI:
-    BEGIN_VALID         = 0
-    END_VALID           = BEGIN_VALID + 1*_SIZEOF.DWORD
-    BEGIN_HEAD_POSITION = END_VALID
-    END_HEAD_POSITION   = BEGIN_HEAD_POSITION + 3*_SIZEOF.FLOAT
-    BEGIN_HEAD_FORWARD  = END_HEAD_POSITION
-    END_HEAD_FORWARD    = BEGIN_HEAD_FORWARD + 3*_SIZEOF.FLOAT
-    BEGIN_HEAD_UP       = END_HEAD_FORWARD
-    END_HEAD_UP         = BEGIN_HEAD_UP + 3*_SIZEOF.FLOAT
-    BEGIN_EYE_ORIGIN    = END_HEAD_UP
-    END_EYE_ORIGIN      = BEGIN_EYE_ORIGIN + 3*_SIZEOF.FLOAT
-    BEGIN_EYE_DIRECTION = END_EYE_ORIGIN
-    END_EYE_DIRECTION   = BEGIN_EYE_DIRECTION + 3*_SIZEOF.FLOAT
-    BEGIN_HAND_LEFT     = END_EYE_DIRECTION
-    END_HAND_LEFT       = BEGIN_HAND_LEFT + SI_HandJointKind.TOTAL * _Mode0Layout_SI_Hand.BYTE_COUNT
-    BEGIN_HAND_RIGHT    = END_HAND_LEFT
-    END_HAND_RIGHT      = BEGIN_HAND_RIGHT + SI_HandJointKind.TOTAL * _Mode0Layout_SI_Hand.BYTE_COUNT
+class decode_si:
+    def decode(self, payload):
+        status = payload[:4]
+        data   = payload[4:]
 
+        valid = struct.unpack('<I', status)[0]
+        f     = np.frombuffer(data, dtype=np.float32)
 
-class _SI_Hand:
-    def __init__(self, payload):
-        self._data = payload
+        head_pose         = _SI_HeadPose(f[0:3], f[3:6], f[6:9])
+        eye_ray           = _SI_EyeRay(f[9:12], f[12:15])
+        hands             = f[15:].reshape((-1, 9))
+        hands_orientation = hands[:, 0:4]
+        hands_position    = hands[:, 4:7]
+        hands_radius      = hands[:, 7]
+        hands_accuracy    = hands[:, 8].view(np.int32)
+        hand_left         = _SI_HandPose(hands_orientation[:SI_HandJointKind.TOTAL, :], hands_position[:SI_HandJointKind.TOTAL, :], hands_radius[:SI_HandJointKind.TOTAL], hands_accuracy[:SI_HandJointKind.TOTAL])
+        hand_right        = _SI_HandPose(hands_orientation[SI_HandJointKind.TOTAL:, :], hands_position[SI_HandJointKind.TOTAL:, :], hands_radius[SI_HandJointKind.TOTAL:], hands_accuracy[SI_HandJointKind.TOTAL:])
+        head_pose_valid   = (valid & 0x01) != 0
+        eye_ray_valid     = (valid & 0x02) != 0
+        hand_left_valid   = (valid & 0x04) != 0
+        hand_right_valid  = (valid & 0x08) != 0
 
-    def get_joint_pose(self, joint):
-        begin = joint * _Mode0Layout_SI_Hand.BYTE_COUNT
-        end = begin + _Mode0Layout_SI_Hand.BYTE_COUNT
-        data = self._data[begin:end]
-
-        orientation = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_ORIENTATION : _Mode0Layout_SI_Hand.END_ORIENTATION], dtype=np.float32)
-        position    = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_POSITION    : _Mode0Layout_SI_Hand.END_POSITION],    dtype=np.float32)
-        radius      = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_RADIUS      : _Mode0Layout_SI_Hand.END_RADIUS],      dtype=np.float32)
-        accuracy    = np.frombuffer(data[_Mode0Layout_SI_Hand.BEGIN_ACCURACY    : _Mode0Layout_SI_Hand.END_ACCURACY],    dtype=np.int32)
-
-        return _SI_HandJointPose(orientation, position, radius, accuracy)
-
-
-class unpack_si:
-    def __init__(self, payload):
-        self._data = payload
-        self._valid = np.frombuffer(payload[_Mode0Layout_SI.BEGIN_VALID : _Mode0Layout_SI.END_VALID], dtype=np.uint32)
-
-    def is_valid_head_pose(self):
-        return (self._valid & _SI_Field.HEAD) != 0
-
-    def is_valid_eye_ray(self):
-        return (self._valid & _SI_Field.EYE) != 0
-
-    def is_valid_hand_left(self):
-        return (self._valid & _SI_Field.LEFT) != 0
-
-    def is_valid_hand_right(self):
-        return (self._valid & _SI_Field.RIGHT) != 0
-
-    def get_head_pose(self):
-        position = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_POSITION : _Mode0Layout_SI.END_HEAD_POSITION], dtype=np.float32)
-        forward  = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_FORWARD  : _Mode0Layout_SI.END_HEAD_FORWARD],  dtype=np.float32)
-        up       = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_HEAD_UP       : _Mode0Layout_SI.END_HEAD_UP],       dtype=np.float32)
-
-        return _SI_HeadPose(position, forward, up)
-
-    def get_eye_ray(self):
-        origin    = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_EYE_ORIGIN    : _Mode0Layout_SI.END_EYE_ORIGIN],    dtype=np.float32)
-        direction = np.frombuffer(self._data[_Mode0Layout_SI.BEGIN_EYE_DIRECTION : _Mode0Layout_SI.END_EYE_DIRECTION], dtype=np.float32)
-
-        return _SI_EyeRay(origin, direction)
-
-    def get_hand_left(self):
-        return _SI_Hand(self._data[_Mode0Layout_SI.BEGIN_HAND_LEFT : _Mode0Layout_SI.END_HAND_LEFT])
-
-    def get_hand_right(self):
-        return _SI_Hand(self._data[_Mode0Layout_SI.BEGIN_HAND_RIGHT : _Mode0Layout_SI.END_HAND_RIGHT])
+        return _SI_Frame(head_pose, eye_ray, hand_left, hand_right, head_pose_valid, eye_ray_valid, hand_left_valid, hand_right_valid)
 
 
 #------------------------------------------------------------------------------
@@ -1674,7 +1619,22 @@ class rx_decoded_microphone(rx_microphone):
         super().close()
 
 
-# SI
+class rx_decoded_si(rx_si):
+    def __init__(self, host, port, chunk):
+        super().__init__(host, port, chunk)
+
+    def open(self):
+        self._codec = decode_si()
+        super().open()
+
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
+        return data
+    
+    def close(self):
+        super().close()
 
 
 class rx_decoded_eet(rx_eet):
