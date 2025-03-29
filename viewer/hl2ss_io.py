@@ -716,35 +716,3 @@ class _rd_decoded(_rd):
 def create_rd(filename, chunk, decoded):
     return _rd_decoded(filename, chunk, decoded) if (decoded) else _rd(filename, chunk)
 
-
-#------------------------------------------------------------------------------
-# Sequencer
-#------------------------------------------------------------------------------
-
-class sequencer:
-    def __init__(self, filename, chunk, decoded):
-        self.filename = filename
-        self.chunk = chunk
-        self.decoded = decoded
-
-    def open(self):
-        self._rd = create_rd(self.filename, self.chunk, self.decoded)
-        self._rd.open()
-        self._l = self._rd.get_next_packet()
-        self._r = self._rd.get_next_packet()
-
-    def get_next_packet(self, timestamp):
-        if ((self._l is None) or (self._r is None)):
-            return None
-        if (timestamp < self._l.timestamp):
-            return None
-        while (timestamp > self._r.timestamp):
-            self._l = self._r
-            self._r = self._rd.get_next_packet()
-            if (self._r is None):
-                return None
-        return self._l if ((timestamp - self._l.timestamp) < (self._r.timestamp - timestamp)) else self._r
-    
-    def close(self):
-        self._rd.close()
-
