@@ -196,6 +196,22 @@ def rm_depth_to_rgb(image):
 # PV
 #------------------------------------------------------------------------------
 
+def pv_create_intrinsics(focal_length, principal_point):
+    return np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
+
+
+def pv_create_intrinsics_placeholder():
+    return np.eye(4, 4, dtype=np.float32)
+
+
+def pv_update_intrinsics(intrinsics, focal_length, principal_point):
+    intrinsics[0, 0] = -focal_length[0]
+    intrinsics[1, 1] =  focal_length[1]
+    intrinsics[2, 0] = principal_point[0]
+    intrinsics[2, 1] = principal_point[1]
+    return intrinsics
+
+
 def pv_fix_calibration(intrinsics, extrinsics):
     R = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=extrinsics.dtype)
     intrinsics[0, 0] = -intrinsics[0, 0]
