@@ -156,7 +156,7 @@ def rx_extended_audio(host, port, chunk=hl2ss.ChunkSize.EXTENDED_AUDIO, mixer_mo
     return hl2ss.rx_decoded_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level) if (decoded) else hl2ss.rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
 
 
-def rx_extended_depth(host, port, chunk=hl2ss.ChunkSize.EXTENDED_DEPTH, mode=hl2ss.StreamMode.MODE_0, divisor=1, profile_z=hl2ss.DepthProfile.ZDEPTH, media_index=0xFFFFFFFF, stride_mask=0x3F, decoded=True):
+def rx_extended_depth(host, port, chunk=hl2ss.ChunkSize.EXTENDED_DEPTH, mode=hl2ss.StreamMode.MODE_1, divisor=1, profile_z=hl2ss.DepthProfile.ZDEPTH, media_index=0xFFFFFFFF, stride_mask=0x3F, decoded=True):
     options = dict()
     options[hl2ss.H26xEncoderProperty.HL2SSAPI_VideoMediaIndex] = media_index
     options[hl2ss.H26xEncoderProperty.HL2SSAPI_VideoStrideMask] = stride_mask
