@@ -62,20 +62,18 @@ class _unpacker:
     def unpack(self):
         length = len(self._buffer)
 
-        while (True):
-            if (self._state == 0):
-                if (length >= 8):
-                    self._box_l = struct.unpack('>I', self._buffer[0:4])[0]
-                    self._box_t = self._buffer[4:8].decode()
-                    self._state = 1
-                    continue
-            elif (self._state == 1):
-                if (length >= self._box_l):
-                    self._box_d  = self._buffer[8:self._box_l]
-                    self._buffer = self._buffer[self._box_l:]
-                    self._state  = 0
-                    return True
-            return False
+        if ((self._state == 0) and (length >= 8)):
+            self._box_l  = struct.unpack('>I', self._buffer[0:4])[0]
+            self._box_t  = self._buffer[4:8].decode()
+            self._state  = 1
+
+        if ((self._state == 1) and (length >= self._box_l)):
+            self._box_d  = self._buffer[8:self._box_l]
+            self._buffer = self._buffer[self._box_l:]
+            self._state  = 0
+            return True
+        
+        return False
         
     def get(self):
         return _box(self._box_l, self._box_t, self._box_d)
@@ -114,9 +112,11 @@ def _compute_timestamp(ct, et, tb):
 
 
 class _gatherer:
-    def open(self, host, port, user, password, chunk_size, configuration):
-        self._client = _client()
+    def __init__(self):
+        self._client   = _client()
         self._unpacker = _unpacker()
+
+    def open(self, host, port, user, password, chunk_size, configuration):
         self._state = 0
         self._unpacker.reset()
         self._client.open(host, port, user, password, chunk_size, configuration)
@@ -130,7 +130,7 @@ class _gatherer:
         self._audio_et = 0
         self._video_init = None
 
-    def get_next_packet(self):
+    def get_next_packet(self, wait=True):
         packets = []
         while (True):
             self._unpacker.extend(self._client.recv())
@@ -219,7 +219,7 @@ class _gatherer:
                                     self._audio_et += span
                                 offset += size
                         self._state = 1
-            if (len(packets) > 0):
+            if ((len(packets) > 0) or (not wait)):
                 return packets
     
     def close(self):
@@ -273,9 +273,12 @@ class rx_mrc(hl2ss._context_manager):
         self._buffer = collections.deque()
         self._client = _connect_client_mrc(self.host, self.port, self.user, self.password, self.chunk, self.configuration)
 
-    def get_next_packet(self):
+    def get_next_packet(self, wait=True):
         if (len(self._buffer) <= 0):
-            self._buffer.extend(self._client.get_next_packet())
+            packets = self._client.get_next_packet(wait)
+            if (len(packets) <= 0):
+                return None
+            self._buffer.extend(packets)
         return self._buffer.popleft()
 
     def close(self):
@@ -288,26 +291,26 @@ class rx_mrc(hl2ss._context_manager):
 
 class _MRC_Frame:
     def __init__(self, kind, sample, key_frame):
-        self.kind = kind
-        self.sample = sample
+        self.kind      = kind
+        self.sample    = sample
         self.key_frame = key_frame
 
 
-def unpack_mrc(payload):
-    flag = struct.unpack('B', payload[0:1])[0]
-    data = payload[1:]
-    kind = flag & 3
-    keyf = (flag & 0x04) != 0
-    return _MRC_Frame(kind, data, keyf)
-
-
 class decode_mrc:
-    def create(self):
+    def __init__(self):
         self._video_codec = hl2ss.get_video_codec(hl2ss.VideoProfile.H264_MAIN)
         self._audio_codec = hl2ss.get_audio_codec(hl2ss.AudioProfile.AAC_24000)
 
-    def decode(self, payload, kind, format):
-        return self._video_codec.decode(payload).to_ndarray(format=format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(payload).to_ndarray() if (kind == StreamKind.AUDIO) else None
+    def decode(self, payload, format):
+        header = payload[:1]
+        data   = payload[1:]
+
+        flags     = struct.unpack('B', header)[0]
+        kind      = flags & 3
+        key_frame = (flags & 0x04) != 0
+        sample    = self._video_codec.decode(data).to_ndarray(format=format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(data).to_ndarray() if (kind == StreamKind.AUDIO) else None
+
+        return _MRC_Frame(kind, sample, key_frame)
 
 
 #------------------------------------------------------------------------------
@@ -318,16 +321,15 @@ class rx_decoded_mrc(rx_mrc):
     def __init__(self, host, port, user, password, chunk, configuration, format):
         super().__init__(host, port, user, password, chunk, configuration)
         self.format = format
-        self._codec = decode_mrc()
-
+        
     def open(self):
-        self._codec.create()
+        self._codec = decode_mrc()
         super().open()
 
-    def get_next_packet(self):
-        data = super().get_next_packet()
-        data.payload = unpack_mrc(data.payload)
-        data.payload.sample = self._codec.decode(data.payload.sample, data.payload.kind, self.format)
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload, self.format)
         return data
 
     def close(self):
