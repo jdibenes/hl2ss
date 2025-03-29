@@ -96,7 +96,6 @@ class sm_manager:
         for index, mesh in self._ipc.get_meshes(tasks).items():
             if (mesh is None):
                 continue
-            mesh.unpack(self._vpf, self._tif, self._vnf)
             hl2ss_3dcv.sm_mesh_cast(mesh, np.float64, np.uint32, np.float64)
             hl2ss_3dcv.sm_mesh_normalize(mesh)
             rcs = o3d.t.geometry.RaycastingScene()
@@ -273,12 +272,9 @@ class su_manager:
         task.pack()
 
         result = self._ipc.query(task)
-        result.unpack()
 
         for item in result.items:
-            item.unpack()
             for mesh in item.meshes:
-                mesh.unpack()
                 hl2ss_3dcv.su_normalize(mesh, item.location @ result.pose)
             self._items[item.id.hex()] = item
 
