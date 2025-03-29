@@ -1211,6 +1211,15 @@ class decode_rm_imu:
         return _RM_IMU_Frame(count, vinyl_hup_ticks, patch_soc_ticks, x, y, z, temperature)
 
 
+def rm_imu_get_batch_size(port):
+    if (port == StreamPort.RM_IMU_ACCELEROMETER):
+        return Parameters_RM_IMU_ACCELEROMETER.BATCH_SIZE
+    if (port == StreamPort.RM_IMU_GYROSCOPE):
+        return Parameters_RM_IMU_GYROSCOPE.BATCH_SIZE
+    if (port == StreamPort.RM_IMU_MAGNETOMETER):
+        return Parameters_RM_IMU_MAGNETOMETER.BATCH_SIZE
+
+
 #------------------------------------------------------------------------------
 # PV Decoder
 #------------------------------------------------------------------------------
@@ -1317,6 +1326,20 @@ class decode_microphone:
     
     def decode(self, payload):
         return self._codec.decode(payload)
+
+
+def microphone_planar_to_packed(array):
+    data = np.zeros((1, array.size), dtype=array.dtype)
+    data[0, 0::2] = array[0, :]
+    data[0, 1::2] = array[1, :]
+    return data
+
+
+def microphone_packed_to_planar(array):
+    data = np.zeros((2, array.size // 2), dtype=array.dtype)
+    data[0, :] = array[0, 0::2]
+    data[1, :] = array[0, 1::2]
+    return data
 
 
 #------------------------------------------------------------------------------
