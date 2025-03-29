@@ -31,7 +31,7 @@ def get_video_codec_default_options(width, height, framerate, divisor, profile):
     return options
 
 
-def get_mrc_configuration(pv=True, holo=False, mic=True, loopback=False, RenderFromCamera=True, vstab=False, vstabbuffer=15):
+def get_dp_mrc_configuration(pv=True, holo=False, mic=True, loopback=False, RenderFromCamera=True, vstab=False, vstabbuffer=15):
     return hl2ss_dp.create_configuration_for_mrc(pv, holo, mic, loopback, RenderFromCamera, vstab, vstabbuffer)
 
 
@@ -164,9 +164,9 @@ def rx_extended_depth(host, port, chunk=hl2ss.ChunkSize.EXTENDED_DEPTH, mode=hl2
     return hl2ss.rx_decoded_extended_depth(host, port, chunk, mode, divisor, profile_z, options) if (decoded) else hl2ss.rx_extended_depth(host, port, chunk, mode, divisor, profile_z, options)
 
 
-def rx_mrc(host, port, user, password, chunk=hl2ss_dp.ChunkSize.MRC, configuration=None, decoded_format='bgr24'):
+def rx_dp_mrc(host, port, user, password, chunk=hl2ss_dp.ChunkSize.MRC, configuration=None, decoded_format='bgr24'):
     if (configuration is None):
-        configuration = get_mrc_configuration()
+        configuration = get_dp_mrc_configuration()
 
     return hl2ss_dp.rx_decoded_mrc(host, port, user, password, chunk, configuration, decoded_format) if (decoded_format) else hl2ss_dp.rx_mrc(host, port, user, password, chunk, configuration)
 
