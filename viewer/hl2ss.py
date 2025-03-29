@@ -434,11 +434,12 @@ class _gatherer:
         self._client.sendall(data)
 
     def get_next_packet(self, wait=True):
-        while (wait or self._client.poll()):
-            self._unpacker.extend(self._client.recv(self._chunk_size))
+        while (True):
             if (self._unpacker.unpack()):
                 return self._unpacker.get()
-        return None
+            if ((not wait) and (not self._client.poll())):
+                return None
+            self._unpacker.extend(self._client.recv(self._chunk_size))
 
     def close(self):
         self._client.close()
