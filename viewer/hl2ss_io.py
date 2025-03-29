@@ -439,7 +439,7 @@ class _reader:
         return self.get('<BB')
     
     def get_configuration_for_png_encoding(self):
-        return self.get('<B')
+        return self.get('<I')
     
     def get_configuration_for_h26x_encoding(self):
         count = self.get('<B')[0]
