@@ -448,7 +448,6 @@ class _gatherer:
 # Stream Configuration
 #------------------------------------------------------------------------------
 
-
 def _create_configuration_for_mode(mode):
     return struct.pack('<B', mode)
 
