@@ -577,7 +577,7 @@ class _rd(hl2ss._context_manager):
         hl2ss.StreamPort.EXTENDED_EYE_TRACKER : (__load_eet,),
         hl2ss.StreamPort.EXTENDED_AUDIO       : (__load_extended_audio,),
         hl2ss.StreamPort.EXTENDED_VIDEO       : (__load_pv,),
-        hl2ss.StreamPort.EXTENDED_DEPTH       : (__load_extended_depth),
+        hl2ss.StreamPort.EXTENDED_DEPTH       : (__load_extended_depth,),
     }
 
     def __build(self):
@@ -628,7 +628,7 @@ class _rd_decoded(_rd):
         self._codec = hl2ss.decode_si()
 
     def __set_codec_eet(self):
-        self._code = hl2ss.decode_eet()
+        self._codec = hl2ss.decode_eet()
 
     def __set_codec_extended_audio(self):
         self._codec = hl2ss.decode_microphone(self.profile, None)
