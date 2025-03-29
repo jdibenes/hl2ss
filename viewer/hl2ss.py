@@ -291,6 +291,8 @@ class Parameters_SI:
 # Time base for all timestamps
 class TimeBase:
     HUNDREDS_OF_NANOSECONDS = 10*1000*1000
+    FILETIME_EPOCH = 0
+    UNIX_EPOCH = 116444736000000000
 
 
 #------------------------------------------------------------------------------
@@ -2803,4 +2805,32 @@ class ipc_gmq(_context_manager):
     
     def close(self):
         self._client.close()
+
+
+#------------------------------------------------------------------------------
+# Timestamps
+#------------------------------------------------------------------------------
+
+def ts_qpc_to_filetime(timestamp, utc_offset):
+    return timestamp + utc_offset
+
+
+def ts_filetime_to_unix_hns(timestamp_filetime):
+    return timestamp_filetime - TimeBase.UNIX_EPOCH
+
+
+def ts_unix_hns_to_unix(timestamp_unix_hns):
+    return timestamp_unix_hns / TimeBase.HUNDREDS_OF_NANOSECONDS
+
+
+def ts_unix_to_unix_hns(timestamp_unix):
+    return timestamp_unix * TimeBase.HUNDREDS_OF_NANOSECONDS
+
+
+def ts_unix_hns_to_filetime(timestamp_unix_hns):
+    return timestamp_unix_hns + TimeBase.UNIX_EPOCH
+
+
+def ts_filetime_to_qpc(timestamp_filetime, utc_offset):
+    return timestamp_filetime - utc_offset
 
