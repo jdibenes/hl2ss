@@ -220,6 +220,37 @@ def pv_fix_calibration(intrinsics, extrinsics):
 
 
 #------------------------------------------------------------------------------
+# SI
+#------------------------------------------------------------------------------
+
+def si_head_pose_rotation_matrix(up, forward):
+    y = up
+    z = -forward
+    x = np.cross(y, z)
+    return np.hstack((x, y, z)).reshape((3, 3)).transpose()
+
+
+def si_ray_to_vector(origin, direction):
+    return np.vstack((origin, direction)).reshape((-1, 6))
+
+
+def si_ray_get_origin(ray):
+    return ray[:, 0:3]
+
+
+def si_ray_get_direction(ray):
+    return ray[:, 3:6]
+
+
+def si_ray_transform(ray, transform4x4):
+    return np.hstack((transform(ray[:, 0:3], transform4x4), orient(ray[:, 3:6], transform4x4)))
+
+
+def si_ray_to_point(ray, d):
+    return (ray[:, 0:3] + d * ray[:, 3:6]).reshape((-1, 3))
+
+
+#------------------------------------------------------------------------------
 # SM
 #------------------------------------------------------------------------------
 
