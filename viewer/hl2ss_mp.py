@@ -4,18 +4,19 @@ import multiprocessing as mp
 
 class TimePreference:
     PREFER_NEAREST = 0
-    PREFER_PAST = 1
-    PREFER_FUTURE = 2
+    PREFER_PAST    = 1
+    PREFER_FUTURE  = 2
 
 
 #------------------------------------------------------------------------------
 # Buffer
 #------------------------------------------------------------------------------
 
-class _RingBuffer:
-    """Implements a ring-buffer with the different processing after it becomes full.
+class RingBuffer:
+    '''
+    Implements a ring-buffer with the different processing after it becomes full.
     Idea: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch05s19.html
-    """
+    '''
 
     def __init__(self, size_max = 64):
         self.max = size_max
@@ -67,7 +68,7 @@ def _get_packet_interval(data, timestamp, l, r):
     return (l, r)
 
 
-def _get_nearest_packet(data, timestamp, time_preference, tiebreak_right):
+def get_nearest_packet(data, timestamp, time_preference, tiebreak_right):
     n = len(data)
 
     if (n <= 0):
@@ -195,7 +196,7 @@ class _interconnect(mp.Process):
         timestamp = sink_dout.get()
         options = sink_dout.get()
         buffer = self._buffer.get()
-        index = _get_nearest_packet(buffer, timestamp, options & 3, (options & 4) != 0)
+        index = get_nearest_packet(buffer, timestamp, options & 3, (options & 4) != 0)
         response = (None, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index])
         sink_din.put(response[0])
         sink_din.put(response[1])
@@ -264,7 +265,7 @@ class _interconnect(mp.Process):
             self._sink.pop(key)
 
     def run(self):
-        self._buffer = _RingBuffer(self._buffer_size)
+        self._buffer = RingBuffer(self._buffer_size)
         self._frame_stamp = -1
         self._sink = dict()
         self._key = 0
