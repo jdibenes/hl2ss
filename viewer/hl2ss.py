@@ -1175,7 +1175,7 @@ class decode_rm_depth_longthrow:
 
 
 #------------------------------------------------------------------------------
-# RM IMU Unpacker
+# RM IMU Decoder
 #------------------------------------------------------------------------------
 
 class _RM_IMU_Frame:
@@ -1343,7 +1343,7 @@ def microphone_packed_to_planar(array):
 
 
 #------------------------------------------------------------------------------
-# SI Unpacker
+# SI Decoder
 #------------------------------------------------------------------------------
 
 class SI_HandJointKind:
@@ -1434,8 +1434,43 @@ class decode_si:
         return _SI_Frame(head_pose, eye_ray, hand_left, hand_right, head_pose_valid, eye_ray_valid, hand_left_valid, hand_right_valid)
 
 
+class _SI_JointName:
+    OF = [
+        'Palm',
+        'Wrist',
+        'ThumbMetacarpal',
+        'ThumbProximal',
+        'ThumbDistal',
+        'ThumbTip',
+        'IndexMetacarpal',
+        'IndexProximal',
+        'IndexIntermediate',
+        'IndexDistal',
+        'IndexTip',
+        'MiddleMetacarpal',
+        'MiddleProximal',
+        'MiddleIntermediate',
+        'MiddleDistal',
+        'MiddleTip',
+        'RingMetacarpal',
+        'RingProximal',
+        'RingIntermediate',
+        'RingDistal',
+        'RingTip',
+        'LittleMetacarpal',
+        'LittleProximal',
+        'LittleIntermediate',
+        'LittleDistal',
+        'LittleTip',
+    ]
+
+
+def si_get_joint_name(joint_kind):
+    return _SI_JointName.OF[joint_kind]
+
+
 #------------------------------------------------------------------------------
-# EET Unpacker
+# EET Decoder
 #------------------------------------------------------------------------------
 
 class _EET_Frame:
