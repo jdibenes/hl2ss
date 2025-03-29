@@ -1,4 +1,5 @@
 
+import weakref
 import collections
 import requests
 import struct
@@ -31,12 +32,14 @@ class _client:
         if (self._response.status_code != 200):
             self._response.close()
             self._response.raise_for_status()
+        self._f = weakref.finalize(self, lambda r : r.close(), self._response)
         self._iterator = self._response.iter_content(chunk_size)
 
     def recv(self):
         return next(self._iterator)
 
     def close(self):
+        self._f.detach()
         self._response.close()
 
 
