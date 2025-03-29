@@ -124,8 +124,8 @@ def rx_rm_depth_longthrow(host, port, chunk=hl2ss.ChunkSize.RM_DEPTH_LONGTHROW, 
     return hl2ss.rx_decoded_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter) if (decoded) else hl2ss.rx_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter)
 
 
-def rx_rm_imu(host, port, chunk=hl2ss.ChunkSize.RM_IMU, mode=hl2ss.StreamMode.MODE_1):
-    return hl2ss.rx_rm_imu(host, port, chunk, mode)
+def rx_rm_imu(host, port, chunk=hl2ss.ChunkSize.RM_IMU, mode=hl2ss.StreamMode.MODE_1, decoded=True):
+    return hl2ss.rx_decoded_rm_imu(host, port, chunk, mode) if (decoded) else hl2ss.rx_rm_imu(host, port, chunk, mode)
 
 
 def rx_pv(host, port, chunk=hl2ss.ChunkSize.PERSONAL_VIDEO, mode=hl2ss.StreamMode.MODE_1, width=1920, height=1080, framerate=30, divisor=1, profile=hl2ss.VideoProfile.H265_MAIN, level=hl2ss.H26xLevel.DEFAULT, bitrate=None, options=None, decoded_format='bgr24'):
@@ -144,12 +144,12 @@ def rx_microphone(host, port, chunk=hl2ss.ChunkSize.MICROPHONE, profile=hl2ss.Au
     return hl2ss.rx_decoded_microphone(host, port, chunk, profile, level) if (decoded) else hl2ss.rx_microphone(host, port, chunk, profile, level)
 
 
-def rx_si(host, port, chunk=hl2ss.ChunkSize.SPATIAL_INPUT):
-    return hl2ss.rx_si(host, port, chunk)
+def rx_si(host, port, chunk=hl2ss.ChunkSize.SPATIAL_INPUT, decoded=True):
+    return hl2ss.rx_decoded_si(host, port, chunk) if (decoded) else hl2ss.rx_si(host, port, chunk)
 
 
-def rx_eet(host, port, chunk=hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps=30):
-    return hl2ss.rx_eet(host, port, chunk, fps)
+def rx_eet(host, port, chunk=hl2ss.ChunkSize.EXTENDED_EYE_TRACKER, fps=30, decoded=True):
+    return hl2ss.rx_decoded_eet(host, port, chunk, fps) if (decoded) else hl2ss.rx_eet(host, port, chunk, fps)
 
 
 def rx_extended_audio(host, port, chunk=hl2ss.ChunkSize.EXTENDED_AUDIO, mixer_mode=hl2ss.MixerMode.BOTH, loopback_gain=1.0, microphone_gain=1.0, profile=hl2ss.AudioProfile.AAC_24000, level=hl2ss.AACLevel.L2, decoded=True):
