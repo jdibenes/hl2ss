@@ -613,7 +613,7 @@ class _rd_decoded(_rd):
         self._codec = hl2ss.decode_rm_depth_ahat(self.profile_z, self.profile_ab)
 
     def __set_codec_rm_depth_longthrow(self):
-        self._codec = hl2ss.decode_rm_depth_longthrow()
+        self._codec = hl2ss.decode_rm_depth_longthrow(self.png_filter)
 
     def __set_codec_rm_imu(self):
         self._codec = hl2ss.decode_rm_imu()
