@@ -4,6 +4,7 @@
 #include "server_settings.h"
 #include "encoder_ea.h"
 #include "timestamp.h"
+#include "types.h"
 
 #include <winrt/Windows.Media.Capture.Frames.h>
 
@@ -18,8 +19,8 @@ private:
     void Run();
     void Cleanup();
 
-    void Execute_Mode0();
-    void Execute_Mode2();
+    void Execute_Mode0(ExtendedAudio_Control const& control, AACFormat& format);
+    void Execute_Mode2(MRCAudioOptions const& options, ExtendedAudio_Control const& control);
 
     void OnFrameArrived(MediaFrameReference const& frame);
     void OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
@@ -76,9 +77,9 @@ void Channel_EA::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 cl
 }
 
 // OK
-void Channel_EA::Execute_Mode2()
+void Channel_EA::Execute_Mode2(MRCAudioOptions const& options, ExtendedAudio_Control const& control)
 {
-    winrt::hstring query = ExtendedAudio_QueryDevices();
+    winrt::hstring query = ExtendedAudio_QueryDevices(options, control);
     WSABUF wsaBuf[2];    
 
     uint32_t bytes = query.size() * sizeof(wchar_t);
@@ -90,21 +91,27 @@ void Channel_EA::Execute_Mode2()
 }
 
 // OK
-void Channel_EA::Execute_Mode0()
+void Channel_EA::Execute_Mode0(ExtendedAudio_Control const& control, AACFormat& format)
 {
-    AACFormat format;
     AudioSubtype subtype;
     uint32_t channels;
-    bool ok;
+    uint32_t samplerate;
 
-    Encoder_EA::SetAACFormat(format);
+    ExtendedAudio_GetCurrentFormat(subtype, channels, samplerate);
 
-    ok = ReceiveAACFormat_Profile(m_socket_client, m_event_client, format);
-    if (!ok) { return; }
+    if (control.enable_passthrough)
+    {
+    format.samplerate = static_cast<uint16_t>(samplerate);
+    format.channels   = static_cast<uint8_t>(channels);
+    subtype           = AudioSubtype::AudioSubtype_S16;
+    }
+    else
+    {
+    format.samplerate = 48000;
+    format.channels   = 2;
+    }
 
-    ExtendedAudio_GetCurrentFormat(subtype, channels);
-
-    m_pEncoder = std::make_unique<Encoder_EA>(Thunk_Encoder, this, subtype, format, channels);
+    m_pEncoder = std::make_unique<Encoder_EA>(Thunk_Encoder, this, subtype, format, channels, control.enable_passthrough);
 
     ExtendedAudio_ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
 
@@ -127,23 +134,59 @@ bool Channel_EA::Startup()
 // OK
 void Channel_EA::Run()
 {
-    MRCAudioOptions options;    
+    MRCAudioOptions options;
+    AACFormat format;
+    ExtendedAudio_Control control;
     bool ok;
 
     ok = ReceiveMRCAudioOptions(m_socket_client, m_event_client, options);
     if (!ok) { return; }
 
-    if ((options.mixer_mode & 3) == 3)
+    ok = ReceiveAACFormat_Profile(m_socket_client, m_event_client, format);
+    if (!ok) { return; }
+
+    if (format.profile == AACProfile::AACProfile_None)
     {
-    Execute_Mode2();
+    control.enable_passthrough = bit_test( format.level, 7);
+    }
+    else
+    {
+    control.enable_passthrough = false;
+    }
+
+    control.query              = bit_field(options.mixer_mode,  0, 3) == 3;
+    control.device_index       = bit_field(options.mixer_mode,  2, 0x3FF);
+
+    if (control.enable_passthrough)
+    {
+    control.source_index       = bit_field(options.mixer_mode, 12, 0x3FF);
+    control.format_index       = bit_field(options.mixer_mode, 22, 0x3FF);
+    control.media_category     = bit_field(format.level, 0, 0x07);
+    control.shared             = bit_test( format.level, 3);
+    control.audio_raw          = bit_test( format.level, 5);
+    control.disable_effect     = bit_test( format.level, 6);
+    }
+    else
+    {
+    control.source_index       = ~0UL; // X
+    control.format_index       = ~0UL; // X
+    control.media_category     = 2;
+    control.shared             = true;
+    control.audio_raw          = false;
+    control.disable_effect     = false;
+    }
+
+    if (control.query)
+    {
+    Execute_Mode2(options, control);
     return;
     }
 
-    ExtendedAudio_Open(options);
+    ExtendedAudio_Open(options, control);
 
     if (!ExtendedAudio_Status()) { return; }
 
-    Execute_Mode0();
+    Execute_Mode0(control, format);
 
     ExtendedAudio_Close();
 }

@@ -22,6 +22,7 @@ struct EA_AudioTransform
 class Encoder_EA : public CustomEncoder
 {
 private:
+    bool m_passthrough;
     EA_CAST_KERNEL m_kernel_cast;
     EA_WIDE_KERNEL m_kernel_wide;
     uint32_t m_sample_bytes;
@@ -39,9 +40,7 @@ private:
     static EA_AudioTransform GetTransform(AudioSubtype subtype, uint32_t channels);
 
 public:
-    Encoder_EA(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, AudioSubtype subtype, AACFormat const& format, uint32_t channels);
+    Encoder_EA(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, AudioSubtype subtype, AACFormat const& format, uint32_t channels, bool passthrough);
 
     void WriteSample(winrt::Windows::Media::Capture::Frames::MediaFrameReference const& frame);
-
-    static void SetAACFormat(AACFormat& format);
 };

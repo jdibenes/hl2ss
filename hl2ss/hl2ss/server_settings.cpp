@@ -41,6 +41,8 @@ bool ReceiveAACFormat_Profile(SOCKET socket, HANDLE event_error, AACFormat& form
     default:                           return false;
     }
 
+    if (format.profile != AACProfile::AACProfile_None)
+    {
     switch (format.level)
     {
     case AACLevel::AACLevel_L2:     break;
@@ -54,6 +56,7 @@ bool ReceiveAACFormat_Profile(SOCKET socket, HANDLE event_error, AACFormat& form
     case AACLevel::AACLevel_HEv2L4: break;
     case AACLevel::AACLevel_HEv2L5: break;
     default:                        return false;
+    }
     }
 
     return true;
