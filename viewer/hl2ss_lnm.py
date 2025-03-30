@@ -195,8 +195,8 @@ def download_calibration_pv(host, port, width, height, framerate):
     return hl2ss.download_calibration_pv(host, port, width, height, framerate)
 
 
-def download_devicelist_extended_audio(host, port):
-    return hl2ss.download_devicelist_extended_audio(host, port)
+def download_devicelist_extended_audio(host, port, profile, level):
+    return hl2ss.download_devicelist_extended_audio(host, port, profile, level)
 
 
 def download_devicelist_extended_video(host, port):
