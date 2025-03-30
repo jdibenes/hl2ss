@@ -575,9 +575,19 @@ def _create_configuration_for_pv_mode2(mode, width, height, framerate):
     return bytes(configuration)
 
 
-def extended_audio_device_mixer_mode(mixer_mode, device):
-    DEVICE_BASE = 0x00000004
-    return mixer_mode | (DEVICE_BASE * (device + 1))
+def extended_audio_device_mixer_mode(mixer_mode, device_index, source_index, format_index):
+    return mixer_mode | (((device_index + 1) & 0x3FF) << 2) | ((source_index & 0x3FF) << 12) | ((format_index & 0x3FF) << 22)
+
+
+def extended_audio_raw_configuration(media_category, shared, audio_raw, disable_effect, enable_passthrough):
+    b0_2 = media_category & 7
+    b3_3 = 1 if (shared) else 0
+    b4_4 = 0
+    b5_5 = 1 if (audio_raw) else 0
+    b6_6 = 1 if (disable_effect) else 0
+    b7_7 = 1 if (enable_passthrough) else 0
+
+    return (b7_7 << 7) | (b6_6 << 6) | (b5_5 << 5) | (b4_4 << 4) | (b3_3 << 3) | b0_2
 
 
 #------------------------------------------------------------------------------
@@ -1958,10 +1968,10 @@ def download_calibration_pv(host, port, width, height, framerate):
     return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics, intrinsics_mf, extrinsics_mf)
 
 
-def download_devicelist_extended_audio(host, port):
+def download_devicelist_extended_audio(host, port, profile, level):
     c = _client()
     c.open(host, port)
-    c.sendall(_create_configuration_for_mrc_audio(MixerMode.QUERY, 1.0, 1.0))
+    c.sendall(_create_configuration_for_extended_audio(MixerMode.QUERY, 1.0, 1.0, profile, level))
     size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
     query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
     c.close()
