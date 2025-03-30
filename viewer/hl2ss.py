@@ -1179,17 +1179,37 @@ class decode_rm_depth_ahat:
         return _RM_Depth_Frame(depth, ab, sensor_ticks)
 
 
+class _decode_rm_depth_longthrow_png:
+    def decode(self, payload):
+        composite = cv2.imdecode(np.frombuffer(payload, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+        h, w, _   = composite.shape
+        image     = composite.view(np.uint16).reshape((-1, w))
+        depth     = image[:h, :]
+        ab        = image[h:, :]
+
+        return depth, ab
+
+
+class _decode_rm_depth_lonthrow_raw:
+    _Z = 0
+    _I = Parameters_RM_DEPTH_LONGTHROW.PIXELS * _SIZEOF.WORD
+
+    def decode(self, payload):
+        depth = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_lonthrow_raw._Z, count=Parameters_RM_DEPTH_LONGTHROW.PIXELS).reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+        ab    = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_lonthrow_raw._I, count=Parameters_RM_DEPTH_LONGTHROW.PIXELS).reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+        
+        return depth, ab
+
+
 class decode_rm_depth_longthrow:
+    def __init__(self, profile):
+        self._codec = _decode_rm_depth_lonthrow_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_longthrow_png()
+
     def decode(self, payload):
         data     = payload[:-8]
         metadata = payload[-8:]
 
-        composite = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-        h, w, _   = composite.shape
-        image     = composite.view(np.uint16).reshape((-1, w))
-
-        depth        = image[:h, :]
-        ab           = image[h:, :]
+        depth, ab    = self._codec.decode(data)
         sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0, count=1)
 
         return _RM_Depth_Frame(depth, ab, sensor_ticks)
@@ -1292,7 +1312,10 @@ class _decode_pv_raw:
     }
 
     def decode(self, payload, width, height, format):
-        image = np.frombuffer(payload, dtype=np.uint8).reshape(((height * 3) // 2, -1))[:, :width]
+        image = np.frombuffer(payload, dtype=np.uint8)
+        if (format == 'any'):
+            return image
+        image = image.reshape(((height * 3) // 2, -1))[:, :width]
         sf = _decode_pv_raw._cv2_nv12_format[format]
         return image if (sf is None) else cv2.cvtColor(image, sf)
 
@@ -1551,7 +1574,7 @@ class _decode_extended_audio_aac:
 
 class _decode_extended_audio_raw:
     def __init__(self, level):
-        self.dtype = np.int8 if (level & 0x80) else np.int16
+        self.dtype = np.int8 if ((level & 0x80) != 0) else np.int16
 
     def decode(self, payload):
         return np.frombuffer(payload, dtype=self.dtype).reshape((1, -1))
@@ -1647,7 +1670,7 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
         super().__init__(host, port, chunk, mode, divisor, png_filter)
 
     def open(self):
-        self._codec = decode_rm_depth_longthrow()
+        self._codec = decode_rm_depth_longthrow(self.png_filter)
         super().open()
 
     def get_next_packet(self, wait=True):
