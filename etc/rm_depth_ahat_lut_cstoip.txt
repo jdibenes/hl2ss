@@ -1,0 +1,4 @@
+ul_offs = [                                       74.7644692,                                         74.7644692]
+br_offs = [hl2ss.Parameters_RM_DEPTH_AHAT.WIDTH - 72.6025239, hl2ss.Parameters_RM_DEPTH_AHAT.HEIGHT - 72.6025239]
+ur_offs = [hl2ss.Parameters_RM_DEPTH_AHAT.WIDTH - 72.3758584,                                         72.3758584]
+bl_offs = [                                       74.9979134, hl2ss.Parameters_RM_DEPTH_AHAT.HEIGHT - 74.9979134]
