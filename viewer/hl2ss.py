@@ -1529,6 +1529,34 @@ class decode_eet:
 
 
 #------------------------------------------------------------------------------
+# Extended Audio Decoder
+#------------------------------------------------------------------------------
+
+class _decode_extended_audio_aac:
+    def __init__(self, profile):
+        self._codec = get_audio_codec(profile)
+
+    def decode(self, payload):
+        return self._codec.decode(payload).to_ndarray()
+
+
+class _decode_extended_audio_raw:
+    def __init__(self, level):
+        self.dtype = np.int8 if (level & 0x80) else np.int16
+
+    def decode(self, payload):
+        return np.frombuffer(payload, dtype=self.dtype).reshape((1, -1))
+
+
+class decode_extended_audio:
+    def __init__(self, profile, level):
+        self._codec = _decode_extended_audio_raw(level) if (profile == AudioProfile.RAW) else _decode_extended_audio_aac(profile)
+    
+    def decode(self, payload):
+        return self._codec.decode(payload)
+
+
+#------------------------------------------------------------------------------
 # Extended Depth Decoder
 #------------------------------------------------------------------------------
 
@@ -1719,7 +1747,7 @@ class rx_decoded_extended_audio(rx_extended_audio):
         super().__init__(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
     
     def open(self):
-        self._codec = decode_microphone(self.profile, None)
+        self._codec = decode_extended_audio(self.profile, self.level)
         super().open()
 
     def get_next_packet(self, wait=True):
