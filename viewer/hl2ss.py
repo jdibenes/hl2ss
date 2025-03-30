@@ -220,6 +220,15 @@ class MixerMode:
     QUERY      = 3
 
 
+# Media Category
+class MediaCategory:
+    Other = 0
+    Communications = 1
+    Media = 2
+    GameChat = 3
+    Speech = 4
+
+
 # RM VLC Parameters
 class Parameters_RM_VLC:
     WIDTH  = 640
