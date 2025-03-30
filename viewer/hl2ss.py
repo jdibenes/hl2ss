@@ -2853,6 +2853,12 @@ class ipc_umq(_context_manager):
 # Guest Message Queue
 #------------------------------------------------------------------------------
 
+class _gmq_message:
+    def __init__(self, id, data):
+        self.id   = id
+        self.data = data
+
+
 class ipc_gmq(_context_manager):
     _CMD_NONE = _RANGEOF.U32_MAX
 
@@ -2868,7 +2874,7 @@ class ipc_gmq(_context_manager):
         self._client.sendall(struct.pack('<I', ipc_gmq._CMD_NONE))
         header = struct.unpack('<II', self._client.download(_SIZEOF.DWORD * 2, ChunkSize.SINGLE_TRANSFER))
         data = self._client.download(header[1], ChunkSize.SINGLE_TRANSFER) if (header[1] > 0) else b''
-        return (header[0], data) if (header[0] != ipc_gmq._CMD_NONE) else None
+        return _gmq_message(header[0], data) if (header[0] != ipc_gmq._CMD_NONE) else None
     
     def push(self, response):
         self._client.sendall(struct.pack('<I', response))
