@@ -631,7 +631,7 @@ class _rd_decoded(_rd):
         self._codec = hl2ss.decode_eet()
 
     def __set_codec_extended_audio(self):
-        self._codec = hl2ss.decode_microphone(self.profile, None)
+        self._codec = hl2ss.decode_extended_audio(self.profile, self.level)
 
     def __set_codec_extended_depth(self):
         self._codec = hl2ss.decode_extended_depth(self.profile_z)
