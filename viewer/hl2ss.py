@@ -2900,7 +2900,7 @@ def ts_unix_hns_to_unix(timestamp_unix_hns):
 
 
 def ts_unix_to_unix_hns(timestamp_unix):
-    return timestamp_unix * TimeBase.HUNDREDS_OF_NANOSECONDS
+    return int(timestamp_unix * TimeBase.HUNDREDS_OF_NANOSECONDS)
 
 
 def ts_unix_hns_to_filetime(timestamp_unix_hns):
