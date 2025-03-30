@@ -28,8 +28,8 @@ while (True):
 
 client.close() # Disconnect
 
-command_id     = msg[0] # Command id (uint32) user defined (0xFFFFFFFF reserved)
-command_params = msg[1] # Command params (bytes) user defined
+command_id     = msg.id   # Command id (uint32) user defined (0xFFFFFFFF reserved)
+command_params = msg.data # Command params (bytes) user defined
 
 if (command_id == 0xFFFFFFFE):
     # Debug message
