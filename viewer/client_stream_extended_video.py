@@ -69,6 +69,16 @@ bitrate = None
 # 'bgra'
 # 'rgba'
 # 'gray8'
+# If profile is hl2ss.VideoProfile.RAW then these conversions are only 
+# supported if the video Subtype is NV12
+# For other Subtypes, the user has to cast the image to the appropriate shape
+# and type before converting to the desired format
+# Example: 
+# For RAW video profile and YUY2 Subtype, convert YUY2 to BGR using OpenCV
+#     decoded_format = 'any'
+#     ...
+#     data.payload.image = data.payload.image.reshape((data.payload.resolution[1], data.payload.resolution[0], 2))
+#     data.payload.image = cv2.cvtColor(data.payload.image, cv2.COLOR_YUV2BGR_YUY2)
 decoded_format = 'bgr24'
 
 #------------------------------------------------------------------------------
