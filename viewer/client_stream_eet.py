@@ -35,7 +35,7 @@ client.open()
 
 while (enable):
     data = client.get_next_packet()
-    eet = hl2ss.unpack_eet(data.payload)
+    eet = data.payload
 
     # See
     # https://learn.microsoft.com/en-us/windows/mixed-reality/develop/native/extended-eye-tracking-native
