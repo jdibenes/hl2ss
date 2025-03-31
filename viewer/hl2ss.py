@@ -2792,6 +2792,7 @@ class ipc_vi(_context_manager):
             command.extend(struct.pack('<H', len(encoded)))
             command.extend(encoded)
         self._client.sendall(command)
+        self._strings = strings
 
     def pop(self):
         command = struct.pack('<B', ipc_vi._CMD_POP)
@@ -2804,6 +2805,11 @@ class ipc_vi(_context_manager):
     def stop(self):
         command = struct.pack('<B', ipc_vi._CMD_STOP)
         self._client.sendall(command)
+
+    def translate(self, index):
+        if ((index >= 0) and (index < len(self._strings))):
+            return self._strings[index]
+        return None
 
     def close(self):
         self._client.close()
