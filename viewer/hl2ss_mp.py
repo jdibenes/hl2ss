@@ -68,7 +68,7 @@ def _get_packet_interval(data, timestamp, l, r):
     return (l, r)
 
 
-def get_nearest_packet(data, timestamp, time_preference, tiebreak_right):
+def get_nearest_packet(data, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
     n = len(data)
 
     if (n <= 0):
