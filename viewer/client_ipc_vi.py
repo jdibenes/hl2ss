@@ -48,7 +48,6 @@ print('Ready. Try saying any of the commands you defined.')
 while (enable):
     events = client.pop()
     for event in events:
-        event.unpack()
         # See
         # https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition.speechrecognitionresult?view=winrt-22621
         # for result details
