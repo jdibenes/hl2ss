@@ -287,7 +287,7 @@ print(f'Set quiet mode : {quiet_mode}')
 # Set interface thread priority
 for port, priority in interface_priority.items():
     client.ee_set_interface_priority(port, priority)
-    print(f'Set interface {port} priority : {priority}')
+    print(f'Set interface {hl2ss.get_port_name(port)} priority : {priority}')
 
 client.si_set_sampling_delay(si_sampling_delay) # Set Spatial Input sampling delay
 print(f'Set SI sampling delay : {si_sampling_delay}')
