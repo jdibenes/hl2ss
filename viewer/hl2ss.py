@@ -1372,17 +1372,17 @@ class decode_microphone:
         return self._codec.decode(payload)
 
 
-def microphone_planar_to_packed(array):
+def microphone_planar_to_packed(array, channels):
     data = np.zeros((1, array.size), dtype=array.dtype)
-    data[0, 0::2] = array[0, :]
-    data[0, 1::2] = array[1, :]
+    for i in range(0, channels):
+        data[0, i::channels] = array[i, :]
     return data
 
 
-def microphone_packed_to_planar(array):
-    data = np.zeros((2, array.size // 2), dtype=array.dtype)
-    data[0, :] = array[0, 0::2]
-    data[1, :] = array[0, 1::2]
+def microphone_packed_to_planar(array, channels):
+    data = np.zeros((channels, array.size // channels), dtype=array.dtype)
+    for i in range(0, channels):
+        data[i, :] = array[0, i::channels]
     return data
 
 
