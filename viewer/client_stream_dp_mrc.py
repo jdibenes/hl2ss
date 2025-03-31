@@ -81,7 +81,7 @@ while (not listener.pressed()):
         video_buffer.append(data)
         frames = video_buffer.get()
         if (sync_to_audio):
-            index = hl2ss_mp.get_nearest_packet(frames, player.get_timestamp(), hl2ss_mp.TimePreference.PREFER_PAST, False)
+            index = hl2ss_mp.get_nearest_packet(frames, player.get_timestamp(), hl2ss_mp.TimePreference.PREFER_PAST)
         else:
             index = -1
         if (index is not None):
