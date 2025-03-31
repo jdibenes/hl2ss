@@ -34,23 +34,16 @@ audio_planar      = False
 audio_channels    = 1 # audio_player only supports 1 or 2 channels
 audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 
-enable = True
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
-
-player = hl2ss_utilities.audio_player()
-player.open(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
+player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
+player.open()
 
 client = hl2ss_lnm.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, profile=hl2ss.AudioProfile.RAW, level=hl2ss.AACLevel.L5)
 client.open()
 
-while (enable): 
+while (not listener.pressed()): 
     data = client.get_next_packet()
     # Extract channel to play
     data.payload = data.payload[:, channel::hl2ss.Parameters_MICROPHONE.ARRAY_CHANNELS]
@@ -58,4 +51,4 @@ while (enable):
 
 client.close()
 player.close()
-listener.join()
+listener.close()
