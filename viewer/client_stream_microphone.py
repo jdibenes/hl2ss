@@ -8,12 +8,10 @@
 
 from pynput import keyboard
 
+import numpy as np
 import hl2ss
 import hl2ss_lnm
 import hl2ss_utilities
-import pyaudio
-import queue
-import threading
 
 # Settings --------------------------------------------------------------------
 
@@ -25,44 +23,31 @@ profile = hl2ss.AudioProfile.AAC_24000
 
 #------------------------------------------------------------------------------
 
-# RAW format is s16 packed, AAC decoded format is f32 planar
-audio_format = pyaudio.paInt16 if (profile == hl2ss.AudioProfile.RAW) else pyaudio.paFloat32
-enable = True
+audio_subtype     = np.int16 if (profile == hl2ss.AudioProfile.RAW) else np.float32
+audio_planar      = profile != hl2ss.AudioProfile.RAW
+audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
+audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 
-def pcmworker(pcmqueue):
-    global enable
-    global audio_format
-    p = pyaudio.PyAudio()
-    stream = p.open(format=audio_format, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
-    stream.start_stream()
-    while (enable):
-        stream.write(pcmqueue.get())
-    stream.stop_stream()
-    stream.close()
+enable = True
 
 def on_press(key):
     global enable
     enable = key != keyboard.Key.esc
     return enable
 
-pcmqueue = queue.Queue()
-thread = threading.Thread(target=pcmworker, args=(pcmqueue,))
 listener = keyboard.Listener(on_press=on_press)
-thread.start()
 listener.start()
+
+player = hl2ss_utilities.audio_player()
+player.open(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
 
 client = hl2ss_lnm.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, profile=profile)
 client.open()
 
-while (enable): 
+while (enable):
     data = client.get_next_packet()
-    # RAW format is s16 packed, AAC decoded format is f32 planar
-    audio = hl2ss_utilities.microphone_planar_to_packed(data.payload) if (profile != hl2ss.AudioProfile.RAW) else data.payload
-    pcmqueue.put(audio.tobytes())
+    player.put(data)
 
 client.close()
-
-enable = False
-pcmqueue.put(b'')
-thread.join()
+player.close()
 listener.join()
