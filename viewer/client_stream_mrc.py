@@ -7,15 +7,14 @@
 
 from pynput import keyboard
 
+import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_dp
 import hl2ss_lnm
+import hl2ss_mp
 import hl2ss_utilities
-import pyaudio
-import queue
-import threading
 
 # Settings --------------------------------------------------------------------
 
@@ -49,46 +48,46 @@ vstabbuffer = 15 # Video stabilization buffer latency in frames [0, 30]
 
 #------------------------------------------------------------------------------
 
-enable = True
+sync_to_audio = mic or loopback
 
-def pcmworker(pcmqueue):
-    global enable
-    p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paFloat32, channels=hl2ss.Parameters_MICROPHONE.CHANNELS, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
-    stream.start_stream()
-    while (enable):
-        stream.write(pcmqueue.get())
-    stream.stop_stream()
-    stream.close()
+audio_subtype     = np.float32
+audio_planar      = True
+audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
+audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
-pcmqueue = queue.Queue()
-thread = threading.Thread(target=pcmworker, args=(pcmqueue,))
-listener = keyboard.Listener(on_press=on_press)
-thread.start()
-listener.start()
+video_buffer = hl2ss_mp.RingBuffer(30 * 10)
 
-configuration = hl2ss_dp.create_configuration_for_mrc(pv, holo, mic, loopback, render_from_camera, vstab, vstabbuffer)
+player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
+player.open()
 
-client = hl2ss_lnm.rx_mrc(host, port, user, password, configuration=configuration, decoded_format=decoded_format)
+configuration = hl2ss_lnm.get_dp_mrc_configuration(pv, holo, mic, loopback, render_from_camera, vstab, vstabbuffer)
+
+client = hl2ss_lnm.rx_dp_mrc(host, port, user, password, configuration=configuration, decoded_format=decoded_format)
 client.open()
 
-while (enable):
+cv2.namedWindow('Video')
+
+while (not listener.pressed()):
     data = client.get_next_packet()
+
     if (data.payload.kind == hl2ss_dp.StreamKind.AUDIO):
         print(f'got audio packet at {data.timestamp}')
-        audio = hl2ss_utilities.microphone_planar_to_packed(data.payload.sample)
-        pcmqueue.put(audio.tobytes())
+        player.put(data.timestamp, data.payload.sample)
     elif (data.payload.kind == hl2ss_dp.StreamKind.VIDEO):
         print(f'got video packet at {data.timestamp} (key_frame={data.payload.key_frame})')
-        cv2.imshow('video', data.payload.sample)
+        video_buffer.append(data)
+        frames = video_buffer.get()
+        if (sync_to_audio):
+            index = hl2ss_mp.get_nearest_packet(frames, player.get_timestamp(), hl2ss_mp.TimePreference.PREFER_PAST, False)
+        else:
+            index = -1
+        if (index is not None):
+            cv2.imshow('Video', frames[index].payload.sample)
         cv2.waitKey(1)
 
 client.close()
-pcmqueue.put(b'')
-thread.join()
-listener.join()
+player.close()
+listener.close()
