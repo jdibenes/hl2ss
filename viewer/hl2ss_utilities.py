@@ -20,6 +20,9 @@ import hl2ss_io
 import hl2ss_3dcv
 
 
+#------------------------------------------------------------------------------
+# Key Listener
+#------------------------------------------------------------------------------
 
 class key_listener:
     def __init__(self, key):
@@ -128,13 +131,6 @@ class wr_process_producer(mp.Process):
         self._wr.close()
         self._sink.detach()
         self.on_close()
-
-
-#------------------------------------------------------------------------------
-# RM IMU
-#------------------------------------------------------------------------------
-
-
 
 
 #------------------------------------------------------------------------------
@@ -270,7 +266,7 @@ def _create_csv_header_for_rm_imu_sample(index):
 
 def _create_csv_header_for_rm_imu_payload(port):
     header = []
-    for i in range(0, rm_imu_get_batch_size(port)):
+    for i in range(0, hl2ss.rm_imu_get_batch_size(port)):
         header.extend(_create_csv_header_for_rm_imu_sample(i))
     return header
 
@@ -288,7 +284,7 @@ def _create_csv_header_for_si_eye_ray():
 
 
 def _create_csv_header_for_si_hand_joint(hand_name, joint_kind):
-    joint_name = si_get_joint_name(joint_kind)
+    joint_name = hl2ss.si_get_joint_name(joint_kind)
     return [f'{hand_name} {joint_name} position {u}' for u in ['x', 'y', 'z']] + [f'{hand_name} {joint_name} orientation {u}' for u in ['x', 'y', 'z', 'w']] + [f'{hand_name} {joint_name} radius'] + [f'{hand_name} {joint_name} accuracy']
 
 
