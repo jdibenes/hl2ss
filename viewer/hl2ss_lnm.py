@@ -31,7 +31,7 @@ def get_video_codec_default_options(width, height, framerate, divisor, profile):
     return options
 
 
-def get_dp_mrc_configuration(pv=True, holo=False, mic=True, loopback=False, RenderFromCamera=True, vstab=False, vstabbuffer=15):
+def create_configuration_for_dp_mrc(pv=True, holo=False, mic=True, loopback=False, RenderFromCamera=True, vstab=False, vstabbuffer=15):
     return hl2ss_dp.create_configuration_for_mrc(pv, holo, mic, loopback, RenderFromCamera, vstab, vstabbuffer)
 
 
@@ -166,7 +166,7 @@ def rx_extended_depth(host, port, chunk=hl2ss.ChunkSize.EXTENDED_DEPTH, mode=hl2
 
 def rx_dp_mrc(host, port, user, password, chunk=hl2ss_dp.ChunkSize.MRC, configuration=None, decoded_format='bgr24'):
     if (configuration is None):
-        configuration = get_dp_mrc_configuration()
+        configuration = create_configuration_for_dp_mrc()
 
     return hl2ss_dp.rx_decoded_mrc(host, port, user, password, chunk, configuration, decoded_format) if (decoded_format) else hl2ss_dp.rx_mrc(host, port, user, password, chunk, configuration)
 
