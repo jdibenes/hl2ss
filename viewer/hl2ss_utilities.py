@@ -1,4 +1,6 @@
 
+from pynput import keyboard
+
 import multiprocessing as mp
 import types
 import io
@@ -16,6 +18,28 @@ import hl2ss_mp
 import hl2ss_lnm
 import hl2ss_io
 import hl2ss_3dcv
+
+
+
+class key_listener:
+    def __init__(self, key):
+        self._key = key
+
+    def _on_press(self, key):
+        self._pressed = key == self._key
+        return not self._pressed
+
+    def open(self):
+        self._pressed = False
+        self._listener = keyboard.Listener(on_press=types.MethodType(key_listener._on_press, self))
+        self._listener.start()
+
+    def pressed(self):
+        return self._pressed
+
+    def close(self):
+        self._pressed = True
+        self._listener.join()
 
 
 #------------------------------------------------------------------------------
@@ -118,24 +142,30 @@ class wr_process_producer(mp.Process):
 #------------------------------------------------------------------------------
 
 class audio_player:
-    def open(self, subtype, planar, channels, sample_rate):
-        self._subtype     = subtype
-        self._planar      = planar
-        self._channels    = channels
-        self._sample_rate = sample_rate
+    def __init__(self, subtype, planar, channels, sample_rate):
+        self.subtype     = subtype
+        self.planar      = planar
+        self.channels    = channels
+        self.sample_rate = sample_rate
+
+    def open(self):
+        self._subtype     = self.subtype
+        self._planar      = self.planar
+        self._channels    = self.channels
+        self._sample_rate = self.sample_rate
         self._fade_in     = 0.0
 
         self._pcm_queue        = queue.Queue()
-        self._pcm_audio_buffer = np.empty((1, 0), dtype=subtype)
+        self._pcm_audio_buffer = np.empty((1, 0), dtype=self.subtype)
         self._pcm_ts_buffer    = np.empty((1, 0), dtype=np.int64)
         self._presentation_clk = 0
 
-        self._audio_format = pyaudio.paFloat32 if (subtype == np.float32) else pyaudio.paInt16 if (subtype == np.int16) else None
+        self._audio_format = pyaudio.paFloat32 if (self.subtype == np.float32) else pyaudio.paInt16 if (self.subtype == np.int16) else None
         self._p            = pyaudio.PyAudio()
-        self._stream       = self._p.open(format=self._audio_format, channels=channels, rate=sample_rate, output=True, stream_callback=types.MethodType(audio_player._pcm_callback, self))
+        self._stream       = self._p.open(format=self._audio_format, channels=self.channels, rate=self.sample_rate, output=True, stream_callback=types.MethodType(audio_player._pcm_callback, self))
 
-    def put(self, data):
-        self._pcm_queue.put(data)
+    def put(self, timestamp, samples):
+        self._pcm_queue.put((timestamp, samples))
 
     def get_timestamp(self):
         return self._presentation_clk
@@ -148,10 +178,13 @@ class audio_player:
 
             if (pcm_data is None):
                 return (b'', pyaudio.paAbort)
+            
+            pcm_timestamp = pcm_data[0]
+            pcm_payload   = pcm_data[1]
 
-            pcm_samples    = hl2ss.microphone_planar_to_packed(pcm_data.payload, self._channels) if (self._planar) else pcm_data.payload
+            pcm_samples    = hl2ss.microphone_planar_to_packed(hl2ss.microphone_packed_to_planar(hl2ss.microphone_planar_to_packed(pcm_payload, self._channels), self._channels), self._channels) if (self._planar) else pcm_payload
             pcm_group_size = pcm_samples.size // self._channels
-            pcm_ts         = (pcm_data.timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * ((pcm_group_size * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // self._sample_rate))).reshape((1, -1))
+            pcm_ts         = (pcm_timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * ((pcm_group_size * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // self._sample_rate))).reshape((1, -1))
             
             self._pcm_audio_buffer = np.hstack((self._pcm_audio_buffer, pcm_samples))
             self._pcm_ts_buffer    = np.hstack((self._pcm_ts_buffer,    pcm_ts))
@@ -162,12 +195,11 @@ class audio_player:
 
         out_samples = self._pcm_audio_buffer[:, 0:samples] if (gain >= 1.0) else np.zeros((1, samples), dtype=self._subtype)
 
-        out_data               = out_samples.tobytes() #self._pcm_audio_buffer[:, 0:samples].tobytes()
         self._presentation_clk = self._pcm_ts_buffer[0, 0]
         self._pcm_audio_buffer = self._pcm_audio_buffer[:, samples:]
         self._pcm_ts_buffer    = self._pcm_ts_buffer[:, frame_count:]
 
-        return (out_data, pyaudio.paContinue)
+        return (out_samples.tobytes(), pyaudio.paContinue)
         
     def close(self):
         self._pcm_queue.put(None)
