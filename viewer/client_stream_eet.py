@@ -27,7 +27,7 @@ listener.open()
 client = hl2ss_lnm.rx_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, fps=fps)
 client.open()
 
-while (not listener.key_pressed()):
+while (not listener.pressed()):
     data = client.get_next_packet()
 
     eet = data.payload
