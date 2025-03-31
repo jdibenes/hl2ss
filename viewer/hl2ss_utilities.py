@@ -123,6 +123,7 @@ class audio_player:
         self._planar      = planar
         self._channels    = channels
         self._sample_rate = sample_rate
+        self._fade_in     = 0.0
 
         self._pcm_queue        = queue.Queue()
         self._pcm_audio_buffer = np.empty((1, 0), dtype=subtype)
@@ -155,7 +156,13 @@ class audio_player:
             self._pcm_audio_buffer = np.hstack((self._pcm_audio_buffer, pcm_samples))
             self._pcm_ts_buffer    = np.hstack((self._pcm_ts_buffer,    pcm_ts))
 
-        out_data               = self._pcm_audio_buffer[:, 0:samples].tobytes()
+        gain = self._fade_in
+        if (self._fade_in < 1.0):
+            self._fade_in += frame_count / (1 * self._sample_rate)
+
+        out_samples = self._pcm_audio_buffer[:, 0:samples] if (gain >= 1.0) else np.zeros((1, samples), dtype=self._subtype)
+
+        out_data               = out_samples.tobytes() #self._pcm_audio_buffer[:, 0:samples].tobytes()
         self._presentation_clk = self._pcm_ts_buffer[0, 0]
         self._pcm_audio_buffer = self._pcm_audio_buffer[:, samples:]
         self._pcm_ts_buffer    = self._pcm_ts_buffer[:, frame_count:]
