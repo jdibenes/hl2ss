@@ -11,6 +11,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -31,7 +32,7 @@ mode = hl2ss.StreamMode.MODE_1
 group_index   = 0
 source_index  = 0
 profile_index = 0
-media_index   = 13 # 640x360 @ 60 FPS 
+media_index   = 13 # 13: 640x360 @ 60 FPS 
 
 # Depth Encoding
 profile_z = hl2ss.DepthProfile.ZDEPTH
@@ -43,22 +44,15 @@ max_depth = 8192
 
 hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH, global_opacity=group_index, output_width=source_index, output_height=profile_index)
 
-enable = True
-
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
 client = hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, mode=mode, profile_z=profile_z, media_index=media_index)
 client.open()
 
 max_uint8 = 255
 
-while (enable):
+while (not listener.pressed()):
     data = client.get_next_packet()
 
     print(f'Frame captured at {data.timestamp} with resolution {data.payload.resolution}')
@@ -71,6 +65,6 @@ while (enable):
     cv2.waitKey(1)
 
 client.close()
-listener.join()
+listener.close()
 
 hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH)
