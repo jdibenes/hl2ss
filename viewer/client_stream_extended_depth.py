@@ -17,14 +17,27 @@ import hl2ss_lnm
 # HoloLens address
 host = "192.168.1.7"
 
-# Camera selection
-group_index = 0
-source_index = 0
-profile_index = 0
-media_index = 15
+# Operating mode
+# 0: video
+# 1: video + rignode pose
+mode = hl2ss.StreamMode.MODE_1
 
-# Encoding
+# Camera selection
+# Use the Extended Video device list (see client_stream_extended_video.py) to
+# find the group index, source_index, and profile_index of your depth camera
+# For RealSense D435i, use source_index = 0, profile_index = 0, and select
+# media_index from
+# https://github.com/jdibenes/hl2ss/blob/main/etc/ez_realsense_d435i.txt
+group_index   = 0
+source_index  = 0
+profile_index = 0
+media_index   = 13 # 640x360 @ 60 FPS 
+
+# Depth Encoding
 profile_z = hl2ss.DepthProfile.ZDEPTH
+
+# Maximum depth (depends on your RGBD camera)
+max_depth = 8192 
 
 #------------------------------------------------------------------------------
 
@@ -40,16 +53,17 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, profile_z=profile_z, media_index=media_index)
+client = hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, mode=mode, profile_z=profile_z, media_index=media_index)
 client.open()
 
-max_depth = 8192 # Depends on your RGBD camera
 max_uint8 = 255
 
 while (enable):
     data = client.get_next_packet()
 
-    print(f'Frame captured at {data.timestamp} with resolution {data.payload.width}x{data.payload.height}')
+    print(f'Frame captured at {data.timestamp} with resolution {data.payload.resolution}')
+    print(f'Pose')
+    print(data.pose)
 
     depth = data.payload.depth
 
