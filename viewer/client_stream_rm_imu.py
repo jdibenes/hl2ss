@@ -52,18 +52,28 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
+expected_count = hl2ss.rm_imu_get_batch_size(port)
+
 client = hl2ss_lnm.rx_rm_imu(host, port, mode=mode)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
 
-    imu_data = hl2ss.unpack_rm_imu(data.payload)
-    count = imu_data.get_count()
-    sample = imu_data.get_frame(0)
-    
-    print(f'Got {count} samples at time {data.timestamp}')
-    print(f'First sample: sensor_ticks={sample.vinyl_hup_ticks} soc_ticks={sample.soc_ticks} x={sample.x} y={sample.y} z={sample.z} temperature={sample.temperature}')
+    imu = data.payload
+
+    count        = imu.count
+    sensor_ticks = imu.vinyl_hup_ticks
+    soc_ticks    = imu.soc_ticks
+    x            = imu.x
+    y            = imu.y
+    z            = imu.z
+    temperature  = imu.temperature
+
+    print(f'Got {count}/{expected_count} samples at time {data.timestamp}')
+    print(f'First sample: sensor_ticks={sensor_ticks[ 0]} soc_ticks={soc_ticks[ 0]} x={x[ 0]} y={y[ 0]} z={z[ 0]} temperature={temperature[ 0]}')
+    print(f'...')
+    print(f'Last  sample: sensor_ticks={sensor_ticks[-1]} soc_ticks={soc_ticks[-1]} x={x[-1]} y={y[-1]} z={z[-1]} temperature={temperature[-1]}')
     print(f'Pose')
     print(data.pose)
 
