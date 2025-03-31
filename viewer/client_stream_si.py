@@ -8,6 +8,7 @@ from pynput import keyboard
 
 import hl2ss
 import hl2ss_lnm
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -19,23 +20,17 @@ hand_joint = hl2ss.SI_HandJointKind.Wrist
 
 #------------------------------------------------------------------------------
 
-enable = True
-
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
 hand_join_name = hl2ss.si_get_joint_name(hand_joint)
 
 client = hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT)
 client.open()
 
-while (enable):
+while (not listener.pressed()):
     data = client.get_next_packet()
+
     si = data.payload
 
     print(f'Tracking status at time {data.timestamp}')
@@ -79,4 +74,4 @@ while (enable):
         print('No right hand data')
 
 client.close()
-listener.join()
+listener.close()
