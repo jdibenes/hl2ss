@@ -12,6 +12,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -51,20 +52,14 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.intrinsics)
     quit()
 
-enable = True
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
 client = hl2ss_lnm.rx_rm_vlc(host, port, mode=mode, profile=profile, bitrate=bitrate)
 client.open()
 
-while (enable):
+while (not listener.pressed()):
     data = client.get_next_packet()
 
     print(f'Frame captured at {data.timestamp}')
@@ -78,4 +73,4 @@ while (enable):
     cv2.waitKey(1)
 
 client.close()
-listener.join()
+listener.close()
