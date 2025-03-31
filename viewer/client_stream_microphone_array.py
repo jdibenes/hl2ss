@@ -47,7 +47,7 @@ while (not listener.pressed()):
     data = client.get_next_packet()
     # Extract channel to play
     data.payload = data.payload[:, channel::hl2ss.Parameters_MICROPHONE.ARRAY_CHANNELS]
-    player.put(data)
+    player.put(data.timestamp, data.payload)
 
 client.close()
 player.close()
