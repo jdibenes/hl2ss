@@ -33,7 +33,7 @@ client.open()
 client.start(strings)
 print('Ready. Try saying any of the commands you defined.')
 
-while (not listener.key_pressed()):
+while (not listener.pressed()):
     events = client.pop()
     for event in events:
         # See
