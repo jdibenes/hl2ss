@@ -18,6 +18,7 @@ host = "192.168.1.7"
 
 # Operating mode
 # 0: video
+# 1: video + rignode pose
 # 2: query devices (single transfer)
 # Mode 2 as default since the user has to find their camera in the device list
 mode = hl2ss.StreamMode.MODE_2
@@ -57,9 +58,9 @@ width     = 1280
 height    = 720
 framerate = 30
 
-# Framerate denominator (must be > 0)
-# Effective FPS is framerate / divisor
-divisor = 1 
+# Video encoding profile and bitrate (None = default)
+profile = hl2ss.VideoProfile.H265_MAIN
+bitrate = None
 
 # Decoded format
 # Options include:
@@ -90,13 +91,15 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, mode=mode, width=width, height=height, framerate=framerate, divisor=divisor, decoded_format=decoded_format)
+client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, mode=mode, width=width, height=height, framerate=framerate, profile=profile, bitrate=bitrate, decoded_format=decoded_format)
 client.open()
 
 while (enable):
     data = client.get_next_packet()
 
     print(f'Frame captured at {data.timestamp} with resolution {data.payload.resolution}')
+    print(f'Pose')
+    print(data.pose)
 
     cv2.imshow('Video', data.payload.image)
     cv2.waitKey(1)
