@@ -114,7 +114,6 @@ else:
     audio_channels    = audio_passthrough_channels
     audio_sample_rate = audio_passthrough_sample_rate
 
-
 listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
 listener.open()
 
