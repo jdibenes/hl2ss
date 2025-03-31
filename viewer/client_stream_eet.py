@@ -8,6 +8,7 @@ from pynput import keyboard
 
 import hl2ss
 import hl2ss_lnm
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -20,21 +21,15 @@ fps = 90
 
 #------------------------------------------------------------------------------
 
-enable = True
-
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
 client = hl2ss_lnm.rx_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, fps=fps)
 client.open()
 
-while (enable):
+while (not listener.key_pressed()):
     data = client.get_next_packet()
+
     eet = data.payload
 
     # See
@@ -55,4 +50,4 @@ while (enable):
     print(f'Vergence distance: Valid={eet.vergence_distance_valid} Value={eet.vergence_distance}')
 
 client.close()
-listener.join()
+listener.close()
