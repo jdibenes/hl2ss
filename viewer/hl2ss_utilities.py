@@ -1,5 +1,6 @@
 
 import multiprocessing as mp
+import types
 import io
 import fractions
 import tarfile
@@ -8,6 +9,8 @@ import numpy as np
 import time
 import cv2
 import av
+import queue
+import pyaudio
 import hl2ss
 import hl2ss_mp
 import hl2ss_lnm
@@ -107,31 +110,61 @@ class wr_process_producer(mp.Process):
 # RM IMU
 #------------------------------------------------------------------------------
 
-def rm_imu_get_batch_size(port):
-    if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
-        return hl2ss.Parameters_RM_IMU_ACCELEROMETER.BATCH_SIZE
-    if (port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
-        return hl2ss.Parameters_RM_IMU_GYROSCOPE.BATCH_SIZE
-    if (port == hl2ss.StreamPort.RM_IMU_MAGNETOMETER):
-        return hl2ss.Parameters_RM_IMU_MAGNETOMETER.BATCH_SIZE
+
 
 
 #------------------------------------------------------------------------------
 # Microphone
 #------------------------------------------------------------------------------
 
-def microphone_planar_to_packed(array):
-    data = np.zeros((1, array.size), dtype=array.dtype)
-    data[0, 0::2] = array[0, :]
-    data[0, 1::2] = array[1, :]
-    return data
+class audio_player:
+    def open(self, subtype, planar, channels, sample_rate):
+        self._subtype     = subtype
+        self._planar      = planar
+        self._channels    = channels
+        self._sample_rate = sample_rate
 
+        self._pcm_queue        = queue.Queue()
+        self._pcm_audio_buffer = np.empty((1, 0), dtype=subtype)
+        self._pcm_ts_buffer    = np.empty((1, 0), dtype=np.int64)
+        self._presentation_clk = 0
 
-def microphone_packed_to_planar(array):
-    data = np.zeros((2, array.size // 2), dtype=array.dtype)
-    data[0, :] = array[0, 0::2]
-    data[1, :] = array[0, 1::2]
-    return data
+        self._audio_format = pyaudio.paFloat32 if (subtype == np.float32) else pyaudio.paInt16 if (subtype == np.int16) else None
+        self._p            = pyaudio.PyAudio()
+        self._stream       = self._p.open(format=self._audio_format, channels=channels, rate=sample_rate, output=True, stream_callback=types.MethodType(audio_player._pcm_callback, self))
+
+    def put(self, data):
+        self._pcm_queue.put(data)
+
+    def get_timestamp(self):
+        return self._presentation_clk
+
+    def _pcm_callback(self, in_data, frame_count, time_info, status):
+        samples = self._channels * frame_count
+
+        while (self._pcm_ts_buffer.size < frame_count):
+            pcm_data = self._pcm_queue.get()
+
+            if (pcm_data is None):
+                return (b'', pyaudio.paAbort)
+
+            pcm_samples    = hl2ss.microphone_planar_to_packed(pcm_data.payload, self._channels) if (self._planar) else pcm_data.payload
+            pcm_group_size = pcm_samples.size // self._channels
+            pcm_ts         = (pcm_data.timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * ((pcm_group_size * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // self._sample_rate))).reshape((1, -1))
+            
+            self._pcm_audio_buffer = np.hstack((self._pcm_audio_buffer, pcm_samples))
+            self._pcm_ts_buffer    = np.hstack((self._pcm_ts_buffer,    pcm_ts))
+
+        out_data               = self._pcm_audio_buffer[:, 0:samples].tobytes()
+        self._presentation_clk = self._pcm_ts_buffer[0, 0]
+        self._pcm_audio_buffer = self._pcm_audio_buffer[:, samples:]
+        self._pcm_ts_buffer    = self._pcm_ts_buffer[:, frame_count:]
+
+        return (out_data, pyaudio.paContinue)
+        
+    def close(self):
+        self._pcm_queue.put(None)
+        self._stream.close()
 
 
 class microphone_resampler:
@@ -167,66 +200,6 @@ def si_unpack_hand(hand):
     return _SI_Hand(poses, orientations, positions, radii, accuracies)
 
 
-def si_head_pose_rotation_matrix(up, forward):
-    y = up
-    z = -forward
-    x = np.cross(y, z)
-    return np.hstack((x, y, z)).reshape((3, 3)).transpose()
-
-
-def si_ray_to_vector(origin, direction):
-    return np.vstack((origin, direction)).reshape((-1, 6))
-
-
-def si_ray_get_origin(ray):
-    return ray[:, 0:3]
-
-
-def si_ray_get_direction(ray):
-    return ray[:, 3:6]
-
-
-def si_ray_transform(ray, transform4x4):
-    return np.hstack((hl2ss_3dcv.transform(ray[:, 0:3], transform4x4), hl2ss_3dcv.orient(ray[:, 3:6], transform4x4)))
-
-
-def si_ray_to_point(ray, d):
-    return (ray[:, 0:3] + d * ray[:, 3:6]).reshape((-1, 3))
-
-
-class _SI_JointName:
-    OF = [
-        'Palm',
-        'Wrist',
-        'ThumbMetacarpal',
-        'ThumbProximal',
-        'ThumbDistal',
-        'ThumbTip',
-        'IndexMetacarpal',
-        'IndexProximal',
-        'IndexIntermediate',
-        'IndexDistal',
-        'IndexTip',
-        'MiddleMetacarpal',
-        'MiddleProximal',
-        'MiddleIntermediate',
-        'MiddleDistal',
-        'MiddleTip',
-        'RingMetacarpal',
-        'RingProximal',
-        'RingIntermediate',
-        'RingDistal',
-        'RingTip',
-        'LittleMetacarpal',
-        'LittleProximal',
-        'LittleIntermediate',
-        'LittleDistal',
-        'LittleTip',
-    ]
-
-
-def si_get_joint_name(joint_kind):
-    return _SI_JointName.OF[joint_kind]
 
 
 #------------------------------------------------------------------------------
@@ -384,7 +357,7 @@ def _create_csv_row_for_si_hand(valid, hand):
 
 
 def _create_csv_row_for_si_payload(payload):
-    return _create_csv_row_for_si_head_pose(payload.is_valid_head_pose(), payload.get_head_pose()) + _create_csv_row_for_si_eye_ray(payload.is_valid_eye_ray(), payload.get_eye_ray()) + _create_csv_row_for_si_hand(payload.is_valid_hand_left(), payload.get_hand_left()) + _create_csv_row_for_si_hand(payload.is_valid_hand_right(), payload.get_hand_right())
+    return _create_csv_row_for_si_head_pose(payload.head_pose_valid, payload.head_pose) + _create_csv_row_for_si_eye_ray(payload.eye_ray_valid, payload.eye_ray) + _create_csv_row_for_si_hand(payload.hand_left_valid, payload.hand_left) + _create_csv_row_for_si_hand(payload.hand_right_valid, payload.hand_right)
 
 
 def _create_csv_row_for_eet_calibration(valid):
