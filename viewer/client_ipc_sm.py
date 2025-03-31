@@ -64,8 +64,6 @@ for index, mesh in meshes.items():
         print(f'Task {index}: surface id {id_hex} compute mesh failed')
         continue
 
-    mesh.unpack(vpf, tif, vnf)
-
     # Surface timestamps are given in Windows FILETIME (utc)
     print(f'Task {index}: surface id {id_hex} @ {timestamp} has {mesh.vertex_positions.shape[0]} vertices {mesh.triangle_indices.shape[0]} triangles {mesh.vertex_normals.shape[0]} normals')
 
