@@ -8,6 +8,7 @@ from pynput import keyboard
 
 import hl2ss
 import hl2ss_lnm
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -19,21 +20,8 @@ strings = ['cat', 'dog', 'red', 'blue']
 
 #------------------------------------------------------------------------------
 
-enable = True
-
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-def get_word(strings, index):
-    if ((index < 0) or (index >= len(strings))):
-        return '_UNKNOWN_'
-    else:
-        return strings[index]
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
 client = hl2ss_lnm.ipc_vi(host, hl2ss.IPCPort.VOICE_INPUT)
 client.open()
@@ -45,15 +33,15 @@ client.open()
 client.start(strings)
 print('Ready. Try saying any of the commands you defined.')
 
-while (enable):
+while (not listener.key_pressed()):
     events = client.pop()
     for event in events:
         # See
         # https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition.speechrecognitionresult?view=winrt-22621
         # for result details
-        print(f'Event: Command={get_word(strings, event.index)} Index={event.index} Confidence={event.confidence} Duration={event.phrase_duration} Start={event.phrase_start_time} RawConfidence={event.raw_confidence}')
+        print(f'Event: Command={client.translate(event.index)} Index={event.index} Confidence={event.confidence} Duration={event.phrase_duration} Start={event.phrase_start_time} RawConfidence={event.raw_confidence}')
 
 client.stop()
 client.close()
 
-listener.join()
+listener.close()
