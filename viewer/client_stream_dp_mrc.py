@@ -63,7 +63,7 @@ video_buffer = hl2ss_mp.RingBuffer(30 * 10)
 player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
 player.open()
 
-configuration = hl2ss_lnm.get_dp_mrc_configuration(pv, holo, mic, loopback, render_from_camera, vstab, vstabbuffer)
+configuration = hl2ss_lnm.create_configuration_for_dp_mrc(pv, holo, mic, loopback, render_from_camera, vstab, vstabbuffer)
 
 client = hl2ss_lnm.rx_dp_mrc(host, port, user, password, configuration=configuration, decoded_format=decoded_format)
 client.open()
