@@ -26,10 +26,6 @@ host = "192.168.1.7"
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
 
-# Framerate denominator (must be > 0)
-# Effective framerate is framerate / divisor
-divisor = 1
-
 #------------------------------------------------------------------------------
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -56,7 +52,7 @@ def on_press(key):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
-client = hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, mode=mode, divisor=divisor)
+client = hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, mode=mode)
 client.open()
 
 max_depth = 7500
