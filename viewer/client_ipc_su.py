@@ -78,8 +78,6 @@ client.close()
 
 # Display meshes --------------------------------------------------------------
 
-result.unpack()
-
 print('Extrinsics')
 print(result.extrinsics)
 print('Pose')
@@ -90,7 +88,6 @@ open3d_meshes = []
 collider_meshes = []
 
 for item in result.items:
-    item.unpack()
     print(f'SceneObject ID={item.id.hex()} Kind={item.kind} Orientation={item.orientation} Position={item.position} Alignment={item.alignment} Extents={item.extents}')
     print('Location')
     print(item.location)
@@ -98,7 +95,6 @@ for item in result.items:
     print(f'Collider meshes: {len(item.collider_meshes)}')
 
     for mesh in item.meshes:
-        mesh.unpack()
         hl2ss_3dcv.su_normalize(mesh, item.location @ result.pose)
         open3d_mesh = hl2ss_sa.su_mesh_to_open3d_triangle_mesh(mesh)
         open3d_mesh = hl2ss_sa.open3d_triangle_mesh_swap_winding(open3d_mesh)
