@@ -27,6 +27,10 @@ host = "192.168.1.7"
 # hl2ss.MixerMode.QUERY      (get list of microphones)
 mixer_mode = hl2ss.MixerMode.BOTH
 
+# Gains
+loopback_gain   = 1.0 # 0.0 - 5.0
+microphone_gain = 1.0 # 0.0 - 5.0
+
 # Microphone selection
 # 1. Connect your external USB-C microphone to the HoloLens
 # 2. Call hl2ss_lnm.download_devicelist_extended_audio to obtain a dictionary
@@ -76,8 +80,6 @@ shared             = True
 media_category     = hl2ss.MediaCategory.Media
 audio_raw          = False
 
-level = hl2ss.AACLevel.L2 if (profile != hl2ss.AudioProfile.RAW) else hl2ss.extended_audio_raw_configuration(media_category, shared, audio_raw, disable_effect, enable_passthrough)
-
 # Audio configuration for passthrough
 # Set these to match your microphone format if using
 # profile=hl2ss.AudioProfile.RAW and enable_passthrough=True
@@ -88,10 +90,13 @@ audio_passthrough_sample_rate = None
 
 #------------------------------------------------------------------------------
 
+level = hl2ss.AACLevel.L2 if (profile != hl2ss.AudioProfile.RAW) else hl2ss.extended_audio_raw_configuration(media_category, shared, audio_raw, disable_effect, enable_passthrough)
+
 if (mixer_mode == hl2ss.MixerMode.QUERY):
     audio_devices = json.loads(hl2ss_lnm.download_devicelist_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, profile, level))
     print(json.dumps(audio_devices, indent=2))
     quit()
+
 
 if (profile != hl2ss.AudioProfile.RAW):
     audio_subtype     = np.float32
@@ -109,36 +114,31 @@ else:
     audio_channels    = audio_passthrough_channels
     audio_sample_rate = audio_passthrough_sample_rate
 
-enable = True
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
 # audio_player only supports 1 or 2 channels
-player = hl2ss_utilities.audio_player()
-player.open(audio_subtype, audio_planar, audio_channels if (audio_channels <= 2) else 1, audio_sample_rate)
+player_max_channels = 2
+player_channels = audio_channels if (audio_channels <= player_max_channels) else 1
+player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, player_channels, audio_sample_rate)
+player.open()
 
-client = hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, mixer_mode=hl2ss.extended_audio_device_mixer_mode(mixer_mode, device_index, source_index, format_index), profile=profile, level=level)
+mode = hl2ss.extended_audio_device_mixer_mode(mixer_mode, device_index, source_index, format_index)
+
+client = hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, mixer_mode=mode, loopback_gain=loopback_gain, microphone_gain=microphone_gain, profile=profile, level=level)
 client.open()
 
-while (enable): 
+while (not listener.pressed()): 
     data = client.get_next_packet()
     # Passthrough data is returned as int8 and should be cast to subtype
     if (data.payload.dtype == np.int8):
         data.payload = data.payload.view(audio_subtype)
     # Play first channel for streams with more than 2 channels
-    if (audio_channels > 2):
-        if (audio_planar):
-            data.payload = data.payload[0:1, :]
-        else:
-            data.payload = data.payload[:, 0::audio_channels]
-    player.put(data)
+    if (audio_channels > player_max_channels):
+        data.payload = data.payload[0:1, :] if (audio_planar) else data.payload[:, 0::audio_channels]
+    player.put(data.timestamp, data.payload)
 
 client.close()
 player.close()
-listener.join()
+listener.close()
