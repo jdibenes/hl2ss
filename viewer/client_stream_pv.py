@@ -40,10 +40,6 @@ width     = 1920
 height    = 1080
 framerate = 30
 
-# Framerate denominator (must be > 0)
-# Effective FPS is framerate / divisor
-divisor = 1 
-
 # Video encoding profile and bitrate (None = default)
 profile = hl2ss.VideoProfile.H265_MAIN
 bitrate = None
@@ -87,7 +83,7 @@ else:
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, mode=mode, width=width, height=height, framerate=framerate, divisor=divisor, profile=profile, bitrate=bitrate, decoded_format=decoded_format)
+    client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, mode=mode, width=width, height=height, framerate=framerate, profile=profile, bitrate=bitrate, decoded_format=decoded_format)
     client.open()
 
     while (enable):
@@ -105,6 +101,7 @@ else:
         print(f'ISO Gains: {data.payload.iso_gains}')
         print(f'White Balance Gains: {data.payload.white_balance_gains}')
         print(f'Resolution {data.payload.resolution}')
+        print(f'Internal stride {hl2ss.pv_get_video_stride(data.payload.resolution[0])}')
         print(f'Pose')
         print(data.pose)
 
