@@ -173,51 +173,34 @@ class _interconnect(mp.Process):
         self._interconnect_semaphore.release()
 
     def attach_sink(self, sink_wires):
-        self._interconnect_din.put(_interconnect.IPC_CONTROL_ATTACH)
-        self._interconnect_din.put(sink_wires.sink_din)
-        self._interconnect_din.put(sink_wires.sink_dout)
-        self._interconnect_din.put(sink_wires.sink_semaphore)
+        self._interconnect_din.put((_interconnect.IPC_CONTROL_ATTACH, sink_wires.sink_din, sink_wires.sink_dout, sink_wires.sink_semaphore))
         self._interconnect_semaphore.release()
         
-    def _attach(self):
+    def _attach(self, sink_din, sink_dout, sink_semaphore):
         self._key += 1
-        sink_din = self._interconnect_din.get()
-        sink_dout = self._interconnect_din.get()
-        sink_semaphore = self._interconnect_din.get()
         self._sink[self._key] = (sink_din, sink_dout, sink_semaphore)
-        sink_din.put(self._key)
-        sink_din.put(self._frame_stamp)
+        sink_din.put((self._key, self._frame_stamp))
         
-    def _detach(self, sink_din, sink_dout):
-        key = sink_dout.get()
+    def _detach(self, key):
         self._remove.append(key)
 
-    def _get_nearest(self, sink_din, sink_dout):
-        timestamp = sink_dout.get()
-        options = sink_dout.get()
+    def _get_nearest(self, timestamp, time_preference, tiebreak_right):
         buffer = self._buffer.get()
-        index = get_nearest_packet(buffer, timestamp, options & 3, (options & 4) != 0)
-        response = (None, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index])
-        sink_din.put(response[0])
-        sink_din.put(response[1])
+        index = get_nearest_packet(buffer, timestamp, time_preference, tiebreak_right)
+        return (None, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index])
 
-    def _get_frame_stamp(self, sink_din, sink_dout):
-        sink_din.put(self._frame_stamp)
+    def _get_frame_stamp(self):
+        return self._frame_stamp
 
-    def _get_most_recent_frame(self, sink_din, sink_dout):
-        sink_din.put(self._frame_stamp)
-        sink_din.put(self._buffer.last())
+    def _get_most_recent_frame(self):
+        return self._frame_stamp, self._buffer.last()
 
-    def _get_buffered_frame(self, sink_din, sink_dout):
-        frame_stamp = sink_dout.get()
+    def _get_buffered_frame(self, frame_stamp):
         if (frame_stamp < 0):
             frame_stamp = self._frame_stamp + frame_stamp + 1
         n = self._buffer.length()
         index = n - 1 - self._frame_stamp + frame_stamp
-        response = (-1, None) if (index < 0) else (1, None) if (index >= n) else (0, self._buffer.get()[index])
-        sink_din.put(response[0])
-        sink_din.put(self._frame_stamp - n + 1 + index)
-        sink_din.put(response[1])        
+        return (-1, frame_stamp, None) if (index < 0) else (1, frame_stamp, None) if (index >= n) else (0, frame_stamp, self._buffer.get()[index])
 
     def _process_source(self):
         try:
@@ -236,8 +219,8 @@ class _interconnect(mp.Process):
             message = self._interconnect_din.get_nowait()
         except:
             return
-        if (message == _interconnect.IPC_CONTROL_ATTACH):
-            self._attach()
+        if (message[0] == _interconnect.IPC_CONTROL_ATTACH):
+            self._attach(*message[1:])
         self._interconnect_semaphore.acquire()
 
     def _process_sink_message(self, sink_din, sink_dout):
@@ -245,16 +228,16 @@ class _interconnect(mp.Process):
             message = sink_dout.get_nowait()
         except:
             return
-        if (message == _interconnect.IPC_SINK_DETACH):
-            self._detach(sink_din, sink_dout)
-        elif (message == _interconnect.IPC_SINK_GET_NEAREST):
-            self._get_nearest(sink_din, sink_dout)
-        elif (message == _interconnect.IPC_SINK_GET_FRAME_STAMP):
-            self._get_frame_stamp(sink_din, sink_dout)         
-        elif (message == _interconnect.IPC_SINK_GET_MOST_RECENT_FRAME):
-            self._get_most_recent_frame(sink_din, sink_dout)        
-        elif (message == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
-            self._get_buffered_frame(sink_din, sink_dout)
+        if   (message[0] == _interconnect.IPC_SINK_DETACH):
+            self._detach(*message[1:])
+        elif (message[0] == _interconnect.IPC_SINK_GET_NEAREST):
+            sink_din.put(self._get_nearest(*message[1:]))
+        elif (message[0] == _interconnect.IPC_SINK_GET_FRAME_STAMP):
+            sink_din.put(self._get_frame_stamp())
+        elif (message[0] == _interconnect.IPC_SINK_GET_MOST_RECENT_FRAME):
+            sink_din.put(self._get_most_recent_frame())
+        elif (message[0] == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
+            sink_din.put(self._get_buffered_frame(*message[1:]))
         self._interconnect_semaphore.acquire()
 
     def _process_sink(self):
@@ -311,45 +294,36 @@ class _sink:
         self._sink_semaphore.release()
 
     def get_attach_response(self):
-        self._key = self._sink_din.get()
-        frame_stamp = self._sink_din.get()
+        self._key, frame_stamp = self._sink_din.get()
         return frame_stamp
         
     def detach(self):
-        self._sink_dout.put(_interconnect.IPC_SINK_DETACH)
-        self._sink_dout.put(self._key)
+        self._sink_dout.put((_interconnect.IPC_SINK_DETACH, self._key))
         self._interconnect_semaphore.release()
 
     def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
-        self._sink_dout.put(_interconnect.IPC_SINK_GET_NEAREST)
-        self._sink_dout.put(timestamp)
-        self._sink_dout.put(time_preference + (4 if (tiebreak_right) else 0))
+        self._sink_dout.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right))
         self._interconnect_semaphore.release()
-        frame_stamp = self._sink_din.get()
-        data = self._sink_din.get()
-        return (frame_stamp, data)
+        frame_stamp, data = self._sink_din.get()
+        return frame_stamp, data
 
     def get_frame_stamp(self):
-        self._sink_dout.put(_interconnect.IPC_SINK_GET_FRAME_STAMP)
+        self._sink_dout.put((_interconnect.IPC_SINK_GET_FRAME_STAMP,))
         self._interconnect_semaphore.release()
         frame_stamp = self._sink_din.get()
         return frame_stamp
 
     def get_most_recent_frame(self):
-        self._sink_dout.put(_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME)
+        self._sink_dout.put((_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME,))
         self._interconnect_semaphore.release()
-        frame_stamp = self._sink_din.get()
-        data = self._sink_din.get()
-        return (frame_stamp, data)
+        frame_stamp, data = self._sink_din.get()
+        return frame_stamp, data
 
     def get_buffered_frame(self, frame_stamp):
-        self._sink_dout.put(_interconnect.IPC_SINK_GET_BUFFERED_FRAME)
-        self._sink_dout.put(frame_stamp)
+        self._sink_dout.put((_interconnect.IPC_SINK_GET_BUFFERED_FRAME, frame_stamp))
         self._interconnect_semaphore.release()
-        state = self._sink_din.get()
-        frame_stamp = self._sink_din.get()
-        data = self._sink_din.get()        
-        return (state, frame_stamp, data)
+        state, frame_stamp, data = self._sink_din.get() 
+        return state, frame_stamp, data
 
 
 def _create_interface_sink(sink_din, sink_dout, sink_semaphore):
