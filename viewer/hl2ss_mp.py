@@ -1,5 +1,6 @@
 
 import multiprocessing as mp
+import threading
 
 
 class TimePreference:
@@ -397,6 +398,107 @@ class producer:
 
 
 #------------------------------------------------------------------------------
+# Stream
+#------------------------------------------------------------------------------
+
+class _stream(mp.Process):
+    def __init__(self, buffer_size, semaphore, receiver):
+        super().__init__()
+        self._buffer_size = buffer_size
+        self._semaphore_source = semaphore
+        self._source = receiver
+        self._queue_in = mp.SimpleQueue()
+        self._queue_out = mp.SimpleQueue()
+
+    def _receive(self):
+        self._source.open()
+        while (not self._event_stop.is_set()):
+            data = self._source.get_next_packet()
+            with self._lock_buffer:
+                self._buffer.append(data)
+                self._frame_stamp += 1
+            if (self._semaphore_source is not None):
+                self._semaphore_source.release()
+        self._source.close()
+
+    def _get_nearest(self, timestamp, time_preference, tiebreak_right):
+        with self._lock_buffer:
+            buffer = self._buffer.get()
+            index = get_nearest_packet(buffer, timestamp, time_preference, tiebreak_right)
+            return (None, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index])
+
+    def _get_frame_stamp(self):
+        with self._lock_buffer:
+            return self._frame_stamp
+
+    def _get_most_recent_frame(self):
+        with self._lock_buffer:
+            return self._frame_stamp, self._buffer.last()
+
+    def _get_buffered_frame(self, frame_stamp):
+        with self._lock_buffer:
+            if (frame_stamp < 0):
+                frame_stamp = self._frame_stamp + frame_stamp + 1
+            n = self._buffer.length()
+            index = n - 1 - self._frame_stamp + frame_stamp
+            return (-1, frame_stamp, None) if (index < 0) else (1, frame_stamp, None) if (index >= n) else (0, frame_stamp, self._buffer.get()[index])
+
+    def run(self):
+        self._buffer = RingBuffer(self._buffer_size)
+        self._frame_stamp = -1
+        self._lock_buffer = threading.Lock()
+        self._event_stop = threading.Event()
+        self._rx = threading.Thread(target=self._receive)
+        self._rx.start()
+
+        while (True):
+            message = self._queue_in.get()
+            if   (message[0] == _interconnect.IPC_SINK_DETACH):
+                break
+            elif (message[0] == _interconnect.IPC_SINK_GET_NEAREST):
+                self._queue_out.put(self._get_nearest(*message[1:]))
+            elif (message[0] == _interconnect.IPC_SINK_GET_FRAME_STAMP):
+                self._queue_out.put(self._get_frame_stamp())
+            elif (message[0] == _interconnect.IPC_SINK_GET_MOST_RECENT_FRAME):
+                self._queue_out.put(self._get_most_recent_frame())
+            elif (message[0] == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
+                self._queue_out.put(self._get_buffered_frame(*message[1:]))
+
+        self._event_stop.set()
+        self._rx.join()
+
+    def acquire(self):
+        self._semaphore_source.acquire()
+
+    def release(self):
+        self._semaphore_source.release()
+
+    def stop(self):
+        self._queue_in.put((_interconnect.IPC_SINK_DETACH,))
+        self.join()
+
+    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
+        self._queue_in.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right))
+        frame_stamp, data = self._queue_out.get()
+        return frame_stamp, data
+
+    def get_frame_stamp(self):
+        self._queue_in.put((_interconnect.IPC_SINK_GET_FRAME_STAMP,))
+        frame_stamp = self._queue_out.get()
+        return frame_stamp
+
+    def get_most_recent_frame(self):
+        self._queue_in.put((_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME,))
+        frame_stamp, data = self._queue_out.get()
+        return frame_stamp, data
+
+    def get_buffered_frame(self, frame_stamp):
+        self._queue_in.put((_interconnect.IPC_SINK_GET_BUFFERED_FRAME, frame_stamp))
+        state, frame_stamp, data = self._queue_out.get()
+        return state, frame_stamp, data
+
+
+#------------------------------------------------------------------------------
 # Consumer
 #------------------------------------------------------------------------------
 
@@ -416,4 +518,13 @@ class consumer:
         self._sink_semaphore[port] = sink_semaphore
         
         return producer._attach_sink(port, sink_din, sink_dout, sink_semaphore)
+    
+    def create_stream(self, port, buffer_size, semaphore, receiver):
+        sink_semaphore = None if (semaphore is None) else mp.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else self._sink_semaphore[semaphore]
+
+        self._sink_din[port] = None
+        self._sink_dout[port] = None
+        self._sink_semaphore[port] = sink_semaphore
+
+        return _stream(buffer_size, semaphore, receiver)
 
