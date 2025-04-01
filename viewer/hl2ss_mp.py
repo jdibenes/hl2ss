@@ -1,6 +1,7 @@
 
 import multiprocessing as mp
-import threading
+import threading as mt
+import queue
 
 
 class TimePreference:
@@ -13,6 +14,11 @@ class Status:
     DISCARDED = -1
     OK        =  0
     WAIT      =  1
+
+
+class SourceKind:
+    MP = 0
+    MT = 1
 
 
 #------------------------------------------------------------------------------
@@ -115,17 +121,16 @@ def get_nearest_packet(data, timestamp, time_preference=TimePreference.PREFER_NE
 #------------------------------------------------------------------------------
 
 class _net_source:
-    def __init__(self, source_dout):
-        self.source_dout = source_dout
+    def __init__(self, dout):
+        self.dout = dout
 
 
-class _source(mp.Process):
+class _source:
     def __init__(self, receiver, event_stop, source_wires, interconnect_wires):
-        super().__init__()
         self._source = receiver
         self._event_stop = event_stop
-        self._source_dout = source_wires.source_dout
-        self._interconnect_semaphore = interconnect_wires.interconnect_semaphore
+        self._source_wires = source_wires
+        self._interconnect_wires = interconnect_wires
 
     def stop(self):
         self._event_stop.set()
@@ -133,17 +138,46 @@ class _source(mp.Process):
     def run(self):
         self._source.open()
         while (not self._event_stop.is_set()):
-            self._source_dout.put(self._source.get_next_packet())
-            self._interconnect_semaphore.release()
+            self._source_wires.dout.put(self._source.get_next_packet())
+            self._interconnect_wires.semaphore.release()
         self._source.close()
 
 
-def _create_interface_source():
-    return _net_source(mp.Queue())
+class _mp_source(mp.Process):
+    def __init__(self, receiver, event_stop, source_wires, interconnect_wires):
+        super().__init__()
+        self._source_wires = source_wires
+        self._interconnect_wires = interconnect_wires
+        self._source = _source(receiver, event_stop, source_wires, interconnect_wires)
+
+    def stop(self):
+        self._source.stop()
+
+    def run(self):
+        self._source.run()
+        self._source_wires.dout.cancel_join_thread()
 
 
-def _create_source(receiver, source_wires, interconnect_wires):
-    return _source(receiver, mp.Event(), source_wires, interconnect_wires)
+class _mt_source(mt.Thread):
+    def __init__(self, receiver, event_stop, source_wires, interconnect_wires):
+        super().__init__()
+        self._source_wires = source_wires
+        self._interconnect_wires = interconnect_wires
+        self._source = _source(receiver, event_stop, source_wires, interconnect_wires)
+
+    def stop(self):
+        self._source.stop()
+
+    def run(self):
+        self._source.run()
+
+
+def _create_interface_source(source_kind):
+    return _net_source(mp.Queue() if (source_kind == SourceKind.MP) else queue.Queue() if (source_kind == SourceKind.MT) else None)
+
+
+def _create_source(receiver, source_wires, interconnect_wires, source_kind):
+    return _mp_source(receiver, mp.Event(), source_wires, interconnect_wires) if (source_kind == SourceKind.MP) else _mt_source(receiver, mt.Event(), source_wires, interconnect_wires) if (source_kind == SourceKind.MT) else None
 
 
 #------------------------------------------------------------------------------
@@ -151,10 +185,10 @@ def _create_source(receiver, source_wires, interconnect_wires):
 #------------------------------------------------------------------------------
 
 class _net_interconnect:
-    def __init__(self, interconnect_din, interconnect_dout, interconnect_semaphore):
-        self.interconnect_din = interconnect_din
-        self.interconnect_dout = interconnect_dout
-        self.interconnect_semaphore = interconnect_semaphore
+    def __init__(self, din, dout, semaphore):
+        self.din = din
+        self.dout = dout
+        self.semaphore = semaphore
 
 
 class _interconnect(mp.Process):
@@ -166,27 +200,27 @@ class _interconnect(mp.Process):
     IPC_SINK_GET_MOST_RECENT_FRAME = -4
     IPC_SINK_GET_BUFFERED_FRAME = -5
     
-    def __init__(self, buffer_size, event_stop, source_wires, interconnect_wires):
+    def __init__(self, receiver, buffer_size, event_stop, source_kind, interconnect_wires, sink_wires):
         super().__init__()
+        self._receiver = receiver
         self._buffer_size = buffer_size
         self._event_stop = event_stop
-        self._source_dout = source_wires.source_dout
-        self._interconnect_din = interconnect_wires.interconnect_din
-        self._interconnect_dout = interconnect_wires.interconnect_dout
-        self._interconnect_semaphore = interconnect_wires.interconnect_semaphore
+        self._source_kind = source_kind
+        self._interconnect_wires = interconnect_wires
+        self._sink_wires = sink_wires
 
     def stop(self):
         self._event_stop.set()
-        self._interconnect_semaphore.release()
+        self._interconnect_wires.semaphore.release()
 
     def attach_sink(self, sink_wires):
-        self._interconnect_din.put((_interconnect.IPC_CONTROL_ATTACH, sink_wires.sink_din, sink_wires.sink_dout, sink_wires.sink_semaphore))
-        self._interconnect_semaphore.release()
+        self._interconnect_wires.din.put((_interconnect.IPC_CONTROL_ATTACH, sink_wires))
+        self._interconnect_wires.semaphore.release()
         
-    def _attach(self, sink_din, sink_dout, sink_semaphore):
+    def _attach(self, sink_wires):
         self._key += 1
-        self._sink[self._key] = (sink_din, sink_dout, sink_semaphore)
-        sink_din.put((self._key, self._frame_stamp))
+        self._sink[self._key] = sink_wires
+        sink_wires.din.put((self._key, self._frame_stamp))
         
     def _detach(self, key):
         self._remove.append(key)
@@ -211,69 +245,78 @@ class _interconnect(mp.Process):
 
     def _process_source(self):
         try:
-            data = self._source_dout.get_nowait()
+            data = self._source_wires.dout.get_nowait()
         except:
             return
         self._frame_stamp += 1
         self._buffer.append(data)
-        for _, _, ipc in self._sink.values():
-            if (ipc is not None):
-                ipc.release()
-        self._interconnect_semaphore.acquire()
+        for sink_wires in self._sink.values():
+            if (sink_wires.semaphore is not None):
+                sink_wires.semaphore.release()
+        self._interconnect_wires.semaphore.acquire()
 
     def _process_control(self):
         try:
-            message = self._interconnect_din.get_nowait()
+            message = self._interconnect_wires.din.get_nowait()
         except:
             return
         if (message[0] == _interconnect.IPC_CONTROL_ATTACH):
             self._attach(*message[1:])
-        self._interconnect_semaphore.acquire()
+        self._interconnect_wires.semaphore.acquire()
 
-    def _process_sink_message(self, sink_din, sink_dout):
+    def _process_sink_message(self, sink_wires):
         try:
-            message = sink_dout.get_nowait()
+            message = sink_wires.dout.get_nowait()
         except:
             return
         if   (message[0] == _interconnect.IPC_SINK_DETACH):
             self._detach(*message[1:])
         elif (message[0] == _interconnect.IPC_SINK_GET_NEAREST):
-            sink_din.put(self._get_nearest(*message[1:]))
+            sink_wires.din.put(self._get_nearest(*message[1:]))
         elif (message[0] == _interconnect.IPC_SINK_GET_FRAME_STAMP):
-            sink_din.put(self._get_frame_stamp())
+            sink_wires.din.put(self._get_frame_stamp())
         elif (message[0] == _interconnect.IPC_SINK_GET_MOST_RECENT_FRAME):
-            sink_din.put(self._get_most_recent_frame())
+            sink_wires.din.put(self._get_most_recent_frame())
         elif (message[0] == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
-            sink_din.put(self._get_buffered_frame(*message[1:]))
-        self._interconnect_semaphore.acquire()
+            sink_wires.din.put(self._get_buffered_frame(*message[1:]))
+        self._interconnect_wires.semaphore.acquire()
 
     def _process_sink(self):
         self._remove = []
-        for sink_din, sink_dout, _ in self._sink.values():
-            self._process_sink_message(sink_din, sink_dout)
+        for sink_wires in self._sink.values():
+            self._process_sink_message(sink_wires)
         for key in self._remove:
             self._sink.pop(key)
 
     def run(self):
+        self._source_wires = _create_interface_source(self._source_kind)
+        self._source = _create_source(self._receiver, self._source_wires, self._interconnect_wires, self._source_kind)
+        self._source.start()
+
         self._buffer = RingBuffer(self._buffer_size)
         self._frame_stamp = -1
+        
         self._sink = dict()
         self._key = 0
-
-        while (not self._event_stop.is_set()):
-            self._interconnect_semaphore.acquire()
-            self._interconnect_semaphore.release()
+        self._attach(self._sink_wires)
+        
+        while (not self._event_stop.is_set()):       
+            self._interconnect_wires.semaphore.acquire()
+            self._interconnect_wires.semaphore.release()                
             self._process_source()
             self._process_control()
             self._process_sink()
+
+        self._source.stop()
+        self._source.join()        
 
 
 def _create_interface_interconnect():
     return _net_interconnect(mp.Queue(), mp.Queue(), mp.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE))
 
 
-def _create_interconnect(buffer_size, source_wires, interconnect_wires):
-    return _interconnect(buffer_size, mp.Event(), source_wires, interconnect_wires)
+def _create_interconnect(receiver, buffer_size, source_kind, interconnect_wires, sink_wires):
+    return _interconnect(receiver, buffer_size, mp.Event(), source_kind, interconnect_wires, sink_wires)
 
 
 #------------------------------------------------------------------------------
@@ -281,60 +324,62 @@ def _create_interconnect(buffer_size, source_wires, interconnect_wires):
 #------------------------------------------------------------------------------
 
 class _net_sink:
-    def __init__(self, sink_din, sink_dout, sink_semaphore):
-        self.sink_din = sink_din
-        self.sink_dout = sink_dout
-        self.sink_semaphore = sink_semaphore
+    def __init__(self, din, dout, semaphore):
+        self.din = din
+        self.dout = dout
+        self.semaphore = semaphore
 
 
 class _sink:
     def __init__(self, sink_wires, interconnect_wires):
-        self._sink_din = sink_wires.sink_din
-        self._sink_dout = sink_wires.sink_dout
-        self._sink_semaphore = sink_wires.sink_semaphore
-        self._interconnect_semaphore = interconnect_wires.interconnect_semaphore
+        self._sink_wires = sink_wires
+        self._interconnect_wires = interconnect_wires
 
     def acquire(self):
-        self._sink_semaphore.acquire()
+        self._sink_wires.semaphore.acquire()
 
     def release(self):
-        self._sink_semaphore.release()
+        self._sink_wires.semaphore.release()
 
     def get_attach_response(self):
-        self._key, frame_stamp = self._sink_din.get()
+        self._key, frame_stamp = self._sink_wires.din.get()
         return frame_stamp
         
     def detach(self):
-        self._sink_dout.put((_interconnect.IPC_SINK_DETACH, self._key))
-        self._interconnect_semaphore.release()
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_DETACH, self._key))
+        self._interconnect_wires.semaphore.release()
 
     def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
-        self._sink_dout.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right))
-        self._interconnect_semaphore.release()
-        frame_stamp, data = self._sink_din.get()
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right))
+        self._interconnect_wires.semaphore.release()
+        frame_stamp, data = self._sink_wires.din.get()
         return frame_stamp, data
 
     def get_frame_stamp(self):
-        self._sink_dout.put((_interconnect.IPC_SINK_GET_FRAME_STAMP,))
-        self._interconnect_semaphore.release()
-        frame_stamp = self._sink_din.get()
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_FRAME_STAMP,))
+        self._interconnect_wires.semaphore.release()
+        frame_stamp = self._sink_wires.din.get()
         return frame_stamp
 
     def get_most_recent_frame(self):
-        self._sink_dout.put((_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME,))
-        self._interconnect_semaphore.release()
-        frame_stamp, data = self._sink_din.get()
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME,))
+        self._interconnect_wires.semaphore.release()
+        frame_stamp, data = self._sink_wires.din.get()
         return frame_stamp, data
 
     def get_buffered_frame(self, frame_stamp):
-        self._sink_dout.put((_interconnect.IPC_SINK_GET_BUFFERED_FRAME, frame_stamp))
-        self._interconnect_semaphore.release()
-        state, frame_stamp, data = self._sink_din.get() 
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_BUFFERED_FRAME, frame_stamp))
+        self._interconnect_wires.semaphore.release()
+        state, frame_stamp, data = self._sink_wires.din.get() 
         return state, frame_stamp, data
 
 
 def _create_interface_sink(sink_din, sink_dout, sink_semaphore):
     return _net_sink(sink_din, sink_dout, sink_semaphore)
+
+
+def _create_interface_sink_default(semaphore):
+    return _net_sink(mp.Queue(), mp.Queue(), mp.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else None)
 
 
 def _create_sink(sink_wires, interconnect_wires):
@@ -346,19 +391,16 @@ def _create_sink(sink_wires, interconnect_wires):
 #------------------------------------------------------------------------------
 
 class _module:
-    def __init__(self, receiver, buffer_size):
-        self._source_wires = _create_interface_source()
+    def __init__(self, receiver, buffer_size, source_kind=SourceKind.MP, default_sink_semaphore=None):
         self._interconnect_wires = _create_interface_interconnect()
-        self._source = _create_source(receiver, self._source_wires, self._interconnect_wires)
-        self._interconnect = _create_interconnect(buffer_size, self._source_wires, self._interconnect_wires)
+        self._default_sink_wires = _create_interface_sink_default(default_sink_semaphore)
+        self._interconnect = _create_interconnect(receiver, buffer_size, source_kind, self._interconnect_wires, self._default_sink_wires)
+        self._default_sink = _create_sink(self._default_sink_wires, self._interconnect_wires)
 
     def start(self):
         self._interconnect.start()
-        self._source.start()
 
     def stop(self):
-        self._source.stop()
-        self._source.join()
         self._interconnect.stop()
         self._interconnect.join()
 
@@ -367,6 +409,9 @@ class _module:
         sink = _create_sink(sink_wires, self._interconnect_wires)
         self._interconnect.attach_sink(sink_wires)
         return sink
+    
+    def get_default_sink(self):
+        return self._default_sink
 
 
 #------------------------------------------------------------------------------
@@ -381,8 +426,8 @@ class producer:
     def configure(self, port, receiver):
         self._rx[port] = receiver
 
-    def initialize(self, port, buffer_size):
-        self._producer[port] = _module(self._rx[port], buffer_size)
+    def initialize(self, port, buffer_size, source_kind=SourceKind.MP, default_sink_semaphore=None):
+        self._producer[port] = _module(self._rx[port], buffer_size, source_kind, default_sink_semaphore)
 
     def start(self, port):        
         self._producer[port].start()
@@ -395,107 +440,9 @@ class producer:
     
     def _attach_sink(self, port, sink_din, sink_dout, sink_semaphore):
         return self._producer[port].attach_sink(sink_din, sink_dout, sink_semaphore)
-
-
-#------------------------------------------------------------------------------
-# Stream
-#------------------------------------------------------------------------------
-
-class _stream(mp.Process):
-    def __init__(self, buffer_size, semaphore, receiver):
-        super().__init__()
-        self._buffer_size = buffer_size
-        self._semaphore_source = semaphore
-        self._source = receiver
-        self._queue_in = mp.SimpleQueue()
-        self._queue_out = mp.SimpleQueue()
-
-    def _receive(self):
-        self._source.open()
-        while (not self._event_stop.is_set()):
-            data = self._source.get_next_packet()
-            with self._lock_buffer:
-                self._buffer.append(data)
-                self._frame_stamp += 1
-            if (self._semaphore_source is not None):
-                self._semaphore_source.release()
-        self._source.close()
-
-    def _get_nearest(self, timestamp, time_preference, tiebreak_right):
-        with self._lock_buffer:
-            buffer = self._buffer.get()
-            index = get_nearest_packet(buffer, timestamp, time_preference, tiebreak_right)
-            return (None, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index])
-
-    def _get_frame_stamp(self):
-        with self._lock_buffer:
-            return self._frame_stamp
-
-    def _get_most_recent_frame(self):
-        with self._lock_buffer:
-            return self._frame_stamp, self._buffer.last()
-
-    def _get_buffered_frame(self, frame_stamp):
-        with self._lock_buffer:
-            if (frame_stamp < 0):
-                frame_stamp = self._frame_stamp + frame_stamp + 1
-            n = self._buffer.length()
-            index = n - 1 - self._frame_stamp + frame_stamp
-            return (-1, frame_stamp, None) if (index < 0) else (1, frame_stamp, None) if (index >= n) else (0, frame_stamp, self._buffer.get()[index])
-
-    def run(self):
-        self._buffer = RingBuffer(self._buffer_size)
-        self._frame_stamp = -1
-        self._lock_buffer = threading.Lock()
-        self._event_stop = threading.Event()
-        self._rx = threading.Thread(target=self._receive)
-        self._rx.start()
-
-        while (True):
-            message = self._queue_in.get()
-            if   (message[0] == _interconnect.IPC_SINK_DETACH):
-                break
-            elif (message[0] == _interconnect.IPC_SINK_GET_NEAREST):
-                self._queue_out.put(self._get_nearest(*message[1:]))
-            elif (message[0] == _interconnect.IPC_SINK_GET_FRAME_STAMP):
-                self._queue_out.put(self._get_frame_stamp())
-            elif (message[0] == _interconnect.IPC_SINK_GET_MOST_RECENT_FRAME):
-                self._queue_out.put(self._get_most_recent_frame())
-            elif (message[0] == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
-                self._queue_out.put(self._get_buffered_frame(*message[1:]))
-
-        self._event_stop.set()
-        self._rx.join()
-
-    def acquire(self):
-        self._semaphore_source.acquire()
-
-    def release(self):
-        self._semaphore_source.release()
-
-    def stop(self):
-        self._queue_in.put((_interconnect.IPC_SINK_DETACH,))
-        self.join()
-
-    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
-        self._queue_in.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right))
-        frame_stamp, data = self._queue_out.get()
-        return frame_stamp, data
-
-    def get_frame_stamp(self):
-        self._queue_in.put((_interconnect.IPC_SINK_GET_FRAME_STAMP,))
-        frame_stamp = self._queue_out.get()
-        return frame_stamp
-
-    def get_most_recent_frame(self):
-        self._queue_in.put((_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME,))
-        frame_stamp, data = self._queue_out.get()
-        return frame_stamp, data
-
-    def get_buffered_frame(self, frame_stamp):
-        self._queue_in.put((_interconnect.IPC_SINK_GET_BUFFERED_FRAME, frame_stamp))
-        state, frame_stamp, data = self._queue_out.get()
-        return state, frame_stamp, data
+    
+    def _get_default_sink(self, port):
+        return self._producer[port].get_default_sink()
 
 
 #------------------------------------------------------------------------------
@@ -519,12 +466,6 @@ class consumer:
         
         return producer._attach_sink(port, sink_din, sink_dout, sink_semaphore)
     
-    def create_stream(self, port, buffer_size, semaphore, receiver):
-        sink_semaphore = None if (semaphore is None) else mp.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else self._sink_semaphore[semaphore]
-
-        self._sink_din[port] = None
-        self._sink_dout[port] = None
-        self._sink_semaphore[port] = sink_semaphore
-
-        return _stream(buffer_size, semaphore, receiver)
+    def get_default_sink(self, producer, port):
+        return producer._get_default_sink(port)
 
