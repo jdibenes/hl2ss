@@ -5,8 +5,8 @@ import queue
 
 
 class TimePreference:
-    PREFER_NEAREST = -1
-    PREFER_PAST    =  0
+    PREFER_PAST    = -1
+    PREFER_NEAREST =  0
     PREFER_FUTURE  =  1
 
 
