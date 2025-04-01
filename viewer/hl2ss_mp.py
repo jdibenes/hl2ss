@@ -361,11 +361,11 @@ class _module:
         self._interconnect.stop()
         self._interconnect.join()
 
-    def attach_sink(self, sink_wires):
-        return self._interconnect.attach_sink(sink_wires)
-
-    def get_interface(self):
-        return self._interconnect_wires
+    def attach_sink(self, sink_din, sink_dout, sink_semaphore):
+        sink_wires = _create_interface_sink(sink_din, sink_dout, sink_semaphore)
+        sink = _create_sink(sink_wires, self._interconnect_wires)
+        self._interconnect.attach_sink(sink_wires)
+        return sink
 
 
 #------------------------------------------------------------------------------
@@ -391,12 +391,9 @@ class producer:
 
     def get_receiver(self, port):
         return self._rx[port]
-
-    def _get_interface(self, port):
-        return self._producer[port].get_interface()
-
-    def _attach_sink(self, port, sink_wires):
-        self._producer[port].attach_sink(sink_wires)
+    
+    def _attach_sink(self, port, sink_din, sink_dout, sink_semaphore):
+        return self._producer[port].attach_sink(sink_din, sink_dout, sink_semaphore)
 
 
 #------------------------------------------------------------------------------
@@ -406,19 +403,13 @@ class producer:
 class consumer:
     def __init__(self):
         self._sink_semaphore = dict()
-        self._sink_wires = dict()
-        self._sink = dict()        
 
     def create_sink(self, producer, port, manager, semaphore):
+        sink_din = manager.Queue()
+        sink_dout = manager.Queue()
         sink_semaphore = None if (semaphore is None) else manager.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else self._sink_semaphore[semaphore]
-        sink_wires = _create_interface_sink(manager.Queue(), manager.Queue(), sink_semaphore)
-        sink = _create_sink(sink_wires, producer._get_interface(port))
-
-        producer._attach_sink(port, sink_wires)
-
+        
         self._sink_semaphore[port] = sink_semaphore
-        self._sink_wires[port] = sink_wires
-        self._sink[port] = sink
-
-        return sink
+        
+        return producer._attach_sink(port, sink_din, sink_dout, sink_semaphore)
 
