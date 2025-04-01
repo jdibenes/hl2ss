@@ -402,6 +402,8 @@ class producer:
 
 class consumer:
     def __init__(self):
+        self._sink_din = dict()
+        self._sink_dout = dict()
         self._sink_semaphore = dict()
 
     def create_sink(self, producer, port, manager, semaphore):
@@ -409,6 +411,8 @@ class consumer:
         sink_dout = manager.Queue()
         sink_semaphore = None if (semaphore is None) else manager.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else self._sink_semaphore[semaphore]
         
+        self._sink_din[port] = sink_din
+        self._sink_dout[port] = sink_dout
         self._sink_semaphore[port] = sink_semaphore
         
         return producer._attach_sink(port, sink_din, sink_dout, sink_semaphore)
