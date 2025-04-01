@@ -3,9 +3,15 @@ import multiprocessing as mp
 
 
 class TimePreference:
-    PREFER_NEAREST = 0
-    PREFER_PAST    = 1
-    PREFER_FUTURE  = 2
+    PREFER_NEAREST = -1
+    PREFER_PAST    =  0
+    PREFER_FUTURE  =  1
+
+
+class Status:
+    DISCARDED = -1
+    OK        =  0
+    WAIT      =  1
 
 
 #------------------------------------------------------------------------------
