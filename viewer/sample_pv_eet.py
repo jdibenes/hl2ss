@@ -38,7 +38,6 @@ thickness = -1
 
 # Spatial Mapping manager settings
 triangles_per_cubic_meter = 1000
-mesh_threads = 2
 sphere_center = [0, 0, 0]
 sphere_radius = 5
 
@@ -54,7 +53,7 @@ if __name__ == '__main__':
     volumes = hl2ss.sm_bounding_volume()
     volumes.add_sphere(sphere_center, sphere_radius)
 
-    sm_manager = hl2ss_sa.sm_mp_manager(host, triangles_per_cubic_meter, mesh_threads)
+    sm_manager = hl2ss_sa.sm_mp_manager(host, triangles_per_cubic_meter)
     sm_manager.open()
     sm_manager.set_volumes(volumes)
     sm_manager.get_observed_surfaces()
