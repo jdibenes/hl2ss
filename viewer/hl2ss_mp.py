@@ -2,6 +2,7 @@
 import multiprocessing as mp
 import threading as mt
 import queue
+import traceback
 import hl2ss
 
 
@@ -117,6 +118,10 @@ def get_nearest_packet(data, timestamp, time_preference=TimePreference.PREFER_NE
     return si[1 if (tiebreak_right) else 0] 
 
 
+def is_packet_valid(packet):
+    return packet.timestamp != hl2ss._RANGEOF.U64_MAX
+
+
 #------------------------------------------------------------------------------
 # Source
 #------------------------------------------------------------------------------
@@ -137,11 +142,15 @@ class _source:
         self._event_stop.set()
 
     def run(self):
-        self._source.open()
-        while (not self._event_stop.is_set()):
-            self._source_wires.dout.put(self._source.get_next_packet())
+        try:
+            with self._source as client:
+                while (not self._event_stop.is_set()):
+                    self._source_wires.dout.put(client.get_next_packet())
+                    self._interconnect_wires.semaphore.release()
+        except Exception as e:
+            self._source_wires.dout.put(hl2ss._packet(hl2ss._RANGEOF.U64_MAX, traceback.format_exc(), None))
             self._interconnect_wires.semaphore.release()
-        self._source.close()
+            self._event_stop.wait()
         self._source_wires.dout.put(None)
 
 
@@ -197,6 +206,8 @@ class _interconnect(mp.Process):
     IPC_SINK_GET_FRAME_STAMP = 2
     IPC_SINK_GET_MOST_RECENT_FRAME = 3
     IPC_SINK_GET_BUFFERED_FRAME = 4
+    IPC_SINK_GET_SOURCE_STATUS = 5
+    IPC_SINK_GET_SOURCE_STRING = 6
     
     def __init__(self, receiver, buffer_size, event_stop, source_kind, interconnect_wires, sink_wires):
         super().__init__()
@@ -242,11 +253,20 @@ class _interconnect(mp.Process):
         index = n - 1 - self._frame_stamp + frame_stamp
         return (-1, frame_stamp, None) if (index < 0) else (1, frame_stamp, None) if (index >= n) else (0, frame_stamp, self._buffer.get()[index])
 
+    def _get_source_status(self):
+        return self._source_status
+    
+    def _get_source_string(self):
+        return self._source_string
+
     def _process_source(self):
         try:
             data = self._source_wires.dout.get_nowait()
         except:
             return
+        if (data.timestamp == hl2ss._RANGEOF.U64_MAX):
+            self._source_status = False
+            self._source_string = data.payload
         self._frame_stamp += 1
         self._buffer.append(data)
         for sink_wires in self._sink.values():
@@ -280,6 +300,10 @@ class _interconnect(mp.Process):
             sink_wires.din.put(self._get_most_recent_frame())
         elif (message[0] == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
             sink_wires.din.put(self._get_buffered_frame(*message[1:]))
+        elif (message[0] == _interconnect.IPC_SINK_GET_SOURCE_STATUS):
+            sink_wires.din.put(self._get_source_status())
+        elif (message[0] == _interconnect.IPC_SINK_GET_SOURCE_STRING):
+            sink_wires.din.put(self._get_source_string())
         self._interconnect_wires.semaphore.acquire()
 
     def _process_sink(self):
@@ -294,6 +318,9 @@ class _interconnect(mp.Process):
             pass
 
     def run(self):
+        self._source_status = True
+        self._source_string = None
+
         self._source_wires = _create_interface_source(self._source_kind)
         self._source = _create_source(self._receiver, self._source_wires, self._interconnect_wires, self._source_kind)
         self._source.start()
@@ -379,6 +406,18 @@ class _sink:
         self._interconnect_wires.semaphore.release()
         state, frame_stamp, data = self._sink_wires.din.get() 
         return state, frame_stamp, data
+    
+    def get_source_status(self):
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_SOURCE_STATUS,))
+        self._interconnect_wires.semaphore.release()
+        status = self._sink_wires.din.get()
+        return status
+    
+    def get_source_string(self):
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_SOURCE_STRING,))
+        self._interconnect_wires.semaphore.release()
+        string = self._sink_wires.din.get()
+        return string
 
 
 def _create_interface_sink(sink_din, sink_dout, sink_semaphore):
@@ -520,6 +559,12 @@ class stream(hl2ss._context_manager):
 
     def get_buffered_frame(self, frame_stamp):
         return self._sink.get_buffered_frame(frame_stamp)
+    
+    def get_source_status(self):
+        return self._sink.get_source_status()
+    
+    def get_source_string(self):
+        return self._sink.get_source_string()
 
     def close(self):
         self._sink.detach()
