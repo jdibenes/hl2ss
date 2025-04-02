@@ -48,7 +48,7 @@ class _sm_manager_entry:
 
 
 class sm_manager:
-    def __init__(self, host, triangles_per_cubic_meter, threads):
+    def __init__(self, host, triangles_per_cubic_meter):
         self._tpcm = triangles_per_cubic_meter
         self._vpf = hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized
         self._tif = hl2ss.SM_TriangleIndexFormat.R16UInt
@@ -159,48 +159,42 @@ class sm_mp_manager(mp.Process):
     IPC_GET_OBSERVED_SURFACES = 2
     IPC_CAST_RAYS = 3
 
-    def __init__(self, host, triangles_per_cubic_meter, threads):
+    def __init__(self, host, triangles_per_cubic_meter):
         super().__init__()
         self._semaphore = mp.Semaphore(0)
         self._din = mp.Queue()
         self._dout = mp.Queue()        
-        self._ipc = sm_mt_manager(host, triangles_per_cubic_meter, threads)
+        self._ipc = sm_mt_manager(host, triangles_per_cubic_meter)
 
     def open(self):
         self.start()
 
     def close(self):
-        self._din.put(sm_mp_manager.IPC_STOP)
+        self._din.put((sm_mp_manager.IPC_STOP,))
         self._semaphore.release()
         self.join()
 
     def set_volumes(self, volumes):
-        self._din.put(sm_mp_manager.IPC_SET_VOLUMES)
-        self._din.put(volumes)
+        self._din.put((sm_mp_manager.IPC_SET_VOLUMES, volumes))
         self._semaphore.release()
 
     def get_observed_surfaces(self):
-        self._din.put(sm_mp_manager.IPC_GET_OBSERVED_SURFACES)
+        self._din.put((sm_mp_manager.IPC_GET_OBSERVED_SURFACES,))
         self._semaphore.release()
 
     def cast_rays(self, rays):
-        self._din.put(sm_mp_manager.IPC_CAST_RAYS)
-        self._din.put(rays)
+        self._din.put((sm_mp_manager.IPC_CAST_RAYS, rays))
         self._semaphore.release()
-        d = self._dout.get()
-        return d
+        return self._dout.get()
     
-    def _set_volumes(self):
-        volumes = self._din.get()
+    def _set_volumes(self, volumes):
         self._ipc.set_volumes(volumes)
 
     def _get_observed_surfaces(self):
         self._ipc.get_observed_surfaces()
 
-    def _cast_rays(self):
-        rays = self._din.get()
-        d = self._ipc.cast_rays(rays)
-        self._dout.put(d)
+    def _cast_rays(self, rays):
+        return self._ipc.cast_rays(rays)        
     
     def run(self):
         self._ipc.open()
@@ -209,14 +203,14 @@ class sm_mp_manager(mp.Process):
             self._semaphore.acquire()
             message = self._din.get()
 
-            if (message == sm_mp_manager.IPC_STOP):
+            if   (message[0] == sm_mp_manager.IPC_STOP):
                 break
-            elif (message == sm_mp_manager.IPC_SET_VOLUMES):
-                self._set_volumes()
-            elif (message == sm_mp_manager.IPC_GET_OBSERVED_SURFACES):
+            elif (message[0] == sm_mp_manager.IPC_SET_VOLUMES):
+                self._set_volumes(*message[1:])
+            elif (message[0] == sm_mp_manager.IPC_GET_OBSERVED_SURFACES):
                 self._get_observed_surfaces()
-            elif (message == sm_mp_manager.IPC_CAST_RAYS):
-                self._cast_rays()
+            elif (message[0] == sm_mp_manager.IPC_CAST_RAYS):
+                self._dout.put(self._cast_rays(*message[1:]))
 
         self._ipc.close()
 
