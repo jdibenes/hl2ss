@@ -20,6 +20,9 @@ import hl2ss_io
 import hl2ss_3dcv
 
 
+def depth_colormap(depth, max_depth, colormap=cv2.COLORMAP_JET):
+    return cv2.applyColorMap(((depth / max_depth) * 255).astype(np.uint8), colormap)
+
 #------------------------------------------------------------------------------
 # Key Listener
 #------------------------------------------------------------------------------
