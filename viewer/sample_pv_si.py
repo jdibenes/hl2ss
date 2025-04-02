@@ -62,7 +62,7 @@ if __name__ == '__main__':
     volumes = hl2ss.sm_bounding_volume()
     volumes.add_sphere(sphere_center, sphere_radius)
 
-    sm_manager = hl2ss_sa.sm_manager(host, triangles_per_cubic_meter, mesh_threads)
+    sm_manager = hl2ss_sa.sm_mp_manager(host, triangles_per_cubic_meter, mesh_threads)
     sm_manager.open()
     sm_manager.set_volumes(volumes)
     sm_manager.get_observed_surfaces()
@@ -94,6 +94,7 @@ if __name__ == '__main__':
 
         _, data_si = sink_si.get_nearest(data_pv.timestamp)
         if (data_si is None):
+            cv2.imshow('Video', image)
             continue
 
         si = data_si.payload
