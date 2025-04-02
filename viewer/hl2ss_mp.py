@@ -142,13 +142,12 @@ class _source:
             self._source_wires.dout.put(self._source.get_next_packet())
             self._interconnect_wires.semaphore.release()
         self._source.close()
+        self._source_wires.dout.put(None)
 
 
 class _mp_source(mp.Process):
     def __init__(self, receiver, event_stop, source_wires, interconnect_wires):
         super().__init__()
-        self._source_wires = source_wires
-        self._interconnect_wires = interconnect_wires
         self._source = _source(receiver, event_stop, source_wires, interconnect_wires)
 
     def stop(self):
@@ -156,14 +155,11 @@ class _mp_source(mp.Process):
 
     def run(self):
         self._source.run()
-        self._source_wires.dout.cancel_join_thread()
 
 
 class _mt_source(mt.Thread):
     def __init__(self, receiver, event_stop, source_wires, interconnect_wires):
         super().__init__()
-        self._source_wires = source_wires
-        self._interconnect_wires = interconnect_wires
         self._source = _source(receiver, event_stop, source_wires, interconnect_wires)
 
     def stop(self):
@@ -194,12 +190,13 @@ class _net_interconnect:
 
 class _interconnect(mp.Process):
     IPC_SEMAPHORE_VALUE = 0
-    IPC_CONTROL_ATTACH = 0
-    IPC_SINK_DETACH = -1
-    IPC_SINK_GET_NEAREST = -2
-    IPC_SINK_GET_FRAME_STAMP = -3
-    IPC_SINK_GET_MOST_RECENT_FRAME = -4
-    IPC_SINK_GET_BUFFERED_FRAME = -5
+    IPC_CONTROL_STOP = 0
+    IPC_CONTROL_ATTACH = 1
+    IPC_SINK_DETACH = 0
+    IPC_SINK_GET_NEAREST = 1
+    IPC_SINK_GET_FRAME_STAMP = 2
+    IPC_SINK_GET_MOST_RECENT_FRAME = 3
+    IPC_SINK_GET_BUFFERED_FRAME = 4
     
     def __init__(self, receiver, buffer_size, event_stop, source_kind, interconnect_wires, sink_wires):
         super().__init__()
@@ -211,7 +208,7 @@ class _interconnect(mp.Process):
         self._sink_wires = sink_wires
 
     def stop(self):
-        self._event_stop.set()
+        self._interconnect_wires.din.put((_interconnect.IPC_CONTROL_STOP,))
         self._interconnect_wires.semaphore.release()
 
     def attach_sink(self, sink_wires):
@@ -225,6 +222,7 @@ class _interconnect(mp.Process):
         
     def _detach(self, key):
         self._remove.append(key)
+        return None
 
     def _get_nearest(self, timestamp, time_preference, tiebreak_right):
         buffer = self._buffer.get()
@@ -261,7 +259,9 @@ class _interconnect(mp.Process):
             message = self._interconnect_wires.din.get_nowait()
         except:
             return
-        if (message[0] == _interconnect.IPC_CONTROL_ATTACH):
+        if   (message[0] == _interconnect.IPC_CONTROL_STOP):
+            self._event_stop.set()
+        elif (message[0] == _interconnect.IPC_CONTROL_ATTACH):
             self._attach(*message[1:])
         self._interconnect_wires.semaphore.acquire()
 
@@ -271,7 +271,7 @@ class _interconnect(mp.Process):
         except:
             return
         if   (message[0] == _interconnect.IPC_SINK_DETACH):
-            self._detach(*message[1:])
+            sink_wires.din.put(self._detach(*message[1:]))
         elif (message[0] == _interconnect.IPC_SINK_GET_NEAREST):
             sink_wires.din.put(self._get_nearest(*message[1:]))
         elif (message[0] == _interconnect.IPC_SINK_GET_FRAME_STAMP):
@@ -288,6 +288,10 @@ class _interconnect(mp.Process):
             self._process_sink_message(sink_wires)
         for key in self._remove:
             self._sink.pop(key)
+
+    def _process_flush(self):
+        while (self._source_wires.dout.get() != None):
+            pass
 
     def run(self):
         self._source_wires = _create_interface_source(self._source_kind)
@@ -309,6 +313,7 @@ class _interconnect(mp.Process):
             self._process_sink()
 
         self._source.stop()
+        self._process_flush()
         self._source.join()        
 
 
@@ -349,6 +354,7 @@ class _sink:
     def detach(self):
         self._sink_wires.dout.put((_interconnect.IPC_SINK_DETACH, self._key))
         self._interconnect_wires.semaphore.release()
+        self._sink_wires.din.get()
 
     def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
         self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right))
