@@ -2,6 +2,7 @@
 import multiprocessing as mp
 import threading as mt
 import queue
+import hl2ss
 
 
 class TimePreference:
@@ -468,4 +469,53 @@ class consumer:
     
     def get_default_sink(self, producer, port):
         return producer._get_default_sink(port)
+
+
+#------------------------------------------------------------------------------
+# Stream
+#------------------------------------------------------------------------------
+
+class stream(hl2ss._context_manager):
+    def __init__(self, rx, buffer_size=512, source_kind=SourceKind.MT, semaphore=None):
+        self.rx = rx
+        self.buffer_size = buffer_size
+        self.source_kind = source_kind
+        self.semaphore = semaphore
+
+    def open(self):
+        self._tag = 0
+
+        self._producer = producer()
+        self._producer.configure(self._tag, self.rx)
+        self._producer.initialize(self._tag, self.buffer_size, self.source_kind, self.semaphore)
+        self._producer.start(self._tag)
+
+        self._consumer = consumer()
+        self._sink = self._consumer.get_default_sink(self._producer, self._tag)
+        self._safs = self._sink.get_attach_response()
+
+    def acquire(self):
+        self._sink.acquire()
+
+    def release(self):
+        self._sink.release()
+
+    def get_attach_frame_stamp(self):
+        return self._safs
+
+    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
+        return self._sink.get_nearest(timestamp, time_preference, tiebreak_right)
+   
+    def get_frame_stamp(self):
+        return self._sink.get_frame_stamp()
+
+    def get_most_recent_frame(self):
+        return self._sink.get_most_recent_frame()
+
+    def get_buffered_frame(self, frame_stamp):
+        return self._sink.get_buffered_frame(frame_stamp)
+
+    def close(self):
+        self._sink.detach()
+        self._producer.stop(self._tag)
 
