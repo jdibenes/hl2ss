@@ -500,7 +500,7 @@ class stream(hl2ss._context_manager):
     def release(self):
         self._sink.release()
 
-    def get_attach_frame_stamp(self):
+    def get_reference_frame_stamp(self):
         return self._safs
 
     def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
