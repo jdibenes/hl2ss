@@ -33,7 +33,7 @@ class RingBuffer:
     Idea: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch05s19.html
     '''
 
-    def __init__(self, size_max = 64):
+    def __init__(self, size_max=64):
         self.max = size_max
         self.data = []
 
@@ -431,7 +431,7 @@ def _create_sink(sink_wires, interconnect_wires):
 #------------------------------------------------------------------------------
 
 class _module:
-    def __init__(self, receiver, buffer_size, source_kind=SourceKind.MP, default_sink_semaphore=None):
+    def __init__(self, receiver, buffer_size, source_kind, default_sink_semaphore):
         self._interconnect_wires = _create_interface_interconnect()
         self._default_sink_wires = _create_interface_sink_default(default_sink_semaphore)
         self._interconnect = _create_interconnect(receiver, buffer_size, source_kind, self._interconnect_wires, self._default_sink_wires)
@@ -466,7 +466,7 @@ class producer:
     def configure(self, port, receiver):
         self._rx[port] = receiver
 
-    def initialize(self, port, buffer_size, source_kind=SourceKind.MP, default_sink_semaphore=None):
+    def initialize(self, port, buffer_size=512, source_kind=SourceKind.MT, default_sink_semaphore=None):
         self._producer[port] = _module(self._rx[port], buffer_size, source_kind, default_sink_semaphore)
 
     def start(self, port):        
@@ -496,7 +496,7 @@ class consumer:
         self._sink_semaphore = dict()
         self._sink_event = dict()
 
-    def create_sink(self, producer, port, manager, semaphore):
+    def create_sink(self, producer, port, manager, semaphore=None):
         sink_din = manager.Queue()
         sink_dout = manager.Queue()
         sink_semaphore = None if (semaphore is None) else manager.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else self._sink_semaphore[semaphore]
