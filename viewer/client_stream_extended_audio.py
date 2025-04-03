@@ -93,7 +93,7 @@ audio_passthrough_sample_rate = None
 level = hl2ss.AACLevel.L2 if (profile != hl2ss.AudioProfile.RAW) else hl2ss.extended_audio_raw_configuration(media_category, shared, audio_raw, disable_effect, enable_passthrough)
 
 if (mixer_mode == hl2ss.MixerMode.QUERY):
-    audio_devices = json.loads(hl2ss_lnm.download_devicelist_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, profile, level))
+    audio_devices = json.loads(hl2ss_lnm.download_devicelist_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, profile=profile, level=level))
     print(json.dumps(audio_devices, indent=2))
     quit()
 
