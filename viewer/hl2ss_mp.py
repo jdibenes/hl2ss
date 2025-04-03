@@ -226,6 +226,8 @@ class _interconnect(mp.Process):
         self._sink[self._key] = sink_wires
         if (not self._source_status):
             sink_wires.event.set()
+            if (sink_wires.semaphore is not None):
+                sink_wires.semaphore.release()
         sink_wires.din.put((self._key, self._frame_stamp))
         
     def _detach(self, key):
