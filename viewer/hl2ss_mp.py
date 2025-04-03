@@ -529,7 +529,7 @@ class stream(hl2ss._context_manager):
         self.semaphore = semaphore
 
     def open(self):
-        self._tag = 0
+        self._tag = self.rx.port
 
         self._producer = producer()
         self._producer.configure(self._tag, self.rx)
@@ -539,6 +539,12 @@ class stream(hl2ss._context_manager):
         self._consumer = consumer()
         self._sink = self._consumer.get_default_sink(self._producer, self._tag)
         self._safs = self._sink.get_attach_response()
+
+    def get_receiver(self):
+        return self._producer.get_receiver(self._tag)
+    
+    def create_sink(self, manager, semaphore=None):
+        return self._consumer.create_sink(self._producer, self._tag, manager, semaphore)
 
     def acquire(self):
         self._sink.acquire()
