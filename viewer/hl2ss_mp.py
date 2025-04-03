@@ -118,10 +118,6 @@ def get_nearest_packet(data, timestamp, time_preference=TimePreference.PREFER_NE
     return si[1 if (tiebreak_right) else 0] 
 
 
-def is_packet_valid(packet):
-    return packet.timestamp != hl2ss._RANGEOF.U64_MAX
-
-
 #------------------------------------------------------------------------------
 # Source
 #------------------------------------------------------------------------------
@@ -148,7 +144,7 @@ class _source:
                     self._source_wires.dout.put(client.get_next_packet())
                     self._interconnect_wires.semaphore.release()
         except Exception as e:
-            self._source_wires.dout.put(hl2ss._packet(hl2ss._RANGEOF.U64_MAX, traceback.format_exc(), None))
+            self._source_wires.dout.put(hl2ss._packet(None, traceback.format_exc(), None))
             self._interconnect_wires.semaphore.release()
             self._event_stop.wait()
         self._source_wires.dout.put(None)
@@ -206,8 +202,7 @@ class _interconnect(mp.Process):
     IPC_SINK_GET_FRAME_STAMP = 2
     IPC_SINK_GET_MOST_RECENT_FRAME = 3
     IPC_SINK_GET_BUFFERED_FRAME = 4
-    IPC_SINK_GET_SOURCE_STATUS = 5
-    IPC_SINK_GET_SOURCE_STRING = 6
+    IPC_SINK_GET_SOURCE_STRING = 5
     
     def __init__(self, receiver, buffer_size, event_stop, source_kind, interconnect_wires, sink_wires):
         super().__init__()
@@ -264,11 +259,14 @@ class _interconnect(mp.Process):
             data = self._source_wires.dout.get_nowait()
         except:
             return
-        if (data.timestamp == hl2ss._RANGEOF.U64_MAX):
+        if (data.timestamp is None):
             self._source_status = False
             self._source_string = data.payload
-        self._frame_stamp += 1
-        self._buffer.append(data)
+            for sink_wires in self._sink.values():
+                sink_wires.event.set()
+        else:
+            self._frame_stamp += 1
+            self._buffer.append(data)
         for sink_wires in self._sink.values():
             if (sink_wires.semaphore is not None):
                 sink_wires.semaphore.release()
@@ -300,8 +298,6 @@ class _interconnect(mp.Process):
             sink_wires.din.put(self._get_most_recent_frame())
         elif (message[0] == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
             sink_wires.din.put(self._get_buffered_frame(*message[1:]))
-        elif (message[0] == _interconnect.IPC_SINK_GET_SOURCE_STATUS):
-            sink_wires.din.put(self._get_source_status())
         elif (message[0] == _interconnect.IPC_SINK_GET_SOURCE_STRING):
             sink_wires.din.put(self._get_source_string())
         self._interconnect_wires.semaphore.acquire()
@@ -357,10 +353,11 @@ def _create_interconnect(receiver, buffer_size, source_kind, interconnect_wires,
 #------------------------------------------------------------------------------
 
 class _net_sink:
-    def __init__(self, din, dout, semaphore):
+    def __init__(self, din, dout, semaphore, event):
         self.din = din
         self.dout = dout
         self.semaphore = semaphore
+        self.event = event
 
 
 class _sink:
@@ -408,10 +405,7 @@ class _sink:
         return state, frame_stamp, data
     
     def get_source_status(self):
-        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_SOURCE_STATUS,))
-        self._interconnect_wires.semaphore.release()
-        status = self._sink_wires.din.get()
-        return status
+        return not self._sink_wires.event.is_set()
     
     def get_source_string(self):
         self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_SOURCE_STRING,))
@@ -420,12 +414,12 @@ class _sink:
         return string
 
 
-def _create_interface_sink(sink_din, sink_dout, sink_semaphore):
-    return _net_sink(sink_din, sink_dout, sink_semaphore)
+def _create_interface_sink(sink_din, sink_dout, sink_semaphore, sink_event):
+    return _net_sink(sink_din, sink_dout, sink_semaphore, sink_event)
 
 
 def _create_interface_sink_default(semaphore):
-    return _net_sink(mp.Queue(), mp.Queue(), mp.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else None)
+    return _net_sink(mp.Queue(), mp.Queue(), mp.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else None, mp.Event())
 
 
 def _create_sink(sink_wires, interconnect_wires):
@@ -450,8 +444,8 @@ class _module:
         self._interconnect.stop()
         self._interconnect.join()
 
-    def attach_sink(self, sink_din, sink_dout, sink_semaphore):
-        sink_wires = _create_interface_sink(sink_din, sink_dout, sink_semaphore)
+    def attach_sink(self, sink_din, sink_dout, sink_semaphore, sink_event):
+        sink_wires = _create_interface_sink(sink_din, sink_dout, sink_semaphore, sink_event)
         sink = _create_sink(sink_wires, self._interconnect_wires)
         self._interconnect.attach_sink(sink_wires)
         return sink
@@ -484,8 +478,8 @@ class producer:
     def get_receiver(self, port):
         return self._rx[port]
     
-    def _attach_sink(self, port, sink_din, sink_dout, sink_semaphore):
-        return self._producer[port].attach_sink(sink_din, sink_dout, sink_semaphore)
+    def _attach_sink(self, port, sink_din, sink_dout, sink_semaphore, sink_event):
+        return self._producer[port].attach_sink(sink_din, sink_dout, sink_semaphore, sink_event)
     
     def _get_default_sink(self, port):
         return self._producer[port].get_default_sink()
@@ -500,17 +494,20 @@ class consumer:
         self._sink_din = dict()
         self._sink_dout = dict()
         self._sink_semaphore = dict()
+        self._sink_event = dict()
 
     def create_sink(self, producer, port, manager, semaphore):
         sink_din = manager.Queue()
         sink_dout = manager.Queue()
         sink_semaphore = None if (semaphore is None) else manager.Semaphore(_interconnect.IPC_SEMAPHORE_VALUE) if (semaphore is ...) else self._sink_semaphore[semaphore]
+        sink_event = manager.Event()
         
         self._sink_din[port] = sink_din
         self._sink_dout[port] = sink_dout
         self._sink_semaphore[port] = sink_semaphore
+        self._sink_event[port] = sink_event
         
-        return producer._attach_sink(port, sink_din, sink_dout, sink_semaphore)
+        return producer._attach_sink(port, sink_din, sink_dout, sink_semaphore, sink_event)
     
     def get_default_sink(self, producer, port):
         return producer._get_default_sink(port)
