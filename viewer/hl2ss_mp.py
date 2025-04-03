@@ -224,6 +224,8 @@ class _interconnect(mp.Process):
     def _attach(self, sink_wires):
         self._key += 1
         self._sink[self._key] = sink_wires
+        if (not self._source_status):
+            sink_wires.event.set()
         sink_wires.din.put((self._key, self._frame_stamp))
         
     def _detach(self, key):
@@ -506,7 +508,7 @@ class consumer:
         self._sink_dout[port] = sink_dout
         self._sink_semaphore[port] = sink_semaphore
         self._sink_event[port] = sink_event
-        
+
         return producer._attach_sink(port, sink_din, sink_dout, sink_semaphore, sink_event)
     
     def get_default_sink(self, producer, port):
