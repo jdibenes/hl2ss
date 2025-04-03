@@ -330,10 +330,11 @@ class _RANGEOF:
 
 
 class _client:
-    def open(self, host, port):
+    def open(self, host, port, sockopt):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._f = weakref.finalize(self, lambda s : s.close(), self._socket)
-        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, sockopt['setsockopt.IPPROTO_TCP.TCP_NODELAY'])
+        self._socket.settimeout(sockopt['settimeout'])
         self._socket.connect((host, port))
 
     def sendall(self, data):
@@ -436,10 +437,10 @@ class _gatherer:
         self._client = _client()
         self._unpacker = _unpacker()
 
-    def open(self, host, port, chunk_size, mode):
+    def open(self, host, port, sockopt, chunk_size, mode):
         self._chunk_size = chunk_size
         self._unpacker.reset(mode)
-        self._client.open(host, port)
+        self._client.open(host, port, sockopt)
         
     def sendall(self, data):
         self._client.sendall(data)
@@ -603,71 +604,71 @@ def extended_audio_raw_configuration(media_category, shared, audio_raw, disable_
 # Mode 0 and Mode 1 Data Acquisition
 #------------------------------------------------------------------------------
 
-def _connect_client_rm_vlc(host, port, chunk_size, mode, divisor, profile, level, bitrate, options):
+def _connect_client_rm_vlc(host, port, sockopt, chunk_size, mode, divisor, profile, level, bitrate, options):
     c = _gatherer()
-    c.open(host, port, chunk_size, mode)
+    c.open(host, port, sockopt, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_vlc(mode, divisor, profile, level, bitrate, options))
     return c
 
 
-def _connect_client_rm_depth_ahat(host, port, chunk_size, mode, divisor, profile_z, profile_ab, level, bitrate, options):
+def _connect_client_rm_depth_ahat(host, port, sockopt, chunk_size, mode, divisor, profile_z, profile_ab, level, bitrate, options):
     c = _gatherer()
-    c.open(host, port, chunk_size, mode)
+    c.open(host, port, sockopt, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_depth_ahat(mode, divisor, profile_z, profile_ab, level, bitrate, options))
     return c
 
 
-def _connect_client_rm_depth_longthrow(host, port, chunk_size, mode, divisor, png_filter):
+def _connect_client_rm_depth_longthrow(host, port, sockopt, chunk_size, mode, divisor, png_filter):
     c = _gatherer()
-    c.open(host, port, chunk_size, mode)
+    c.open(host, port, sockopt, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_depth_longthrow(mode, divisor, png_filter))
     return c
 
 
-def _connect_client_rm_imu(host, port, chunk_size, mode):
+def _connect_client_rm_imu(host, port, sockopt, chunk_size, mode):
     c = _gatherer()
-    c.open(host, port, chunk_size, mode)
+    c.open(host, port, sockopt, chunk_size, mode)
     c.sendall(_create_configuration_for_rm_imu(mode))
     return c
 
 
-def _connect_client_pv(host, port, chunk_size, mode, width, height, framerate, divisor, profile, level, bitrate, options):
+def _connect_client_pv(host, port, sockopt, chunk_size, mode, width, height, framerate, divisor, profile, level, bitrate, options):
     c = _gatherer()
-    c.open(host, port, chunk_size, mode)
+    c.open(host, port, sockopt, chunk_size, mode)
     c.sendall(_create_configuration_for_pv(mode, width, height, framerate, divisor, profile, level, bitrate, options))
     return c
 
 
-def _connect_client_microphone(host, port, chunk_size, profile, level):
+def _connect_client_microphone(host, port, sockopt, chunk_size, profile, level):
     c = _gatherer()
-    c.open(host, port, chunk_size, StreamMode.MODE_0)
+    c.open(host, port, sockopt, chunk_size, StreamMode.MODE_0)
     c.sendall(_create_configuration_for_microphone(profile, level))
     return c
 
 
-def _connect_client_si(host, port, chunk_size):
+def _connect_client_si(host, port, sockopt, chunk_size):
     c = _gatherer()
-    c.open(host, port, chunk_size, StreamMode.MODE_0)
+    c.open(host, port, sockopt, chunk_size, StreamMode.MODE_0)
     return c
 
 
-def _connect_client_eet(host, port, chunk_size, fps):
+def _connect_client_eet(host, port, sockopt, chunk_size, fps):
     c = _gatherer()
-    c.open(host, port, chunk_size, StreamMode.MODE_1)
+    c.open(host, port, sockopt, chunk_size, StreamMode.MODE_1)
     c.sendall(_create_configuration_for_eet(fps))
     return c
 
 
-def _connect_client_extended_audio(host, port, chunk_size, mixer_mode, loopback_gain, microphone_gain, profile, level):
+def _connect_client_extended_audio(host, port, sockopt, chunk_size, mixer_mode, loopback_gain, microphone_gain, profile, level):
     c = _gatherer()
-    c.open(host, port, chunk_size, StreamMode.MODE_0)
+    c.open(host, port, sockopt, chunk_size, StreamMode.MODE_0)
     c.sendall(_create_configuration_for_extended_audio(mixer_mode, loopback_gain, microphone_gain, profile, level))
     return c
 
 
-def _connect_client_extended_depth(host, port, chunk_size, mode, divisor, profile_z, options):
+def _connect_client_extended_depth(host, port, sockopt, chunk_size, mode, divisor, profile_z, options):
     c = _gatherer()
-    c.open(host, port, chunk_size, mode)
+    c.open(host, port, sockopt, chunk_size, mode)
     c.sendall(_create_configuration_for_extended_depth(mode, divisor, profile_z, options))
     return c
 
@@ -677,17 +678,17 @@ class _PVCNT:
     STOP   = 0x08
 
 
-def start_subsystem_pv(host, port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
+def start_subsystem_pv(host, port, sockopt, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective):
     c = _client()
-    c.open(host, port)
+    c.open(host, port, sockopt)
     c.sendall(_create_configuration_for_mode(_PVCNT.START | StreamMode.MODE_3))
     c.sendall(_create_configuration_for_mrc_video(enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective))
     c.close()
 
 
-def stop_subsystem_pv(host, port):
+def stop_subsystem_pv(host, port, sockopt):
     c = _client()
-    c.open(host, port)
+    c.open(host, port, sockopt)
     c.sendall(_create_configuration_for_mode(_PVCNT.STOP | StreamMode.MODE_3))
     c.close()
 
@@ -710,9 +711,10 @@ class _context_manager:
 #------------------------------------------------------------------------------
 
 class rx_rm_vlc(_context_manager):
-    def __init__(self, host, port, chunk, mode, divisor, profile, level, bitrate, options):
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile, level, bitrate, options):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.mode = mode
         self.divisor = divisor
@@ -722,7 +724,7 @@ class rx_rm_vlc(_context_manager):
         self.options = options
 
     def open(self):
-        self._client = _connect_client_rm_vlc(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile, self.level, self.bitrate, self.options)
+        self._client = _connect_client_rm_vlc(self.host, self.port, self.sockopt, self.chunk, self.mode, self.divisor, self.profile, self.level, self.bitrate, self.options)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -732,9 +734,10 @@ class rx_rm_vlc(_context_manager):
 
 
 class rx_rm_depth_ahat(_context_manager):
-    def __init__(self, host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options):
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.mode = mode
         self.divisor = divisor
@@ -745,7 +748,7 @@ class rx_rm_depth_ahat(_context_manager):
         self.options = options
 
     def open(self):
-        self._client = _connect_client_rm_depth_ahat(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile_z, self.profile_ab, self.level, self.bitrate, self.options)
+        self._client = _connect_client_rm_depth_ahat(self.host, self.port, self.sockopt, self.chunk, self.mode, self.divisor, self.profile_z, self.profile_ab, self.level, self.bitrate, self.options)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -755,16 +758,17 @@ class rx_rm_depth_ahat(_context_manager):
 
 
 class rx_rm_depth_longthrow(_context_manager):
-    def __init__(self, host, port, chunk, mode, divisor, png_filter):
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, png_filter):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.mode = mode
         self.divisor = divisor
         self.png_filter = png_filter
 
     def open(self):
-        self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.chunk, self.mode, self.divisor, self.png_filter)
+        self._client = _connect_client_rm_depth_longthrow(self.host, self.port, self.sockopt, self.chunk, self.mode, self.divisor, self.png_filter)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -774,14 +778,15 @@ class rx_rm_depth_longthrow(_context_manager):
 
 
 class rx_rm_imu(_context_manager):
-    def __init__(self, host, port, chunk, mode):
+    def __init__(self, host, port, sockopt, chunk, mode):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.mode = mode
 
     def open(self):
-        self._client = _connect_client_rm_imu(self.host, self.port, self.chunk, self.mode)
+        self._client = _connect_client_rm_imu(self.host, self.port, self.sockopt, self.chunk, self.mode)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -791,9 +796,10 @@ class rx_rm_imu(_context_manager):
 
 
 class rx_pv(_context_manager):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options):
+    def __init__(self, host, port, sockopt, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.mode = mode
         self.width = width
@@ -806,7 +812,7 @@ class rx_pv(_context_manager):
         self.options = options
 
     def open(self):
-        self._client = _connect_client_pv(self.host, self.port, self.chunk, self.mode, self.width, self.height, self.framerate, self.divisor, self.profile, self.level, self.bitrate, self.options)
+        self._client = _connect_client_pv(self.host, self.port, self.sockopt, self.chunk, self.mode, self.width, self.height, self.framerate, self.divisor, self.profile, self.level, self.bitrate, self.options)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -816,15 +822,16 @@ class rx_pv(_context_manager):
 
 
 class rx_microphone(_context_manager):
-    def __init__(self, host, port, chunk, profile, level):
+    def __init__(self, host, port, sockopt, chunk, profile, level):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.profile = profile
         self.level = level
 
     def open(self):
-        self._client = _connect_client_microphone(self.host, self.port, self.chunk, self.profile, self.level)
+        self._client = _connect_client_microphone(self.host, self.port, self.sockopt, self.chunk, self.profile, self.level)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -834,13 +841,14 @@ class rx_microphone(_context_manager):
 
 
 class rx_si(_context_manager):
-    def __init__(self, host, port, chunk):
+    def __init__(self, host, port, sockopt, chunk):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
 
     def open(self):
-        self._client = _connect_client_si(self.host, self.port, self.chunk)
+        self._client = _connect_client_si(self.host, self.port, self.sockopt, self.chunk)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -850,14 +858,15 @@ class rx_si(_context_manager):
 
 
 class rx_eet(_context_manager):
-    def __init__(self, host, port, chunk, fps):
+    def __init__(self, host, port, sockopt, chunk, fps):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.fps = fps
 
     def open(self):
-        self._client = _connect_client_eet(self.host, self.port, self.chunk, self.fps)
+        self._client = _connect_client_eet(self.host, self.port, self.sockopt, self.chunk, self.fps)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -867,9 +876,10 @@ class rx_eet(_context_manager):
 
 
 class rx_extended_audio(_context_manager):
-    def __init__(self, host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
+    def __init__(self, host, port, sockopt, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.mixer_mode = mixer_mode
         self.loopback_gain = loopback_gain
@@ -878,7 +888,7 @@ class rx_extended_audio(_context_manager):
         self.level = level
 
     def open(self):
-        self._client = _connect_client_extended_audio(self.host, self.port, self.chunk, self.mixer_mode, self.loopback_gain, self.microphone_gain, self.profile, self.level)
+        self._client = _connect_client_extended_audio(self.host, self.port, self.sockopt, self.chunk, self.mixer_mode, self.loopback_gain, self.microphone_gain, self.profile, self.level)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -888,9 +898,10 @@ class rx_extended_audio(_context_manager):
 
 
 class rx_extended_depth(_context_manager):
-    def __init__(self, host, port, chunk, mode, divisor, profile_z, options):
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile_z, options):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         self.chunk = chunk
         self.mode = mode
         self.divisor = divisor
@@ -898,7 +909,7 @@ class rx_extended_depth(_context_manager):
         self.options = options
 
     def open(self):
-        self._client = _connect_client_extended_depth(self.host, self.port, self.chunk, self.mode, self.divisor, self.profile_z, self.options)
+        self._client = _connect_client_extended_depth(self.host, self.port, self.sockopt, self.chunk, self.mode, self.divisor, self.profile_z, self.options)
 
     def get_next_packet(self, wait=True):
         return self._client.get_next_packet(wait)
@@ -1630,8 +1641,8 @@ class decode_extended_depth:
 #------------------------------------------------------------------------------
 
 class rx_decoded_rm_vlc(rx_rm_vlc):
-    def __init__(self, host, port, chunk, mode, divisor, profile, level, bitrate, options):
-        super().__init__(host, port, chunk, mode, divisor, profile, level, bitrate, options)
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile, level, bitrate, options):
+        super().__init__(host, port, sockopt, chunk, mode, divisor, profile, level, bitrate, options)
 
     def open(self):
         self._codec = decode_rm_vlc(self.profile)
@@ -1648,8 +1659,8 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
 
 
 class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
-    def __init__(self, host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options):
-        super().__init__(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options)
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options):
+        super().__init__(host, port, sockopt, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, options)
         
     def open(self):
         self._codec = decode_rm_depth_ahat(self.profile_z, self.profile_ab)
@@ -1666,8 +1677,8 @@ class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
 
 
 class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
-    def __init__(self, host, port, chunk, mode, divisor, png_filter):
-        super().__init__(host, port, chunk, mode, divisor, png_filter)
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, png_filter):
+        super().__init__(host, port, sockopt, chunk, mode, divisor, png_filter)
 
     def open(self):
         self._codec = decode_rm_depth_longthrow(self.png_filter)
@@ -1684,8 +1695,8 @@ class rx_decoded_rm_depth_longthrow(rx_rm_depth_longthrow):
 
 
 class rx_decoded_rm_imu(rx_rm_imu):
-    def __init__(self, host, port, chunk, mode):
-        super().__init__(host, port, chunk, mode)
+    def __init__(self, host, port, sockopt, chunk, mode):
+        super().__init__(host, port, sockopt, chunk, mode)
 
     def open(self):
         self._codec = decode_rm_imu()
@@ -1702,8 +1713,8 @@ class rx_decoded_rm_imu(rx_rm_imu):
 
 
 class rx_decoded_pv(rx_pv):
-    def __init__(self, host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options, format):
-        super().__init__(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
+    def __init__(self, host, port, sockopt, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options, format):
+        super().__init__(host, port, sockopt, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, options)
         self.format = format
         
     def open(self):        
@@ -1721,8 +1732,8 @@ class rx_decoded_pv(rx_pv):
 
 
 class rx_decoded_microphone(rx_microphone):
-    def __init__(self, host, port, chunk, profile, level):
-        super().__init__(host, port, chunk, profile, level)
+    def __init__(self, host, port, sockopt, chunk, profile, level):
+        super().__init__(host, port, sockopt, chunk, profile, level)
         
     def open(self):
         self._codec = decode_microphone(self.profile, self.level)
@@ -1739,8 +1750,8 @@ class rx_decoded_microphone(rx_microphone):
 
 
 class rx_decoded_si(rx_si):
-    def __init__(self, host, port, chunk):
-        super().__init__(host, port, chunk)
+    def __init__(self, host, port, sockopt, chunk):
+        super().__init__(host, port, sockopt, chunk)
 
     def open(self):
         self._codec = decode_si()
@@ -1757,8 +1768,8 @@ class rx_decoded_si(rx_si):
 
 
 class rx_decoded_eet(rx_eet):
-    def __init__(self, host, port, chunk, fps):
-        super().__init__(host, port, chunk, fps)
+    def __init__(self, host, port, sockopt, chunk, fps):
+        super().__init__(host, port, sockopt, chunk, fps)
 
     def open(self):
         self._codec = decode_eet()
@@ -1775,8 +1786,8 @@ class rx_decoded_eet(rx_eet):
 
 
 class rx_decoded_extended_audio(rx_extended_audio):
-    def __init__(self, host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
-        super().__init__(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
+    def __init__(self, host, port, sockopt, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level):
+        super().__init__(host, port, sockopt, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level)
     
     def open(self):
         self._codec = decode_extended_audio(self.profile, self.level)
@@ -1793,8 +1804,8 @@ class rx_decoded_extended_audio(rx_extended_audio):
 
 
 class rx_decoded_extended_depth(rx_extended_depth):
-    def __init__(self, host, port, chunk, mode, divisor, profile_z, options):
-        super().__init__(host, port, chunk, mode, divisor, profile_z, options)
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile_z, options):
+        super().__init__(host, port, sockopt, chunk, mode, divisor, profile_z, options)
 
     def open(self):
         self._codec = decode_extended_depth(self.profile_z)
@@ -1939,10 +1950,10 @@ class _Mode2_PV:
         self.extrinsics_mf         = extrinsics_mf
 
 
-def _download_mode2_data(host, port, configuration, bytes):
+def _download_mode2_data(host, port, sockopt, configuration, bytes):
     c = _client()
 
-    c.open(host, port)
+    c.open(host, port, sockopt)
     c.sendall(configuration)
     data = c.download(bytes, ChunkSize.SINGLE_TRANSFER)
     c.close()
@@ -1950,8 +1961,8 @@ def _download_mode2_data(host, port, configuration, bytes):
     return data
 
 
-def download_calibration_rm_vlc(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
+def download_calibration_rm_vlc(host, port, sockopt):
+    data   = _download_mode2_data(host, port, sockopt, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_VLC.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_VLC.BEGIN_UV2X       : _Mode2Layout_RM_VLC.END_UV2X      ].reshape(Parameters_RM_VLC.SHAPE)
@@ -1966,8 +1977,8 @@ def download_calibration_rm_vlc(host, port):
     return _Mode2_RM_VLC(np.dstack((uv2x, uv2y)), extrinsics, np.dstack((mapx, mapy)), intrinsics)
 
 
-def download_calibration_rm_depth_ahat(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_AHAT.FLOAT_COUNT * _SIZEOF.FLOAT)
+def download_calibration_rm_depth_ahat(host, port, sockopt):
+    data   = _download_mode2_data(host, port, sockopt, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_AHAT.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_DEPTH_AHAT.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_AHAT.END_UV2X      ].reshape(Parameters_RM_DEPTH_AHAT.SHAPE)
@@ -1984,8 +1995,8 @@ def download_calibration_rm_depth_ahat(host, port):
     return _Mode2_RM_DEPTH_AHAT(np.dstack((uv2x, uv2y)), extrinsics, scale, alias, np.dstack((mapx, mapy)), intrinsics)
 
 
-def download_calibration_rm_depth_longthrow(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
+def download_calibration_rm_depth_longthrow(host, port, sockopt):
+    data   = _download_mode2_data(host, port, sockopt, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_DEPTH_LONGTHROW.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     uv2x       = floats[_Mode2Layout_RM_DEPTH_LONGTHROW.BEGIN_UV2X       : _Mode2Layout_RM_DEPTH_LONGTHROW.END_UV2X      ].reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
@@ -2001,8 +2012,8 @@ def download_calibration_rm_depth_longthrow(host, port):
     return _Mode2_RM_DEPTH_LONGTHROW(np.dstack((uv2x, uv2y)), extrinsics, scale, np.dstack((mapx, mapy)), intrinsics)
 
 
-def download_calibration_rm_imu(host, port):
-    data   = _download_mode2_data(host, port, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_IMU.FLOAT_COUNT * _SIZEOF.FLOAT)
+def download_calibration_rm_imu(host, port, sockopt):
+    data   = _download_mode2_data(host, port, sockopt, _create_configuration_for_rm_mode2(StreamMode.MODE_2), _Mode2Layout_RM_IMU.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     extrinsics = floats[_Mode2Layout_RM_IMU.BEGIN_EXTRINSICS : _Mode2Layout_RM_IMU.END_EXTRINSICS].reshape((4, 4))
@@ -2010,8 +2021,8 @@ def download_calibration_rm_imu(host, port):
     return _Mode2_RM_IMU(extrinsics)
 
 
-def download_calibration_pv(host, port, width, height, framerate):
-    data   = _download_mode2_data(host, port, _create_configuration_for_pv_mode2(StreamMode.MODE_2, width, height, framerate), _Mode2Layout_PV.FLOAT_COUNT * _SIZEOF.FLOAT)
+def download_calibration_pv(host, port, sockopt, width, height, framerate):
+    data   = _download_mode2_data(host, port, sockopt, _create_configuration_for_pv_mode2(StreamMode.MODE_2, width, height, framerate), _Mode2Layout_PV.FLOAT_COUNT * _SIZEOF.FLOAT)
     floats = np.frombuffer(data, dtype=np.float32)
 
     focal_length          = floats[_Mode2Layout_PV.BEGIN_FOCALLENGTH          : _Mode2Layout_PV.END_FOCALLENGTH         ]
@@ -2028,9 +2039,9 @@ def download_calibration_pv(host, port, width, height, framerate):
     return _Mode2_PV(focal_length, principal_point, radial_distortion, tangential_distortion, projection, intrinsics, extrinsics, intrinsics_mf, extrinsics_mf)
 
 
-def download_devicelist_extended_audio(host, port, profile, level):
+def download_devicelist_extended_audio(host, port, sockopt, profile, level):
     c = _client()
-    c.open(host, port)
+    c.open(host, port, sockopt)
     c.sendall(_create_configuration_for_extended_audio(MixerMode.QUERY, 1.0, 1.0, profile, level))
     size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
     query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
@@ -2038,9 +2049,9 @@ def download_devicelist_extended_audio(host, port, profile, level):
     return query
 
 
-def download_devicelist_extended_video(host, port):
+def download_devicelist_extended_video(host, port, sockopt):
     c = _client()
-    c.open(host, port)
+    c.open(host, port, sockopt)
     c.sendall(_create_configuration_for_mode(StreamMode.MODE_2))
     size = struct.unpack('<I', c.download(_SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))[0]
     query = c.download(size, ChunkSize.SINGLE_TRANSFER).decode('utf-16')
@@ -2269,13 +2280,14 @@ class ipc_rc(_context_manager):
     _CMD_TS_GET_CURRENT_TIME = 0x18
     _CMD_SI_SET_SAMPLING_DELAY = 0x19
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, sockopt):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
 
     def open(self):
         self._client = _client()
-        self._client.open(self.host, self.port)
+        self._client.open(self.host, self.port, self.sockopt)
 
     def close(self):
         self._client.close()
@@ -2515,13 +2527,14 @@ class ipc_sm(_context_manager):
     _CMD_GET_OBSERVED_SURFACES = 0x01
     _CMD_GET_MESHES            = 0x02
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, sockopt):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         
     def open(self):
         self._client = _client()
-        self._client.open(self.host, self.port)
+        self._client.open(self.host, self.port, self.sockopt)
 
     def set_volumes(self, volumes):
         count, data = volumes._get()
@@ -2697,13 +2710,14 @@ def _su_result_unpack(extrinsics, pose, items):
 
 
 class ipc_su(_context_manager):
-    def __init__(self, host, port):
+    def __init__(self, host, port, sockopt):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
         
     def open(self):
         self._client = _client()
-        self._client.open(self.host, self.port)
+        self._client.open(self.host, self.port, self.sockopt)
 
     def _download_mesh(self):
         elements_vertices, elements_indices = struct.unpack('<II', self._client.download(2 * _SIZEOF.DWORD, ChunkSize.SINGLE_TRANSFER))
@@ -2776,13 +2790,14 @@ class ipc_vi(_context_manager):
     _CMD_POP  = 0x01
     _CMD_STOP = 0x00
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, sockopt):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
 
     def open(self):
         self._client = _client()
-        self._client.open(self.host, self.port)
+        self._client.open(self.host, self.port, self.sockopt)
 
     def start(self, strings):
         command = bytearray()
@@ -2837,13 +2852,14 @@ class umq_command_buffer:
 
 
 class ipc_umq(_context_manager):
-    def __init__(self, host, port):
+    def __init__(self, host, port, sockopt):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
     
     def open(self):
         self._client = _client()
-        self._client.open(self.host, self.port)
+        self._client.open(self.host, self.port, self.sockopt)
 
     def push(self, buffer):
         self._client.sendall(buffer.get_data())
@@ -2868,13 +2884,14 @@ class _gmq_message:
 class ipc_gmq(_context_manager):
     _CMD_NONE = _RANGEOF.U32_MAX
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, sockopt):
         self.host = host
         self.port = port
+        self.sockopt = sockopt
 
     def open(self):
         self._client = _client()
-        self._client.open(self.host, self.port)
+        self._client.open(self.host, self.port, self.sockopt)
 
     def pull(self):
         self._client.sendall(struct.pack('<I', ipc_gmq._CMD_NONE))
