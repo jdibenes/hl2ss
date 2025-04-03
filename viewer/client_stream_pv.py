@@ -59,7 +59,7 @@ decoded_format = 'bgr24'
 hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, enable_mrc=enable_mrc, shared=shared)
 
 if (mode == hl2ss.StreamMode.MODE_2):
-    data = hl2ss_lnm.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate)
+    data = hl2ss_lnm.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=width, height=height, framerate=framerate)
     print('Calibration')
     print(f'Focal length: {data.focal_length}')
     print(f'Principal point: {data.principal_point}')
