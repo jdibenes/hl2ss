@@ -143,7 +143,7 @@ class _source:
                 while (not self._event_stop.is_set()):
                     self._source_wires.dout.put(client.get_next_packet())
                     self._interconnect_wires.semaphore.release()
-        except Exception as e:
+        except:
             self._source_wires.dout.put(hl2ss._packet(None, traceback.format_exc(), None))
             self._interconnect_wires.semaphore.release()
             self._event_stop.wait()
