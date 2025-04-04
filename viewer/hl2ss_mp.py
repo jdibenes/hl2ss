@@ -369,8 +369,8 @@ class _sink:
         self._sink_wires = sink_wires
         self._interconnect_wires = interconnect_wires
 
-    def acquire(self):
-        self._sink_wires.semaphore.acquire()
+    def acquire(self, block=True):
+        return self._sink_wires.semaphore.acquire(block)
 
     def release(self):
         self._sink_wires.semaphore.release()
@@ -546,8 +546,8 @@ class stream(hl2ss._context_manager):
     def create_sink(self, manager, semaphore=None):
         return self._consumer.create_sink(self._producer, self._tag, manager, semaphore)
 
-    def acquire(self):
-        self._sink.acquire()
+    def acquire(self, block=True):
+        return self._sink.acquire(block)
 
     def release(self):
         self._sink.release()
