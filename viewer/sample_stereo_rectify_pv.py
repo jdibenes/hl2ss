@@ -5,10 +5,6 @@
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
-from pynput import keyboard
-
-import multiprocessing as mp
-
 import numpy as np
 import cv2
 import hl2ss_imshow
@@ -31,9 +27,6 @@ pv_width = 640
 pv_height = 360
 pv_framerate = 30
 
-# Buffer size in seconds
-buffer_size = 10
-
 # Undistort rectify map shape
 shape = (640,640)
 
@@ -46,17 +39,6 @@ line_thickness = 1
 #------------------------------------------------------------------------------
 
 if (__name__ == '__main__'):
-    # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.esc
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
-
     # Start PV subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
@@ -70,8 +52,8 @@ if (__name__ == '__main__'):
     # Get camera calibrations -------------------------------------------------
     port_left  = hl2ss.StreamPort.RM_VLC_LEFTFRONT
 
-    calibration_lf = hl2ss_3dcv.get_calibration_rm(host, port_left, calibration_path)
-    calibration_rf = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_framerate)
+    calibration_lf = hl2ss_3dcv.get_calibration_rm(calibration_path, host, port_left)
+    calibration_rf = hl2ss_3dcv.get_calibration_pv(calibration_path, host, hl2ss.StreamPort.PERSONAL_VIDEO, focus=pv_focus, width=pv_width, height=pv_height, framerate=pv_framerate)
 
     rotation_lf = hl2ss_3dcv.rm_vlc_get_rotation(port_left)
 
@@ -83,25 +65,16 @@ if (__name__ == '__main__'):
     stereo_rectification = hl2ss_3dcv.rm_vlc_stereo_rectify(K1, K2, stereo_calibration.R, stereo_calibration.t, shape)
 
     # Start streams -----------------------------------------------------------
-    producer = hl2ss_mp.producer()
-    producer.configure(port_left, hl2ss_lnm.rx_rm_vlc(host, port_left))
-    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate))
-    producer.initialize(port_left, buffer_size * hl2ss.Parameters_RM_VLC.FPS)
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, buffer_size * pv_framerate)
-    producer.start(port_left)
-    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
+    sink_left = hl2ss_mp.stream(hl2ss_lnm.rx_rm_vlc(host, port_left))
+    sink_right = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate))
 
-    consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()
-    sink_left = consumer.create_sink(producer, port_left, manager, ...)
-    sink_right = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
-    sink_left.get_attach_response()
-    sink_right.get_attach_response()
+    sink_left.open()
+    sink_right.open()
+
+    cv2.namedWindow('Rectified')
 
     # Main loop ---------------------------------------------------------------
-    while (enable):
-        sink_left.acquire()
-
+    while ((cv2.waitKey(1) & 0xFF) != 27):
         # Get frames ----------------------------------------------------------
         _, data_left = sink_left.get_most_recent_frame()
         if (data_left is None):
@@ -129,16 +102,10 @@ if (__name__ == '__main__'):
             cv2.line(image, (0, y), ((shape[0] * 2) - 1, y), line_color, line_thickness)
         
         cv2.imshow('Rectified', image)
-        cv2.waitKey(1)
 
     # Stop streams ------------------------------------------------------------
-    sink_left.detach()
-    sink_right.detach()
-    producer.stop(port_left)
-    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
+    sink_left.close()
+    sink_right.close()
 
     # Stop PV subsystem -------------------------------------------------------
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-
-    # Stop keyboard events ----------------------------------------------------
-    listener.join()
