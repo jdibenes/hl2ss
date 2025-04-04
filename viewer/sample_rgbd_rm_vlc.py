@@ -6,7 +6,6 @@
 
 from pynput import keyboard
 
-import multiprocessing as mp
 import numpy as np
 import open3d as o3d
 import cv2
@@ -15,6 +14,7 @@ import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
+import hl2ss_utilities
 
 #------------------------------------------------------------------------------
 
@@ -27,9 +27,6 @@ calibration_path = '../calibration'
 # Port
 vlc_port = hl2ss.StreamPort.RM_VLC_RIGHTFRONT
 
-# Buffer length in seconds
-buffer_length = 10
-
 # Max depth in meters
 max_depth = 3.0 
 
@@ -37,20 +34,13 @@ max_depth = 3.0
 
 if __name__ == '__main__':
     # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.space
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.space)
+    listener.open()
 
     # Get RM VLC and RM Depth Long Throw calibration --------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_vlc = hl2ss_3dcv.get_calibration_rm(host, vlc_port, calibration_path)
-    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+    calibration_vlc = hl2ss_3dcv.get_calibration_rm(calibration_path, host, vlc_port)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
@@ -63,26 +53,18 @@ if __name__ == '__main__':
     first_pcd = True
 
     # Start RM VLC and RM Depth Long Throw streams ----------------------------
-    producer = hl2ss_mp.producer()
-    producer.configure(vlc_port, hl2ss_lnm.rx_rm_vlc(host, vlc_port))
-    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
-    producer.initialize(vlc_port, hl2ss.Parameters_RM_VLC.FPS * buffer_length)
-    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
-    producer.start(vlc_port)
-    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_vlc = hl2ss_mp.stream(hl2ss_lnm.rx_rm_vlc(host, vlc_port))
+    sink_depth = hl2ss_mp.stream(hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
 
-    consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()    
-    sink_vlc = consumer.create_sink(producer, vlc_port, manager, None)
-    sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
-
-    sink_vlc.get_attach_response()
-    sink_depth.get_attach_response()
+    sink_vlc.open()
+    sink_depth.open()
 
     # Main Loop ---------------------------------------------------------------
-    while (enable):
-        # Wait for RM Depth Long Throw frame ----------------------------------
-        sink_depth.acquire()
+    while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
+
+        cv2.waitKey(1)
 
         # Get RM Depth Long Throw frame and nearest (in time) RM VLC frame ----
         _, data_depth = sink_depth.get_most_recent_frame()
@@ -112,13 +94,13 @@ if __name__ == '__main__':
         depth[mask_uv] = 0
 
         # Display RGBD --------------------------------------------------------
-        image = np.hstack((depth / 8, color / 255)) # Depth scaled for visibility
+        color = hl2ss_3dcv.rm_vlc_to_rgb(color)
+        
+        image = np.hstack((hl2ss_utilities.depth_colormap(depth, max_depth), color))
+
         cv2.imshow('RGBD', image)
-        cv2.waitKey(1)
 
         # Convert to Open3D RGBD image ----------------------------------------
-        color = hl2ss_3dcv.rm_vlc_to_rgb(color)
-
         color_image = o3d.geometry.Image(color)
         depth_image = o3d.geometry.Image(depth)
 
@@ -136,14 +118,9 @@ if __name__ == '__main__':
         else:
             vis.update_geometry(pcd)
 
-        vis.poll_events()
-        vis.update_renderer()
-
     # Stop RM VLC and RM Depth Long Throw streams -----------------------------
-    sink_vlc.detach()
-    sink_depth.detach()
-    producer.stop(vlc_port)
-    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_vlc.close()
+    sink_depth.close()
 
     # Stop keyboard events ----------------------------------------------------
-    listener.join()
+    listener.close()
