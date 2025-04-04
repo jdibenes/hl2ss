@@ -3,15 +3,13 @@
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
-from pynput import keyboard
-
-import multiprocessing as mp
 import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -27,21 +25,13 @@ ports = [
     #hl2ss.StreamPort.RM_DEPTH_AHAT,
     hl2ss.StreamPort.RM_DEPTH_LONGTHROW,
     hl2ss.StreamPort.PERSONAL_VIDEO,
-    hl2ss.StreamPort.RM_IMU_ACCELEROMETER,
-    hl2ss.StreamPort.RM_IMU_GYROSCOPE,
-    hl2ss.StreamPort.RM_IMU_MAGNETOMETER,
     hl2ss.StreamPort.MICROPHONE,
-    hl2ss.StreamPort.SPATIAL_INPUT,
-    hl2ss.StreamPort.EXTENDED_EYE_TRACKER,
     ]
 
 # PV parameters
 pv_width     = 760
 pv_height    = 428
 pv_framerate = 30
-
-# Maximum number of frames in buffer
-buffer_elements = 150
 
 #------------------------------------------------------------------------------
 
@@ -50,17 +40,6 @@ if __name__ == '__main__':
         print('Error: Simultaneous RM Depth Long Throw and RM Depth AHAT streaming is not supported. See known issues at https://github.com/jdibenes/hl2ss.')
         quit()
 
-    # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.esc
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
-
     # Start PV Subsystem if PV is selected ------------------------------------
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
         hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
@@ -68,8 +47,8 @@ if __name__ == '__main__':
     # Start streams -----------------------------------------------------------
     client_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
     client_rc.open()
-    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss.EE_InterfacePriority.HIGHEST)
-    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTLEFT, hl2ss.EE_InterfacePriority.HIGHEST)
+    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTFRONT,  hl2ss.EE_InterfacePriority.HIGHEST)
+    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTLEFT,   hl2ss.EE_InterfacePriority.HIGHEST)
     client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_RIGHTFRONT, hl2ss.EE_InterfacePriority.HIGHEST)
     client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, hl2ss.EE_InterfacePriority.HIGHEST)
     client_rc.close()
@@ -82,44 +61,34 @@ if __name__ == '__main__':
     producer.configure(hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT))
     producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
     producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate))
-    producer.configure(hl2ss.StreamPort.RM_IMU_ACCELEROMETER, hl2ss_lnm.rx_rm_imu(host, hl2ss.StreamPort.RM_IMU_ACCELEROMETER))
-    producer.configure(hl2ss.StreamPort.RM_IMU_GYROSCOPE, hl2ss_lnm.rx_rm_imu(host, hl2ss.StreamPort.RM_IMU_GYROSCOPE))
-    producer.configure(hl2ss.StreamPort.RM_IMU_MAGNETOMETER, hl2ss_lnm.rx_rm_imu(host, hl2ss.StreamPort.RM_IMU_MAGNETOMETER))
     producer.configure(hl2ss.StreamPort.MICROPHONE, hl2ss_lnm.rx_microphone(host, hl2ss.StreamPort.MICROPHONE))
-    producer.configure(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
-    producer.configure(hl2ss.StreamPort.EXTENDED_EYE_TRACKER, hl2ss_lnm.rx_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER))
-
+    
     consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()
     sinks = {}
 
     for port in ports:
-        producer.initialize(port, buffer_elements)
+        producer.initialize(port)
         producer.start(port)
-        sinks[port] = consumer.create_sink(producer, port, manager, None)
+        sinks[port] = consumer.get_default_sink(producer, port)
         sinks[port].get_attach_response()
-        while (sinks[port].get_buffered_frame(0)[0] != 0):
+        while (sinks[port].get_buffered_frame(-1)[0] != hl2ss_mp.Status.OK):
             pass
-        print(f'Started {port}')        
+        print(f'Started {hl2ss.get_port_name(port)}')        
         
     # Create Display Map ------------------------------------------------------
     def display_pv(port, payload):
-        if (payload.image is not None and payload.image.size > 0):
-            cv2.imshow(hl2ss.get_port_name(port), payload.image)
+        cv2.imshow(hl2ss.get_port_name(port), payload.image)
 
     def display_vlc(port, payload):
-        if (payload.image is not None and payload.image.size > 0):
-            cv2.imshow(hl2ss.get_port_name(port), payload.image)
+        cv2.imshow(hl2ss.get_port_name(port), payload.image)
 
     def display_depth_lt(port, payload):
-        cv2.imshow(hl2ss.get_port_name(port) + '-depth', payload.depth * 8) # Scaled for visibility
-        cv2.imshow(hl2ss.get_port_name(port) + '-ab', payload.ab)
+        cv2.imshow(hl2ss.get_port_name(port) + '-depth', hl2ss_utilities.depth_colormap(payload.depth, 7500))
+        cv2.imshow(hl2ss.get_port_name(port) + '-ab', np.sqrt(payload.ab).astype(np.uint8))
 
     def display_depth_ahat(port, payload):
-        if (payload.depth is not None and payload.depth.size > 0):
-            cv2.imshow(hl2ss.get_port_name(port) + '-depth', payload.depth * 64) # Scaled for visibility
-        if (payload.ab is not None and payload.ab.size > 0):
-            cv2.imshow(hl2ss.get_port_name(port) + '-ab', payload.ab)
+        cv2.imshow(hl2ss.get_port_name(port) + '-depth', hl2ss_utilities.depth_colormap(payload.depth, 1056))
+        cv2.imshow(hl2ss.get_port_name(port) + '-ab', np.sqrt(payload.ab).astype(np.uint8))
 
     def display_null(port, payload):
         pass
@@ -132,31 +101,45 @@ if __name__ == '__main__':
         hl2ss.StreamPort.RM_DEPTH_AHAT        : display_depth_ahat,
         hl2ss.StreamPort.RM_DEPTH_LONGTHROW   : display_depth_lt,
         hl2ss.StreamPort.PERSONAL_VIDEO       : display_pv,
-        hl2ss.StreamPort.RM_IMU_ACCELEROMETER : display_null,
-        hl2ss.StreamPort.RM_IMU_GYROSCOPE     : display_null,
-        hl2ss.StreamPort.RM_IMU_MAGNETOMETER  : display_null,
         hl2ss.StreamPort.MICROPHONE           : display_null,
-        hl2ss.StreamPort.SPATIAL_INPUT        : display_null,
-        hl2ss.StreamPort.EXTENDED_EYE_TRACKER : display_null,
     }
 
+    sync_to_audio = hl2ss.StreamPort.MICROPHONE in ports
+
+    if (sync_to_audio):
+        player = hl2ss_utilities.audio_player(np.float32, True, hl2ss.Parameters_MICROPHONE.CHANNELS, hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
+        player.open()
+        fs_mc = -25
+
     # Main loop ---------------------------------------------------------------
-    while (enable):
+    while ((cv2.waitKey(1) & 0xFF) != 27):
+        if (sync_to_audio):
+            status_mc, fs_mc, data_mc = sinks[hl2ss.StreamPort.MICROPHONE].get_buffered_frame(fs_mc)
+            if (status_mc == hl2ss_mp.Status.OK):
+                player.put(data_mc.timestamp, data_mc.payload)
+                fs_mc += 1
+            elif (status_mc == hl2ss_mp.Status.DISCARDED):
+                fs_mc = -25
+
         for port in ports:
-            _, data = sinks[port].get_most_recent_frame()
+            if (port == hl2ss.StreamPort.MICROPHONE):
+                continue
+            if (sync_to_audio):
+                _, data = sinks[port].get_nearest(player.get_timestamp(), hl2ss_mp.TimePreference.PREFER_PAST, False)
+            else:
+                _, data = sinks[port].get_most_recent_frame()
             if (data is not None):
                 DISPLAY_MAP[port](port, data.payload)
-        cv2.waitKey(1)
+
+    if (sync_to_audio):
+        player.close()
 
     # Stop streams ------------------------------------------------------------
     for port in ports:
         sinks[port].detach()
         producer.stop(port)
-        print(f'Stopped {port}')
+        print(f'Stopped {hl2ss.get_port_name(port)}')
 
     # Stop PV Subsystem if PV is selected -------------------------------------
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
         hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-
-    # Stop keyboard events ----------------------------------------------------
-    listener.join()
