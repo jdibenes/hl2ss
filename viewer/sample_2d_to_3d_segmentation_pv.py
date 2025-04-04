@@ -86,6 +86,9 @@ if __name__ == '__main__':
 
     # Main loop ---------------------------------------------------------------
     while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
+
         # Get RM Depth Long Throw frame and nearest (in time) PV frame --------
         _, data_depth = sink_lt.get_most_recent_frame()
         if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
@@ -157,9 +160,6 @@ if __name__ == '__main__':
             first_geometry = False
         else:
             vis.update_geometry(main_pcd)
-
-        vis.poll_events()
-        vis.update_renderer()
 
     # Stop PV and RM Depth Long Throw streams ---------------------------------
     sink_pv.close()
