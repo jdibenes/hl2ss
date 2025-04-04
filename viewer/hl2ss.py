@@ -2648,14 +2648,12 @@ class su_task:
         self.get_collider_meshes = get_collider_meshes
         self.guid_list = guid_list
 
-    def pack(self):
-        self._task = bytearray()
-        self._task.extend(struct.pack('<BBBBIfBBBBBBBBI', self.enable_quads, self.enable_meshes, self.enable_only_observed, self.enable_world_mesh, self.mesh_lod, self.query_radius, self.create_mode, self.kind_flags, self.get_orientation, self.get_position, self.get_location_matrix, self.get_quad, self.get_meshes, self.get_collider_meshes, len(self.guid_list)))
-        for guid in self.guid_list:
-            self._task.extend(guid)
-
     def _get(self):
-        return self._task
+        task = bytearray()
+        task.extend(struct.pack('<BBBBIfBBBBBBBBI', self.enable_quads, self.enable_meshes, self.enable_only_observed, self.enable_world_mesh, self.mesh_lod, self.query_radius, self.create_mode, self.kind_flags, self.get_orientation, self.get_position, self.get_location_matrix, self.get_quad, self.get_meshes, self.get_collider_meshes, len(self.guid_list)))
+        for guid in self.guid_list:
+            task.extend(guid)
+        return task
 
 
 class _su_mesh:
