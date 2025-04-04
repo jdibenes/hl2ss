@@ -4,6 +4,7 @@
 # Press ESC to stop.
 #------------------------------------------------------------------------------
 
+#check
 import cv2
 import hl2ss_imshow
 import hl2ss
@@ -43,7 +44,9 @@ if __name__ == '__main__':
     cv2.namedWindow('Depth')
 
     while ((cv2.waitKey(1) & 0xFF) != 27):
-        _, _, data_ev = sink_ev.get_buffered_frame(-6) # artificial delay of 6 frames to simplify RGB<->Depth frame pairing (might fail)
+        # Artificial delay of 6 frames to simplify RGB<->Depth frame pairing
+        # might fail due to network lag
+        _, _, data_ev = sink_ev.get_buffered_frame(-6)
         if (data_ev is None):
             continue
 
