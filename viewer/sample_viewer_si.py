@@ -6,15 +6,16 @@
 
 from pynput import keyboard
 
-import multiprocessing as mp
 import numpy as np
 import open3d as o3d
+import time
 import cv2
 import hl2ss
 import hl2ss_lnm
 import hl2ss_utilities
 import hl2ss_mp
 import hl2ss_3dcv
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -28,9 +29,6 @@ calibration_path = '../calibration'
 pv_width = 640
 pv_height = 360
 pv_framerate = 30
-
-# Buffer length in seconds
-buffer_length = 10
 
 # Integration parameters
 voxel_length = 0.5/100
@@ -49,22 +47,15 @@ hide_position = np.array([0, -20, 0])
 
 if __name__ == '__main__':
     # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.space
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.space)
+    listener.open()
 
     # Start PV Subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
@@ -96,32 +87,29 @@ if __name__ == '__main__':
     eye_line.points = o3d.utility.Vector3dVector(np.array([[0, 0, 0], [0, 1, 0]]).reshape((2, 3)))
     eye_line.lines = o3d.utility.Vector2iVector(np.array([0, 1]).reshape((1,2)))
 
-    # Start PV and RM Depth Long Throw streams --------------------------------
-    producer = hl2ss_mp.producer()
-    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate, decoded_format='rgb24'))
-    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, pv_framerate * buffer_length)
-    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
-    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    # Start PV and RM Depth Long Throw streams --------------------------------    
+    sink_pv = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate, decoded_format='rgb24'))
+    sink_depth = hl2ss_mp.stream(hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
 
-    consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()
-    sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
-    sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
-    
-    sink_pv.get_attach_response()
-    sink_depth.get_attach_response()
+    sink_pv.open()
+    sink_depth.open()
 
     # Part 1: Integration -----------------------------------------------------
-    pv_intrinsics = hl2ss.create_pv_intrinsics_placeholder()
+    pv_intrinsics = hl2ss_3dcv.pv_create_intrinsics_placeholder()
     pv_extrinsics = np.eye(4, 4, dtype=np.float32)
 
-    while (enable):
-        sink_depth.acquire()
+    last_fs = -1
 
-        _, data_depth = sink_depth.get_most_recent_frame()
+    while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
+
+        _, fs_depth, data_depth = sink_depth.get_buffered_frame(-2)
         if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
+            continue
+
+        if (fs_depth <= last_fs):
+            time.sleep(1 / hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
             continue
 
         _, data_pv = sink_pv.get_nearest(data_depth.timestamp)
@@ -132,7 +120,7 @@ if __name__ == '__main__':
         depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
         color = data_pv.payload.image
 
-        pv_intrinsics = hl2ss.update_pv_intrinsics(pv_intrinsics, data_pv.payload.focal_length, data_pv.payload.principal_point)
+        pv_intrinsics = hl2ss_3dcv.pv_update_intrinsics(pv_intrinsics, data_pv.payload.focal_length, data_pv.payload.principal_point)
         color_intrinsics, color_extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, pv_extrinsics)
 
         lt_points         = hl2ss_3dcv.rm_depth_to_points(xy1, depth)
@@ -162,17 +150,12 @@ if __name__ == '__main__':
             pcd.colors = pcd_tmp.colors
             vis.update_geometry(pcd)
 
-        vis.poll_events()
-        vis.update_renderer()
-
     # Stop PV and RM Depth Long Throw streams ---------------------------------
-    sink_pv.detach()
-    sink_depth.detach()
-    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_pv.close()
+    sink_depth.close()
 
     # Stop keyboard events ----------------------------------------------------
-    listener.join()
+    listener.close()
 
     # Extract mesh and create ray casting scene -------------------------------
     triangles = volume.extract_triangle_mesh()
@@ -189,63 +172,60 @@ if __name__ == '__main__':
         vis.add_geometry(right_hand_joints[i], False)
 
     # Start keyboard events ---------------------------------------------------
-    enable = True
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.space)
+    listener.open()
 
     # Start Spatial Input stream ----------------------------------------------
-    producer.configure(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
-    producer.initialize(hl2ss.StreamPort.SPATIAL_INPUT, hl2ss.Parameters_SI.SAMPLE_RATE * buffer_length)
-    producer.start(hl2ss.StreamPort.SPATIAL_INPUT)
-
-    sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, ...)
-    sink_si.get_attach_response()
+    #sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, ...)
+    #sink_si.get_attach_response()
+    sink_si = hl2ss_mp.stream(hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
+    sink_si.open()
 
     # Part 2: Draw Spatial Input objects in 3D --------------------------------
-    while(enable):
-        sink_si.acquire()
+    while(not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
 
         _, data_si = sink_si.get_most_recent_frame()
         if (data_si is None):
             continue
 
-        si = hl2ss.unpack_si(data_si.payload)
+        si = data_si.payload
 
-        if (si.is_valid_head_pose()):
-            head_pose = si.get_head_pose()
+        if (si.head_pose_valid):
+            head_pose = si.head_pose
             head_frame.translate(head_pose.position, False)
-            head_rotation = hl2ss_utilities.si_head_pose_rotation_matrix(head_pose.up, head_pose.forward)
+            head_rotation = hl2ss_3dcv.si_head_pose_rotation_matrix(head_pose.up, head_pose.forward)
             head_frame.rotate(head_rotation @ head_previous_rotation.transpose())
             head_previous_rotation = head_rotation
         else:
             head_frame.translate(hide_position, False)
 
-        if (si.is_valid_hand_left()):            
-            left_hand = hl2ss_utilities.si_unpack_hand(si.get_hand_left())
+        if (si.hand_left_valid):            
+            left_hand = si.hand_left
             for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
-                left_hand_joints[i].translate(left_hand.positions[i, :], False)
+                left_hand_joints[i].translate(left_hand.position[i, :], False)
         else:
             for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
                 left_hand_joints[i].translate(hide_position, False)
 
-        if (si.is_valid_hand_right()):
-            right_hand = hl2ss_utilities.si_unpack_hand(si.get_hand_right())
+        if (si.hand_right_valid):
+            right_hand = si.hand_right
             for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
-                right_hand_joints[i].translate(right_hand.positions[i, :], False)
+                right_hand_joints[i].translate(right_hand.position[i, :], False)
         else:
             for i in range(0, hl2ss.SI_HandJointKind.TOTAL):
                 right_hand_joints[i].translate(hide_position, False)
 
         updated_gaze = False
-        if (si.is_valid_eye_ray()):
-            eye_ray = si.get_eye_ray()
-            ray = hl2ss_utilities.si_ray_to_vector(eye_ray.origin, eye_ray.direction)
+        if (si.eye_ray_valid):
+            eye_ray = si.eye_ray
+            ray = hl2ss_3dcv.si_ray_to_vector(eye_ray.origin, eye_ray.direction)
             rc = rs.cast_rays(ray)
             d = rc['t_hit'].numpy()
             if (np.isfinite(d)):
-                eye_point = hl2ss_utilities.si_ray_to_point(ray, d)
-                eye_origin = hl2ss_utilities.si_ray_get_origin(ray)
+                eye_point = hl2ss_3dcv.si_ray_to_point(ray, d)
+                eye_origin = hl2ss_3dcv.si_ray_get_origin(ray)
                 eye_pointer.translate(eye_point.reshape((3, 1)), False)
                 eye_line.points = o3d.utility.Vector3dVector(np.vstack((eye_point, eye_origin)))
                 updated_gaze = True
@@ -262,18 +242,14 @@ if __name__ == '__main__':
             vis.update_geometry(left_hand_joints[i])
             vis.update_geometry(right_hand_joints[i])
 
-        vis.poll_events()
-        vis.update_renderer()
-
     # Stop Spatial Input stream -----------------------------------------------
-    sink_si.detach()
-    producer.stop(hl2ss.StreamPort.SPATIAL_INPUT)
+    sink_si.close()
 
     # Stop PV subsystem -------------------------------------------------------
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
-    listener.join()
+    listener.close()
 
     # Show last Spatial Input status ------------------------------------------
     vis.run()
