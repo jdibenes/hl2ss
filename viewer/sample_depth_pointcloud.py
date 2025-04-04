@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     # Get calibration ---------------------------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration = hl2ss_3dcv.get_calibration_rm(host, port, calibration_path)
+    calibration = hl2ss_3dcv.get_calibration_rm(calibration_path, host, port)
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(calibration.uv2xy, calibration.scale)
     max_depth = 7.5 if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW) else (calibration.alias / calibration.scale) if (port == hl2ss.StreamPort.RM_DEPTH_AHAT) else None
     max_uint16 = 0xFFFF
