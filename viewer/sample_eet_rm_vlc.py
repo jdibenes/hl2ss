@@ -67,6 +67,8 @@ if __name__ == '__main__':
     sink_vlc.open()
     sink_eet.open()
 
+    cv2.namedWindow('Video')
+
     # Main Loop ---------------------------------------------------------------
     while ((cv2.waitKey(1) & 0xFF) != 27):
         # Download observed surfaces ------------------------------------------
@@ -74,15 +76,21 @@ if __name__ == '__main__':
 
         # Get RM VLC frame and nearest (in time) EET frame --------------------
         _, data_vlc = sink_vlc.get_most_recent_frame()
-        if ((data_vlc is None) or (not hl2ss.is_valid_pose(data_vlc.pose))):
-            continue
-
-        _, data_eet = sink_eet.get_nearest(data_vlc.timestamp)
-        if ((data_eet is None) or (not hl2ss.is_valid_pose(data_eet.pose))):
+        if (data_vlc is None):
             continue
 
         image = cv2.remap(data_vlc.payload.image, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
         image = np.dstack((image, image, image))
+
+        if (not hl2ss.is_valid_pose(data_vlc.pose)):
+            cv2.imshow('Video', hl2ss_3dcv.rm_vlc_rotate_image(image, rotation_vlc))
+            continue
+
+        _, data_eet = sink_eet.get_nearest(data_vlc.timestamp)
+        if ((data_eet is None) or (not hl2ss.is_valid_pose(data_eet.pose))):
+            cv2.imshow('Video', hl2ss_3dcv.rm_vlc_rotate_image(image, rotation_vlc))
+            continue
+
         eet = data_eet.payload
 
         # Compute world to RM VLC image transformation matrix -----------------
