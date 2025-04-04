@@ -53,7 +53,7 @@ if __name__ == '__main__':
     volumes = hl2ss.sm_bounding_volume()
     volumes.add_sphere(sphere_center, sphere_radius)
 
-    sm_manager = hl2ss_sa.sm_mp_manager(host, triangles_per_cubic_meter)
+    sm_manager = hl2ss_sa.sm_manager_mp(host, hl2ss.IPCPort.SPATIAL_MAPPING, triangles_per_cubic_meter=triangles_per_cubic_meter)
     sm_manager.open()
     sm_manager.set_volumes(volumes)
     sm_manager.get_observed_surfaces()
