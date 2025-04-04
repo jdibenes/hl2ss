@@ -2,6 +2,7 @@
 # This script downloads Spatial Mapping data from the HoloLens and displays it.
 #------------------------------------------------------------------------------
 
+import numpy as np
 import open3d as o3d
 import hl2ss
 import hl2ss_lnm
@@ -67,6 +68,7 @@ for index, mesh in meshes.items():
     # Surface timestamps are given in Windows FILETIME (utc)
     print(f'Task {index}: surface id {id_hex} @ {timestamp} has {mesh.vertex_positions.shape[0]} vertices {mesh.triangle_indices.shape[0]} triangles {mesh.vertex_normals.shape[0]} normals')
 
+    hl2ss_3dcv.sm_mesh_cast(mesh, np.float64, np.uint32, np.float64)
     hl2ss_3dcv.sm_mesh_normalize(mesh)
     
     open3d_mesh = hl2ss_sa.sm_mesh_to_open3d_triangle_mesh(mesh)
