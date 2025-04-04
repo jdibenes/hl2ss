@@ -28,9 +28,6 @@ pv_width = 640
 pv_height = 360
 pv_fps = 30
 
-# Buffer length in seconds
-buffer_size = 10 
-
 # SM settings
 sm_tpcm = 1000 # Triangles per cubic meter
 sm_origin = [0, 0, 0] # Origin of sampling volume
