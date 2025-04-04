@@ -112,6 +112,8 @@ if __name__ == '__main__':
             time.sleep(1 / hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
             continue
 
+        last_fs = fs_depth
+
         _, data_pv = sink_pv.get_nearest(data_depth.timestamp)
         if ((data_pv is None) or (not hl2ss.is_valid_pose(data_pv.pose))):
             continue
