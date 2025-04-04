@@ -7,9 +7,6 @@
 # Based on https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html
 #------------------------------------------------------------------------------
 
-from pynput import keyboard
-from cv2 import aruco
-
 import numpy as np
 import cv2
 import hl2ss
@@ -37,25 +34,20 @@ texture_file = './texture.jpg'
 #------------------------------------------------------------------------------
 
 # Initialize aruco detector ---------------------------------------------------
-aruco_dictionary = aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-aruco_parameters = aruco.DetectorParameters()
-aruco_detector = aruco.ArucoDetector(aruco_dictionary, aruco_parameters)
+aruco_dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+aruco_parameters = cv2.aruco.DetectorParameters()
+aruco_detector = cv2.aruco.ArucoDetector(aruco_dictionary, aruco_parameters)
 aruco_half = marker_length / 2
 aruco_reference = np.array([[-aruco_half, aruco_half, 0], [aruco_half, aruco_half, 0], [aruco_half, -aruco_half, 0], [-aruco_half, -aruco_half, 0], [0, 0, sphere_diameter / 2]], dtype=np.float32)
 
-# Keyboard events -------------------------------------------------------------
-enable = True
-
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
-
 # Start PV Subsystem ----------------------------------------------------------
 hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
+
+ipc_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+ipc_rc.open()
+ipc_rc.pv_wait_for_subsystem(True)
+ipc_rc.pv_set_exposure(hl2ss.PV_ExposureMode.Manual, 5990)
+ipc_rc.close()
 
 # Connect to Unity message queue ----------------------------------------------
 ipc_unity = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
@@ -81,13 +73,13 @@ rx_pv = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=width_pv, h
 rx_pv.open()
 
 # Main Loop -------------------------------------------------------------------
-while (enable):
+while ((cv2.waitKey(1) & 0xFF) != 27):
     # Get PV data
     data_pv = rx_pv.get_next_packet()
     image = data_pv.payload.image
 
     # Update camera parameters (due to PV autofocus)
-    intrinsics_pv = hl2ss.create_pv_intrinsics(data_pv.payload.focal_length, data_pv.payload.principal_point)
+    intrinsics_pv = hl2ss_3dcv.pv_create_intrinsics(data_pv.payload.focal_length, data_pv.payload.principal_point)
     extrinsics_pv = np.eye(4, 4, dtype=np.float32)
     intrinsics_pv, extrinsics_pv = hl2ss_3dcv.pv_fix_calibration(intrinsics_pv, extrinsics_pv)
 
@@ -131,10 +123,8 @@ while (enable):
     ipc_unity.push(cb_unity)
 
     # Visualize detected markers
-    image = aruco.drawDetectedMarkers(image, corners, ids)
+    image = cv2.aruco.drawDetectedMarkers(image, corners, ids)
     cv2.imshow('video', image)
-    cv2.waitKey(1)
-
 
 # Cleanup ---------------------------------------------------------------------
 rx_pv.close()
@@ -146,5 +136,3 @@ ipc_unity.push(cb_unity)
 ipc_unity.close()
 
 hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
-
-listener.join()
