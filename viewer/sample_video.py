@@ -106,10 +106,13 @@ if __name__ == '__main__':
 
     sync_to_audio = hl2ss.StreamPort.MICROPHONE in ports
 
+    audio_packets_per_second = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE / hl2ss.Parameters_MICROPHONE.GROUP_SIZE_AAC
+    audio_buffering = -(int(0.5 * audio_packets_per_second) + 1)
+
     if (sync_to_audio):
         player = hl2ss_utilities.audio_player(np.float32, True, hl2ss.Parameters_MICROPHONE.CHANNELS, hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
         player.open()
-        fs_mc = -25
+        fs_mc = audio_buffering
 
     # Main loop ---------------------------------------------------------------
     while ((cv2.waitKey(1) & 0xFF) != 27):
@@ -119,7 +122,7 @@ if __name__ == '__main__':
                 player.put(data_mc.timestamp, data_mc.payload)
                 fs_mc += 1
             elif (status_mc == hl2ss_mp.Status.DISCARDED):
-                fs_mc = -25
+                fs_mc = audio_buffering
 
         for port in ports:
             if (port == hl2ss.StreamPort.MICROPHONE):
