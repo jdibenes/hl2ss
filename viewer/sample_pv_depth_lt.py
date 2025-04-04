@@ -3,6 +3,7 @@
 # Press space to stop.
 #------------------------------------------------------------------------------
 
+#check
 from pynput import keyboard
 
 import numpy as np
@@ -42,7 +43,7 @@ if __name__ == '__main__':
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     uv2xy = calibration_lt.uv2xy
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
