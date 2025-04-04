@@ -61,6 +61,8 @@ if __name__ == '__main__':
         volume.add_sphere(origin, radius) # Sample 3D sphere centered on head
         sm_manager.set_volumes(volume)
         sm_manager.get_observed_surfaces()
+        if (not sm_manager.get_updated_flag()):
+            continue
 
         # Update visualization ------------------------------------------------
         vis.clear_geometries()
