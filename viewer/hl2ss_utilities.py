@@ -139,18 +139,20 @@ class wr_process_producer(mp.Process):
 #------------------------------------------------------------------------------
 
 class audio_player:
-    def __init__(self, subtype, planar, channels, sample_rate):
-        self.subtype     = subtype
-        self.planar      = planar
-        self.channels    = channels
-        self.sample_rate = sample_rate
+    def __init__(self, subtype, planar, channels, sample_rate, buffer_frames=30):
+        self.subtype       = subtype
+        self.planar        = planar
+        self.channels      = channels
+        self.sample_rate   = sample_rate
+        self.buffer_frames = buffer_frames
 
     def open(self):
-        self._subtype     = self.subtype
-        self._planar      = self.planar
-        self._channels    = self.channels
-        self._sample_rate = self.sample_rate
-        self._fade_in     = 0.0
+        self._subtype       = self.subtype
+        self._planar        = self.planar
+        self._channels      = self.channels
+        self._sample_rate   = self.sample_rate
+        self._buffer_frames = self.buffer_frames
+        self._fade_in       = 0.0
 
         self._pcm_queue        = queue.Queue()
         self._pcm_audio_buffer = np.empty((1, 0), dtype=self.subtype)
@@ -159,10 +161,12 @@ class audio_player:
 
         self._audio_format = pyaudio.paFloat32 if (self.subtype == np.float32) else pyaudio.paInt16 if (self.subtype == np.int16) else None
         self._p            = pyaudio.PyAudio()
-        self._stream       = self._p.open(format=self._audio_format, channels=self.channels, rate=self.sample_rate, output=True, stream_callback=self._pcm_callback)
+        self._stream       = None
 
     def put(self, timestamp, samples):
         self._pcm_queue.put((timestamp, samples))
+        if ((self._stream is None) and (self._pcm_queue.qsize() >= self._buffer_frames)):
+            self._stream = self._p.open(format=self._audio_format, channels=self.channels, rate=self.sample_rate, output=True, stream_callback=self._pcm_callback)
 
     def get_timestamp(self):
         return self._presentation_clk
@@ -179,9 +183,9 @@ class audio_player:
             pcm_timestamp = pcm_data[0]
             pcm_payload   = pcm_data[1]
 
-            pcm_samples    = hl2ss.microphone_planar_to_packed(hl2ss.microphone_packed_to_planar(hl2ss.microphone_planar_to_packed(pcm_payload, self._channels), self._channels), self._channels) if (self._planar) else pcm_payload
+            pcm_samples    = hl2ss.microphone_planar_to_packed(pcm_payload, self._channels) if (self._planar) else pcm_payload
             pcm_group_size = pcm_samples.size // self._channels
-            pcm_ts         = (pcm_timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * ((pcm_group_size * hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS) // self._sample_rate))).reshape((1, -1))
+            pcm_ts         = (pcm_timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * (hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS // self._sample_rate))).reshape((1, -1))
             
             self._pcm_audio_buffer = np.hstack((self._pcm_audio_buffer, pcm_samples))
             self._pcm_ts_buffer    = np.hstack((self._pcm_ts_buffer,    pcm_ts))
@@ -200,7 +204,8 @@ class audio_player:
         
     def close(self):
         self._pcm_queue.put(None)
-        self._stream.close()
+        if (self._stream is not None):
+            self._stream.close()
 
 
 class microphone_resampler:
