@@ -5,11 +5,10 @@
 
 from pynput import keyboard
 
-import threading
+import threading as mt
 import hl2ss
 import hl2ss_lnm
 import hl2ss_rus
-
 
 # Settings --------------------------------------------------------------------
 
@@ -30,7 +29,7 @@ texture_file = 'texture.jpg'
 
 #------------------------------------------------------------------------------
 
-stop_event = threading.Event()
+stop_event = mt.Event()
 
 def on_press(key):
     if (key == keyboard.Key.esc): 
