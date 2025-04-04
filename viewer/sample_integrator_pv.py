@@ -7,13 +7,14 @@
 from pynput import keyboard
 
 import numpy as np
-import multiprocessing as mp
 import open3d as o3d
+import time
 import cv2
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -33,9 +34,6 @@ pv_iso_speed_mode = hl2ss.PV_IsoSpeedMode.Manual
 pv_iso_speed_value = 1600
 pv_white_balance = hl2ss.PV_ColorTemperaturePreset.Manual
 
-# Buffer length in seconds
-buffer_length = 10
-
 # Integration parameters
 voxel_length = 1/100
 sdf_trunc = 0.04
@@ -45,15 +43,8 @@ max_depth = 3.0
 
 if __name__ == '__main__':
     # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.space
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.space)
+    listener.open()
 
     # Start PV Subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
@@ -69,7 +60,7 @@ if __name__ == '__main__':
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
@@ -83,39 +74,37 @@ if __name__ == '__main__':
     first_pcd = True
 
     # Start PV and RM Depth Long Throw streams --------------------------------
-    producer = hl2ss_mp.producer()
-    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate, decoded_format='rgb24'))
-    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, pv_framerate * buffer_length)
-    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
-    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_pv = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate, decoded_format='rgb24'))
+    sink_depth = hl2ss_mp.stream(hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
 
-    consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()
-    sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
-    sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
+    sink_pv.open()
+    sink_depth.open()
 
-    sink_pv.get_attach_response()
-    sink_depth.get_attach_response()
+    last_fs = -1
 
     # Initialize PV intrinsics and extrinsics ---------------------------------
-    pv_intrinsics = hl2ss.create_pv_intrinsics_placeholder()
+    pv_intrinsics = hl2ss_3dcv.pv_create_intrinsics_placeholder()
     pv_extrinsics = np.eye(4, 4, dtype=np.float32)
  
     # Main Loop ---------------------------------------------------------------
-    while (enable):
-        # Wait for RM Depth Long Throw frame ----------------------------------
-        sink_depth.acquire()
+    while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
 
         # Get RM Depth Long Throw frame and nearest (in time) PV frame --------
-        _, data_lt = sink_depth.get_most_recent_frame()
+        fs_depth, data_lt = sink_depth.get_most_recent_frame()
         if ((data_lt is None) or (not hl2ss.is_valid_pose(data_lt.pose))):
+            continue
+
+        if (fs_depth <= last_fs):
+            time.sleep(1 / hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
             continue
 
         _, data_pv = sink_pv.get_nearest(data_lt.timestamp)
         if ((data_pv is None) or (not hl2ss.is_valid_pose(data_pv.pose))):
             continue
+
+        last_fs = fs_depth
 
         # Preprocess frames ---------------------------------------------------
         depth = hl2ss_3dcv.rm_depth_undistort(data_lt.payload.depth, calibration_lt.undistort_map)
@@ -124,7 +113,7 @@ if __name__ == '__main__':
 
         # Update PV intrinsics ------------------------------------------------
         # PV intrinsics may change between frames due to autofocus
-        pv_intrinsics = hl2ss.update_pv_intrinsics(pv_intrinsics, data_pv.payload.focal_length, data_pv.payload.principal_point)
+        pv_intrinsics = hl2ss_3dcv.pv_update_intrinsics(pv_intrinsics, data_pv.payload.focal_length, data_pv.payload.principal_point)
         color_intrinsics, color_extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, pv_extrinsics)
         
         # Generate aligned RGBD image -----------------------------------------
@@ -157,20 +146,15 @@ if __name__ == '__main__':
             pcd.colors = pcd_tmp.colors
             vis.update_geometry(pcd)
 
-        vis.poll_events()
-        vis.update_renderer()
-
     # Stop PV and RM Depth Long Throw streams ---------------------------------
-    sink_pv.detach()
-    sink_depth.detach()
-    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
-
+    sink_pv.close()
+    sink_depth.close()
+    
     # Stop PV subsystem -------------------------------------------------------
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
-    listener.join()
+    listener.close()
 
     # Show final point cloud --------------------------------------------------
     vis.run()
