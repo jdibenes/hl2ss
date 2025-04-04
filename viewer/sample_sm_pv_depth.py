@@ -4,7 +4,6 @@
 # generation will fail outside the SM sampling volume.
 #------------------------------------------------------------------------------
 
-import multiprocessing as mp
 import numpy as np
 import cv2
 import hl2ss_imshow
@@ -14,7 +13,6 @@ import hl2ss_mp
 import hl2ss_3dcv
 import hl2ss_sa
 import hl2ss_utilities
-
 
 # Settings --------------------------------------------------------------------
 
@@ -35,15 +33,16 @@ buffer_size = 10
 
 # SM settings
 sm_tpcm = 1000 # Triangles per cubic meter
-sm_threads = 2 # Number of threads for computing meshes (on the HoloLens)
 sm_origin = [0, 0, 0] # Origin of sampling volume
-sm_radius = 5 # Radius of sampling volume 
+sm_radius = 8 # Radius of sampling volume 
+
+max_depth = 8.0
 
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     # Create and configure SM manager -----------------------------------------
-    sm_manager = hl2ss_sa.sm_mp_manager(host, sm_tpcm, sm_threads)
+    sm_manager = hl2ss_sa.sm_manager_mp(host, hl2ss.IPCPort.SPATIAL_MAPPING, triangles_per_cubic_meter=sm_tpcm)
     sm_manager.open()
 
     # Sampling volume
@@ -64,7 +63,7 @@ if __name__ == "__main__":
     rc_client.close()
 
     # Get calibration (focus is fixed so intrinsics don't change between frames)
-    pv_calibration = hl2ss_3dcv.get_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, calibration_path, pv_focus, pv_width, pv_height, pv_fps)
+    pv_calibration = hl2ss_3dcv.get_calibration_pv(calibration_path, host, hl2ss.StreamPort.PERSONAL_VIDEO, focus=pv_focus, width=pv_width, height=pv_height, framerate=pv_fps)
     pv_calibration.intrinsics, pv_calibration.extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_calibration.intrinsics, np.eye(4, 4, dtype=np.float32))
 
     # Get PV rays in camera coordinates
@@ -79,30 +78,19 @@ if __name__ == "__main__":
     cv2.namedWindow(wnd_name_pv)
     cv2.namedWindow(wnd_name_depth)
 
-    pc = hl2ss_utilities.framerate_counter()
-
-    # Start PV capture
-    producer = hl2ss_mp.producer()
-    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_fps))
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, buffer_size * pv_fps)
-    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
-
-    consumer = hl2ss_mp.consumer()
-    sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, mp.Manager(), None)
-    sink_pv.get_attach_response()
+    sink_pv = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_fps))
+    sink_pv.open()
     
+    pc = hl2ss_utilities.framerate_counter()
     pc.reset()
 
     # Acquire data ------------------------------------------------------------
-    while (True):
-        key = cv2.waitKey(1)
-        if ((key & 0xff) == 27): # Esc to stop
-            break
+    while ((cv2.waitKey(1) & 0xff) != 27):
+        # Update SM surfaces
+        sm_manager.get_observed_surfaces()
 
-        _, data = sink_pv.get_most_recent_frame()
-        
+        _, data = sink_pv.get_most_recent_frame()        
         if ((data is None) or (not hl2ss.is_valid_pose(data.pose))):
-            pc.reset()
             continue
 
         camera2world = hl2ss_3dcv.camera_to_rignode(pv_calibration.extrinsics) @ hl2ss_3dcv.reference_to_world(data.pose)
@@ -112,25 +100,21 @@ if __name__ == "__main__":
         pv_world_directions = pv_rays @ camera2world[:3, :3]
         pv_world_rays = np.dstack((pv_world_origins, pv_world_directions))
 
-        # Update SM surfaces
-        sm_manager.get_observed_surfaces()
-
         # Obtain PV depth via raycasting
         pv_depth = sm_manager.cast_rays(pv_world_rays)
         pv_depth[np.isinf(pv_depth)] = 0
 
         # Display images
         cv2.imshow(wnd_name_pv, data.payload.image)
-        cv2.imshow(wnd_name_depth, pv_depth / np.max(pv_depth)) # Normalized for visibility
+        cv2.imshow(wnd_name_depth, hl2ss_utilities.depth_colormap(pv_depth, max_depth))
 
         pc.increment()
-        if (pc.delta() > 5.0):
+        if (pc.delta() > 2.0):
             print(f'fps: {pc.get()}')
             pc.reset()
         
     # Stop PV stream ----------------------------------------------------------
-    sink_pv.detach()
-    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
+    sink_pv.close()
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Close SM manager --------------------------------------------------------
