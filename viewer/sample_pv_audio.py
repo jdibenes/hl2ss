@@ -24,12 +24,6 @@ framerate = 30
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # Setup Multimedia Player -------------------------------------------------
-    player = hl2ss_utilities.audio_player(np.float32, True, hl2ss.Parameters_MICROPHONE.CHANNELS, hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
-    player.open()
-
-    cv2.namedWindow('Video')
-
     # Start PV Subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
@@ -42,6 +36,12 @@ if __name__ == "__main__":
 
     fs_pv = sink_pv.get_reference_frame_stamp()
     fs_ea = sink_pv.get_reference_frame_stamp()
+
+    # Setup Multimedia Player -------------------------------------------------
+    player = hl2ss_utilities.audio_player(np.float32, True, hl2ss.Parameters_MICROPHONE.CHANNELS, hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
+    player.open()
+
+    cv2.namedWindow('Video')
     
     # Main Loop ---------------------------------------------------------------
     # Stop if ESC is pressed
@@ -52,6 +52,8 @@ if __name__ == "__main__":
         sink_ea.acquire()
         fs_ea += 1
         _, _, data_ea = sink_ea.get_buffered_frame(fs_ea)
+        if (data_ea is None):
+            break
         player.put(data_ea.timestamp, data_ea.payload)
         # Coarse audio/video synchronization based on audio frame timestamps
         player_timestamp = player.get_timestamp()
