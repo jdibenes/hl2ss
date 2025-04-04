@@ -2,7 +2,6 @@
 from pynput import keyboard
 
 import multiprocessing as mp
-import types
 import io
 import fractions
 import tarfile
@@ -17,7 +16,6 @@ import hl2ss
 import hl2ss_mp
 import hl2ss_lnm
 import hl2ss_io
-import hl2ss_3dcv
 
 
 def depth_colormap(depth, max_depth, colormap=cv2.COLORMAP_JET):
@@ -37,7 +35,7 @@ class key_listener:
 
     def open(self):
         self._pressed = False
-        self._listener = keyboard.Listener(on_press=types.MethodType(key_listener._on_press, self))
+        self._listener = keyboard.Listener(on_press=self._on_press)
         self._listener.start()
 
     def pressed(self):
@@ -161,7 +159,7 @@ class audio_player:
 
         self._audio_format = pyaudio.paFloat32 if (self.subtype == np.float32) else pyaudio.paInt16 if (self.subtype == np.int16) else None
         self._p            = pyaudio.PyAudio()
-        self._stream       = self._p.open(format=self._audio_format, channels=self.channels, rate=self.sample_rate, output=True, stream_callback=types.MethodType(audio_player._pcm_callback, self))
+        self._stream       = self._p.open(format=self._audio_format, channels=self.channels, rate=self.sample_rate, output=True, stream_callback=self._pcm_callback)
 
     def put(self, timestamp, samples):
         self._pcm_queue.put((timestamp, samples))
