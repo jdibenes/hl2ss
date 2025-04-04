@@ -8,6 +8,7 @@ from pynput import keyboard
 import hl2ss
 import hl2ss_lnm
 import hl2ss_rus
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -28,15 +29,8 @@ rgba = [1, 1, 1, 1]
 
 #------------------------------------------------------------------------------
 
-enable = True
-
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
 ipc = hl2ss_lnm.ipc_umq(host, hl2ss.IPCPort.UNITY_MESSAGE_QUEUE)
 ipc.open()
@@ -62,7 +56,7 @@ print(f'Created cube with id {key}')
 z = 0
 delta = 0.01
 
-while (enable):
+while (not listener.pressed()):
     z += delta
 
     if (z <= 0):
@@ -89,4 +83,4 @@ results = ipc.pull(command_buffer)
 
 ipc.close()
 
-listener.join()
+listener.close()
