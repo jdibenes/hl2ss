@@ -50,16 +50,19 @@ if __name__ == '__main__':
     volumes.add_sphere(sphere_center, sphere_radius)
 
     # Download observed surfaces
-    sm_manager = hl2ss_sa.sm_manager_mp(host, hl2ss.IPCPort.SPATIAL_MAPPING, triangles_per_cubic_meter=triangles_per_cubic_meter)
+    sm_manager = hl2ss_sa.sm_manager(host, hl2ss.IPCPort.SPATIAL_MAPPING, triangles_per_cubic_meter=triangles_per_cubic_meter)
     sm_manager.open()
     sm_manager.set_volumes(volumes)
+    print('downloading sm meshes...')
     sm_manager.get_observed_surfaces()
+    print('done')
+    sm_manager.close()
 
     # Get RM VLC calibration --------------------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
     calibration_vlc = hl2ss_3dcv.get_calibration_rm(calibration_path, host, vlc_port)
     rotation_vlc = hl2ss_3dcv.rm_vlc_get_rotation(vlc_port)
-    
+
     # Start RM VLC and EET streams --------------------------------------------
     sink_vlc = hl2ss_mp.stream(hl2ss_lnm.rx_rm_vlc(host, vlc_port))
     sink_eet = hl2ss_mp.stream(hl2ss_lnm.rx_eet(host, hl2ss.StreamPort.EXTENDED_EYE_TRACKER, fps=eet_fps))
@@ -71,9 +74,6 @@ if __name__ == '__main__':
 
     # Main Loop ---------------------------------------------------------------
     while ((cv2.waitKey(1) & 0xFF) != 27):
-        # Download observed surfaces ------------------------------------------
-        sm_manager.get_observed_surfaces()
-
         # Get RM VLC frame and nearest (in time) EET frame --------------------
         _, data_vlc = sink_vlc.get_most_recent_frame()
         if (data_vlc is None):
@@ -128,9 +128,6 @@ if __name__ == '__main__':
 
         # Display frame -------------------------------------------------------            
         cv2.imshow('Video', hl2ss_3dcv.rm_vlc_rotate_image(image, rotation_vlc))
-
-    # Stop Spatial Mapping data manager ---------------------------------------
-    sm_manager.close()
 
     # Stop RM VLC and EET streams ---------------------------------------------
     sink_vlc.close()
