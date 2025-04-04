@@ -58,6 +58,9 @@ if __name__ == '__main__':
 
     # Main Loop ---------------------------------------------------------------
     while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
+        
         # Get RM Depth Long Throw frame ---------------------------------------
         fs_depth, data_depth = sink_depth.get_most_recent_frame()
         if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
@@ -96,9 +99,6 @@ if __name__ == '__main__':
             pcd.points = pcd_tmp.points
             pcd.colors = pcd_tmp.colors
             vis.update_geometry(pcd)
-
-        vis.poll_events()
-        vis.update_renderer()
 
     # Stop RM Depth Long Throw stream -----------------------------------------
     sink_depth.close()
