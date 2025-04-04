@@ -57,27 +57,40 @@ class sm_manager(hl2ss._context_manager):
         self._ipc = hl2ss_lnm.ipc_sm(host, port, sockopt)
         self._surfaces = {}
         self._volumes = None
+        self._updated = False
 
     def open(self):
         self._ipc.open()
 
     def set_volumes(self, volumes):
+        self._set_volumes(volumes)
+
+    def _set_volumes(self, volumes):
         self._volumes = volumes
+
+    def _get_volumes(self):
+        v, self._volumes = self._volumes, None
+        return v
 
     def _set_surfaces(self, surfaces):
         self._surfaces = surfaces
+        self._updated = True
 
     def _get_surfaces(self):
         return self._surfaces.values()
+
+    def _get_updated_flag(self):
+        f, self._updated = self._updated, False
+        return f
 
     def get_observed_surfaces(self):
         next_surfaces = {}
         tasks = hl2ss.sm_mesh_task()        
         updated_surfaces = []
 
-        if (self._volumes is not None):
-            self._ipc.set_volumes(self._volumes)
-            self._volumes = None
+        next_volumes = self._get_volumes()
+        if (next_volumes is not None):
+            self._ipc.set_volumes(next_volumes)
         
         for surface_info in self._ipc.get_observed_surfaces():
             id = surface_info.id
@@ -121,6 +134,9 @@ class sm_manager(hl2ss._context_manager):
             distances[..., index] = entry.rcs.cast_rays(rays)['t_hit'].numpy()
         distances = np.min(distances, axis=-1)
         return distances
+    
+    def get_updated_flag(self):
+        return self._get_updated_flag()
 
 
 class sm_manager_mt(sm_manager):
@@ -131,14 +147,25 @@ class sm_manager_mt(sm_manager):
         self._task = None
         super().open()
 
+    def _set_volumes(self, volumes):
+        with self._lock:
+            super()._set_volumes(volumes)
+
+    def _get_volumes(self):
+        with self._lock:
+            return super()._get_volumes()
+
     def _set_surfaces(self, surfaces):
         with self._lock:
             super()._set_surfaces(surfaces)
 
     def _get_surfaces(self):
         with self._lock:
-            surfaces = super()._get_surfaces()
-        return surfaces
+            return super()._get_surfaces()
+
+    def _get_updated_flag(self):
+        with self._lock:
+            return super()._get_updated_flag()
     
     def _get_observed_surfaces(self):
         try:
@@ -196,6 +223,9 @@ class _sm_manager_stub:
         distances = np.min(distances, axis=-1)
         return distances
     
+    def get_updated_flag(self):
+        return False
+    
     def get_ipc_status(self):
         return self._ipc_status
 
@@ -214,6 +244,7 @@ class _sm_manager_mp(mp.Process):
     IPC_GET_MESHES = 3
     IPC_CAST_RAYS = 4
     IPC_GET_IPC_STRING = 5
+    IPC_GET_UPDATED_FLAG = 6
 
     def __init__(self, host, port, sockopt=None, triangles_per_cubic_meter=1000, vpf=hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized, tif=hl2ss.SM_TriangleIndexFormat.R16UInt, vnf=hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized):
         super().__init__()
@@ -239,6 +270,10 @@ class _sm_manager_mp(mp.Process):
         self._din.put((_sm_manager_mp.IPC_CAST_RAYS, rays))
         return self._dout.get()
     
+    def get_updated_flag(self):
+        self._din.put((_sm_manager_mp.IPC_GET_UPDATED_FLAG,))
+        return self._dout.get()
+    
     def get_ipc_status(self):
         return not self._event.is_set()
     
@@ -261,6 +296,9 @@ class _sm_manager_mp(mp.Process):
     def _cast_rays(self, rays):
         return self._ipc.cast_rays(rays)        
     
+    def _get_updated_flag(self):
+        return self._ipc.get_updated_flag()
+
     def _get_ipc_string(self):
         return self._ipc.get_ipc_string()
     
@@ -277,6 +315,8 @@ class _sm_manager_mp(mp.Process):
             self._dout.put(self._get_meshes())
         elif (message[0] == _sm_manager_mp.IPC_CAST_RAYS):
             self._dout.put(self._cast_rays(*message[1:]))
+        elif (message[0] == _sm_manager_mp.IPC_GET_UPDATED_FLAG):
+            self._dout.put(self._get_updated_flag())
         elif (message[0] == _sm_manager_mp.IPC_GET_IPC_STRING):
             self._dout.put(self._get_ipc_string())
 
@@ -315,6 +355,9 @@ class sm_manager_mp:
 
     def cast_rays(self, rays):
         return self._ipc.cast_rays(rays)
+    
+    def get_updated_flag(self):
+        return self._ipc.get_updated_flag()
     
     def get_ipc_status(self):
         return self._ipc.get_ipc_status()
