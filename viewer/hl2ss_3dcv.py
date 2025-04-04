@@ -388,23 +388,23 @@ def _load_calibration_pv(path):
 # Calibration Wrappers
 #------------------------------------------------------------------------------
 
-def _download_calibration_rm(host, port):
+def _download_calibration_rm(host, port, sockopt):
     if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss_lnm.download_calibration_rm_depth_ahat(     host, port)
+        return hl2ss_lnm.download_calibration_rm_depth_ahat(     host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
-        return hl2ss_lnm.download_calibration_rm_depth_longthrow(host, port)
+        return hl2ss_lnm.download_calibration_rm_depth_longthrow(host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
-        return hl2ss_lnm.download_calibration_rm_imu(            host, port)
+        return hl2ss_lnm.download_calibration_rm_imu(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
-        return hl2ss_lnm.download_calibration_rm_imu(            host, port)
+        return hl2ss_lnm.download_calibration_rm_imu(            host, port, sockopt)
 
 
 def _save_calibration_rm(port, calibration, path):
@@ -466,7 +466,7 @@ def _calibration_subdirectory_pv(focus, width, height, path):
     return os.path.join(path, f'{int(focus)}_{int(width)}_{int(height)}')
 
 
-def get_calibration_rm(host, port, path):
+def get_calibration_rm(path, host, port, sockopt=None):
     _check_calibration_directory(path)
 
     base = _calibration_subdirectory(port, path)
@@ -474,14 +474,14 @@ def get_calibration_rm(host, port, path):
     try:
         calibration = _load_calibration_rm(port, base)
     except:
-        calibration = _download_calibration_rm(host, port)
+        calibration = _download_calibration_rm(host, port, sockopt)
         os.makedirs(base, exist_ok=True)
         _save_calibration_rm(port, calibration, base)
 
     return calibration
 
 
-def get_calibration_pv(host, port, path, focus, width, height, framerate):
+def get_calibration_pv(path, host, port, sockopt=None, focus=1000, width=1920, height=1080, framerate=30):
     _check_calibration_directory(path)
 
     root = _calibration_subdirectory(port, path)
@@ -490,7 +490,7 @@ def get_calibration_pv(host, port, path, focus, width, height, framerate):
     try:
         calibration = _load_calibration_pv(base)
     except:
-        calibration = hl2ss_lnm.download_calibration_pv(host, port, width, height, framerate)
+        calibration = hl2ss_lnm.download_calibration_pv(host, port, sockopt, width, height, framerate)
         os.makedirs(base, exist_ok=True)
         _save_calibration_pv(calibration, base)
         
