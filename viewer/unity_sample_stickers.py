@@ -17,6 +17,7 @@ import hl2ss
 import hl2ss_lnm
 import hl2ss_3dcv
 import hl2ss_rus
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -77,7 +78,7 @@ results = ipc.pull(command_buffer)
 
 previous  = False
 
-calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 xy1, lt_scale = hl2ss_3dcv.rm_depth_compute_rays(calibration_lt.uv2xy, calibration_lt.scale)
 
 u0 = hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH  // 2
@@ -91,7 +92,7 @@ while (enable):
     data_lt = data.payload
 
     # Show depth image
-    cv2.imshow('depth', data_lt.depth / np.max(data_lt.depth)) # Scaled for visibility
+    cv2.imshow('depth', hl2ss_utilities.depth_colormap(data_lt.depth, 3000)) # Scaled for visibility
     cv2.waitKey(1)
 
     keydown = (not previous) and trigger
