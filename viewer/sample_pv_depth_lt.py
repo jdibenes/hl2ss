@@ -3,7 +3,6 @@
 # Press space to stop.
 #------------------------------------------------------------------------------
 
-#check
 from pynput import keyboard
 
 import numpy as np
