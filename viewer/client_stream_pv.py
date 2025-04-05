@@ -95,7 +95,6 @@ else:
         print(f'ISO Gains: {data.payload.iso_gains}')
         print(f'White Balance Gains: {data.payload.white_balance_gains}')
         print(f'Resolution {data.payload.resolution}')
-        print(f'Internal stride {hl2ss.pv_get_video_stride(data.payload.resolution[0])}')
         print(f'Pose')
         print(data.pose)
 
