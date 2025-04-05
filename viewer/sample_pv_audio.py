@@ -17,8 +17,8 @@ import hl2ss_utilities
 host = '192.168.1.7'
 
 # Video parameters
-width = 1920
-height = 1080
+width = 1280
+height = 720
 framerate = 30
 
 #------------------------------------------------------------------------------
