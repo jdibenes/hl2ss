@@ -199,10 +199,8 @@ class _interconnect(mp.Process):
     IPC_CONTROL_ATTACH = 1
     IPC_SINK_DETACH = 0
     IPC_SINK_GET_NEAREST = 1
-    IPC_SINK_GET_FRAME_STAMP = 2
-    IPC_SINK_GET_MOST_RECENT_FRAME = 3
-    IPC_SINK_GET_BUFFERED_FRAME = 4
-    IPC_SINK_GET_SOURCE_STRING = 5
+    IPC_SINK_GET_BUFFERED_FRAME = 2
+    IPC_SINK_GET_SOURCE_STRING = 3
     
     def __init__(self, receiver, buffer_size, event_stop, source_kind, interconnect_wires, sink_wires):
         super().__init__()
@@ -234,23 +232,17 @@ class _interconnect(mp.Process):
         self._remove.append(key)
         return None
 
-    def _get_nearest(self, timestamp, time_preference, tiebreak_right):
+    def _get_nearest(self, timestamp, time_preference, tiebreak_right, select_data):
         buffer = self._buffer.get()
         index = get_nearest_packet(buffer, timestamp, time_preference, tiebreak_right)
-        return (None, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index])
+        return (-1, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index] if (select_data) else None)
 
-    def _get_frame_stamp(self):
-        return self._frame_stamp
-
-    def _get_most_recent_frame(self):
-        return self._frame_stamp, self._buffer.last()
-
-    def _get_buffered_frame(self, frame_stamp):
+    def _get_buffered_frame(self, frame_stamp, select_data):
         if (frame_stamp < 0):
             frame_stamp = self._frame_stamp + frame_stamp + 1
         n = self._buffer.length()
         index = n - 1 - self._frame_stamp + frame_stamp
-        return (-1, frame_stamp, None) if (index < 0) else (1, frame_stamp, None) if (index >= n) else (0, frame_stamp, self._buffer.get()[index])
+        return (Status.DISCARDED, frame_stamp, None) if (index < 0) else (Status.WAIT, frame_stamp, None) if (index >= n) else (Status.OK, frame_stamp, self._buffer.get()[index] if (select_data) else None)
 
     def _get_source_status(self):
         return self._source_status
@@ -296,10 +288,6 @@ class _interconnect(mp.Process):
             sink_wires.din.put(self._detach(*message[1:]))
         elif (message[0] == _interconnect.IPC_SINK_GET_NEAREST):
             sink_wires.din.put(self._get_nearest(*message[1:]))
-        elif (message[0] == _interconnect.IPC_SINK_GET_FRAME_STAMP):
-            sink_wires.din.put(self._get_frame_stamp())
-        elif (message[0] == _interconnect.IPC_SINK_GET_MOST_RECENT_FRAME):
-            sink_wires.din.put(self._get_most_recent_frame())
         elif (message[0] == _interconnect.IPC_SINK_GET_BUFFERED_FRAME):
             sink_wires.din.put(self._get_buffered_frame(*message[1:]))
         elif (message[0] == _interconnect.IPC_SINK_GET_SOURCE_STRING):
@@ -384,30 +372,30 @@ class _sink:
         self._interconnect_wires.semaphore.release()
         self._sink_wires.din.get()
 
-    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
-        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right))
+    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False, select_data=True):
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right, select_data))
         self._interconnect_wires.semaphore.release()
         frame_stamp, data = self._sink_wires.din.get()
         return frame_stamp, data
 
     def get_frame_stamp(self):
-        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_FRAME_STAMP,))
-        self._interconnect_wires.semaphore.release()
-        frame_stamp = self._sink_wires.din.get()
+        _, frame_stamp, _ = self.get_buffered_frame(-1, False)
         return frame_stamp
 
     def get_most_recent_frame(self):
-        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_MOST_RECENT_FRAME,))
-        self._interconnect_wires.semaphore.release()
-        frame_stamp, data = self._sink_wires.din.get()
+        _, frame_stamp, data = self.get_buffered_frame(-1, True)
         return frame_stamp, data
 
-    def get_buffered_frame(self, frame_stamp):
-        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_BUFFERED_FRAME, frame_stamp))
+    def get_buffered_frame(self, frame_stamp, select_data=True):
+        self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_BUFFERED_FRAME, frame_stamp, select_data))
         self._interconnect_wires.semaphore.release()
         state, frame_stamp, data = self._sink_wires.din.get() 
         return state, frame_stamp, data
     
+    def get_nearest_frame_stamp(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
+        frame_stamp, _ = self.get_nearest(timestamp, time_preference, tiebreak_right, False)
+        return frame_stamp
+
     def get_source_status(self):
         return not self._sink_wires.event.is_set()
     
@@ -555,8 +543,8 @@ class stream(hl2ss._context_manager):
     def get_reference_frame_stamp(self):
         return self._safs
 
-    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
-        return self._sink.get_nearest(timestamp, time_preference, tiebreak_right)
+    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False, select_data=True):
+        return self._sink.get_nearest(timestamp, time_preference, tiebreak_right, select_data)
    
     def get_frame_stamp(self):
         return self._sink.get_frame_stamp()
@@ -564,9 +552,12 @@ class stream(hl2ss._context_manager):
     def get_most_recent_frame(self):
         return self._sink.get_most_recent_frame()
 
-    def get_buffered_frame(self, frame_stamp):
-        return self._sink.get_buffered_frame(frame_stamp)
+    def get_buffered_frame(self, frame_stamp, select_data=True):
+        return self._sink.get_buffered_frame(frame_stamp, select_data)
     
+    def get_nearest_frame_stamp(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
+        return self._sink.get_nearest_frame_stamp(timestamp, time_preference, tiebreak_right)
+
     def get_source_status(self):
         return self._sink.get_source_status()
     
