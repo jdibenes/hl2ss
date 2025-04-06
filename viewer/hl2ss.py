@@ -1614,7 +1614,7 @@ class _decode_extended_depth_zdepth:
         self._codec = _decompress_zdepth()
 
     def decode(self, payload, width, height):
-        return self._codec.decode(payload) if (len(payload) > 0) else None
+        return self._codec.decode(payload)
 
 
 class _decode_extended_depth_raw:
