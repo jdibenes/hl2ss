@@ -1,7 +1,6 @@
 
 #include <stdint.h>
 #include <vector>
-#include "hl2ss.h"
 
 //******************************************************************************
 // "Enumerations" and Structures
@@ -193,6 +192,7 @@ public:
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include "hl2ss.h"
 
 namespace hl2ss
 {

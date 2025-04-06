@@ -15,7 +15,7 @@
 namespace hl2ss
 {
 //------------------------------------------------------------------------------
-// * Client
+// Client
 //------------------------------------------------------------------------------
 
 void client::initialize()
@@ -115,7 +115,7 @@ void client::close()
 }
 
 //------------------------------------------------------------------------------
-// * Packet
+// Packet
 //------------------------------------------------------------------------------
 
 packet::packet()
@@ -144,7 +144,7 @@ void packet::init_pose()
 }
 
 //------------------------------------------------------------------------------
-// * Packet Gatherer
+// Packet Gatherer
 //------------------------------------------------------------------------------
 
 void gatherer::open(char const* host, uint16_t port, uint64_t chunk, uint8_t mode)
@@ -182,7 +182,7 @@ void gatherer::close()
 }
 
 //------------------------------------------------------------------------------
-// * Configuration Primitives
+// Configuration Primitives
 //------------------------------------------------------------------------------
 
 void create_configuration_for_mode(std::vector<uint8_t>& sc, uint8_t mode)
@@ -264,7 +264,7 @@ void create_configuration_for_mrc_audio(std::vector<uint8_t>& sc, uint32_t mixer
 }
 
 //------------------------------------------------------------------------------
-// * Stream Configuration
+// Stream Configuration
 //------------------------------------------------------------------------------
 
 void create_configuration_for_rm_vlc(std::vector<uint8_t>& sc, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options)
@@ -348,7 +348,7 @@ void create_configuration_for_pv_mode_2(std::vector<uint8_t>& sc, uint8_t mode, 
 }
 
 //------------------------------------------------------------------------------
-// * PV Control
+// PV Control
 //------------------------------------------------------------------------------
 
 namespace pv_control
@@ -383,7 +383,7 @@ void stop_subsystem_pv(char const* host, uint16_t port)
 }
 
 //------------------------------------------------------------------------------
-// * Modes 0, 1 Data Acquisition
+// Modes 0, 1 Data Acquisition
 //------------------------------------------------------------------------------
 
 rx::rx(char const* host, uint16_t port, uint64_t chunk, uint8_t mode)
@@ -539,7 +539,7 @@ void rx_extended_depth::create_configuration(std::vector<uint8_t>& sc)
 }
 
 //------------------------------------------------------------------------------
-// * Frame
+// Frame
 //------------------------------------------------------------------------------
 
 frame::frame()
@@ -554,7 +554,7 @@ frame::~frame()
 }
 
 //------------------------------------------------------------------------------
-// * Codec
+// Codec
 //------------------------------------------------------------------------------
 
 AVCodecID get_video_codec_id(uint8_t profile)
@@ -642,7 +642,7 @@ void codec::close()
 }
 
 //------------------------------------------------------------------------------
-// * Decoders
+// Decoders
 //------------------------------------------------------------------------------
 
 void trim_plane(uint8_t* dst, uint8_t const* src, uint16_t height, uint16_t width, uint16_t stride)
