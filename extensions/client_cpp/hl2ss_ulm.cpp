@@ -494,37 +494,6 @@ HL2SS_ULM_BEGIN
 }
 HL2SS_ULM_END(nullptr)
 
-HL2SS_CLIENT_EXPORT
-int32_t HL2SS_CALL get_pv_dimensions(void* source, uint16_t& width, uint16_t& height)
-HL2SS_ULM_BEGIN
-{
-    std::shared_ptr<hl2ss::mt::source> s = typed_handle<hl2ss::mt::source>::get(source);
-    hl2ss::rx const* rx_base = s->get_rx<hl2ss::rx>();
-    switch (rx_base->port)
-    {
-    case hl2ss::stream_port::PERSONAL_VIDEO:
-    case hl2ss::stream_port::EXTENDED_VIDEO:
-    {
-        hl2ss::rx_decoded_pv const* rx_pv = dynamic_cast<hl2ss::rx_decoded_pv const*>(rx_base);
-        if (!rx_pv) { break; }
-        width = rx_pv->width;
-        height = rx_pv->height;
-        return 0;
-    }
-    case hl2ss::stream_port::EXTENDED_DEPTH:
-    {
-        hl2ss::rx_decoded_extended_depth const* rx_ez = dynamic_cast<hl2ss::rx_decoded_extended_depth const*>(rx_base);
-        if (!rx_ez) { break; }
-        width = rx_ez->width;
-        height = rx_ez->height;
-        return 0;
-    }
-    }
-
-    throw std::runtime_error("hl2ss::ulm::get_pv_dimensions : source is not compatible");
-}
-HL2SS_ULM_END(-1)
-
 //-----------------------------------------------------------------------------
 // Control
 //-----------------------------------------------------------------------------
@@ -606,7 +575,7 @@ HL2SS_ULM_BEGIN
 
     switch (port)
     {
-    case hl2ss::stream_port::EXTENDED_AUDIO: data = hl2ss::lnm::download_devicelist_extended_audio(host, port); break;
+    case hl2ss::stream_port::EXTENDED_AUDIO: data = hl2ss::lnm::download_devicelist_extended_audio(host, port); break; // SPLIT
     case hl2ss::stream_port::EXTENDED_VIDEO: data = hl2ss::lnm::download_devicelist_extended_video(host, port); break;
     default: return nullptr;
     }

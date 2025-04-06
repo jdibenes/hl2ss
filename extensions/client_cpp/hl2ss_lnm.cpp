@@ -52,9 +52,9 @@ std::vector<uint64_t> get_video_codec_default_options(uint16_t width, uint16_t h
 }
 
 #ifdef HL2SS_ENABLE_DP
-dp::mrc_configuration get_mrc_configuration(bool pv, bool holo, bool mic, bool loopback, bool RenderFromCamera, bool vstab, int vstabbuffer)
+dp::mrc_configuration create_configuration_for_dp_mrc(bool pv, bool holo, bool mic, bool loopback, bool RenderFromCamera, bool vstab, int vstabbuffer)
 {
-    return {holo, pv, mic, loopback, RenderFromCamera, vstab, vstabbuffer};
+    return { holo, pv, mic, loopback, RenderFromCamera, vstab, vstabbuffer };
 }
 #endif
 
@@ -138,9 +138,9 @@ std::unique_ptr<hl2ss::rx_rm_depth_longthrow> rx_rm_depth_longthrow(char const* 
     return decoded ? std::make_unique<hl2ss::rx_decoded_rm_depth_longthrow>(host, port, chunk, mode, divisor, png_filter) : std::make_unique<hl2ss::rx_rm_depth_longthrow>(host, port, chunk, mode, divisor, png_filter);
 }
 
-std::unique_ptr<hl2ss::rx_rm_imu> rx_rm_imu(char const* host, uint16_t port, uint64_t chunk, uint8_t mode)
+std::unique_ptr<hl2ss::rx_rm_imu> rx_rm_imu(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, bool decoded)
 {
-    return std::make_unique<hl2ss::rx_rm_imu>(host, port, chunk, mode);
+    return decoded ? std::make_unique<hl2ss::rx_decoded_rm_imu>(host, port, chunk, mode) : std::make_unique<hl2ss::rx_rm_imu>(host, port, chunk, mode);
 }
 
 std::unique_ptr<hl2ss::rx_pv> rx_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const* options, uint8_t decoded_format)
@@ -152,7 +152,7 @@ std::unique_ptr<hl2ss::rx_pv> rx_pv(char const* host, uint16_t port, uint16_t wi
     default_options = get_video_codec_default_options(width, height, framerate, divisor, profile);
     options = &default_options;
     }
-    return (decoded_format != hl2ss::video_profile::RAW) ? std::make_unique<hl2ss::rx_decoded_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options, decoded_format) : std::make_unique<hl2ss::rx_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options);
+    return (decoded_format != hl2ss::pv_decoded_format::NONE) ? std::make_unique<hl2ss::rx_decoded_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options, decoded_format) : std::make_unique<hl2ss::rx_pv>(host, port, chunk, mode, width, height, framerate, divisor, profile, level, bitrate, *options);
 }
 
 std::unique_ptr<hl2ss::rx_microphone> rx_microphone(char const* host, uint16_t port, uint64_t chunk, uint8_t profile, uint8_t level, bool decoded)
@@ -186,12 +186,12 @@ std::unique_ptr<hl2ss::rx_extended_depth> rx_extended_depth(char const* host, ui
 }
 
 #ifdef HL2SS_ENABLE_DP
-std::unique_ptr<hl2ss::dp::rx_mrc> rx_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk, dp::mrc_configuration const* configuration, uint8_t decoded_format)
+std::unique_ptr<hl2ss::dp::rx_mrc> rx_dp_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk, dp::mrc_configuration const* configuration, uint8_t decoded_format)
 {
     dp::mrc_configuration default_configuration;
     if (configuration == nullptr)
     {
-    default_configuration = get_mrc_configuration();
+    default_configuration = create_configuration_for_dp_mrc();
     configuration = &default_configuration;
     }
     return (decoded_format != hl2ss::video_profile::RAW) ? std::make_unique<hl2ss::dp::rx_decoded_mrc>(host, port, user, password, chunk, *configuration, decoded_format) : std::make_unique<hl2ss::dp::rx_mrc>(host, port, user, password, chunk, *configuration);
@@ -202,37 +202,37 @@ std::unique_ptr<hl2ss::dp::rx_mrc> rx_mrc(char const* host, char const* port, ch
 // Mode 2
 //------------------------------------------------------------------------------
 
-std::shared_ptr<hl2ss::calibration_rm_vlc> download_calibration_rm_vlc(char const* host, uint16_t port)
+std::unique_ptr<hl2ss::calibration_rm_vlc> download_calibration_rm_vlc(char const* host, uint16_t port)
 {
     return hl2ss::download_calibration_rm_vlc(host, port);
 }
 
-std::shared_ptr<hl2ss::calibration_rm_depth_ahat> download_calibration_rm_depth_ahat(char const* host, uint16_t port)
+std::unique_ptr<hl2ss::calibration_rm_depth_ahat> download_calibration_rm_depth_ahat(char const* host, uint16_t port)
 {
     return hl2ss::download_calibration_rm_depth_ahat(host, port);
 }
 
-std::shared_ptr<hl2ss::calibration_rm_depth_longthrow> download_calibration_rm_depth_longthrow(char const* host, uint16_t port)
+std::unique_ptr<hl2ss::calibration_rm_depth_longthrow> download_calibration_rm_depth_longthrow(char const* host, uint16_t port)
 {
     return hl2ss::download_calibration_rm_depth_longthrow(host, port);
 }
 
-std::shared_ptr<hl2ss::calibration_rm_imu> download_calibration_rm_imu(char const* host, uint16_t port)
+std::unique_ptr<hl2ss::calibration_rm_imu> download_calibration_rm_imu(char const* host, uint16_t port)
 {
     return hl2ss::download_calibration_rm_imu(host, port);
 }
 
-std::shared_ptr<hl2ss::calibration_pv> download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate)
+std::unique_ptr<hl2ss::calibration_pv> download_calibration_pv(char const* host, uint16_t port, uint16_t width, uint16_t height, uint8_t framerate)
 {
     return hl2ss::download_calibration_pv(host, port, width, height, framerate);
 }
 
-std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_audio(char const* host, uint16_t port)
+std::unique_ptr<std::vector<uint8_t>> download_devicelist_extended_audio(char const* host, uint16_t port, uint8_t profile, uint8_t level)
 {
-    return hl2ss::download_devicelist_extended_audio(host, port);
+    return hl2ss::download_devicelist_extended_audio(host, port, profile, level);
 }
 
-std::shared_ptr<std::vector<uint8_t>> download_devicelist_extended_video(char const* host, uint16_t port)
+std::unique_ptr<std::vector<uint8_t>> download_devicelist_extended_video(char const* host, uint16_t port)
 {
     return hl2ss::download_devicelist_extended_video(host, port);
 }

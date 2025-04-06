@@ -325,7 +325,7 @@ void test_microphone(char const* host)
             continue;
         }
 
-        auto region = data->unpack<hl2ss::map_microphone_aac>();
+        auto region = data->unpack<hl2ss::map_microphone<float>>();
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         std::cout << "samples: " << (data->sz_payload / sizeof(float)) << std::endl;
@@ -373,7 +373,7 @@ void test_eet(char const* host)
 
     auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_eet>();
 
-    configuration.framerate = hl2ss::eet_framerate::FPS_90;
+    configuration.fps = 90;
 
     auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
 
@@ -430,7 +430,7 @@ void test_extended_audio(char const* host)
             continue;
         }
 
-        auto region = data->unpack<hl2ss::map_microphone_aac>();
+        auto region = data->unpack<hl2ss::map_microphone<float>>();
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         std::cout << "samples: " << (data->sz_payload / sizeof(float)) << std::endl;
@@ -590,7 +590,7 @@ void test_rc(char const* host)
     ipc->set_pv_optical_image_stabilization(hl2ss::pv_optical_image_stabilization_mode::On);
     ipc->set_pv_hdr_video(hl2ss::pv_hdr_video_mode::Off);
     ipc->set_pv_regions_of_interest(true, true, true, true, true, hl2ss::pv_region_of_interest_type::Unknown, 100, 0.0, 0.0, 1.0, 1.0);
-    ipc->set_interface_priority(hl2ss::stream_port::PERSONAL_VIDEO, hl2ss::interface_priority::ABOVE_NORMAL);
+    ipc->set_interface_priority(hl2ss::stream_port::PERSONAL_VIDEO, hl2ss::ee_interface_priority::ABOVE_NORMAL);
     ipc->set_quiet_mode(false);
 }
 
@@ -611,7 +611,7 @@ void test_sm(char const* host)
     auto surfaces = ipc->get_observed_surfaces();
     std::cout << "got " << surfaces->size << " surfaces" << std::endl;
 
-    for (uint64_t i = 0; i < surfaces->size; ++i) { tasks.add_task(surfaces->data[i].id, 1000.0, hl2ss::sm_vertex_position_format::R32G32B32A32Float, hl2ss::sm_triangle_index_format::R32Uint, hl2ss::sm_vertex_normal_format::R32G32B32A32Float, true, false); }
+    for (uint64_t i = 0; i < surfaces->size; ++i) { tasks.add_task(surfaces->data[i].id, 1000.0, hl2ss::sm_vertex_position_format::R32G32B32A32Float, hl2ss::sm_triangle_index_format::R32Uint, hl2ss::sm_vertex_normal_format::R32G32B32A32Float); }
     auto data = ipc->get_meshes(tasks);
 
     int index = 0;

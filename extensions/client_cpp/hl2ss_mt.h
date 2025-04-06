@@ -1,17 +1,46 @@
 
-#include <shared_mutex>
+#include <stdint.h>
 #include <vector>
-#include <atomic>
-#include <thread>
-#include <mutex>
 #include "hl2ss.h"
+
+//******************************************************************************
+// "Enumerations" and Structures
+//******************************************************************************
 
 namespace hl2ss
 {
 namespace mt
 {
 //------------------------------------------------------------------------------
-// Buffer
+// Constants
+//------------------------------------------------------------------------------
+
+namespace time_preference
+{
+int32_t const PREFER_PAST    = -1;
+int32_t const PREFER_NEAREST =  0;
+int32_t const PREFER_FUTURE  =  1;
+}
+
+namespace status
+{
+int32_t const DISCARDED = -1;
+int32_t const OK        =  0;
+int32_t const WAIT      =  1;
+}
+}
+}
+
+//******************************************************************************
+// Inlines
+//******************************************************************************
+
+namespace hl2ss
+{
+namespace mt
+{
+//------------------------------------------------------------------------------
+// Ring Buffer
 //------------------------------------------------------------------------------
 
 template <typename T>
@@ -77,9 +106,8 @@ public:
         reset(size);
     }
 
-    ring_buffer() : ring_buffer(16)
+    ring_buffer() : ring_buffer(64)
     {
-
     }
 
     void reset()
@@ -123,15 +151,15 @@ public:
         int64_t base = size();
         int64_t index = (stamp < 0) ? (base + stamp) : (base + stamp - m_count);
 
-        if (index < 0) { return -1; }
-        if (index >= base) { return 1; }
+        if (index < 0) { return status::DISCARDED; }
+        if (index >= base) { return status::WAIT; }
 
         int64_t slot = (m_write + index) % base;
 
         out = m_frames[slot];
         t = m_timestamps[slot];
         s = index + m_count - base;
-        return 0;
+        return status::OK;
     }
 
     int get(uint64_t timestamp, int32_t time_preference, bool tiebreak_right, T& out, uint64_t& t, int64_t& s) const
@@ -139,12 +167,12 @@ public:
         int64_t base = size();
         int64_t index = find_index(timestamp, time_preference, tiebreak_right, base);
 
-        if (index < 0) { return 1; }
+        if (index < 0) { return status::WAIT; }
 
         out = m_frames[index];
         t = m_timestamps[index];
         s = m_count - base + ((base + index - m_write) % base);
-        return 0;
+        return status::OK;
     }
 
     T at(int32_t index) const
@@ -152,17 +180,27 @@ public:
         return m_frames[index];
     }
 };
+}
+}
 
+//******************************************************************************
+// Implementation
+//******************************************************************************
+
+#ifndef HL2SS_SHARED
+
+#include <shared_mutex>
+#include <atomic>
+#include <thread>
+#include <mutex>
+
+namespace hl2ss
+{
+namespace mt
+{
 //------------------------------------------------------------------------------
 // Source
 //------------------------------------------------------------------------------
-
-namespace time_preference
-{
-int32_t const PREFER_PAST    = -1;
-int32_t const PREFER_NEAREST =  0;
-int32_t const PREFER_FUTURE  =  1;
-}
 
 class source
 {
@@ -196,3 +234,5 @@ public:
 };
 }
 }
+
+#endif
