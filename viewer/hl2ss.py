@@ -1201,20 +1201,20 @@ class _decode_rm_depth_longthrow_png:
         return depth, ab
 
 
-class _decode_rm_depth_lonthrow_raw:
+class _decode_rm_depth_longthrow_raw:
     _Z = 0
     _I = Parameters_RM_DEPTH_LONGTHROW.PIXELS * _SIZEOF.WORD
 
     def decode(self, payload):
-        depth = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_lonthrow_raw._Z, count=Parameters_RM_DEPTH_LONGTHROW.PIXELS).reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
-        ab    = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_lonthrow_raw._I, count=Parameters_RM_DEPTH_LONGTHROW.PIXELS).reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+        depth = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_longthrow_raw._Z, count=Parameters_RM_DEPTH_LONGTHROW.PIXELS).reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
+        ab    = np.frombuffer(payload, dtype=np.uint16, offset=_decode_rm_depth_longthrow_raw._I, count=Parameters_RM_DEPTH_LONGTHROW.PIXELS).reshape(Parameters_RM_DEPTH_LONGTHROW.SHAPE)
         
         return depth, ab
 
 
 class decode_rm_depth_longthrow:
     def __init__(self, profile):
-        self._codec = _decode_rm_depth_lonthrow_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_longthrow_png()
+        self._codec = _decode_rm_depth_longthrow_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_longthrow_png()
 
     def decode(self, payload):
         data     = payload[:-8]
