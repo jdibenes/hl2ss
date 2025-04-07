@@ -2,6 +2,7 @@
 #include <iostream>
 #include <codecvt>
 #include <locale>
+#include <iostream>
 
 #define HL2SS_ULM_IMPLEMETATION
 
@@ -47,25 +48,24 @@ public:
     }
 };
 
-class handle
+namespace handle
 {
-public:
-    template <typename T>
-    static void* create(std::shared_ptr<T> object)
-    {
-        return object ? new (std::nothrow) typed_handle<T>(object) : nullptr;
-    }
+template <typename T>
+void* create(std::shared_ptr<T> object)
+{
+    return new (std::nothrow) typed_handle<T>(object);
+}
 
-    template <typename T>
-    static std::shared_ptr<T> as(void* h)
-    {
-        return ((typed_handle<T>*)h)->reference;
-    }
+template <typename T>
+std::shared_ptr<T> as(void* h)
+{
+    return ((typed_handle<T>*)h)->reference;
+}
 
-    static void destroy(void* h)
-    {
-        delete (handle*)h;
-    }
+void destroy(void* h)
+{
+    delete (handle_base*)h;
+}
 };
 
 static std::unique_ptr<hl2ss::rx> open_stream_rm_vlc(char const* host, uint16_t port, void const* configuration, bool decoded)
