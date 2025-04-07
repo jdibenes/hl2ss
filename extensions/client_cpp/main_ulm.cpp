@@ -5,6 +5,9 @@
 #include <opencv2/highgui.hpp>
 #include "hl2ss_ulm.h"
 
+
+
+
 void sleep(uint32_t ms)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
@@ -95,9 +98,9 @@ void test_rm_vlc(char const* host)
     uint16_t port = hl2ss::stream_port::RM_VLC_LEFTFRONT;
     uint64_t buffer_size = 300;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_vlc>();
+    auto configuration = hl2ss::svc::configuration_rm_vlc();
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_vlc>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, false);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -116,8 +119,8 @@ void test_rm_vlc(char const* host)
 
         auto region = data->unpack<hl2ss::map_rm_vlc>();
         
-        cv::Mat image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, region.image);
-        cv::imshow(window_name, image);
+        //cv::Mat image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, region.image);
+        //cv::imshow(window_name, image);
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         print(region.metadata);
@@ -130,10 +133,10 @@ void test_rm_depth_ahat(char const* host)
     uint16_t port = hl2ss::stream_port::RM_DEPTH_AHAT;
     uint64_t buffer_size = 450;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_depth_ahat>();
+    auto configuration = hl2ss::svc::configuration_rm_depth_ahat();
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_depth_ahat>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
-
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+ 
     std::string window_name_base = hl2ss::get_port_name(port);
     std::string window_name_depth = window_name_base + "-depth";
     std::string window_name_ab = window_name_base + "-ab";
@@ -171,9 +174,9 @@ void test_rm_depth_longthrow(char const* host)
     uint16_t port = hl2ss::stream_port::RM_DEPTH_LONGTHROW;
     uint64_t buffer_size = 50;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_depth_longthrow>();
+    auto configuration = hl2ss::svc::configuration_rm_depth_longthrow();
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_depth_longthrow>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
 
     std::string window_name_base = hl2ss::get_port_name(port);
     std::string window_name_depth = window_name_base + "-depth";
@@ -212,7 +215,7 @@ void test_rm_imu(char const* host)
     uint16_t port = hl2ss::stream_port::RM_IMU_ACCELEROMETER;
     uint64_t buffer_size = 100;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_imu>();
+    auto configuration = hl2ss::svc::configuration_rm_imu();
     try
     {
         auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_imu>(host, port, &configuration);
@@ -221,7 +224,7 @@ void test_rm_imu(char const* host)
     {
         std::cerr << e.what() << '\n';
     }
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
 
     cv::namedWindow(hl2ss::get_port_name(port));
 
@@ -250,16 +253,16 @@ void test_pv(char const* host)
     uint16_t port = hl2ss::stream_port::PERSONAL_VIDEO;
     uint64_t buffer_size = 300;
 
-    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
+    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
+    auto configuration = hl2ss::svc::configuration_pv();
 
     configuration.width = 1920;
     configuration.height = 1080;
     configuration.framerate = 30;
-    configuration.decoded_format = hl2ss::pv_decoded_format::BGR;
+    uint8_t decoded_format = hl2ss::pv_decoded_format::BGR;
 
     int cv_type;
-    switch (configuration.decoded_format)
+    switch (decoded_format)
     {
     case hl2ss::pv_decoded_format::BGR:  cv_type = CV_8UC3; break;
     case hl2ss::pv_decoded_format::RGB:  cv_type = CV_8UC3; break;
@@ -269,10 +272,10 @@ void test_pv(char const* host)
     default: throw std::runtime_error("Invalid PV decoded format");
     }
 
-    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
+    hl2ss::svc::start_subsystem_pv(host, port, &configuration_subsystem);
 
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_pv>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, decoded_format);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -307,8 +310,8 @@ void test_microphone(char const* host)
     uint16_t port = hl2ss::stream_port::MICROPHONE;
     uint64_t buffer_size = 100;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_microphone>();
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto configuration = hl2ss::svc::configuration_microphone();
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -337,8 +340,8 @@ void test_si(char const* host)
     uint16_t port = hl2ss::stream_port::SPATIAL_INPUT;
     uint64_t buffer_size = 300;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_si>();
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto configuration = hl2ss::svc::configuration_si();
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -371,11 +374,11 @@ void test_eet(char const* host)
     uint16_t port = hl2ss::stream_port::EXTENDED_EYE_TRACKER;
     uint64_t buffer_size = 900;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_eet>();
+    auto configuration = hl2ss::svc::configuration_eet();
 
     configuration.fps = 90;
 
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -411,9 +414,10 @@ void test_extended_audio(char const* host)
     uint16_t port = hl2ss::stream_port::EXTENDED_AUDIO;
     uint64_t buffer_size = 100;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_audio>();
-    auto device_list = hl2ss::svc::download_device_list(host, port);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto configuration = hl2ss::svc::configuration_extended_audio();
+    auto device_list = hl2ss::svc::download_device_list(host, port, &configuration);
+    std::cout << "device_list size " << device_list->size << std::endl;
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -445,21 +449,21 @@ void test_extended_video(char const* host)
     float source_index = 2;
     float profile_index = 4;
 
-    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
+    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
 
     configuration_subsystem.global_opacity = group_index;
     configuration_subsystem.output_width = source_index;
     configuration_subsystem.output_height = profile_index;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
+    auto configuration = hl2ss::svc::configuration_pv();
 
     configuration.width = 1280;
     configuration.height = 720;
     configuration.framerate = 30;
-    configuration.decoded_format = hl2ss::pv_decoded_format::BGR;
+    uint8_t decoded_format = hl2ss::pv_decoded_format::BGR;
 
     int cv_type;
-    switch (configuration.decoded_format)
+    switch (decoded_format)
     {
     case hl2ss::pv_decoded_format::BGR:  cv_type = CV_8UC3; break;
     case hl2ss::pv_decoded_format::RGB:  cv_type = CV_8UC3; break;
@@ -469,10 +473,11 @@ void test_extended_video(char const* host)
     default: throw std::runtime_error("Invalid PV decoded format");
     }
 
-    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
+    hl2ss::svc::start_subsystem_pv(host, port, &configuration_subsystem);
 
-    auto device_list = hl2ss::svc::download_device_list(host, port);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto device_list = hl2ss::svc::download_device_list(host, port, nullptr);
+    std::cout << "device_list size " << device_list->size << std::endl;
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, decoded_format);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -495,6 +500,7 @@ void test_extended_video(char const* host)
         cv::imshow(window_name, image);
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
+        print("pose", data->pose);
     }
 
     hl2ss::svc::stop_subsystem_pv(host, port);
@@ -505,19 +511,19 @@ void test_pv_shared(char const* host)
     uint16_t port = hl2ss::stream_port::PERSONAL_VIDEO;
     uint64_t buffer_size = 300;
 
-    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
+    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
 
     configuration_subsystem.shared = true;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
+    auto configuration = hl2ss::svc::configuration_pv();
 
     configuration.width = 1920;
     configuration.height = 1080;
     configuration.framerate = 30;
-    configuration.decoded_format = hl2ss::pv_decoded_format::BGR;
+    uint8_t decoded_format = hl2ss::pv_decoded_format::BGR;
 
     int cv_type;
-    switch (configuration.decoded_format)
+    switch (decoded_format)
     {
     case hl2ss::pv_decoded_format::BGR:  cv_type = CV_8UC3; break;
     case hl2ss::pv_decoded_format::RGB:  cv_type = CV_8UC3; break;
@@ -527,9 +533,9 @@ void test_pv_shared(char const* host)
     default: throw std::runtime_error("Invalid PV decoded format");
     }
 
-    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
+    hl2ss::svc::start_subsystem_pv(host, port, &configuration_subsystem);
 
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, decoded_format);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -547,16 +553,14 @@ void test_pv_shared(char const* host)
         }
 
         auto region = data->unpack<hl2ss::map_pv>();
-
-        source->get_pv_dimensions(configuration.width, configuration.height);
         
-        cv::Mat image = cv::Mat(configuration.height, configuration.width, cv_type, region.image);
+        cv::Mat image = cv::Mat(region.metadata->height, region.metadata->width, cv_type, region.image);
         cv::imshow(window_name, image);
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         print(region.metadata);
         print("pose", data->pose);
-        std::cout << "dimensions: " << configuration.width << " x " << configuration.height << std::endl;
+        std::cout << "dimensions: " << region.metadata->width << " x " << region.metadata->height << std::endl;
     }
 
     hl2ss::svc::stop_subsystem_pv(host, port);
@@ -565,33 +569,56 @@ void test_pv_shared(char const* host)
 void test_rc(char const* host)
 {
     uint16_t port = hl2ss::ipc_port::REMOTE_CONFIGURATION;
-
+    
     auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_rc>(host, port);
 
-    hl2ss::version v = ipc->get_application_version();
+    hl2ss::version v = ipc->ee_get_application_version();
     std::cout << "version: " << v.field[0] << "." << v.field[1] << "." << v.field[2] << "." << v.field[3] << std::endl;
-    std::cout << "utf_offset: " << ipc->get_utc_offset() << std::endl;
-    ipc->set_hs_marker_state(hl2ss::hs_marker_state::Disable);
-    std::cout << "pv status: " << ipc->get_pv_subsystem_status() << std::endl;
-    ipc->wait_for_pv_subsystem(false);
-    ipc->set_pv_focus(hl2ss::pv_focus_mode::Manual, hl2ss::pv_auto_focus_range::Normal, hl2ss::pv_manual_focus_distance::Infinity, 1000, hl2ss::pv_driver_fallback::Disable);
-    ipc->set_pv_video_temporal_denoising(hl2ss::pv_video_temporal_denoising_mode::On);
-    ipc->set_pv_white_balance_preset(hl2ss::pv_color_temperature_preset::Auto);
-    ipc->set_pv_white_balance_value(hl2ss::pv_white_balance_value::Min);
-    ipc->set_pv_exposure(hl2ss::pv_exposure_mode::Auto, hl2ss::pv_exposure_value::Min);
-    ipc->set_pv_exposure_priority_video(hl2ss::pv_exposure_priority_video::Enabled);
-    ipc->set_pv_iso_speed(hl2ss::pv_iso_speed_mode::Auto, hl2ss::pv_iso_speed_value::Min);
-    ipc->set_pv_backlight_compensation(hl2ss::pv_backlight_compensation_state::Enable);
-    ipc->set_pv_scene_mode(hl2ss::pv_capture_scene_mode::Auto);
-    ipc->set_flat_mode(false);
-    ipc->set_rm_eye_selection(false);
-    ipc->set_pv_desired_optimization(hl2ss::pv_media_capture_optimization::LatencyThenPower);
-    ipc->set_pv_primary_use(hl2ss::pv_capture_use::Video);
-    ipc->set_pv_optical_image_stabilization(hl2ss::pv_optical_image_stabilization_mode::On);
-    ipc->set_pv_hdr_video(hl2ss::pv_hdr_video_mode::Off);
-    ipc->set_pv_regions_of_interest(true, true, true, true, true, hl2ss::pv_region_of_interest_type::Unknown, 100, 0.0, 0.0, 1.0, 1.0);
-    ipc->set_interface_priority(hl2ss::stream_port::PERSONAL_VIDEO, hl2ss::ee_interface_priority::ABOVE_NORMAL);
-    ipc->set_quiet_mode(false);
+    std::cout << "utf_offset: " << ipc->ts_get_utc_offset() << std::endl;
+    ipc->hs_set_marker_state(hl2ss::hs_marker_state::Disable);
+    std::cout << "pv status: " << ipc->pv_get_subsystem_status() << std::endl;
+    ipc->pv_wait_for_subsystem(false);
+    ipc->pv_set_focus(hl2ss::pv_focus_mode::Manual, hl2ss::pv_auto_focus_range::Normal, hl2ss::pv_manual_focus_distance::Infinity, 1000, hl2ss::pv_driver_fallback::Disable);
+    ipc->pv_set_video_temporal_denoising(hl2ss::pv_video_temporal_denoising_mode::On);
+    ipc->pv_set_white_balance_preset(hl2ss::pv_color_temperature_preset::Auto);
+    ipc->pv_set_white_balance_value(hl2ss::pv_white_balance_value::Min);
+    ipc->pv_set_exposure(hl2ss::pv_exposure_mode::Auto, hl2ss::pv_exposure_value::Min);
+    ipc->pv_set_exposure_priority_video(hl2ss::pv_exposure_priority_video::Enabled);
+    ipc->pv_set_iso_speed(hl2ss::pv_iso_speed_mode::Auto, hl2ss::pv_iso_speed_value::Min);
+    ipc->pv_set_backlight_compensation(hl2ss::pv_backlight_compensation_state::Enable);
+    ipc->pv_set_scene_mode(hl2ss::pv_capture_scene_mode::Auto);
+    ipc->ee_set_flat_mode(false);
+    ipc->rm_set_eye_selection(false);
+    ipc->pv_set_desired_optimization(hl2ss::pv_media_capture_optimization::LatencyThenPower);
+    ipc->pv_set_primary_use(hl2ss::pv_capture_use::Video);
+    ipc->pv_set_optical_image_stabilization(hl2ss::pv_optical_image_stabilization_mode::On);
+    ipc->pv_set_hdr_video(hl2ss::pv_hdr_video_mode::Off);
+    ipc->pv_set_regions_of_interest(true, true, true, true, true, hl2ss::pv_region_of_interest_type::Unknown, 100, 0.0, 0.0, 1.0, 1.0);
+    ipc->ee_set_interface_priority(hl2ss::stream_port::PERSONAL_VIDEO, hl2ss::ee_interface_priority::ABOVE_NORMAL);
+    ipc->ee_set_quiet_mode(false);
+
+    hl2ss::vector_2 points[] = {{ 320, 240 }, { 0, 0 }};
+
+    auto plane_points = ipc->rm_map_camera_points(hl2ss::stream_port::RM_VLC_LEFTFRONT, hl2ss::rm_map_camera_point_operation::ImagePointToCameraUnitPlane, points, sizeof(points) / sizeof(hl2ss::vector_2));
+    for (uint64_t i = 0; i < plane_points->size; ++i)
+    {
+        auto p = plane_points->data[i];
+        std::cout << "x=" << p.x << "," << "y=" << p.y << std::endl;
+    }
+    
+    auto time_now = ipc->ts_get_current_time(hl2ss::ts_source::QPC);
+    uint64_t timestamps[] = {time_now, time_now - hl2ss::time_base::HUNDREDS_OF_NANOSECONDS};
+
+    auto poses = ipc->rm_get_rignode_world_poses(timestamps, sizeof(timestamps) / sizeof(uint64_t));
+    std::cout << "poses" << std::endl;
+    for (uint64_t i = 0; i < poses->size; ++i)
+    {
+        print("pose", &poses->data[i]);
+    }
+    
+    ipc->si_set_sampling_delay(0);
+
+    std::cout << "ipc done" << std::endl;
 }
 
 void test_sm(char const* host)
@@ -615,7 +642,7 @@ void test_sm(char const* host)
     auto data = ipc->get_meshes(tasks);
 
     int index = 0;
-    for (auto const& mesh : data->meshes)
+    for (auto& mesh : data->meshes)
     {
         std::cout << "mesh_index: " << index++ << std::endl;
         std::cout << "mesh_status: " << mesh.status << std::endl;
@@ -623,8 +650,9 @@ void test_sm(char const* host)
         std::cout << "mesh_triangles: " << (mesh.triangle_indices_size / (3 * sizeof(uint32_t))) << std::endl;
         std::cout << "mesh_normals: " << (mesh.vertex_normals_size / (4 * sizeof(float))) << std::endl;
         print("vertex scale", (float*)&mesh.vertex_position_scale, sizeof(mesh.vertex_position_scale) / sizeof(float));
-        print("pose", mesh.pose);
+        print("pose", &mesh.pose);
     }
+    std::cout << "ipc done" << std::endl;
 }
 
 void test_su(char const* host)
@@ -658,12 +686,12 @@ void test_su(char const* host)
         return;
     }
 
-    std::cout << "got " << result->count << " objects" << std::endl;
-    print("extrinsics", result->extrinsics);
-    print("pose", result->pose);
+    std::cout << "got " << result->items_count << " objects" << std::endl;
+    print("extrinsics", &result->extrinsics);
+    print("pose", &result->pose);
 
     int index = 0;
-    for (auto const& item : result->items)
+    for (auto& item : result->items)
     {
         std::cout << "item_index: " << index++ << std::endl;
         std::cout << "item_kind: " << item.kind << std::endl;
@@ -671,7 +699,7 @@ void test_su(char const* host)
         std::cout << "item_alignment: " << item.alignment << std::endl;
         std::cout << "item_meshes_count: " << item.meshes_count << std::endl;
         std::cout << "item_collider_meshes_count: " << item.collider_meshes_count << std::endl;
-        print("item_location", item.location);
+        print("item_location", &item.location);
         for (auto const& mesh : item.unpacked_meshes)
         {
             std::cout << "mesh_info" << std::endl;
@@ -685,6 +713,7 @@ void test_su(char const* host)
             std::cout << "triangles: " << (mesh.triangle_indices_size / (3 * sizeof(uint32_t))) << std::endl;
         }
     }
+    std::cout << "ipc done" << std::endl;
 }
 
 void test_vi(char const* host)
@@ -693,7 +722,7 @@ void test_vi(char const* host)
 
     auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_vi>(host, port);
 
-    ipc->start("cat\0dog\0red\0blue\0");
+    ipc->start("cat\0dog\0stop\0red\0blue\0");
 
     std::cout << "waiting for voice command..." << std::endl;
     while (true)
@@ -705,10 +734,11 @@ void test_vi(char const* host)
         std::cout << "phrase_start_time: " << result->data[0].phrase_start_time << std::endl;
         std::cout << "phrase_duration: " << result->data[0].phrase_duration << std::endl;
         std::cout << "raw_confidence: " << result->data[0].raw_confidence << std::endl;
-        break;
+        if (result->data[0].index == 2) { break; }
     }
 
     ipc->stop();
+    std::cout << "ipc done" << std::endl;
 }
 
 void test_umq(char const* host)
@@ -727,6 +757,7 @@ void test_umq(char const* host)
     ipc->pull(response, sizeof(response) / sizeof(uint32_t));
 
     std::cout << "response: " << response[0] << std::endl;
+    std::cout << "ipc done" << std::endl;
 }
 
 void test_gmq(char const* host)
@@ -756,6 +787,7 @@ void test_gmq(char const* host)
 
     uint32_t response[] = { 1 };
     ipc->push(response, sizeof(response) / sizeof(uint32_t));
+    std::cout << "ipc done" << std::endl;
 }
 
 void test_extended_depth(char const* host)
@@ -764,22 +796,22 @@ void test_extended_depth(char const* host)
     float group_index = 0;
     float source_index = 0;
     float profile_index = 0;
-    uint64_t media_index = 15;
+    uint64_t media_index = 12;
     uint64_t buffer_size = 300;
 
-    auto configuration_subsystem = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv_subsystem>();
+    auto configuration_subsystem = hl2ss::ulm::configuration_pv_subsystem();
 
     configuration_subsystem.global_opacity = group_index;
     configuration_subsystem.output_width = source_index;
     configuration_subsystem.output_height = profile_index;
 
-    auto configuration = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_depth>();
+    auto configuration = hl2ss::ulm::configuration_extended_depth();
 
-    configuration.media_index = 15;
+    configuration.media_index = media_index;
 
-    hl2ss::svc::start_subsystem_pv(host, port, configuration_subsystem);
+    hl2ss::svc::start_subsystem_pv(host, port, &configuration_subsystem);
 
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration);
+    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -798,9 +830,8 @@ void test_extended_depth(char const* host)
 
         auto region = data->unpack<hl2ss::map_extended_depth>();
 
-        uint16_t width;
-        uint16_t height;
-        source->get_pv_dimensions(width, height);
+        uint16_t width = region.metadata->width;
+        uint16_t height = region.metadata->height;
         
         cv::Mat image = cv::Mat(height, width, CV_16UC1, region.depth) * 16;
         cv::imshow(window_name, image);
@@ -817,7 +848,7 @@ void test_extended_depth(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 10;
+    int test_id = 17;
 
     try
     {
@@ -849,6 +880,7 @@ int main()
     {
         std::cerr << e.what() << '\n';
     }
+    std::cout <<"TEST COMPLETE";
 
     return 0;
 }
