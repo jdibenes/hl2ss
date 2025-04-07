@@ -2,7 +2,6 @@
 #include <iostream>
 #include <codecvt>
 #include <locale>
-#include <iostream>
 
 #define HL2SS_ULM_IMPLEMETATION
 
