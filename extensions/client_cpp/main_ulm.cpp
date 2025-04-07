@@ -848,7 +848,7 @@ void test_extended_depth(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 17;
+    int test_id = 16;
 
     try
     {
