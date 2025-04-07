@@ -1195,21 +1195,21 @@ HL2SS_INLINE
 map_rm_vlc unpack_rm_vlc(uint8_t* payload, uint32_t size)
 {
     (void)size;
-    return { payload, (rm_vlc_metadata*)(payload + parameters_rm_vlc::PIXELS) };
+    return { payload, (rm_vlc_metadata*)(payload + size - sizeof(rm_vlc_metadata)) };
 }
 
 HL2SS_INLINE
 map_rm_depth_ahat unpack_rm_depth_ahat(uint8_t* payload, uint32_t size)
 {
     (void)size;
-    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))), (rm_depth_ahat_metadata*)(payload + (2 * parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))) };
+    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t))), (rm_depth_ahat_metadata*)(payload + size - sizeof(rm_depth_ahat_metadata)) };
 }
 
 HL2SS_INLINE
 map_rm_depth_longthrow unpack_rm_depth_longthrow(uint8_t* payload, uint32_t size)
 {
     (void)size;
-    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))), (rm_depth_longthrow_metadata*)(payload + (2 * parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))) };
+    return { (uint16_t*)(payload), (uint16_t*)(payload + (parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t))), (rm_depth_longthrow_metadata*)(payload + size - sizeof(rm_depth_longthrow_metadata)) };
 }
 
 HL2SS_INLINE
