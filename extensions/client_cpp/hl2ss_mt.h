@@ -186,7 +186,7 @@ public:
 // Implementation
 //******************************************************************************
 
-#ifndef HL2SS_SHARED
+#ifndef HL2SS_MT_SHARED
 
 #include <shared_mutex>
 #include <atomic>
@@ -223,12 +223,6 @@ public:
     bool status(std::exception& error);
     void stop();
     
-    template <typename T>
-    T const* get_rx()
-    {
-        return dynamic_cast<T*>(m_rx.get());
-    }
-
     std::shared_ptr<hl2ss::packet> get_packet(int64_t& frame_stamp, int32_t& status);
     std::shared_ptr<hl2ss::packet> get_packet(uint64_t timestamp, int32_t time_preference, bool tiebreak_right, int64_t& frame_stamp, int32_t& status);
 };

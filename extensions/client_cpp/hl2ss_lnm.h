@@ -5,6 +5,10 @@
 #include "hl2ss_dp.h"
 #endif
 
+//******************************************************************************
+// Inlines
+//******************************************************************************
+
 namespace hl2ss
 {
 namespace lnm
@@ -13,23 +17,85 @@ namespace lnm
 // Default Settings
 //------------------------------------------------------------------------------
 
-float get_video_codec_default_factor(uint8_t profile);
-uint8_t get_video_coded_default_gop_size(uint8_t framerate, uint8_t divisor, uint8_t profile);
-uint32_t get_video_codec_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, float factor);
-uint32_t get_video_codec_default_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile);
-std::vector<uint64_t> get_video_codec_default_options(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile);
+HL2SS_INLINE
+float get_video_codec_default_factor(uint8_t profile)
+{
+    switch (profile)
+    {
+    case hl2ss::video_profile::H264_BASE:
+    case hl2ss::video_profile::H264_MAIN:
+    case hl2ss::video_profile::H264_HIGH: return 1.0f /  75.0f;
+    case hl2ss::video_profile::H265_MAIN: return 1.0f / 150.0f;
+    default:                              return 1.0f;
+    }
+}
+
+HL2SS_INLINE
+uint8_t get_video_coded_default_gop_size(uint8_t framerate, uint8_t divisor, uint8_t profile)
+{
+    return (profile != hl2ss::video_profile::RAW) ? framerate : 1;
+}
+
+HL2SS_INLINE
+uint32_t get_video_codec_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, float factor)
+{
+    return (uint32_t)((double)width*(double)height*(double)framerate*12.0*(double)factor);
+}
+
+HL2SS_INLINE
+uint32_t get_video_codec_default_bitrate(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile)
+{
+    return get_video_codec_bitrate(width, height, framerate, divisor, get_video_codec_default_factor(profile));
+}
+
+HL2SS_INLINE
+std::vector<uint64_t> get_video_codec_default_options(uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile)
+{
+    double  const exposure_factor = 0.0;
+    int64_t const constant_factor = -125000;
+
+    std::vector<uint64_t> default_options;
+    default_options.push_back(hl2ss::h26x_encoder_property::CODECAPI_AVEncMPVGOPSize);
+    default_options.push_back(get_video_coded_default_gop_size(framerate, divisor, profile));
+    default_options.push_back(hl2ss::h26x_encoder_property::HL2SSAPI_VLCHostTicksOffsetExposure);
+    default_options.push_back(*(uint64_t*)&exposure_factor);
+    default_options.push_back(hl2ss::h26x_encoder_property::HL2SSAPI_VLCHostTicksOffsetConstant);
+    default_options.push_back(*(uint64_t*)&constant_factor);
+    return default_options;
+}
 
 #ifdef HL2SS_ENABLE_DP
-dp::mrc_configuration create_configuration_for_dp_mrc(bool pv=true, bool holo=false, bool mic=true, bool loopback=false, bool RenderFromCamera=true, bool vstab=false, int vstabbuffer=15);
+HL2SS_INLINE
+dp::mrc_configuration create_configuration_for_dp_mrc(bool pv=true, bool holo=false, bool mic=true, bool loopback=false, bool RenderFromCamera=true, bool vstab=false, int vstabbuffer=15)
+{
+    return { holo, pv, mic, loopback, RenderFromCamera, vstab, vstabbuffer };
+}
 #endif
 
-//------------------------------------------------------------------------------
-// Stream Sync Period
-//------------------------------------------------------------------------------
+HL2SS_INLINE
+bool get_video_codec_option(std::vector<uint64_t> const& options, uint64_t key, uint64_t& out)
+{
+    for (size_t i = 0; i < (options.size() / 2); ++i)
+    {
+    if (options[2*i] != key) { continue; }
+    out = options[2*i + 1];
+    return true;
+    }
+    return false;
+}
+}
+}
 
-uint64_t get_sync_frame_stamp(uint64_t frame_stamp, uint64_t sync_period);
-uint64_t get_sync_period(hl2ss::rx const* rx);
+//******************************************************************************
+// Implementation
+//******************************************************************************
 
+#ifndef HL2SS_LNM_SHARED
+
+namespace hl2ss
+{
+namespace lnm
+{
 //------------------------------------------------------------------------------
 // Control
 //------------------------------------------------------------------------------
@@ -80,3 +146,5 @@ std::unique_ptr<hl2ss::ipc_umq> ipc_umq(char const* host, uint16_t port);
 std::unique_ptr<hl2ss::ipc_gmq> ipc_gmq(char const* host, uint16_t port);
 }
 }
+
+#endif
