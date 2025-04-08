@@ -83,7 +83,7 @@ compiler_options = [
     '/FC',
     '/EHsc',
     '/nologo',
-    f'/Fehl2ss_ulm.dll',
+    '/Fehl2ss_ulm.dll',
 ]
 
 linker_options = [
