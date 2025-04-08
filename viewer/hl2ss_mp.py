@@ -4,118 +4,12 @@ import threading as mt
 import queue
 import traceback
 import hl2ss
-
-
-class TimePreference:
-    PREFER_PAST    = -1
-    PREFER_NEAREST =  0
-    PREFER_FUTURE  =  1
-
-
-class Status:
-    DISCARDED = -1
-    OK        =  0
-    WAIT      =  1
+import hl2ss_mx
 
 
 class SourceKind:
     MP = 0
     MT = 1
-
-
-#------------------------------------------------------------------------------
-# Buffer
-#------------------------------------------------------------------------------
-
-class RingBuffer:
-    '''
-    Implements a ring-buffer with the different processing after it becomes full.
-    Idea: https://www.oreilly.com/library/view/python-cookbook/0596001673/ch05s19.html
-    '''
-
-    def __init__(self, size_max=64):
-        self.max = size_max
-        self.data = []
-
-    class __Full:
-        def append(self, x):
-            self.data[self.cur] = x
-            self.cur = (self.cur+1) % self.max
-
-        def get(self):
-            return self.data[self.cur:]+self.data[:self.cur]
-
-        def last(self):
-            return self.get()[-1]
-
-        def length(self):
-            return self.max
-
-    def append(self, x):
-        self.data.append(x)
-        if (len(self.data) == self.max):
-            self.cur = 0
-            self.__class__ = self.__Full
-
-    def get(self):
-        return self.data
-
-    def last(self):
-        if (len(self.data) == 0):
-            return None
-        return self.get()[-1]
-
-    def length(self):
-        return len(self.data)
-
-
-def _get_packet_interval(data, timestamp, l, r):
-    while ((r - l) > 1):
-        i = (r + l) // 2
-        t = data[i].timestamp
-        if (t < timestamp):
-            l = i
-        elif (t > timestamp):
-            r = i
-        else:
-            return (i, i)
-        
-    return (l, r)
-
-
-def get_nearest_packet(data, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
-    n = len(data)
-
-    if (n <= 0):
-        return None
-
-    si = _get_packet_interval(data, timestamp, 0, n - 1)
-
-    if (si[0] == si[1]):
-        return si[0]
-    
-    t0 = data[si[0]].timestamp
-    t1 = data[si[1]].timestamp
-
-    if (timestamp <= t0):
-        return si[0]
-    if (timestamp >= t1):
-        return si[1]
-    
-    if (time_preference == TimePreference.PREFER_PAST):
-        return si[0]
-    if (time_preference == TimePreference.PREFER_FUTURE):
-        return si[1]
-    
-    d0 = timestamp - t0
-    d1 = t1 - timestamp
-
-    if (d0 < d1):
-        return si[0]
-    if (d0 > d1):
-        return si[1]
-    
-    return si[1 if (tiebreak_right) else 0] 
 
 
 #------------------------------------------------------------------------------
@@ -234,7 +128,7 @@ class _interconnect(mp.Process):
 
     def _get_nearest(self, timestamp, time_preference, tiebreak_right, select_data):
         buffer = self._buffer.get()
-        index = get_nearest_packet(buffer, timestamp, time_preference, tiebreak_right)
+        index = hl2ss_mx.get_nearest_packet(buffer, timestamp, time_preference, tiebreak_right)
         return (-1, None) if (index is None) else (self._frame_stamp - self._buffer.length() + 1 + index, buffer[index] if (select_data) else None)
 
     def _get_buffered_frame(self, frame_stamp, select_data):
@@ -242,7 +136,7 @@ class _interconnect(mp.Process):
             frame_stamp = self._frame_stamp + frame_stamp + 1
         n = self._buffer.length()
         index = n - 1 - self._frame_stamp + frame_stamp
-        return (Status.DISCARDED, frame_stamp, None) if (index < 0) else (Status.WAIT, frame_stamp, None) if (index >= n) else (Status.OK, frame_stamp, self._buffer.get()[index] if (select_data) else None)
+        return (hl2ss_mx.Status.DISCARDED, frame_stamp, None) if (index < 0) else (hl2ss_mx.Status.WAIT, frame_stamp, None) if (index >= n) else (hl2ss_mx.Status.OK, frame_stamp, self._buffer.get()[index] if (select_data) else None)
 
     def _get_source_status(self):
         return self._source_status
@@ -313,7 +207,7 @@ class _interconnect(mp.Process):
         self._source = _create_source(self._receiver, self._source_wires, self._interconnect_wires, self._source_kind)
         self._source.start()
 
-        self._buffer = RingBuffer(self._buffer_size)
+        self._buffer = hl2ss_mx.RingBuffer(self._buffer_size)
         self._frame_stamp = -1
         
         self._sink = dict()
@@ -372,7 +266,7 @@ class _sink:
         self._interconnect_wires.semaphore.release()
         self._sink_wires.din.get()
 
-    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False, select_data=True):
+    def get_nearest(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False, select_data=True):
         self._sink_wires.dout.put((_interconnect.IPC_SINK_GET_NEAREST, timestamp, time_preference, tiebreak_right, select_data))
         self._interconnect_wires.semaphore.release()
         frame_stamp, data = self._sink_wires.din.get()
@@ -392,7 +286,7 @@ class _sink:
         state, frame_stamp, data = self._sink_wires.din.get() 
         return state, frame_stamp, data
     
-    def get_nearest_frame_stamp(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
+    def get_nearest_frame_stamp(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False):
         frame_stamp, _ = self.get_nearest(timestamp, time_preference, tiebreak_right, False)
         return frame_stamp
 
@@ -543,7 +437,7 @@ class stream(hl2ss._context_manager):
     def get_reference_frame_stamp(self):
         return self._safs
 
-    def get_nearest(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False, select_data=True):
+    def get_nearest(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False, select_data=True):
         return self._sink.get_nearest(timestamp, time_preference, tiebreak_right, select_data)
    
     def get_frame_stamp(self):
@@ -555,7 +449,7 @@ class stream(hl2ss._context_manager):
     def get_buffered_frame(self, frame_stamp, select_data=True):
         return self._sink.get_buffered_frame(frame_stamp, select_data)
     
-    def get_nearest_frame_stamp(self, timestamp, time_preference=TimePreference.PREFER_NEAREST, tiebreak_right=False):
+    def get_nearest_frame_stamp(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False):
         return self._sink.get_nearest_frame_stamp(timestamp, time_preference, tiebreak_right)
 
     def get_source_status(self):
