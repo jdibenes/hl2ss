@@ -3,6 +3,7 @@ import weakref
 import struct
 import types
 import hl2ss
+import hl2ss_mx
 
 
 _MAGIC = 'HL2SSV23'
@@ -715,4 +716,57 @@ class _rd_decoded(_rd):
 
 def create_rd(filename, chunk, decoded):
     return _rd_decoded(filename, chunk, decoded) if (decoded) else _rd(filename, chunk)
+
+
+#------------------------------------------------------------------------------
+# Sequencer
+#------------------------------------------------------------------------------
+
+class sequencer:
+    def __init__(self, filename, chunk, decoded):
+        self.filename = filename
+        self.chunk = chunk
+        self.decoded = decoded
+
+    def open(self):
+        self._rd = create_rd(self.filename, self.chunk, self.decoded)
+        self._rd.open()
+        self._l = self._rd.get_next_packet()
+        self._r = self._rd.get_next_packet()
+
+    def advance(self):
+        self._l = self._r
+        self._r = self._rd.get_next_packet()
+
+    def get_left(self):
+        return self._l
+
+    def get_right(self):
+        return self._r
+
+    def is_at(self, timestamp):
+        return None if ((self._l is None) or (self._r is None)) else hl2ss_mx.Status.DISCARDED if (timestamp < self._l.timestamp) else hl2ss_mx.Status.WAIT if (timestamp > self._r.timestamp) else hl2ss_mx.Status.OK
+    
+    def get_nearest(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False):
+        data = []
+        if (self._l is not None):
+            data.append(self._l)
+        if (self._r is not None):
+            data.append(self._r)
+        index = hl2ss_mx.get_nearest_packet(data, timestamp, time_preference, tiebreak_right)
+        return None if (index is None) else data[index]
+
+    def synchronize(self, timestamp):
+        while (True):
+            status = self.is_at(timestamp)
+            if (status != hl2ss_mx.Status.WAIT):
+                return status
+            self.advance()
+
+    def get_next_packet(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False):
+        status = self.synchronize(timestamp)
+        return (status, self.get_nearest(timestamp, time_preference, tiebreak_right))
+
+    def close(self):
+        self._rd.close()
 
