@@ -1149,23 +1149,24 @@ class _decode_rm_depth_ahat:
 
 
 class _decode_rm_depth_ahat_same:
-    def __init__(self, profile):
+    def __init__(self, profile, base):
         self._codec_f = _decode_rm_depth_ahat_z_ab_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_ahat_z_ab_h26x(profile)
+        self._base = base
 
     def decode(self, payload):
-        start_f = _decode_rm_depth_ahat.BASE        
-        return self._codec_f.decode(payload[start_f:])
+        return self._codec_f.decode(payload[self._base:])
 
 
 class _decode_rm_depth_ahat_zdepth:
-    def __init__(self, profile):
+    def __init__(self, profile, base):
         self._codec_z = _decompress_zdepth()
         self._codec_i = _decode_rm_depth_ahat_x_ab_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_ahat_x_ab_h26x(profile)
+        self._base = base
 
     def decode(self, payload):
         size_z, size_i = struct.unpack_from('<II', payload, 0)
 
-        start_z = _decode_rm_depth_ahat.BASE
+        start_z = self._base
         end_z   = start_z + size_z
         start_i = end_z
         end_i   = start_i + size_i
@@ -1177,8 +1178,8 @@ class _decode_rm_depth_ahat_zdepth:
 
 
 class decode_rm_depth_ahat:
-    def __init__(self, profile_z, profile_ab):
-        self._codec = _decode_rm_depth_ahat_same(profile_ab) if (profile_z == DepthProfile.SAME) else _decode_rm_depth_ahat_zdepth(profile_ab)
+    def __init__(self, profile_z, profile_ab, base=_decode_rm_depth_ahat.BASE):
+        self._codec = _decode_rm_depth_ahat_same(profile_ab, base) if (profile_z == DepthProfile.SAME) else _decode_rm_depth_ahat_zdepth(profile_ab, base)
 
     def decode(self, payload):
         data     = payload[:-8]
