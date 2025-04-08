@@ -20,9 +20,9 @@ PyObject* create_configuration()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_rm_vlc>()
+PyObject* create_configuration<hl2ss::svc::configuration_rm_vlc>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_vlc>();
+    auto c = hl2ss::svc::configuration_rm_vlc();
 
     PyObject* r = PyDict_New();
 
@@ -38,9 +38,9 @@ PyObject* create_configuration<hl2ss::ulm::configuration_rm_vlc>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_rm_depth_ahat>()
+PyObject* create_configuration<hl2ss::svc::configuration_rm_depth_ahat>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_depth_ahat>();
+    auto c = hl2ss::svc::configuration_rm_depth_ahat();
 
     PyObject* r = PyDict_New();
 
@@ -57,9 +57,9 @@ PyObject* create_configuration<hl2ss::ulm::configuration_rm_depth_ahat>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_rm_depth_longthrow>()
+PyObject* create_configuration<hl2ss::svc::configuration_rm_depth_longthrow>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_depth_longthrow>();
+    auto c = hl2ss::svc::configuration_rm_depth_longthrow();
 
     PyObject* r = PyDict_New();
 
@@ -72,9 +72,9 @@ PyObject* create_configuration<hl2ss::ulm::configuration_rm_depth_longthrow>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_rm_imu>()
+PyObject* create_configuration<hl2ss::svc::configuration_rm_imu>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_imu>();
+    auto c = hl2ss::svc::configuration_rm_imu();
 
     PyObject* r = PyDict_New();
 
@@ -85,9 +85,9 @@ PyObject* create_configuration<hl2ss::ulm::configuration_rm_imu>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_pv>()
+PyObject* create_configuration<hl2ss::svc::configuration_pv>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
+    auto c = hl2ss::svc::configuration_pv();
 
     PyObject* r = PyDict_New();
 
@@ -99,7 +99,6 @@ PyObject* create_configuration<hl2ss::ulm::configuration_pv>()
     PyDict_SetItemString(r, "divisor",        PyLong_FromUnsignedLong(c.divisor));
     PyDict_SetItemString(r, "profile",        PyLong_FromUnsignedLong(c.profile));
     PyDict_SetItemString(r, "level",          PyLong_FromUnsignedLong(c.level));
-    PyDict_SetItemString(r, "decoded_format", PyLong_FromUnsignedLong(c.decoded_format));
     PyDict_SetItemString(r, "bitrate",        PyLong_FromUnsignedLong(c.bitrate));
     PyDict_SetItemString(r, "options",        PyNone_New);
 
@@ -107,9 +106,9 @@ PyObject* create_configuration<hl2ss::ulm::configuration_pv>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_microphone>()
+PyObject* create_configuration<hl2ss::svc::configuration_microphone>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_microphone>();
+    auto c = hl2ss::svc::configuration_microphone();
 
     PyObject* r = PyDict_New();
 
@@ -121,9 +120,9 @@ PyObject* create_configuration<hl2ss::ulm::configuration_microphone>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_si>()
+PyObject* create_configuration<hl2ss::svc::configuration_si>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_si>();
+    auto c = hl2ss::svc::configuration_si();
 
     PyObject* r = PyDict_New();
 
@@ -133,22 +132,22 @@ PyObject* create_configuration<hl2ss::ulm::configuration_si>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_eet>()
+PyObject* create_configuration<hl2ss::svc::configuration_eet>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_eet>();
+    auto c = hl2ss::svc::configuration_eet();
 
     PyObject* r = PyDict_New();
 
-    PyDict_SetItemString(r, "chunk",     PyLong_FromUnsignedLongLong(c.chunk));
-    PyDict_SetItemString(r, "framerate", PyLong_FromUnsignedLong(c.framerate));
+    PyDict_SetItemString(r, "chunk", PyLong_FromUnsignedLongLong(c.chunk));
+    PyDict_SetItemString(r, "fps",   PyLong_FromUnsignedLong(c.fps));
 
     return r;
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_extended_audio>()
+PyObject* create_configuration<hl2ss::svc::configuration_extended_audio>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_audio>();
+    auto c = hl2ss::svc::configuration_extended_audio();
 
     PyObject* r = PyDict_New();
 
@@ -163,9 +162,9 @@ PyObject* create_configuration<hl2ss::ulm::configuration_extended_audio>()
 }
 
 template<>
-PyObject* create_configuration<hl2ss::ulm::configuration_extended_depth>()
+PyObject* create_configuration<hl2ss::svc::configuration_extended_depth>()
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_depth>();
+    auto c = hl2ss::svc::configuration_extended_depth();
 
     PyObject* r = PyDict_New();
 
@@ -248,10 +247,10 @@ static bool decode_options(PyObject* d, char const* key, std::vector<uint64_t>& 
     
     for (ssize_t i = 0; i < count; ++i)
     {
-        PyObject* tuple = PyList_GetItem(items, i);
+    PyObject* tuple = PyList_GetItem(items, i);
 
-        if (!decode_option_unit(PyTuple_GetItem(tuple, 0), options)) { return false; }
-        if (!decode_option_unit(PyTuple_GetItem(tuple, 1), options)) { return false; }
+    if (!decode_option_unit(PyTuple_GetItem(tuple, 0), options)) { return false; }
+    if (!decode_option_unit(PyTuple_GetItem(tuple, 1), options)) { return false; }
     }
 
     return true;
@@ -262,15 +261,15 @@ static bool decode_options(PyObject* d, char const* key, std::vector<uint64_t>& 
 //-----------------------------------------------------------------------------
 
 template<typename T>
-std::unique_ptr<hl2ss::svc::source> open_stream(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
     throw std::runtime_error("Not implemented");
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_rm_vlc>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_rm_vlc>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_vlc>();
+    auto c = hl2ss::svc::configuration_rm_vlc();
     std::vector<uint64_t> options;
 
     c.chunk   = dict_get_item(configuration, "chunk",   PyLong_AsUnsignedLongLong, c.chunk);
@@ -282,17 +281,17 @@ std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_rm_vlc
 
     if (decode_options(configuration, "options", options))
     {
-        c.options_size = options.size();
-        c.options_data = options.data();
+    c.options_size = options.size();
+    c.options_data = options.data();
     }
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_rm_depth_ahat>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_rm_depth_ahat>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_depth_ahat>();
+    auto c = hl2ss::svc::configuration_rm_depth_ahat();
     std::vector<uint64_t> options;
 
     c.chunk      = dict_get_item(configuration, "chunk",      PyLong_AsUnsignedLongLong, c.chunk);
@@ -305,41 +304,41 @@ std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_rm_dep
 
     if (decode_options(configuration, "options", options))
     {
-        c.options_size = options.size();
-        c.options_data = options.data();
+    c.options_size = options.size();
+    c.options_data = options.data();
     }
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_rm_depth_longthrow>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_rm_depth_longthrow>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_depth_longthrow>();
+    auto c = hl2ss::ulm::configuration_rm_depth_longthrow();
 
     c.chunk      = dict_get_item(configuration, "chunk",      PyLong_AsUnsignedLongLong, c.chunk);
     c.mode       = dict_get_item(configuration, "mode",       PyLong_AsUnsignedLong,     c.mode);
     c.divisor    = dict_get_item(configuration, "divisor",    PyLong_AsUnsignedLong,     c.divisor);
     c.png_filter = dict_get_item(configuration, "png_filter", PyLong_AsUnsignedLong,     c.png_filter);
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_rm_imu>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_rm_imu>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_rm_imu>();
+    auto c = hl2ss::svc::configuration_rm_imu();
 
     c.chunk = dict_get_item(configuration, "chunk", PyLong_AsUnsignedLongLong, c.chunk);
     c.mode  = dict_get_item(configuration, "mode",  PyLong_AsUnsignedLong,     c.mode);
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_pv>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_pv>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_pv>();
+    auto c = hl2ss::ulm::configuration_pv();
     std::vector<uint64_t> options;
 
     c.chunk          = dict_get_item(configuration, "chunk",          PyLong_AsUnsignedLongLong, c.chunk);
@@ -350,55 +349,54 @@ std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_pv>(ch
     c.divisor        = dict_get_item(configuration, "divisor",        PyLong_AsUnsignedLong,     c.divisor);
     c.profile        = dict_get_item(configuration, "profile",        PyLong_AsUnsignedLong,     c.profile);
     c.level          = dict_get_item(configuration, "level",          PyLong_AsUnsignedLong,     c.level);
-    c.decoded_format = dict_get_item(configuration, "decoded_format", PyLong_AsUnsignedLong,     c.decoded_format);
     c.bitrate        = dict_get_item(configuration, "bitrate",        PyLong_AsUnsignedLong,     c.bitrate);
 
     if (decode_options(configuration, "options", options))
     {
-        c.options_size = options.size();
-        c.options_data = options.data();
+    c.options_size = options.size();
+    c.options_data = options.data();
     }
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_microphone>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_microphone>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_microphone>();
+    auto c = hl2ss::svc::configuration_microphone();
 
     c.chunk   = dict_get_item(configuration, "chunk",   PyLong_AsUnsignedLongLong, c.chunk);
     c.profile = dict_get_item(configuration, "profile", PyLong_AsUnsignedLong,     c.profile);
     c.level   = dict_get_item(configuration, "level",   PyLong_AsUnsignedLong,     c.level);
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_si>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_si>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_si>();
+    auto c = hl2ss::svc::configuration_si();
 
     c.chunk = dict_get_item(configuration, "chunk", PyLong_AsUnsignedLongLong, c.chunk);
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_eet>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_eet>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_eet>();
+    auto c = hl2ss::svc::configuration_eet();
 
-    c.chunk     = dict_get_item(configuration, "chunk",     PyLong_AsUnsignedLongLong, c.chunk);
-    c.framerate = dict_get_item(configuration, "framerate", PyLong_AsUnsignedLong,     c.framerate);
+    c.chunk = dict_get_item(configuration, "chunk", PyLong_AsUnsignedLongLong, c.chunk);
+    c.fps   = dict_get_item(configuration, "fps",   PyLong_AsUnsignedLong,     c.fps);
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_extended_audio>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_extended_audio>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_audio>();
+    auto c = hl2ss::svc::configuration_extended_audio();
 
     c.chunk           = dict_get_item(configuration, "chunk",           PyLong_AsUnsignedLongLong, c.chunk);
     c.mixer_mode      = dict_get_item(configuration, "mixer_mode",      PyLong_AsUnsignedLong,     c.mixer_mode);
@@ -407,13 +405,13 @@ std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_extend
     c.profile         = dict_get_item(configuration, "profile",         PyLong_AsUnsignedLong,     c.profile);
     c.level           = dict_get_item(configuration, "level",           PyLong_AsUnsignedLong,     c.level);
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 template<>
-std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_extended_depth>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration)
+std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_extended_depth>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::svc::create_configuration<hl2ss::ulm::configuration_extended_depth>();
+    auto c = hl2ss::svc::configuration_extended_depth();
 
     c.chunk       = dict_get_item(configuration, "chunk",       PyLong_AsUnsignedLongLong, c.chunk);
     c.media_index = dict_get_item(configuration, "media_index", PyLong_AsUnsignedLongLong, c.media_index);
@@ -422,38 +420,39 @@ std::unique_ptr<hl2ss::svc::source> open_stream<hl2ss::ulm::configuration_extend
     c.divisor     = dict_get_item(configuration, "divisor",     PyLong_AsUnsignedLong,     c.divisor);
     c.profile_z   = dict_get_item(configuration, "profile_z",   PyLong_AsUnsignedLong,     c.profile_z);
 
-    return hl2ss::svc::open_stream(host, port, buffer_size, &c);
+    return hl2ss::svc::open_stream(host, port, buffer_size, &c, decoded);
 }
 
 static PyObject* open_stream(PyObject *self, PyObject *args)
 HL2SS_ULM_BEGIN
 {
-    std::unique_ptr<hl2ss::svc::source> p;
+    std::unique_ptr<hl2ss::shared::source> p;
     char const* host;
     uint16_t port;
     uint64_t buffer_size;
     PyObject* configuration;
+    uint8_t decoded;
 
-    if (!PyArg_ParseTuple(args, "shLO!", &host, &port, &buffer_size, &PyDict_Type, &configuration)) { return NULL; }
+    if (!PyArg_ParseTuple(args, "shLO!b", &host, &port, &buffer_size, &PyDict_Type, &configuration, &decoded)) { return NULL; }
 
     switch (port)
     {
     case hl2ss::stream_port::RM_VLC_LEFTFRONT:
     case hl2ss::stream_port::RM_VLC_LEFTLEFT:
     case hl2ss::stream_port::RM_VLC_RIGHTFRONT:
-    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    p = open_stream<hl2ss::ulm::configuration_rm_vlc>(host, port, buffer_size, configuration);             break;
-    case hl2ss::stream_port::RM_DEPTH_AHAT:        p = open_stream<hl2ss::ulm::configuration_rm_depth_ahat>(host, port, buffer_size, configuration);      break;
-    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   p = open_stream<hl2ss::ulm::configuration_rm_depth_longthrow>(host, port, buffer_size, configuration); break;
+    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    p = open_stream<hl2ss::svc::configuration_rm_vlc>(host, port, buffer_size, configuration, decoded);             break;
+    case hl2ss::stream_port::RM_DEPTH_AHAT:        p = open_stream<hl2ss::svc::configuration_rm_depth_ahat>(host, port, buffer_size, configuration, decoded);      break;
+    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   p = open_stream<hl2ss::svc::configuration_rm_depth_longthrow>(host, port, buffer_size, configuration, decoded); break;
     case hl2ss::stream_port::RM_IMU_ACCELEROMETER:
     case hl2ss::stream_port::RM_IMU_GYROSCOPE:
-    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  p = open_stream<hl2ss::ulm::configuration_rm_imu>(host, port, buffer_size, configuration);             break;
+    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  p = open_stream<hl2ss::svc::configuration_rm_imu>(host, port, buffer_size, configuration, decoded);             break;
     case hl2ss::stream_port::PERSONAL_VIDEO:
-    case hl2ss::stream_port::EXTENDED_VIDEO:       p = open_stream<hl2ss::ulm::configuration_pv>(host, port, buffer_size, configuration);                 break;
-    case hl2ss::stream_port::MICROPHONE:           p = open_stream<hl2ss::ulm::configuration_microphone>(host, port, buffer_size, configuration);         break;
-    case hl2ss::stream_port::SPATIAL_INPUT:        p = open_stream<hl2ss::ulm::configuration_si>(host, port, buffer_size, configuration);                 break;
-    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: p = open_stream<hl2ss::ulm::configuration_eet>(host, port, buffer_size, configuration);                break;
-    case hl2ss::stream_port::EXTENDED_AUDIO:       p = open_stream<hl2ss::ulm::configuration_extended_audio>(host, port, buffer_size, configuration);     break;
-    case hl2ss::stream_port::EXTENDED_DEPTH:       p = open_stream<hl2ss::ulm::configuration_extended_depth>(host, port, buffer_size, configuration);     break;
+    case hl2ss::stream_port::EXTENDED_VIDEO:       p = open_stream<hl2ss::svc::configuration_pv>(host, port, buffer_size, configuration, decoded);                 break;
+    case hl2ss::stream_port::MICROPHONE:           p = open_stream<hl2ss::svc::configuration_microphone>(host, port, buffer_size, configuration, decoded);         break;
+    case hl2ss::stream_port::SPATIAL_INPUT:        p = open_stream<hl2ss::svc::configuration_si>(host, port, buffer_size, configuration, decoded);                 break;
+    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: p = open_stream<hl2ss::svc::configuration_eet>(host, port, buffer_size, configuration, decoded);                break;
+    case hl2ss::stream_port::EXTENDED_AUDIO:       p = open_stream<hl2ss::svc::configuration_extended_audio>(host, port, buffer_size, configuration, decoded);     break;
+    case hl2ss::stream_port::EXTENDED_DEPTH:       p = open_stream<hl2ss::svc::configuration_extended_depth>(host, port, buffer_size, configuration, decoded);     break;
     default:                                       throw std::runtime_error("Unsupported port");
     }
 
@@ -465,7 +464,7 @@ HL2SS_ULM_END(NULL)
 // get_by_
 //-----------------------------------------------------------------------------
 
-static PyObject* pack_frame(std::unique_ptr<hl2ss::svc::packet> packet)
+static PyObject* pack_frame(std::unique_ptr<hl2ss::shared::packet_view> packet)
 {
     PyObject* r = PyDict_New();
 
@@ -486,7 +485,7 @@ HL2SS_ULM_BEGIN
     int64_t frame_stamp;
 
     if (!PyArg_ParseTuple(args, "LL", &source, &frame_stamp)) { return NULL; }
-    return pack_frame(((hl2ss::svc::source*)source)->get_by_index(frame_stamp));
+    return pack_frame(((hl2ss::shared::source*)source)->get_by_index(frame_stamp));
 }
 HL2SS_ULM_END(NULL)
 
@@ -499,27 +498,7 @@ HL2SS_ULM_BEGIN
     int32_t tiebreak_right;
 
     if (!PyArg_ParseTuple(args, "LLii", &source, &timestamp, &time_preference, &tiebreak_right)) { return NULL; }
-    return pack_frame(((hl2ss::svc::source*)source)->get_by_timestamp(timestamp, time_preference, tiebreak_right != 0));
-}
-HL2SS_ULM_END(NULL)
-
-static PyObject* get_pv_dimensions(PyObject *self, PyObject *args)
-HL2SS_ULM_BEGIN
-{
-    uint64_t source;
-    uint16_t width;
-    uint16_t height;
-
-    if (!PyArg_ParseTuple(args, "L", &source)) { return NULL; }
-
-    ((hl2ss::svc::source*)source)->get_pv_dimensions(width, height);
-
-    PyObject* r = PyTuple_New(2);
-
-    PyTuple_SetItem(r, 0, PyLong_FromUnsignedLong(width));
-    PyTuple_SetItem(r, 1, PyLong_FromUnsignedLong(height));
-
-    return r;
+    return pack_frame(((hl2ss::shared::source*)source)->get_by_timestamp(timestamp, time_preference, tiebreak_right != 0));
 }
 HL2SS_ULM_END(NULL)
 
@@ -539,14 +518,14 @@ PyObject* release(PyObject *args)
 static PyObject* release_packet(PyObject *self, PyObject *args)
 HL2SS_ULM_BEGIN
 {
-    return release<hl2ss::svc::packet>(args);
+    return release<hl2ss::shared::packet_view>(args);
 }
 HL2SS_ULM_END(NULL)
 
 static PyObject* release_stream(PyObject *self, PyObject *args)
 HL2SS_ULM_BEGIN
 {
-    return release<hl2ss::svc::source>(args);
+    return release<hl2ss::shared::source>(args);
 }
 HL2SS_ULM_END(NULL)
 
@@ -560,7 +539,6 @@ static PyMethodDef hl2ss_ulm_stream_methods[] =
     {"open_stream",          open_stream,          METH_VARARGS, "Open HoloLens 2 stream"},
     {"get_by_index",         get_by_index,         METH_VARARGS, "Get packet by index"},
     {"get_by_timestamp",     get_by_timestamp,     METH_VARARGS, "Get packet by timestamp"},
-    {"get_pv_dimensions",    get_pv_dimensions,    METH_VARARGS, "Get dynamic PV dimensions"},
     {"release_packet",       release_packet,       METH_VARARGS, "Release packet"},
     {"release_stream",       release_stream,       METH_VARARGS, "Close HoloLens 2 stream"},
     {NULL,                   NULL,                 0,            NULL},
