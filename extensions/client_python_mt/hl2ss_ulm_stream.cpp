@@ -190,19 +190,19 @@ HL2SS_ULM_BEGIN
     case hl2ss::stream_port::RM_VLC_LEFTFRONT:
     case hl2ss::stream_port::RM_VLC_LEFTLEFT:
     case hl2ss::stream_port::RM_VLC_RIGHTFRONT:
-    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    return create_configuration<hl2ss::ulm::configuration_rm_vlc>();
-    case hl2ss::stream_port::RM_DEPTH_AHAT:        return create_configuration<hl2ss::ulm::configuration_rm_depth_ahat>();
-    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   return create_configuration<hl2ss::ulm::configuration_rm_depth_longthrow>();
+    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    return create_configuration<hl2ss::svc::configuration_rm_vlc>();
+    case hl2ss::stream_port::RM_DEPTH_AHAT:        return create_configuration<hl2ss::svc::configuration_rm_depth_ahat>();
+    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   return create_configuration<hl2ss::svc::configuration_rm_depth_longthrow>();
     case hl2ss::stream_port::RM_IMU_ACCELEROMETER:
     case hl2ss::stream_port::RM_IMU_GYROSCOPE:
-    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  return create_configuration<hl2ss::ulm::configuration_rm_imu>();
+    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  return create_configuration<hl2ss::svc::configuration_rm_imu>();
     case hl2ss::stream_port::PERSONAL_VIDEO:
-    case hl2ss::stream_port::EXTENDED_VIDEO:       return create_configuration<hl2ss::ulm::configuration_pv>();
-    case hl2ss::stream_port::MICROPHONE:           return create_configuration<hl2ss::ulm::configuration_microphone>();
-    case hl2ss::stream_port::SPATIAL_INPUT:        return create_configuration<hl2ss::ulm::configuration_si>();
-    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return create_configuration<hl2ss::ulm::configuration_eet>();
-    case hl2ss::stream_port::EXTENDED_AUDIO:       return create_configuration<hl2ss::ulm::configuration_extended_audio>();
-    case hl2ss::stream_port::EXTENDED_DEPTH:       return create_configuration<hl2ss::ulm::configuration_extended_depth>();
+    case hl2ss::stream_port::EXTENDED_VIDEO:       return create_configuration<hl2ss::svc::configuration_pv>();
+    case hl2ss::stream_port::MICROPHONE:           return create_configuration<hl2ss::svc::configuration_microphone>();
+    case hl2ss::stream_port::SPATIAL_INPUT:        return create_configuration<hl2ss::svc::configuration_si>();
+    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return create_configuration<hl2ss::svc::configuration_eet>();
+    case hl2ss::stream_port::EXTENDED_AUDIO:       return create_configuration<hl2ss::svc::configuration_extended_audio>();
+    case hl2ss::stream_port::EXTENDED_DEPTH:       return create_configuration<hl2ss::svc::configuration_extended_depth>();
     default:                                       throw std::runtime_error("Unsupported port");
     }
 }
@@ -314,7 +314,7 @@ std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_rm_
 template<>
 std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_rm_depth_longthrow>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::ulm::configuration_rm_depth_longthrow();
+    auto c = hl2ss::svc::configuration_rm_depth_longthrow();
 
     c.chunk      = dict_get_item(configuration, "chunk",      PyLong_AsUnsignedLongLong, c.chunk);
     c.mode       = dict_get_item(configuration, "mode",       PyLong_AsUnsignedLong,     c.mode);
@@ -338,7 +338,7 @@ std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_rm_
 template<>
 std::unique_ptr<hl2ss::shared::source> open_stream<hl2ss::svc::configuration_pv>(char const* host, uint16_t port, uint64_t buffer_size, PyObject* configuration, uint8_t decoded)
 {
-    auto c = hl2ss::ulm::configuration_pv();
+    auto c = hl2ss::svc::configuration_pv();
     std::vector<uint64_t> options;
 
     c.chunk          = dict_get_item(configuration, "chunk",          PyLong_AsUnsignedLongLong, c.chunk);
