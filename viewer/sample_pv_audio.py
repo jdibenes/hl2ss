@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 import numpy as np
+import time
 import cv2
 import hl2ss_imshow
 import hl2ss
@@ -35,8 +36,7 @@ if __name__ == "__main__":
     sink_pv.open()
     sink_ea.open()
 
-    fs_pv = sink_pv.get_reference_frame_stamp()
-    fs_ea = sink_pv.get_reference_frame_stamp()
+    fs_ea = -1
 
     # Setup Multimedia Player -------------------------------------------------
     player = hl2ss_utilities.audio_player(np.float32, True, hl2ss.Parameters_MICROPHONE.CHANNELS, hl2ss.Parameters_MICROPHONE.SAMPLE_RATE)
@@ -50,11 +50,15 @@ if __name__ == "__main__":
         # Audio must be read sequentially
         # using get_most_recent_frame will result in audio glitches since 
         # get_most_recent_frame repeats or drops frames as necessary
-        sink_ea.acquire()
+        status, fs_ea, data_ea = sink_ea.get_buffered_frame(fs_ea)
+        if (status == hl2ss_mx.Status.WAIT):
+            time.sleep(0.008)
+            continue
+        if (status == hl2ss_mx.Status.DISCARDED):
+            fs_ea = -1
+            continue
         fs_ea += 1
-        _, _, data_ea = sink_ea.get_buffered_frame(fs_ea)
-        if (data_ea is None):
-            break
+
         player.put(data_ea.timestamp, data_ea.payload)
         # Coarse audio/video synchronization based on audio frame timestamps
         player_timestamp = player.get_timestamp()
