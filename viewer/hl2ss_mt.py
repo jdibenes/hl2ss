@@ -398,10 +398,10 @@ class _sink:
         self._safs   = source.get_by_index(-1).frame_stamp
 
     def acquire(self, block=True):
-        raise Exception('Not implemented')
+        raise Exception('not implemented')
 
     def release(self):
-        raise Exception('Not implemented')
+        raise Exception('not implemented')
 
     def get_attach_response(self):
         return self._safs
