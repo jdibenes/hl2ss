@@ -13,6 +13,7 @@ import hl2ss_imshow
 import hl2ss
 import hl2ss_dp
 import hl2ss_lnm
+import hl2ss_mx
 import hl2ss_mp
 import hl2ss_utilities
 
@@ -58,7 +59,7 @@ audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
 listener.open()
 
-video_buffer = hl2ss_mp.RingBuffer(30 * 10)
+video_buffer = hl2ss_mx.RingBuffer(30 * 10)
 
 player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
 player.open()
@@ -81,7 +82,7 @@ while (not listener.pressed()):
         video_buffer.append(data)
         frames = video_buffer.get()
         if (sync_to_audio):
-            index = hl2ss_mp.get_nearest_packet(frames, player.get_timestamp(), hl2ss_mp.TimePreference.PREFER_PAST)
+            index = hl2ss_mx.get_nearest_packet(frames, player.get_timestamp(), hl2ss_mx.TimePreference.PREFER_PAST)
         else:
             index = -1
         if (index is not None):
