@@ -150,6 +150,8 @@ public:
         int64_t base = size();
         int64_t index = (stamp < 0) ? (base + stamp) : (base + stamp - m_count);
 
+        s = index + m_count - base;
+
         if (index < 0) { return status::DISCARDED; }
         if (index >= base) { return status::WAIT; }
 
@@ -157,20 +159,22 @@ public:
 
         out = m_frames[slot];
         t = m_timestamps[slot];
-        s = index + m_count - base;
+
         return status::OK;
     }
 
     int get(uint64_t timestamp, int32_t time_preference, bool tiebreak_right, T& out, uint64_t& t, int64_t& s) const
     {
         int64_t base = size();
-        int64_t index = find_index(timestamp, time_preference, tiebreak_right, base);
+        
+        s = find_index(timestamp, time_preference, tiebreak_right, base);
 
-        if (index < 0) { return status::WAIT; }
+        if (s < 0) { return status::WAIT; }
 
-        out = m_frames[index];
-        t = m_timestamps[index];
-        s = m_count - base + ((base + index - m_write) % base);
+        out = m_frames[s];
+        t = m_timestamps[s];
+        s = m_count - base + ((base + s - m_write) % base);
+
         return status::OK;
     }
 
