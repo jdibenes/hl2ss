@@ -1360,6 +1360,10 @@ class decode_pv:
 # Microphone Decoder
 #------------------------------------------------------------------------------
 
+def microphone_parameters(profile, level):
+    return (np.float32, (2, -1)) if (profile != AudioProfile.RAW) else (np.float32, (1, -1)) if (level == AACLevel.L5) else (np.int16, (1, -1))
+
+
 class _decode_microphone_aac:
     def __init__(self, profile):
         self._codec = get_audio_codec(profile)
@@ -1370,10 +1374,10 @@ class _decode_microphone_aac:
 
 class _decode_microphone_raw:
     def __init__(self, level):
-        self.dtype = np.float32 if (level == AACLevel.L5) else np.int16
+        self.dtype, self.shape = microphone_parameters(AudioProfile.RAW, level)
 
     def decode(self, payload):
-        return np.frombuffer(payload, dtype=self.dtype).reshape((1, -1))
+        return np.frombuffer(payload, dtype=self.dtype).reshape(self.shape)
 
 
 class decode_microphone:
@@ -1576,6 +1580,10 @@ class decode_eet:
 # Extended Audio Decoder
 #------------------------------------------------------------------------------
 
+def extended_audio_parameters(profile, level):
+    return (np.float32, (2, -1)) if (profile != AudioProfile.RAW) else (np.int8, (1, -1)) if ((level & 0x80) != 0) else (np.int16, (1, -1))
+
+
 class _decode_extended_audio_aac:
     def __init__(self, profile):
         self._codec = get_audio_codec(profile)
@@ -1586,10 +1594,10 @@ class _decode_extended_audio_aac:
 
 class _decode_extended_audio_raw:
     def __init__(self, level):
-        self.dtype = np.int8 if ((level & 0x80) != 0) else np.int16
+        self.dtype, self.shape = extended_audio_parameters(AudioProfile.RAW, level)
 
     def decode(self, payload):
-        return np.frombuffer(payload, dtype=self.dtype).reshape((1, -1))
+        return np.frombuffer(payload, dtype=self.dtype).reshape(self.shape)
 
 
 class decode_extended_audio:
