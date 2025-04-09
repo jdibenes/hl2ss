@@ -8,6 +8,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
+import hl2ss_mx
 import hl2ss_mp
 import hl2ss_utilities
 
@@ -59,7 +60,7 @@ if __name__ == "__main__":
         player_timestamp = player.get_timestamp()
         if (player_timestamp > 0):
             # Sync to audio
-            _, data_pv = sink_pv.get_nearest(player_timestamp, hl2ss_mp.TimePreference.PREFER_PAST)
+            _, data_pv = sink_pv.get_nearest(player_timestamp, hl2ss_mx.TimePreference.PREFER_PAST)
             if (data_pv is not None):
                 cv2.imshow('Video', data_pv.payload.image)
 
