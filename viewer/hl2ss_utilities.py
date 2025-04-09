@@ -13,6 +13,7 @@ import av
 import queue
 import pyaudio
 import hl2ss
+import hl2ss_mx
 import hl2ss_mp
 import hl2ss_lnm
 import hl2ss_io
@@ -88,7 +89,7 @@ class wr_process_producer(mp.Process):
         self._event_stop = mp.Event()
         self._wr = hl2ss_io.create_wr_from_rx(filename, producer.get_receiver(port), user)
         self._sink = hl2ss_mp.consumer().create_sink(producer, port, mp.Manager(), ...)
-        self._sync_period = hl2ss_lnm.get_sync_period(self._wr)
+        self._sync_period = hl2ss_mx.get_sync_period(self._wr)
 
     def stop(self):
         self._event_stop.set()
@@ -107,7 +108,7 @@ class wr_process_producer(mp.Process):
         pass
 
     def run(self):
-        self._frame_stamp = hl2ss_lnm.get_sync_frame_stamp(self._sink.get_attach_response() + 1, self._sync_period)
+        self._frame_stamp = hl2ss_mx.get_sync_frame_stamp(self._sink.get_attach_response() + 1, self._sync_period)
         self._stopping = False
 
         self.on_open()
