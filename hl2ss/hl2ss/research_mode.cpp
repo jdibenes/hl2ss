@@ -189,11 +189,15 @@ bool ResearchMode_WaitForConsent(IResearchModeSensor* sensor)
 bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y, std::vector<float>& mapx, std::vector<float>& mapy, float K[4])
 {
     IResearchModeCameraSensor* pCameraSensor; // Release
+    std::vector<uint8_t> mask;
     int width;
     int height;
     int elements;
     float* lutx;
     float* luty;
+    uint8_t* lutm;
+    bool m;
+    float p;
     float uv[2];
     float xy[2];
     float x;
@@ -224,17 +228,16 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
 
+    int u0 = width  / 2;
+    int v0 = height / 2;
+
     elements = width * height;
 
     uv2x.resize(elements);
     uv2y.resize(elements);
     mapx.resize(elements);
     mapy.resize(elements);
-
-    min_x =  std::numeric_limits<float>::infinity();
-    max_x = -std::numeric_limits<float>::infinity();
-    min_y =  std::numeric_limits<float>::infinity();
-    max_y = -std::numeric_limits<float>::infinity();
+    mask.resize(elements);
 
     lutx = uv2x.data();
     luty = uv2y.data();
@@ -248,11 +251,43 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
 
-    x = xy[0];
-    y = xy[1];
+    *(lutx++) = xy[0];
+    *(luty++) = xy[1];
+    }
+    }
 
-    *(lutx++) = x;
-    *(luty++) = y;
+    lutx = uv2x.data();
+    luty = uv2y.data();
+    lutm = mask.data();
+
+    memset(lutm, 0, elements * sizeof(uint8_t));
+    
+    for (int v = 0; v < height; ++v)
+    {
+    m = false; p = lutx[v * width + u0]; for (int u = u0 + 1; u < width;  ++u) { x = lutx[v * width + u]; if (x < p) { m = true; } p = x; if (m) { lutm[v * width + u] = m; } }
+    m = false; p = lutx[v * width + u0]; for (int u = u0 - 1; u >= 0;     --u) { x = lutx[v * width + u]; if (x > p) { m = true; } p = x; if (m) { lutm[v * width + u] = m; } }
+    }
+
+    for (int u = 0; u < width; ++u)
+    {
+    m = false; p = luty[v0 * width + u]; for (int v = v0 + 1; v < height; ++v) { y = luty[v * width + u]; if (y < p) { m = true; } p = y; if (m) { lutm[v * width + u] = m; } }
+    m = false; p = luty[v0 * width + u]; for (int v = v0 - 1; v >= 0;     --v) { y = luty[v * width + u]; if (y > p) { m = true; } p = y; if (m) { lutm[v * width + u] = m; } }
+    }
+
+    min_x =  std::numeric_limits<float>::infinity();
+    max_x = -std::numeric_limits<float>::infinity();
+    min_y =  std::numeric_limits<float>::infinity();
+    max_y = -std::numeric_limits<float>::infinity();
+
+    for (int v = 0; v < height; ++v)
+    {
+    for (int u = 0; u < width;  ++u)
+    {
+    x = *(lutx++);
+    y = *(luty++);
+    m = *(lutm++);
+
+    if (m) { continue; }
 
     if (x < min_x) { min_x = x; } else if (x > max_x) { max_x = x; }
     if (y < min_y) { min_y = y; } else if (y > max_y) { max_y = y; }
