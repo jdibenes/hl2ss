@@ -8,6 +8,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
+import hl2ss_mx
 import hl2ss_mp
 import hl2ss_utilities
 
@@ -71,7 +72,7 @@ if __name__ == '__main__':
         producer.start(port)
         sinks[port] = consumer.get_default_sink(producer, port)
         sinks[port].get_attach_response()
-        while (sinks[port].get_buffered_frame(-1)[0] != hl2ss_mp.Status.OK):
+        while (sinks[port].get_buffered_frame(-1)[0] != hl2ss_mx.Status.OK):
             pass
         print(f'Started {hl2ss.get_port_name(port)}')        
         
@@ -115,17 +116,17 @@ if __name__ == '__main__':
     while ((cv2.waitKey(1) & 0xFF) != 27):
         if (sync_to_audio):
             status_mc, fs_mc, data_mc = sinks[hl2ss.StreamPort.MICROPHONE].get_buffered_frame(fs_mc)
-            if (status_mc == hl2ss_mp.Status.OK):
+            if (status_mc == hl2ss_mx.Status.OK):
                 player.put(data_mc.timestamp, data_mc.payload)
                 fs_mc += 1
-            elif (status_mc == hl2ss_mp.Status.DISCARDED):
+            elif (status_mc == hl2ss_mx.Status.DISCARDED):
                 fs_mc = -1
 
         for port in ports:
             if (port == hl2ss.StreamPort.MICROPHONE):
                 continue
             if (sync_to_audio):
-                _, data = sinks[port].get_nearest(player.get_timestamp(), hl2ss_mp.TimePreference.PREFER_PAST, False)
+                _, data = sinks[port].get_nearest(player.get_timestamp(), hl2ss_mx.TimePreference.PREFER_PAST, False)
             else:
                 _, data = sinks[port].get_most_recent_frame()
             if (data is not None):
