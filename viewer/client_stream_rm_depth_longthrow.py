@@ -9,7 +9,6 @@
 
 from pynput import keyboard
 
-import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
