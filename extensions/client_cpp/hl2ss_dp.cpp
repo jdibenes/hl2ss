@@ -282,25 +282,29 @@ std::shared_ptr<packet> gatherer::get_next_packet()
                                                             m_video_ct = (ct + 1) * tb;
                                                             m_video_tb = tb;
 
-                                                            uint32_t sps_size = 134 - 106;
-                                                            uint32_t pps_size = 141 - 133;
-                                                            uint32_t nal_size = sps_size + pps_size;
-                                                            uint8_t* sps_base = stbl_data + 106;
-                                                            uint8_t* pps_base = stbl_data + 133;
+                                                            uint32_t sps_size_base = 108;
+                                                            uint32_t sps_size_end  = sps_size_base + 2;
+                                                            uint32_t sps_size = ntohs(*(uint16_t*)(stbl_data + sps_size_base));
+                                                            uint32_t sps_base = sps_size_end;
+                                                            uint32_t sps_end  = sps_base + sps_size;
+                                                            uint8_t* sps_data = stbl_data + sps_base;
+                                                            uint32_t pps_size_base = sps_end + 1;
+                                                            uint32_t pps_size_end  = pps_size_base + 2;
+                                                            uint32_t pps_size = ntohs(*(uint16_t*)(stbl_data + pps_size_base));
+                                                            uint32_t pps_base = pps_size_end;
+                                                            uint32_t pps_end  = pps_base + pps_size;
+                                                            uint8_t* pps_data = stbl_data + pps_base;
+                                                            uint32_t nal_size = 4 + sps_size + 4 + pps_size;
 
                                                             m_video_init_data = std::make_unique<uint8_t[]>(nal_size);
                                                             m_video_init_size = nal_size;
 
                                                             uint8_t* content = m_video_init_data.get();
 
-                                                            uint8_t* content_sps = content;
-                                                            uint8_t* content_pps = content_sps + sps_size;
-
-                                                            memcpy(content_sps, sps_base, sps_size);
-                                                            memcpy(content_pps, pps_base, pps_size);
-
-                                                            *(uint16_t*)(content_sps) = 0;
-                                                            *(uint16_t*)(content_pps) = 0;
+                                                            memset(content,            0,            2); content += 2;
+                                                            memcpy(content, sps_data - 2, 2 + sps_size); content += 2 + sps_size;
+                                                            memset(content,            0,            2); content += 2;
+                                                            memcpy(content, pps_data - 2, 2 + pps_size); content += 2 + pps_size;
                                                         }
                                                         else if (stbl_type == *(uint32_t*)"mp4a")
                                                         {
