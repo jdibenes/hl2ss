@@ -11,6 +11,7 @@ import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_utilities
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
             print(f'timestamp mismatch {data_ev.timestamp}-{data_ez.timestamp} delta {ts_delta} seconds ({ts_delta * ev_fps} RGB frames)')
 
         cv2.imshow('RGB', data_ev.payload.image)
-        cv2.imshow('Depth', hl2ss_utilities.depth_colormap(data_ez.payload.depth, max_depth))
+        cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(data_ez.payload.depth, max_depth))
 
     sink_ez.close()
     sink_ev.close()
