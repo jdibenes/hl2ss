@@ -14,6 +14,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
+import hl2ss_3dcv
 import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
@@ -64,8 +65,8 @@ while (not listener.pressed()):
     depth = data.payload.depth
     ab = data.payload.ab
     
-    cv2.imshow('Depth', cv2.applyColorMap(((depth / max_depth) * max_uint8).astype(np.uint8), cv2.COLORMAP_JET)) # Scaled for visibility
-    cv2.imshow('AB', np.sqrt(ab).astype(np.uint8)) # Scaled for visibility
+    cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(depth, max_depth)) # Scaled for visibility
+    cv2.imshow('AB', hl2ss_3dcv.rm_ab_normalize(ab)) # Scaled for visibility
     cv2.waitKey(1)
 
 client.close()
