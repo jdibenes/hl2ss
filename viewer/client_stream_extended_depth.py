@@ -11,6 +11,7 @@ import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
+import hl2ss_3dcv
 import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
@@ -50,8 +51,6 @@ listener.open()
 client = hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, mode=mode, profile_z=profile_z, media_index=media_index)
 client.open()
 
-max_uint8 = 255
-
 while (not listener.pressed()):
     data = client.get_next_packet()
 
@@ -61,7 +60,7 @@ while (not listener.pressed()):
 
     depth = data.payload.depth
 
-    cv2.imshow('Depth', cv2.applyColorMap(((depth / max_depth) * max_uint8).astype(np.uint8), cv2.COLORMAP_JET))
+    cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(depth, max_depth))
     cv2.waitKey(1)
 
 client.close()
