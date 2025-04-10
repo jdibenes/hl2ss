@@ -79,8 +79,8 @@ if __name__ == '__main__':
         if (data_vlc is None):
             continue
 
-        image = cv2.remap(data_vlc.payload.image, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
-        image = np.dstack((image, image, image))
+        image = hl2ss_3dcv.rm_vlc_undistort(data_vlc.payload.image, calibration_vlc.undistort_map)
+        image = hl2ss_3dcv.rm_vlc_to_rgb(image)
 
         if (not hl2ss.is_valid_pose(data_vlc.pose)):
             cv2.imshow('Video', hl2ss_3dcv.rm_vlc_rotate_image(image, rotation_vlc))
