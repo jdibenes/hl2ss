@@ -251,15 +251,11 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     {
     uv[0] = static_cast<float>(u) + 0.5f;
     uv[1] = static_cast<float>(v) + 0.5f;
+    xy[0] = 0.0f;
+    xy[1] = 0.0f;
 
     HRESULT hr = pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
-    if (FAILED(hr))
-    {
-    xy[0] = -std::numeric_limits<float>::infinity();
-    xy[1] = -std::numeric_limits<float>::infinity();
-
-    lutm[v * width + u] = true;
-    }
+    if (FAILED(hr)) { lutm[v * width + u] = true; }
 
     *(lutx++) = xy[0];
     *(luty++) = xy[1];
@@ -321,13 +317,10 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     {
     xy[0] = fx * u + cx;
     xy[1] = fy * v + cy;
-    
-    HRESULT hr = pCameraSensor->MapCameraSpaceToImagePoint(xy, uv);
-    if (FAILED(hr))
-    {
     uv[0] = -1.0;
     uv[1] = -1.0;
-    }
+    
+    pCameraSensor->MapCameraSpaceToImagePoint(xy, uv);
 
     *(lutx++) = uv[0];
     *(luty++) = uv[1];
@@ -519,13 +512,10 @@ void ResearchMode_MapImagePointToCameraUnitPlane(IResearchModeSensor* sensor, st
     out.resize(in.size());
     sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
     for (size_t i = 0; i < in.size(); ++i)
-    { 
-    HRESULT hr = pCameraSensor->MapImagePointToCameraUnitPlane((float(&)[2])in[i], (float(&)[2])out[i]);
-    if (FAILED(hr))
     {
-    out[i].x = -std::numeric_limits<float>::infinity();
-    out[i].y = -std::numeric_limits<float>::infinity();
-    }
+    out[i].x = 0.0f;
+    out[i].y = 0.0f;
+    pCameraSensor->MapImagePointToCameraUnitPlane((float(&)[2])in[i], (float(&)[2])out[i]);    
     }
     pCameraSensor->Release();
 }
@@ -538,13 +528,10 @@ void ResearchMode_MapCameraSpaceToImagePoint(IResearchModeSensor* sensor, std::v
     out.resize(in.size());
     sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
     for (size_t i = 0; i < in.size(); ++i)
-    { 
-    HRESULT hr = pCameraSensor->MapCameraSpaceToImagePoint((float(&)[2])in[i], (float(&)[2])out[i]);
-    if (FAILED(hr))
     {
-    out[i].x = -1.0;
-    out[i].y = -1.0;
-    }
+    out[i].x = -1.0f;
+    out[i].y = -1.0f;
+    pCameraSensor->MapCameraSpaceToImagePoint((float(&)[2])in[i], (float(&)[2])out[i]);
     }
     pCameraSensor->Release();
 }
