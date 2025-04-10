@@ -24,7 +24,7 @@ host = "192.168.1.7"
 # Options:
 # hl2ss.StreamPort.RM_DEPTH_AHAT
 # hl2ss.StreamPort.RM_DEPTH_LONGTHROW
-port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
+port = hl2ss.StreamPort.RM_DEPTH_AHAT
 
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
