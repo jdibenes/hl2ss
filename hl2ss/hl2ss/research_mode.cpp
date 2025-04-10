@@ -241,6 +241,9 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     lutx = uv2x.data();
     luty = uv2y.data();
+    lutm = mask.data();
+
+    memset(lutm, 0, elements * sizeof(uint8_t));
 
     for (int v = 0; v < height; ++v)
     {
@@ -249,7 +252,14 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     uv[0] = static_cast<float>(u) + 0.5f;
     uv[1] = static_cast<float>(v) + 0.5f;
 
-    pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
+    HRESULT hr = pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
+    if (FAILED(hr))
+    {
+    xy[0] = -std::numeric_limits<float>::infinity();
+    xy[1] = -std::numeric_limits<float>::infinity();
+
+    lutm[v * width + u] = true;
+    }
 
     *(lutx++) = xy[0];
     *(luty++) = xy[1];
@@ -258,9 +268,7 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     lutx = uv2x.data();
     luty = uv2y.data();
-    lutm = mask.data();
-
-    memset(lutm, 0, elements * sizeof(uint8_t));
+    lutm = mask.data();    
     
     for (int v = 0; v < height; ++v)
     {
@@ -313,8 +321,13 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     {
     xy[0] = fx * u + cx;
     xy[1] = fy * v + cy;
-
-    pCameraSensor->MapCameraSpaceToImagePoint(xy, uv);
+    
+    HRESULT hr = pCameraSensor->MapCameraSpaceToImagePoint(xy, uv);
+    if (FAILED(hr))
+    {
+    uv[0] = -1.0;
+    uv[1] = -1.0;
+    }
 
     *(lutx++) = uv[0];
     *(luty++) = uv[1];
@@ -505,7 +518,15 @@ void ResearchMode_MapImagePointToCameraUnitPlane(IResearchModeSensor* sensor, st
 
     out.resize(in.size());
     sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
-    for (size_t i = 0; i < in.size(); ++i) { pCameraSensor->MapImagePointToCameraUnitPlane((float(&)[2])in[i], (float(&)[2])out[i]); }    
+    for (size_t i = 0; i < in.size(); ++i)
+    { 
+    HRESULT hr = pCameraSensor->MapImagePointToCameraUnitPlane((float(&)[2])in[i], (float(&)[2])out[i]);
+    if (FAILED(hr))
+    {
+    out[i].x = -std::numeric_limits<float>::infinity();
+    out[i].y = -std::numeric_limits<float>::infinity();
+    }
+    }
     pCameraSensor->Release();
 }
 
@@ -516,6 +537,14 @@ void ResearchMode_MapCameraSpaceToImagePoint(IResearchModeSensor* sensor, std::v
 
     out.resize(in.size());
     sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
-    for (size_t i = 0; i < in.size(); ++i) { pCameraSensor->MapCameraSpaceToImagePoint((float(&)[2])in[i], (float(&)[2])out[i]); }
+    for (size_t i = 0; i < in.size(); ++i)
+    { 
+    HRESULT hr = pCameraSensor->MapCameraSpaceToImagePoint((float(&)[2])in[i], (float(&)[2])out[i]);
+    if (FAILED(hr))
+    {
+    out[i].x = -1.0;
+    out[i].y = -1.0;
+    }
+    }
     pCameraSensor->Release();
 }
