@@ -75,11 +75,11 @@ if __name__ == '__main__':
         # Preprocess frames ---------------------------------------------------
         depth = hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_lt.undistort_map)
         depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
-        color = cv2.remap(data_depth.payload.ab, calibration_lt.undistort_map[:, :, 0], calibration_lt.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        color = hl2ss_3dcv.rm_ab_undistort(data_depth.payload.ab, calibration_lt.undistort_map)
         
         # Convert to Open3D RGBD image ----------------------------------------
-        color = np.sqrt(color).astype(dtype=np.uint8)
-        color = hl2ss_3dcv.rm_depth_to_rgb(color)
+        color = hl2ss_3dcv.rm_ab_normalize(color)
+        color = hl2ss_3dcv.rm_ab_to_rgb(color)
         color_image = o3d.geometry.Image(color)
         depth_image = o3d.geometry.Image(depth)
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color_image, depth_image, depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
