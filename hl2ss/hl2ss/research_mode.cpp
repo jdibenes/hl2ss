@@ -249,8 +249,8 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     {
     for (int u = 0; u < width;  ++u)
     {
-    uv[0] = static_cast<float>(u) + 0.5f;
-    uv[1] = static_cast<float>(v) + 0.5f;
+    uv[0] = static_cast<float>(u);
+    uv[1] = static_cast<float>(v);
     xy[0] = 0.0f;
     xy[1] = 0.0f;
 
