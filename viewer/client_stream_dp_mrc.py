@@ -14,7 +14,6 @@ import hl2ss
 import hl2ss_dp
 import hl2ss_lnm
 import hl2ss_mx
-import hl2ss_mp
 import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
