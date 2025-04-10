@@ -154,6 +154,10 @@ def rm_vlc_rotate_image(image, rotation):
     return cv2.rotate(image, rotation)
 
 
+def rm_vlc_undistort(image, undistort_map, interpolation=cv2.INTER_LINEAR):
+    return cv2.remap(image, undistort_map[:, :, 0], undistort_map[:, :, 1], interpolation)
+
+
 def rm_vlc_to_rgb(image):
     return np.dstack((image, image, image))
 
@@ -170,14 +174,6 @@ def rm_depth_undistort(depth, undistort_map):
     return cv2.remap(depth, undistort_map[:, :, 0], undistort_map[:, :, 1], cv2.INTER_NEAREST)
 
 
-def rm_depth_to_float(image):
-    return image.astype(np.float32) / hl2ss._RANGEOF.U16_MAX
-
-
-def rm_depth_to_uint8(image):
-    return (image / (hl2ss._RANGEOF.U8_MAX + 1)).astype(np.uint8)
-
-
 def rm_depth_compute_rays(uv2xy, depth_scale):
     xy1 = to_homogeneous(uv2xy)
     scale = compute_norm(xy1) * depth_scale
@@ -188,8 +184,20 @@ def rm_depth_to_points(rays, depth):
     return rays * depth
 
 
-def rm_depth_to_rgb(image):
-    return np.dstack((image, image, image))
+def rm_depth_colormap(depth, max_depth, colormap=cv2.COLORMAP_JET):
+    return cv2.applyColorMap(((depth / max_depth) * 255).astype(np.uint8), colormap)
+
+
+def rm_ab_normalize(ab):
+    return np.sqrt(ab).astype(np.uint8)
+
+
+def rm_ab_undistort(ab, undistort_map, interpolation=cv2.INTER_LINEAR):
+    return cv2.remap(ab, undistort_map[:, :, 0], undistort_map[:, :, 1], interpolation)
+
+
+def rm_ab_to_rgb(ab):
+    return np.dstack((ab, ab, ab))
 
 
 #------------------------------------------------------------------------------
