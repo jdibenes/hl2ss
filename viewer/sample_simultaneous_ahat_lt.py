@@ -10,6 +10,7 @@ import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_utilities
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
@@ -37,12 +38,12 @@ if __name__ == '__main__':
         _, data_lt = sink_lt.get_most_recent_frame()
 
         if (data_ht is not None):
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-depth', hl2ss_utilities.depth_colormap(data_ht.payload.depth, 1056)) # Scaled for visibility
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-ab', np.sqrt(data_ht.payload.ab).astype(np.uint8)) # Scaled for visibility
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-depth', hl2ss_3dcv.rm_depth_colormap(data_ht.payload.depth, 1056)) # Scaled for visibility
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-ab', hl2ss_3dcv.rm_ab_normalize(data_ht.payload.ab)) # Scaled for visibility
 
         if (data_lt is not None):
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-depth', hl2ss_utilities.depth_colormap(data_lt.payload.depth, 7500)) # Scaled for visibility
-            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-ab', np.sqrt(data_lt.payload.ab).astype(np.uint8)) # Scaled for visibility
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-depth', hl2ss_3dcv.rm_depth_colormap(data_lt.payload.depth, 7500)) # Scaled for visibility
+            cv2.imshow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-ab', hl2ss_3dcv.rm_ab_normalize(data_lt.payload.ab)) # Scaled for visibility
 
     # Stop streams ------------------------------------------------------------
     sink_ht.close()
