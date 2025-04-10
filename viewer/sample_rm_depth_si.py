@@ -88,8 +88,8 @@ if __name__ == '__main__':
         if (data_depth is None):
             continue
 
-        image_depth = hl2ss_utilities.depth_colormap(hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_depth.undistort_map), max_depth, cv2.COLORMAP_BONE)
-        image_ab = hl2ss_3dcv.rm_depth_to_rgb(np.sqrt(cv2.remap(data_depth.payload.ab, calibration_depth.undistort_map[:, :, 0], calibration_depth.undistort_map[:, :, 1], cv2.INTER_LINEAR)).astype(np.uint8))
+        image_depth = hl2ss_3dcv.rm_depth_colormap(hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_depth.undistort_map), max_depth, cv2.COLORMAP_BONE)
+        image_ab = hl2ss_3dcv.rm_ab_to_rgb(hl2ss_3dcv.rm_ab_normalize(hl2ss_3dcv.rm_ab_undistort(data_depth.payload.ab, calibration_depth.undistort_map)))
 
         if (not hl2ss.is_valid_pose(data_depth.pose)):
             cv2.imshow('Depth', image_depth)
