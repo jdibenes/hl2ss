@@ -3,7 +3,7 @@
 #include <codecvt>
 #include <locale>
 
-#define HL2SS_ULM_IMPLEMETATION
+#define HL2SS_ULM_IMPLEMENTATION
 
 #include "hl2ss_ulm.h"
 

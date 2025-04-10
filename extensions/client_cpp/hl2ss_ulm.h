@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <memory>
 
-#ifndef HL2SS_ULM_IMPLEMETATION
+#ifndef HL2SS_ULM_IMPLEMENTATION
 #define HL2SS_SHARED
 #define HL2SS_LNM_SHARED
 #define HL2SS_MT_SHARED
@@ -246,7 +246,7 @@ struct gmq_message
 }
 }
 
-#ifndef HL2SS_ULM_IMPLEMETATION
+#ifndef HL2SS_ULM_IMPLEMENTATION
 
 #ifdef _WIN32
 #define HL2SS_CLIENT_IMPORT extern "C" __declspec(dllimport)
@@ -272,7 +272,7 @@ struct gmq_message
 
 #endif
 
-#ifndef HL2SS_ULM_IMPLEMETATION
+#ifndef HL2SS_ULM_IMPLEMENTATION
 
 //******************************************************************************
 // Imports
