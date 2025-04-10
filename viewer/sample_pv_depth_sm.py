@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
         # Display images
         cv2.imshow(wnd_name_pv, data.payload.image)
-        cv2.imshow(wnd_name_depth, hl2ss_utilities.depth_colormap(pv_depth, max_depth))
+        cv2.imshow(wnd_name_depth, hl2ss_3dcv.rm_depth_colormap(pv_depth, max_depth))
 
         pc.increment()
         if (pc.delta() > 2.0):
