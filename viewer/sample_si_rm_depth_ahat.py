@@ -20,6 +20,12 @@ import hl2ss_sa
 # HoloLens 2 address
 host = "192.168.1.7"
 
+# RM Depth port
+# Options:
+# hl2ss.StreamPort.RM_DEPTH_AHAT
+# hl2ss.StreamPort.RM_DEPTH_LONGTHROW
+port = hl2ss.StreamPort.RM_DEPTH_AHAT
+
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
 
@@ -56,13 +62,17 @@ if __name__ == '__main__':
 
     # Get RM Depth AHAT calibration -------------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_ht = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_AHAT)
+    calibration_depth = hl2ss_3dcv.get_calibration_rm(calibration_path, host, port)
 
     # Start RM Depth AHAT and Spatial Input streams ---------------------------
-    sink_ht = hl2ss_mp.stream(hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, profile_z=ht_profile_z, profile_ab=ht_profile_ab))
+    rx_depth = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, profile_z=ht_profile_z, profile_ab=ht_profile_ab) if (port == hl2ss.StreamPort.RM_DEPTH_AHAT) else hl2ss_lnm.rx_rm_depth_longthrow(host, port) if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW) else None
+
+    sink_depth = hl2ss_mp.stream(rx_depth)
     sink_si = hl2ss_mp.stream(hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
 
-    sink_ht.open()
+    max_depth = 1056 if (port == hl2ss.StreamPort.RM_DEPTH_AHAT) else 3000 if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW) else None
+
+    sink_depth.open()
     sink_si.open()
 
     cv2.namedWindow('Video')
@@ -73,18 +83,18 @@ if __name__ == '__main__':
         sm_manager.get_observed_surfaces()
 
         # Get RM Depth AHAT frame and nearest (in time) Spatial Input frame ---
-        _, data_ht = sink_ht.get_most_recent_frame()
-        if (data_ht is None):
+        _, data_depth = sink_depth.get_most_recent_frame()
+        if (data_depth is None):
             continue
 
-        image = hl2ss_3dcv.rm_depth_undistort(data_ht.payload.depth, calibration_ht.undistort_map)
-        image = hl2ss_utilities.depth_colormap(image, 1056, cv2.COLORMAP_BONE)
+        image = hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_depth.undistort_map)
+        image = hl2ss_utilities.depth_colormap(image, max_depth, cv2.COLORMAP_BONE)
 
-        if (not hl2ss.is_valid_pose(data_ht.pose)):
+        if (not hl2ss.is_valid_pose(data_depth.pose)):
             cv2.imshow('Video', image)
             continue
 
-        _, data_si = sink_si.get_nearest(data_ht.timestamp)
+        _, data_si = sink_si.get_nearest(data_depth.timestamp)
         if (data_si is None):
             cv2.imshow('Video', image)
             continue
@@ -92,7 +102,7 @@ if __name__ == '__main__':
         si = data_si.payload
 
         # Compute world to RM Depth AHAT image transformation matrix ----------
-        world_to_image = hl2ss_3dcv.world_to_reference(data_ht.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_ht.extrinsics) @ hl2ss_3dcv.camera_to_image(calibration_ht.intrinsics)
+        world_to_image = hl2ss_3dcv.world_to_reference(data_depth.pose) @ hl2ss_3dcv.rignode_to_camera(calibration_depth.extrinsics) @ hl2ss_3dcv.camera_to_image(calibration_depth.intrinsics)
 
         # Draw Head Pointer ---------------------------------------------------
         if (si.head_pose_valid):
@@ -132,5 +142,5 @@ if __name__ == '__main__':
     # Stop Spatial Mapping data manager ---------------------------------------
     sm_manager.close()
 
-    sink_ht.close()
+    sink_depth.close()
     sink_si.close()
