@@ -10,7 +10,6 @@ import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
-import hl2ss_utilities
 import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
