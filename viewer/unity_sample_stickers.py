@@ -32,9 +32,6 @@ scale = [0.2, 0.2, 1]
 # Texture file (must be jpg or png)
 texture_file = 'texture.jpg'
 
-# Scaling factor for visibility
-brightness = 8
-
 #------------------------------------------------------------------------------
 
 enable = True
