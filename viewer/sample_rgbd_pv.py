@@ -108,7 +108,7 @@ if __name__ == '__main__':
         depth[mask_uv] = 0
 
         # Display RGBD --------------------------------------------------------
-        image = np.hstack((hl2ss_utilities.depth_colormap(depth, max_depth), cv2.cvtColor(color, cv2.COLOR_RGB2BGR)))
+        image = np.hstack((hl2ss_3dcv.rm_depth_colormap(depth, max_depth), cv2.cvtColor(color, cv2.COLOR_RGB2BGR)))
 
         cv2.imshow('RGBD', image)
 
