@@ -5,10 +5,8 @@
 
 from pynput import keyboard
 
-import numpy as np
 import open3d as o3d
 import time
-import cv2
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
