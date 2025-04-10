@@ -72,7 +72,6 @@ client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=m
 client.open()
 
 max_depth = 1056
-max_uint8 = 255
 
 while (not listener.pressed()):
     data = client.get_next_packet()
