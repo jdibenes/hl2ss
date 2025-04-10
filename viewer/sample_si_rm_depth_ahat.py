@@ -24,7 +24,7 @@ host = "192.168.1.7"
 # Options:
 # hl2ss.StreamPort.RM_DEPTH_AHAT
 # hl2ss.StreamPort.RM_DEPTH_LONGTHROW
-port = hl2ss.StreamPort.RM_DEPTH_AHAT
+port = hl2ss.StreamPort.RM_DEPTH_LONGTHROW
 
 # Calibration folder (must exist but can be empty)
 calibration_path = '../calibration'
@@ -75,7 +75,8 @@ if __name__ == '__main__':
     sink_depth.open()
     sink_si.open()
 
-    cv2.namedWindow('Video')
+    cv2.namedWindow('Depth')
+    cv2.namedWindow('AB')
 
     # Main Loop ---------------------------------------------------------------
     while ((cv2.waitKey(1) & 0xFF) != 27):
@@ -87,16 +88,18 @@ if __name__ == '__main__':
         if (data_depth is None):
             continue
 
-        image = hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_depth.undistort_map)
-        image = hl2ss_utilities.depth_colormap(image, max_depth, cv2.COLORMAP_BONE)
+        image_depth = hl2ss_utilities.depth_colormap(hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_depth.undistort_map), max_depth, cv2.COLORMAP_BONE)
+        image_ab = hl2ss_3dcv.rm_depth_to_rgb(np.sqrt(cv2.remap(data_depth.payload.ab, calibration_depth.undistort_map[:, :, 0], calibration_depth.undistort_map[:, :, 1], cv2.INTER_LINEAR)).astype(np.uint8))
 
         if (not hl2ss.is_valid_pose(data_depth.pose)):
-            cv2.imshow('Video', image)
+            cv2.imshow('Depth', image_depth)
+            cv2.imshow('AB', image_ab)
             continue
 
         _, data_si = sink_si.get_nearest(data_depth.timestamp)
         if (data_si is None):
-            cv2.imshow('Video', image)
+            cv2.imshow('Depth', image_depth)
+            cv2.imshow('AB', image_ab)
             continue
 
         si = data_si.payload
@@ -112,19 +115,22 @@ if __name__ == '__main__':
             if (np.isfinite(d)):
                 head_point = hl2ss_3dcv.si_ray_to_point(head_ray, d)
                 head_image_point = hl2ss_3dcv.project(head_point, world_to_image)
-                hl2ss_utilities.draw_points(image, head_image_point.astype(np.int32), radius, head_color, thickness)
+                hl2ss_utilities.draw_points(image_depth, head_image_point.astype(np.int32), radius, head_color, thickness)
+                hl2ss_utilities.draw_points(image_ab, head_image_point.astype(np.int32), radius, head_color, thickness)
 
         # Draw Left Hand joints -----------------------------------------------
         if (si.hand_left_valid):
             left_hand = si.hand_left
             left_image_points = hl2ss_3dcv.project(left_hand.position, world_to_image)
-            hl2ss_utilities.draw_points(image, left_image_points.astype(np.int32), radius, left_color, thickness)
+            hl2ss_utilities.draw_points(image_depth, left_image_points.astype(np.int32), radius, left_color, thickness)
+            hl2ss_utilities.draw_points(image_ab, left_image_points.astype(np.int32), radius, left_color, thickness)
 
         # Draw Right Hand joints ----------------------------------------------
         if (si.hand_right_valid):
             right_hand = si.hand_right
             right_image_points = hl2ss_3dcv.project(right_hand.position, world_to_image)
-            hl2ss_utilities.draw_points(image, right_image_points.astype(np.int32), radius, right_color, thickness)
+            hl2ss_utilities.draw_points(image_depth, right_image_points.astype(np.int32), radius, right_color, thickness)
+            hl2ss_utilities.draw_points(image_ab, right_image_points.astype(np.int32), radius, right_color, thickness)
 
         # Draw Gaze Pointer ---------------------------------------------------
         if (si.eye_ray_valid):
@@ -134,10 +140,12 @@ if __name__ == '__main__':
             if (np.isfinite(d)):
                 gaze_point = hl2ss_3dcv.si_ray_to_point(eye_ray_vector, d)
                 gaze_image_point = hl2ss_3dcv.project(gaze_point, world_to_image)
-                hl2ss_utilities.draw_points(image, gaze_image_point.astype(np.int32), radius, gaze_color, thickness)
+                hl2ss_utilities.draw_points(image_depth, gaze_image_point.astype(np.int32), radius, gaze_color, thickness)
+                hl2ss_utilities.draw_points(image_ab, gaze_image_point.astype(np.int32), radius, gaze_color, thickness)
 
         # Display frame -------------------------------------------------------
-        cv2.imshow('Video', image)
+        cv2.imshow('Depth', image_depth)
+        cv2.imshow('AB', image_ab)
 
     # Stop Spatial Mapping data manager ---------------------------------------
     sm_manager.close()
