@@ -165,11 +165,23 @@ class _gatherer:
                                                                     # Force 1 second delay on video stream
                                                                     self._video_ct = (ct + 1) * tb
                                                                     self._video_tb = tb
-                                                                    sps_data = stbl_data[106:134]
-                                                                    pps_data = stbl_data[133:141]
-                                                                    sps_data[0:2] = b'\x00\x00'
-                                                                    pps_data[0:2] = b'\x00\x00'
-                                                                    self._video_init = sps_data + pps_data
+                                                                    
+                                                                    sps_size_base = 108
+                                                                    sps_size_end  = sps_size_base + 2
+                                                                    sps_size_data = stbl_data[sps_size_base:sps_size_end]
+                                                                    sps_size = struct.unpack('>H', sps_size_data)[0]
+                                                                    sps_base = sps_size_end
+                                                                    sps_end  = sps_base + sps_size
+                                                                    sps_data = stbl_data[sps_base:sps_end]
+                                                                    pps_size_base = sps_end + 1
+                                                                    pps_size_end  = pps_size_base + 2
+                                                                    pps_size_data = stbl_data[pps_size_base:pps_size_end]
+                                                                    pps_size = struct.unpack('>H', pps_size_data)[0]
+                                                                    pps_base = pps_size_end
+                                                                    pps_end  = pps_base + pps_size
+                                                                    pps_data = stbl_data[pps_base:pps_end]
+
+                                                                    self._video_init = b'\x00\x00' + sps_size_data + sps_data + b'\x00\x00' + pps_size_data + pps_data
                                                                 elif (stbl_type == 'mp4a'):
                                                                     self._audio_id = id
                                                                     self._audio_ct = ct * tb
