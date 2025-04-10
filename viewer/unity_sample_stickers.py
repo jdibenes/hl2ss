@@ -17,7 +17,6 @@ import hl2ss
 import hl2ss_lnm
 import hl2ss_3dcv
 import hl2ss_rus
-import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -92,7 +91,7 @@ while (enable):
     data_lt = data.payload
 
     # Show depth image
-    cv2.imshow('depth', hl2ss_utilities.depth_colormap(data_lt.depth, 3000)) # Scaled for visibility
+    cv2.imshow('depth', hl2ss_3dcv.rm_depth_colormap(data_lt.depth, 3000)) # Scaled for visibility
     cv2.waitKey(1)
 
     keydown = (not previous) and trigger
