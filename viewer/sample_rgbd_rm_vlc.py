@@ -78,7 +78,7 @@ if __name__ == '__main__':
         # Preprocess frames ---------------------------------------------------
         depth = hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_lt.undistort_map)
         depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
-        color = cv2.remap(data_vlc.payload.image, calibration_vlc.undistort_map[:, :, 0], calibration_vlc.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        color = hl2ss_3dcv.rm_vlc_undistort(data_vlc.payload.image, calibration_vlc.undistort_map)
 
         # Generate aligned RGBD image -----------------------------------------
         lt_points          = hl2ss_3dcv.rm_depth_to_points(xy1, depth)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
         # Display RGBD --------------------------------------------------------
         color = hl2ss_3dcv.rm_vlc_to_rgb(color)
         
-        image = np.hstack((hl2ss_utilities.depth_colormap(depth, max_depth), color))
+        image = np.hstack((hl2ss_3dcv.rm_depth_colormap(depth, max_depth), color))
 
         cv2.imshow('RGBD', image)
 
