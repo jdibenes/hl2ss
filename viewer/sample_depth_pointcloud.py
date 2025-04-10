@@ -43,7 +43,6 @@ if __name__ == '__main__':
     calibration = hl2ss_3dcv.get_calibration_rm(calibration_path, host, port)
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(calibration.uv2xy, calibration.scale)
     max_depth = 7.5 if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW) else (calibration.alias / calibration.scale) if (port == hl2ss.StreamPort.RM_DEPTH_AHAT) else None
-    max_uint16 = 0xFFFF
 
     # Create Open3D visualizer ------------------------------------------------
     vis = o3d.visualization.Visualizer()
@@ -74,11 +73,11 @@ if __name__ == '__main__':
             continue
 
         depth = hl2ss_3dcv.rm_depth_normalize(data.payload.depth, scale)
-        ab = np.sqrt(hl2ss_3dcv.slice_to_block(data.payload.ab) / max_uint16) # scaled for visibility
+        ab = hl2ss_3dcv.slice_to_block(hl2ss_3dcv.rm_ab_normalize(data.payload.ab)) # scaled for visibility
 
         # Display RGBD --------------------------------------------------------
 
-        cv2.imshow('Depth', hl2ss_utilities.depth_colormap(depth, max_depth))
+        cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(depth, max_depth))
         cv2.imshow('AB', ab)
        
         # Display pointcloud --------------------------------------------------
@@ -87,7 +86,7 @@ if __name__ == '__main__':
         rgb = hl2ss_3dcv.block_to_list(ab)
         d = hl2ss_3dcv.block_to_list(depth).reshape((-1,))
         xyz = xyz[d > 0, :]
-        rgb = rgb[d > 0, :]
+        rgb = rgb[d > 0, :] / 255
         rgb = np.hstack((rgb, rgb, rgb))
 
         pcd.points = o3d.utility.Vector3dVector(xyz)
