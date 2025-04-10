@@ -11,6 +11,7 @@ import hl2ss_lnm
 import hl2ss_mx
 import hl2ss_mp
 import hl2ss_utilities
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
@@ -84,12 +85,12 @@ if __name__ == '__main__':
         cv2.imshow(hl2ss.get_port_name(port), payload.image)
 
     def display_depth_lt(port, payload):
-        cv2.imshow(hl2ss.get_port_name(port) + '-depth', hl2ss_utilities.depth_colormap(payload.depth, 7500))
-        cv2.imshow(hl2ss.get_port_name(port) + '-ab', np.sqrt(payload.ab).astype(np.uint8))
+        cv2.imshow(hl2ss.get_port_name(port) + '-depth', hl2ss_3dcv.rm_depth_colormap(payload.depth, 7500))
+        cv2.imshow(hl2ss.get_port_name(port) + '-ab', hl2ss_3dcv.rm_ab_normalize(payload.ab))
 
     def display_depth_ahat(port, payload):
-        cv2.imshow(hl2ss.get_port_name(port) + '-depth', hl2ss_utilities.depth_colormap(payload.depth, 1056))
-        cv2.imshow(hl2ss.get_port_name(port) + '-ab', np.sqrt(payload.ab).astype(np.uint8))
+        cv2.imshow(hl2ss.get_port_name(port) + '-depth', hl2ss_3dcv.rm_depth_colormap(payload.depth, 1056))
+        cv2.imshow(hl2ss.get_port_name(port) + '-ab', hl2ss_3dcv.rm_ab_normalize(payload.ab))
 
     def display_null(port, payload):
         pass
