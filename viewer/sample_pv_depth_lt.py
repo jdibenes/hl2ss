@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
         # Display RGBD pair ---------------------------------------------------
         cv2.imshow('RGB', color)
-        cv2.imshow('Depth', hl2ss_utilities.depth_colormap(pv_z, max_depth))
+        cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(pv_z, max_depth))
         
         # Convert to Open3D RGBD image and create pointcloud ------------------
         color_image = o3d.geometry.Image(color[:,:,::-1].copy())
