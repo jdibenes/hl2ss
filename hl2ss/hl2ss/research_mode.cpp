@@ -317,8 +317,8 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     {
     xy[0] = fx * u + cx;
     xy[1] = fy * v + cy;
-    uv[0] = -1.0;
-    uv[1] = -1.0;
+    uv[0] = -1.0f;
+    uv[1] = -1.0f;
     
     pCameraSensor->MapCameraSpaceToImagePoint(xy, uv);
 
