@@ -528,7 +528,7 @@ std::unique_ptr<uint8_t[]> decoder_mrc::decode_audio(uint8_t* data, uint32_t siz
     memcpy(out.get(),          f->av_frame->data[0], offset);
     memcpy(out.get() + offset, f->av_frame->data[1], offset);
     mrc_metadata* metadata = (mrc_metadata*)(sample_base + sample_size);
-    metadata->width  = offset / sizeof(float);
+    metadata->width  = (uint16_t)(offset / sizeof(float));
     metadata->height = 2;
     memcpy(out.get() + audio_size, metadata, sizeof(mrc_metadata));
     return out;
