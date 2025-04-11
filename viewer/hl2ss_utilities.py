@@ -190,10 +190,9 @@ def draw_points(image, points, radius, color, thickness):
 #------------------------------------------------------------------------------
 
 class continuity_analyzer:
-    def __init__(self, period):
-        self._period = period
-        self._ub = 1.5 * self._period
-        self._lb = 0.5 * self._period
+    def reset(self, period):
+        self._ub   = 1.5 * period
+        self._lb   = 0.5 * period
         self._last = None
 
     def push(self, timestamp):
@@ -225,24 +224,23 @@ class framerate_counter:
 class stream_report:
     def __init__(self, notify_period, stream_period):
         self._np = notify_period
-        self._ca = continuity_analyzer(stream_period)
+        self._ca = continuity_analyzer()
         self._fc = framerate_counter()
+        self._ca.reset(stream_period)
         self._fc.reset()
 
     def _report_continuity(self, timestamp):
         status, delta = self._ca.push(timestamp)
         if (status != 0):
-            print('Discontinuity detected with delta time {delta}'.format(delta=delta))
+            print(f'Discontinuity ({status}) detected with delta time {delta}')
 
-    def _report_framerate_and_pose(self, timestamp, pose):
+    def _report_framerate(self):
         self._fc.increment()
         if (self._fc.delta() >= self._np):
-            print('FPS: {fps}'.format(fps=self._fc.get()))
-            print('Pose at {timestamp}'.format(timestamp=timestamp))
-            print(pose)
+            print(f'FPS: {self._fc.get()}')
             self._fc.reset()
 
-    def push(self, data):
-        self._report_continuity(data.timestamp)
-        self._report_framerate_and_pose(data.timestamp, data.pose)
+    def push(self, timestamp):
+        self._report_continuity(timestamp)
+        self._report_framerate()
 
