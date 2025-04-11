@@ -463,7 +463,7 @@ def _load_calibration_rm(port, path):
 
 def _check_calibration_directory(path):
     if (not os.path.isdir(path)):
-        raise IOError('Calibration path ' + path + ' does not exist')
+        raise IOError('calibration path ' + path + ' does not exist')
 
 
 def _calibration_subdirectory(port, path):
