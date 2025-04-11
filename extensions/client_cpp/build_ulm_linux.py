@@ -26,7 +26,6 @@ external_library_files = [
 ]
 
 preprocessor_defines = [
-    'HL2SS_ENABLE_ZDEPTH',
 ]
 
 #------------------------------------------------------------------------------
