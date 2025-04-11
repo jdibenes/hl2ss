@@ -15,8 +15,8 @@ import pyaudio
 import hl2ss
 import hl2ss_mx
 import hl2ss_mp
-import hl2ss_lnm
 import hl2ss_io
+
 
 #------------------------------------------------------------------------------
 # Key Listener
@@ -135,6 +135,106 @@ class wr_process_producer(mp.Process):
 # Microphone
 #------------------------------------------------------------------------------
 
+class _audio_process(mp.Process):
+    IPC_BUFFER_READY = 0
+    IPC_GET_TIMESTAMP = 1
+
+    def __init__(self, subtype, planar, channels, sample_rate, buffer_frames):
+        super().__init__()
+        self._subtype       = subtype
+        self._planar        = planar
+        self._channels      = channels
+        self._sample_rate   = sample_rate
+        self._buffer_frames = buffer_frames
+        self._pcm_queue     = mp.Queue()
+        self._event_ready   = mp.Event()
+        self._event_stop    = mp.Event()
+        self._din           = mp.Queue()
+        self._dout          = mp.Queue()
+        self._semaphore     = mp.Semaphore(0)
+
+    def stop(self):
+        self._pcm_queue.put(None)
+        if (not self._event_ready.is_set()):
+            self._notify_queue()
+
+    def put(self, timestamp, samples):
+        self._pcm_queue.put((timestamp, samples))
+        if (not self._event_ready.is_set()):
+            self._buffer_frames -= 1
+            if (self._buffer_frames > 0):
+                return
+            self._notify_queue()
+
+    def get_timestamp(self):
+        self._din.put((_audio_process.IPC_GET_TIMESTAMP,))
+        self._semaphore.release()
+        return self._dout.get()
+    
+    def _notify_queue(self):
+        self._event_ready.set()
+        self._din.put((_audio_process.IPC_BUFFER_READY,))
+        self._semaphore.release()
+
+    def _buffer_ready(self):
+        self._stream = self._p.open(format=self._audio_format, channels=self._channels, rate=self._sample_rate, output=True, stream_callback=self._pcm_callback)
+    
+    def _get_timestamp(self):
+        return self._presentation_clk
+    
+    def _process_control(self):
+        try:
+            message = self._din.get_nowait()
+        except:
+            return
+        if (message[0] == _audio_process.IPC_BUFFER_READY):
+            self._buffer_ready()
+        if (message[0] == _audio_process.IPC_GET_TIMESTAMP):
+            self._dout.put(self._get_timestamp())
+        self._semaphore.acquire()
+
+    def run(self):
+        self._pcm_audio_buffer = np.empty((1, 0), dtype=self._subtype)
+        self._pcm_ts_buffer    = np.empty((1, 0), dtype=np.int64)
+        self._presentation_clk = 0
+        self._audio_format     = pyaudio.paFloat32 if (self._subtype == np.float32) else pyaudio.paInt16 if (self._subtype == np.int16) else None
+        self._p                = pyaudio.PyAudio()
+        
+        while (not self._event_stop.is_set()):
+            self._semaphore.acquire()
+            self._semaphore.release()
+            self._process_control()
+
+        self._stream.close()
+
+    def _pcm_callback(self, in_data, frame_count, time_info, status):
+        samples = self._channels * frame_count
+
+        while (self._pcm_ts_buffer.size < frame_count):
+            pcm_data = self._pcm_queue.get()
+
+            if (pcm_data is None):
+                self._event_stop.set()
+                self._semaphore.release()
+                return (b'', pyaudio.paAbort)
+            
+            pcm_timestamp, pcm_payload = pcm_data
+
+            pcm_samples    = hl2ss.microphone_planar_to_packed(pcm_payload, self._channels) if (self._planar) else pcm_payload
+            pcm_group_size = pcm_samples.size // self._channels
+            pcm_ts         = (pcm_timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * (hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS // self._sample_rate))).reshape((1, -1))
+            
+            self._pcm_audio_buffer = np.hstack((self._pcm_audio_buffer, pcm_samples))
+            self._pcm_ts_buffer    = np.hstack((self._pcm_ts_buffer,    pcm_ts))
+
+        self._out_samples      = self._pcm_audio_buffer[:, :samples]
+        self._pcm_audio_buffer = self._pcm_audio_buffer[:, samples:]
+        self._presentation_clk = self._pcm_ts_buffer[0, 0]
+        self._pcm_ts_buffer    = self._pcm_ts_buffer[:, frame_count:]
+
+        return (self._out_samples.tobytes(), pyaudio.paContinue)
+
+
 class audio_player:
     def __init__(self, subtype, planar, channels, sample_rate, buffer_frames=30):
         self.subtype       = subtype
@@ -144,66 +244,19 @@ class audio_player:
         self.buffer_frames = buffer_frames
 
     def open(self):
-        self._subtype       = self.subtype
-        self._planar        = self.planar
-        self._channels      = self.channels
-        self._sample_rate   = self.sample_rate
-        self._buffer_frames = self.buffer_frames
-        self._fade_in       = 0.0
-
-        self._pcm_queue        = queue.Queue()
-        self._pcm_audio_buffer = np.empty((1, 0), dtype=self.subtype)
-        self._pcm_ts_buffer    = np.empty((1, 0), dtype=np.int64)
-        self._presentation_clk = 0
-
-        self._audio_format = pyaudio.paFloat32 if (self.subtype == np.float32) else pyaudio.paInt16 if (self.subtype == np.int16) else None
-        self._p            = pyaudio.PyAudio()
-        self._stream       = None
+        self._worker = _audio_process(self.subtype, self.planar, self.channels, self.sample_rate, self.buffer_frames)
+        self._worker.start()
 
     def put(self, timestamp, samples):
-        self._pcm_queue.put((timestamp, samples))
-        if ((self._stream is None) and (self._pcm_queue.qsize() >= self._buffer_frames)):
-            self._stream = self._p.open(format=self._audio_format, channels=self.channels, rate=self.sample_rate, output=True, stream_callback=self._pcm_callback)
+        self._worker.put(timestamp, samples)
 
     def get_timestamp(self):
-        return self._presentation_clk
+        return self._worker.get_timestamp()
 
-    def _pcm_callback(self, in_data, frame_count, time_info, status):
-        samples = self._channels * frame_count
-
-        while (self._pcm_ts_buffer.size < frame_count):
-            pcm_data = self._pcm_queue.get()
-
-            if (pcm_data is None):
-                return (b'', pyaudio.paAbort)
-            
-            pcm_timestamp = pcm_data[0]
-            pcm_payload   = pcm_data[1]
-
-            pcm_samples    = hl2ss.microphone_planar_to_packed(pcm_payload, self._channels) if (self._planar) else pcm_payload
-            pcm_group_size = pcm_samples.size // self._channels
-            pcm_ts         = (pcm_timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * (hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS // self._sample_rate))).reshape((1, -1))
-            
-            self._pcm_audio_buffer = np.hstack((self._pcm_audio_buffer, pcm_samples))
-            self._pcm_ts_buffer    = np.hstack((self._pcm_ts_buffer,    pcm_ts))
-
-        gain = self._fade_in
-        if (self._fade_in < 1.0):
-            self._fade_in += frame_count / (1 * self._sample_rate)
-
-        out_samples = self._pcm_audio_buffer[:, 0:samples] if (gain >= 1.0) else np.zeros((1, samples), dtype=self._subtype)
-
-        self._presentation_clk = self._pcm_ts_buffer[0, 0]
-        self._pcm_audio_buffer = self._pcm_audio_buffer[:, samples:]
-        self._pcm_ts_buffer    = self._pcm_ts_buffer[:, frame_count:]
-
-        return (out_samples.tobytes(), pyaudio.paContinue)
-        
     def close(self):
-        self._pcm_queue.put(None)
-        if (self._stream is not None):
-            self._stream.close()
-
+        self._worker.stop()
+        self._worker.join()
+   
 
 class microphone_resampler:
     def create(self, target_format=None, target_layout=None, target_rate=None):
