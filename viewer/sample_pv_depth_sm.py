@@ -37,7 +37,7 @@ max_depth = 8.0
 
 #------------------------------------------------------------------------------
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Create and configure SM manager -----------------------------------------
     sm_manager = hl2ss_sa.sm_manager_mp(host, hl2ss.IPCPort.SPATIAL_MAPPING, triangles_per_cubic_meter=sm_tpcm)
     sm_manager.open()
