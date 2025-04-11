@@ -90,54 +90,55 @@ audio_passthrough_sample_rate = None
 
 #------------------------------------------------------------------------------
 
-level = hl2ss.AACLevel.L2 if (profile != hl2ss.AudioProfile.RAW) else hl2ss.extended_audio_raw_configuration(media_category, shared, audio_raw, disable_effect, enable_passthrough)
+if __name__ == '__main__':
+    level = hl2ss.AACLevel.L2 if (profile != hl2ss.AudioProfile.RAW) else hl2ss.extended_audio_raw_configuration(media_category, shared, audio_raw, disable_effect, enable_passthrough)
 
-if (mixer_mode == hl2ss.MixerMode.QUERY):
-    audio_devices = json.loads(hl2ss_lnm.download_devicelist_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, profile=profile, level=level))
-    print(json.dumps(audio_devices, indent=2))
-    quit()
+    if (mixer_mode == hl2ss.MixerMode.QUERY):
+        audio_devices = json.loads(hl2ss_lnm.download_devicelist_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, profile=profile, level=level))
+        print(json.dumps(audio_devices, indent=2))
+        quit()
 
 
-if (profile != hl2ss.AudioProfile.RAW):
-    audio_subtype     = np.float32
-    audio_planar      = True
-    audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
-    audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
-elif (not enable_passthrough):
-    audio_subtype     = np.int16
-    audio_planar      = False
-    audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
-    audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
-else:
-    audio_subtype     = audio_passthrough_subtype
-    audio_planar      = audio_passthrough_planar
-    audio_channels    = audio_passthrough_channels
-    audio_sample_rate = audio_passthrough_sample_rate
+    if (profile != hl2ss.AudioProfile.RAW):
+        audio_subtype     = np.float32
+        audio_planar      = True
+        audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
+        audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
+    elif (not enable_passthrough):
+        audio_subtype     = np.int16
+        audio_planar      = False
+        audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
+        audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
+    else:
+        audio_subtype     = audio_passthrough_subtype
+        audio_planar      = audio_passthrough_planar
+        audio_channels    = audio_passthrough_channels
+        audio_sample_rate = audio_passthrough_sample_rate
 
-listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
-listener.open()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+    listener.open()
 
-# audio_player only supports 1 or 2 channels
-player_max_channels = 2
-player_channels = audio_channels if (audio_channels <= player_max_channels) else 1
-player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, player_channels, audio_sample_rate)
-player.open()
+    # audio_player only supports 1 or 2 channels
+    player_max_channels = 2
+    player_channels = audio_channels if (audio_channels <= player_max_channels) else 1
+    player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, player_channels, audio_sample_rate)
+    player.open()
 
-mode = hl2ss.extended_audio_device_mixer_mode(mixer_mode, device_index, source_index, format_index)
+    mode = hl2ss.extended_audio_device_mixer_mode(mixer_mode, device_index, source_index, format_index)
 
-client = hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, mixer_mode=mode, loopback_gain=loopback_gain, microphone_gain=microphone_gain, profile=profile, level=level)
-client.open()
+    client = hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO, mixer_mode=mode, loopback_gain=loopback_gain, microphone_gain=microphone_gain, profile=profile, level=level)
+    client.open()
 
-while (not listener.pressed()): 
-    data = client.get_next_packet()
-    # Passthrough data is returned as int8 and should be cast to subtype
-    if (data.payload.dtype == np.int8):
-        data.payload = data.payload.view(audio_subtype)
-    # Play first channel for streams with more than 2 channels
-    if (audio_channels > player_max_channels):
-        data.payload = data.payload[0:1, :] if (audio_planar) else data.payload[:, 0::audio_channels]
-    player.put(data.timestamp, data.payload)
+    while (not listener.pressed()): 
+        data = client.get_next_packet()
+        # Passthrough data is returned as int8 and should be cast to subtype
+        if (data.payload.dtype == np.int8):
+            data.payload = data.payload.view(audio_subtype)
+        # Play first channel for streams with more than 2 channels
+        if (audio_channels > player_max_channels):
+            data.payload = data.payload[0:1, :] if (audio_planar) else data.payload[:, 0::audio_channels]
+        player.put(data.timestamp, data.payload)
 
-client.close()
-player.close()
-listener.close()
+    client.close()
+    player.close()
+    listener.close()
