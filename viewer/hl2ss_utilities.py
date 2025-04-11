@@ -232,12 +232,12 @@ class stream_report:
     def _report_continuity(self, timestamp):
         status, delta = self._ca.push(timestamp)
         if (status != 0):
-            print(f'Discontinuity ({status}) detected with delta time {delta}')
+            print(f'[hl2ss_utilities.stream_report] discontinuity type {status} detected with delta time {delta}')
 
     def _report_framerate(self):
         self._fc.increment()
         if (self._fc.delta() >= self._np):
-            print(f'FPS: {self._fc.get()}')
+            print(f'[hl2ss_utilities.stream_report] framerate {self._fc.get()}')
             self._fc.reset()
 
     def push(self, timestamp):
