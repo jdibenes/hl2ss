@@ -25,13 +25,13 @@ framerate = 30
 
 #------------------------------------------------------------------------------
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Start PV Subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Start PV and Extended Audio streams -------------------------------------
-    sink_pv = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=width, height=height, framerate=framerate), semaphore=None)
-    sink_ea = hl2ss_mp.stream(hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO), semaphore=...)
+    sink_pv = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=width, height=height, framerate=framerate))
+    sink_ea = hl2ss_mp.stream(hl2ss_lnm.rx_extended_audio(host, hl2ss.StreamPort.EXTENDED_AUDIO))
     
     sink_pv.open()
     sink_ea.open()
