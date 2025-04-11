@@ -843,17 +843,30 @@ void test_dp_mrc(char const* host)
     {
         std::shared_ptr<hl2ss::packet> data = client->get_next_packet();
 
-        print_packet_metadata(data->timestamp, data->pose.get());
+        auto region = hl2ss::dp::unpack_mrc(data->payload.get(), data->sz_payload);
 
-        uint32_t kind = hl2ss::dp::mrc_get_kind(data->payload[0]);        
+        print_packet_metadata(data->timestamp, data->pose.get());
+     
+        uint32_t kind = hl2ss::dp::mrc_get_kind(region.metadata->header);
+        bool key_frame = hl2ss::dp::mrc_is_key_frame(region.metadata->header);
 
         if (kind == hl2ss::dp::stream_kind::VIDEO)
         {
-            hl2ss::dp::map_mrc_video region = hl2ss::dp::unpack_mrc_video(data->payload.get());
-
-            cv::Mat mat_image = cv::Mat(region.header->height, region.header->width, CV_8UC(3), region.data);
+            cv::Mat mat_image = cv::Mat(region.metadata->height, region.metadata->width, CV_8UC(3), region.data);
             cv::imshow("mrc", mat_image);
+            if (key_frame)
+            {
+            std::cout << "key_frame=" << key_frame << std::endl;
+            }
             if ((cv::waitKey(1) & 0xFF) == 27) { break; }
+        }
+        else if (kind == hl2ss::dp::stream_kind::AUDIO)
+        {
+            std::cout << "audio [" << region.metadata->height << ","  << region.metadata->width << " : " << data->sz_payload << "]" << std::endl;
+        }
+        else
+        {
+            std::cout << "UNKNOWN DP PACKET" << std::endl;
         }
     }
     client->close();
@@ -869,7 +882,7 @@ void test_dp_mrc(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 25;
+    int test_id = 26;
 
     try
     {
