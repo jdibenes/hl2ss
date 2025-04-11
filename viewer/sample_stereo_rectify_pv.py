@@ -38,7 +38,7 @@ line_thickness = 1
 
 #------------------------------------------------------------------------------
 
-if (__name__ == '__main__'):
+if __name__ == '__main__':
     # Start PV subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
