@@ -48,46 +48,47 @@ vstabbuffer = 15 # Video stabilization buffer latency in frames [0, 30]
 
 #------------------------------------------------------------------------------
 
-sync_to_audio = mic or loopback
+if __name__ == '__main__':
+    sync_to_audio = mic or loopback
 
-audio_subtype     = np.float32
-audio_planar      = True
-audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
-audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
+    audio_subtype     = np.float32
+    audio_planar      = True
+    audio_channels    = hl2ss.Parameters_MICROPHONE.CHANNELS
+    audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 
-listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
-listener.open()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+    listener.open()
 
-video_buffer = hl2ss_mx.RingBuffer(30 * 10)
+    video_buffer = hl2ss_mx.RingBuffer(30 * 10)
 
-player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
-player.open()
+    player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
+    player.open()
 
-configuration = hl2ss_lnm.create_configuration_for_dp_mrc(pv, holo, mic, loopback, render_from_camera, vstab, vstabbuffer)
+    configuration = hl2ss_lnm.create_configuration_for_dp_mrc(pv, holo, mic, loopback, render_from_camera, vstab, vstabbuffer)
 
-client = hl2ss_lnm.rx_dp_mrc(host, port, user, password, configuration=configuration, decoded_format=decoded_format)
-client.open()
+    client = hl2ss_lnm.rx_dp_mrc(host, port, user, password, configuration=configuration, decoded_format=decoded_format)
+    client.open()
 
-cv2.namedWindow('Video')
+    cv2.namedWindow('Video')
 
-while (not listener.pressed()):
-    data = client.get_next_packet()
+    while (not listener.pressed()):
+        data = client.get_next_packet()
 
-    if (data.payload.kind == hl2ss_dp.StreamKind.AUDIO):
-        print(f'got audio packet at {data.timestamp}')
-        player.put(data.timestamp, data.payload.sample)
-    elif (data.payload.kind == hl2ss_dp.StreamKind.VIDEO):
-        print(f'got video packet at {data.timestamp} (key_frame={data.payload.key_frame})')
-        video_buffer.append(data)
-        frames = video_buffer.get()
-        if (sync_to_audio):
-            index = hl2ss_mx.get_nearest_packet(frames, player.get_timestamp(), hl2ss_mx.TimePreference.PREFER_PAST)
-        else:
-            index = -1
-        if (index is not None):
-            cv2.imshow('Video', frames[index].payload.sample)
-        cv2.waitKey(1)
+        if (data.payload.kind == hl2ss_dp.StreamKind.AUDIO):
+            print(f'got audio packet at {data.timestamp}')
+            player.put(data.timestamp, data.payload.sample)
+        elif (data.payload.kind == hl2ss_dp.StreamKind.VIDEO):
+            print(f'got video packet at {data.timestamp} (key_frame={data.payload.key_frame})')
+            video_buffer.append(data)
+            frames = video_buffer.get()
+            if (sync_to_audio):
+                index = hl2ss_mx.get_nearest_packet(frames, player.get_timestamp(), hl2ss_mx.TimePreference.PREFER_PAST)
+            else:
+                index = -1
+            if (index is not None):
+                cv2.imshow('Video', frames[index].payload.sample)
+            cv2.waitKey(1)
 
-client.close()
-player.close()
-listener.close()
+    client.close()
+    player.close()
+    listener.close()
