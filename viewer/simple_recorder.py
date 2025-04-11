@@ -147,13 +147,13 @@ if __name__ == '__main__':
     for port in ports:
         producer.initialize(port)
         producer.start(port)
-        print(f'Started stream for {hl2ss.get_port_name(port)}')
+        print(f'Started stream {hl2ss.get_port_name(port)}')
     
     writers = {port : hl2ss_ds.wr(filenames[port], producer, port, user_data) for port in ports}
 
     for port in ports:
         writers[port].open()
-        print(f'Started writer for {hl2ss.get_port_name(port)}')
+        print(f'Started writer {hl2ss.get_port_name(port)}')
 
     # Wait for stop signal ----------------------------------------------------
     print('Recording started.')
