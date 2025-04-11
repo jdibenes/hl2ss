@@ -194,6 +194,7 @@ class _audio_process(mp.Process):
         self._semaphore.acquire()
 
     def run(self):
+        self._unit_time        = hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS // self._sample_rate
         self._pcm_audio_buffer = np.empty((1, 0), dtype=self._subtype)
         self._pcm_ts_buffer    = np.empty((1, 0), dtype=np.int64)
         self._presentation_clk = 0
@@ -222,7 +223,7 @@ class _audio_process(mp.Process):
 
             pcm_samples    = hl2ss.microphone_planar_to_packed(pcm_payload, self._channels) if (self._planar) else pcm_payload
             pcm_group_size = pcm_samples.size // self._channels
-            pcm_ts         = (pcm_timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * (hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS // self._sample_rate))).reshape((1, -1))
+            pcm_ts         = (pcm_timestamp + (np.arange(0, pcm_group_size, 1, dtype=np.int64) * self._unit_time)).reshape((1, -1))
             
             self._pcm_audio_buffer = np.hstack((self._pcm_audio_buffer, pcm_samples))
             self._pcm_ts_buffer    = np.hstack((self._pcm_ts_buffer,    pcm_ts))
@@ -256,10 +257,10 @@ class audio_player:
     def close(self):
         self._worker.stop()
         self._worker.join()
-   
+
 
 class microphone_resampler:
-    def create(self, target_format=None, target_layout=None, target_rate=None):
+    def __init__(self, target_format=None, target_layout=None, target_rate=None):
         self._resampler = av.AudioResampler(format=target_format, layout=target_layout, rate=target_rate)
 
     def resample(self, data, profile):
