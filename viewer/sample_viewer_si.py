@@ -178,8 +178,6 @@ if __name__ == '__main__':
     listener.open()
 
     # Start Spatial Input stream ----------------------------------------------
-    #sink_si = consumer.create_sink(producer, hl2ss.StreamPort.SPATIAL_INPUT, manager, ...)
-    #sink_si.get_attach_response()
     sink_si = hl2ss_mp.stream(hl2ss_lnm.rx_si(host, hl2ss.StreamPort.SPATIAL_INPUT))
     sink_si.open()
 
