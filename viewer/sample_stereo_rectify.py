@@ -34,7 +34,7 @@ line_thickness = 1
 
 #------------------------------------------------------------------------------
 
-if (__name__ == '__main__'):
+if __name__ == '__main__':
     # Get camera calibrations -------------------------------------------------
     calibration_lf = hl2ss_3dcv.get_calibration_rm(calibration_path, host, port_left)
     calibration_rf = hl2ss_3dcv.get_calibration_rm(calibration_path, host, port_right)
