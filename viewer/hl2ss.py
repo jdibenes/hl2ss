@@ -1021,6 +1021,14 @@ def get_audio_codec(profile):
     return None
 
 
+class MetadataSize:
+    RM_VLC             = 24
+    RM_DEPTH_AHAT      = 8
+    RM_DEPTH_LONGTHROW = 8
+    PERSONAL_VIDEO     = 80
+    EXTENDED_DEPTH     = 4
+
+
 class _decompress_zdepth:
     def __init__(self):
         import pyzdepth
