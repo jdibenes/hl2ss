@@ -14,91 +14,54 @@ import hl2ss_mp
 
 
 #------------------------------------------------------------------------------
-# Background Writers
+# Background Writer
 #------------------------------------------------------------------------------
 
-class wr_process_rx(mp.Process):
-    def __init__(self, filename, rx, user):
-        super().__init__()
-        self._event_stop = mp.Event()
-        self._wr = hl2ss_io.create_wr_from_rx(filename, rx, user)
-        self._rx = rx
-
-    def stop(self):
-        self._event_stop.set()
-
-    def on_open(self):
-        pass
-
-    def on_receive(self, data):
-        pass
-
-    def on_close(self):
-        pass
-
-    def run(self):
-        self.on_open()
-        self._wr.open()
-        self._rx.open()
-        while (not self._event_stop.is_set()):
-            data = self._rx.get_next_packet()
-            self._wr.write(data)
-            self.on_receive(data)
-        self._rx.close()
-        self._wr.close()
-        self.on_close()
-
-
-class wr_process_producer(mp.Process):
+class _wr_process(mp.Process):
     def __init__(self, filename, producer, port, user):
         super().__init__()
         self._event_stop = mp.Event()
         self._wr = hl2ss_io.create_wr_from_rx(filename, producer.get_receiver(port), user)
         self._sink = hl2ss_mp.consumer().create_sink(producer, port, mp.Manager(), ...)
-        self._sync_period = hl2ss_mx.get_sync_period(self._wr)
 
     def stop(self):
         self._event_stop.set()
         self._sink.release()
-       
-    def on_open(self):
-        pass
-
-    def on_receive(self, data):
-        pass
-
-    def on_fail(self):
-        pass
-
-    def on_close(self):
-        pass
 
     def run(self):
+        self._sync_period = hl2ss_mx.get_sync_period(self._wr)
         self._frame_stamp = hl2ss_mx.get_sync_frame_stamp(self._sink.get_attach_response() + 1, self._sync_period)
-        self._stopping = False
+        self._worker_name = hl2ss.get_port_name(self._wr.port)
 
-        self.on_open()
-        self._wr.open()
-
-        while ((not self._stopping) or (self._frame_stamp < self._stop_stamp)):
-            self._sink.acquire()
-            state, _, data = self._sink.get_buffered_frame(self._frame_stamp)
-
-            if (state == 0):
-                self._frame_stamp += 1
-                self._wr.write(data)
-                self.on_receive(data)
-            elif (state < 0):
-                self.on_fail()
-                break
-
-            if ((not self._stopping) and self._event_stop.is_set()):
-                self._stopping = True
-                self._stop_stamp = self._sink.get_frame_stamp()
-
-        self._wr.close()
+        with self._wr as writer:
+            while ((not self._event_stop.is_set()) and self._sink.get_source_status()):
+                self._sink.acquire()
+                state, _, data = self._sink.get_buffered_frame(self._frame_stamp)
+                if (state == hl2ss_mx.Status.OK):
+                    self._frame_stamp += 1
+                    writer.write(data)
+                elif (state == hl2ss_mx.Status.DISCARDED):
+                    self._frame_stamp = hl2ss_mx.get_sync_frame_stamp(self._frame_stamp + 1, self._sync_period)
+                    print(f'[hl2ss_ds._wr_process] {self._worker_name} writer out of sync')
+        
+        source_string = self._sink.get_source_string()
         self._sink.detach()
-        self.on_close()
+        if (source_string is None):
+            return
+        print(f'[hl2ss_ds._wr_process] {self._worker_name} source was lost:')
+        print(source_string)
+
+
+class wr(hl2ss._context_manager):
+    def __init__(self, filename, producer, port, user):
+        self._worker = _wr_process(filename, producer, port, user)
+
+    def open(self):
+        self._worker.start()
+
+    def close(self):
+        self._worker.stop()
+        self._worker.join()
 
 
 #------------------------------------------------------------------------------
