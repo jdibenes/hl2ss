@@ -226,11 +226,11 @@ class _gatherer:
                                     if (self._video_init is not None):
                                         sample = sample[:6] + self._video_init + sample[6:] # AUD + SPS + PPS + IDR
                                         self._video_init = None
-                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | keyf) + _avcc_to_annex_b(sample), None))
+                                    packets.append(hl2ss._packet(t, _avcc_to_annex_b(sample) + struct.pack('B', StreamKind.VIDEO | keyf), None))
                                     self._video_et += span
                                 elif (id == self._audio_id):
                                     t = _compute_timestamp(self._audio_ct, self._audio_et, self._audio_tb)
-                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.AUDIO | keyf) + _raw_aac_to_adts(sample), None))
+                                    packets.append(hl2ss._packet(t, _raw_aac_to_adts(sample) + struct.pack('B', StreamKind.AUDIO | keyf), None))
                                     self._audio_et += span
                                 offset += size
                         self._state = 1
@@ -304,6 +304,10 @@ class rx_mrc(hl2ss._context_manager):
 # Decoder
 #------------------------------------------------------------------------------
 
+class MetadataSize:
+    MRC = 1
+
+
 class _MRC_Frame:
     def __init__(self, kind, sample, key_frame):
         self.kind      = kind
@@ -317,13 +321,13 @@ class decode_mrc:
         self._audio_codec = hl2ss.get_audio_codec(hl2ss.AudioProfile.AAC_24000)
 
     def decode(self, payload, format):
-        header = payload[:1]
-        data   = payload[1:]
+        data   = payload[:-1]
+        header = payload[-1:]
 
         flags     = struct.unpack('B', header)[0]
         kind      = flags & 3
         key_frame = (flags & 0x04) != 0
-        sample    = self._video_codec.decode(data).to_ndarray(format=format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(data).to_ndarray() if (kind == StreamKind.AUDIO) else None
+        sample    = data if (format is None) else self._video_codec.decode(data).to_ndarray(format=format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(data).to_ndarray() if (kind == StreamKind.AUDIO) else None
 
         return _MRC_Frame(kind, sample, key_frame)
 
