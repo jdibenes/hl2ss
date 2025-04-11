@@ -18,10 +18,6 @@ import hl2ss_mp
 import hl2ss_lnm
 import hl2ss_io
 
-
-def depth_colormap(depth, max_depth, colormap=cv2.COLORMAP_JET):
-    return cv2.applyColorMap(((depth / max_depth) * 255).astype(np.uint8), colormap)
-
 #------------------------------------------------------------------------------
 # Key Listener
 #------------------------------------------------------------------------------
@@ -218,12 +214,6 @@ class microphone_resampler:
         in_frame.rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
         out_frames = self._resampler.resample(in_frame)
         return [frame.to_ndarray() for frame in out_frames]
-
-
-#------------------------------------------------------------------------------
-# SI
-#------------------------------------------------------------------------------
-
 
 
 #------------------------------------------------------------------------------
