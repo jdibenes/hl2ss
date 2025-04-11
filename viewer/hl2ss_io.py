@@ -756,7 +756,7 @@ class sequencer:
         index = hl2ss_mx.get_nearest_packet(data, timestamp, time_preference, tiebreak_right)
         return None if (index is None) else data[index]
 
-    def synchronize(self, timestamp):
+    def sync(self, timestamp):
         while (True):
             status = self.is_at(timestamp)
             if (status != hl2ss_mx.Status.WAIT):
@@ -764,7 +764,7 @@ class sequencer:
             self.advance()
 
     def get_next_packet(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False):
-        status = self.synchronize(timestamp)
+        status = self.sync(timestamp)
         return (status, self.get_nearest(timestamp, time_preference, tiebreak_right))
 
     def close(self):
