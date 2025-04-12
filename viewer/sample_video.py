@@ -113,21 +113,32 @@ if __name__ == '__main__':
         player.open()
         fs_mc = -1
 
+    for port in ports:
+        if (port in [hl2ss.StreamPort.RM_DEPTH_AHAT, hl2ss.StreamPort.RM_DEPTH_LONGTHROW]):
+            cv2.namedWindow(hl2ss.get_port_name(port) + '-depth')
+            cv2.namedWindow(hl2ss.get_port_name(port) + '-ab')
+        else:
+            cv2.namedWindow(hl2ss.get_port_name(port))
+    
     # Main loop ---------------------------------------------------------------
     while ((cv2.waitKey(1) & 0xFF) != 27):
         if (sync_to_audio):
-            status_mc, fs_mc, data_mc = sinks[hl2ss.StreamPort.MICROPHONE].get_buffered_frame(fs_mc)
-            if (status_mc == hl2ss_mx.Status.OK):
-                player.put(data_mc.timestamp, data_mc.payload)
-                fs_mc += 1
-            elif (status_mc == hl2ss_mx.Status.DISCARDED):
-                fs_mc = -1
+            while (player.pending() < player.buffer_frames):
+                status_mc, fs_mc, data_mc = sinks[hl2ss.StreamPort.MICROPHONE].get_buffered_frame(fs_mc)
+                if (status_mc == hl2ss_mx.Status.OK):
+                    player.put(data_mc.timestamp, data_mc.payload)
+                    fs_mc += 1
+                elif (status_mc == hl2ss_mx.Status.DISCARDED):
+                    fs_mc = -1
+                else:
+                    break
+            ts_mc = player.get_timestamp()
 
         for port in ports:
             if (port == hl2ss.StreamPort.MICROPHONE):
                 continue
             if (sync_to_audio):
-                _, data = sinks[port].get_nearest(player.get_timestamp(), hl2ss_mx.TimePreference.PREFER_PAST, False)
+                _, data = sinks[port].get_nearest(ts_mc, hl2ss_mx.TimePreference.PREFER_PAST, False)
             else:
                 _, data = sinks[port].get_most_recent_frame()
             if (data is not None):
