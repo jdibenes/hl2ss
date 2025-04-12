@@ -1021,12 +1021,40 @@ def get_audio_codec(profile):
     return None
 
 
-class MetadataSize:
-    RM_VLC             = 24
-    RM_DEPTH_AHAT      = 8
-    RM_DEPTH_LONGTHROW = 8
-    PERSONAL_VIDEO     = 80
-    EXTENDED_DEPTH     = 4
+class _MetadataSize:
+    RM_VLC               = 24
+    RM_DEPTH_AHAT        = 8
+    RM_DEPTH_LONGTHROW   = 8
+    RM_IMU               = 0
+    PERSONAL_VIDEO       = 80
+    MICROPHONE           = 0
+    SPATIAL_INPUT        = 0
+    EXTENDED_EYE_TRACKER = 0
+    EXTENDED_AUDIO       = 0
+    EXTENDED_DEPTH       = 4
+
+    OF = {
+        StreamPort.RM_VLC_LEFTFRONT     : RM_VLC,
+        StreamPort.RM_VLC_LEFTLEFT      : RM_VLC,
+        StreamPort.RM_VLC_RIGHTFRONT    : RM_VLC,
+        StreamPort.RM_VLC_RIGHTRIGHT    : RM_VLC,
+        StreamPort.RM_DEPTH_AHAT        : RM_DEPTH_AHAT,
+        StreamPort.RM_DEPTH_LONGTHROW   : RM_DEPTH_LONGTHROW,
+        StreamPort.RM_IMU_ACCELEROMETER : RM_IMU,
+        StreamPort.RM_IMU_GYROSCOPE     : RM_IMU,
+        StreamPort.RM_IMU_MAGNETOMETER  : RM_IMU,
+        StreamPort.PERSONAL_VIDEO       : PERSONAL_VIDEO,
+        StreamPort.MICROPHONE           : MICROPHONE,
+        StreamPort.SPATIAL_INPUT        : SPATIAL_INPUT,
+        StreamPort.EXTENDED_EYE_TRACKER : EXTENDED_EYE_TRACKER,
+        StreamPort.EXTENDED_AUDIO       : EXTENDED_AUDIO,
+        StreamPort.EXTENDED_VIDEO       : PERSONAL_VIDEO,
+        StreamPort.EXTENDED_DEPTH       : EXTENDED_DEPTH,
+    }
+
+
+def get_metadata_size(port):
+    return _MetadataSize.OF[port]
 
 
 class _decompress_zdepth:
