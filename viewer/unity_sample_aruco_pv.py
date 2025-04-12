@@ -73,6 +73,8 @@ ipc_unity.pull(cb_unity)
 rx_pv = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=width_pv, height=height_pv, framerate=framerate_pv)
 rx_pv.open()
 
+cv2.namedWindow('video')
+
 # Main Loop -------------------------------------------------------------------
 while ((cv2.waitKey(1) & 0xFF) != 27):
     # Get PV data
