@@ -251,7 +251,13 @@ class _sm_manager_mp(mp.Process):
         self._din = mp.Queue()
         self._dout = mp.Queue()        
         self._event = mp.Event()
-        self._ipc = sm_manager_mt(host, port, sockopt, triangles_per_cubic_meter, vpf, tif, vnf)
+        self._host = host
+        self._port = port
+        self._sockopt = sockopt
+        self._tpcm = triangles_per_cubic_meter
+        self._vpf = vpf
+        self._tif = tif
+        self._vnf = vnf
 
     def stop(self):
         self._din.put((_sm_manager_mp.IPC_STOP,))
@@ -323,6 +329,8 @@ class _sm_manager_mp(mp.Process):
         return True
         
     def run(self):
+        self._ipc = sm_manager_mt(self._host, self._port, self._sockopt, self._tpcm, self._vpf, self._tif, self._vnf)
+
         try:
             self._ipc.open()
         except:
