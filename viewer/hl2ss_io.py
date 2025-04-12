@@ -702,7 +702,7 @@ class _rd_decoded(_rd):
         
     def get_next_packet(self):
         data = super().get_next_packet()
-        if (data is not None):
+        if ((data is not None) and (self.format is not None)):
             data.payload = self.__decode(data.payload)
         return data
 
@@ -722,21 +722,18 @@ def create_rd(filename, chunk, decoded):
 # Sequencer
 #------------------------------------------------------------------------------
 
-class sequencer:
+class sequencer(_rd_decoded):
     def __init__(self, filename, chunk, decoded):
-        self.filename = filename
-        self.chunk = chunk
-        self.decoded = decoded
+        super().__init__(filename, chunk, decoded)
 
     def open(self):
-        self._rd = create_rd(self.filename, self.chunk, self.decoded)
-        self._rd.open()
-        self._l = self._rd.get_next_packet()
-        self._r = self._rd.get_next_packet()
+        super().open()
+        self._l = super().get_next_packet()
+        self._r = super().get_next_packet()
 
     def advance(self):
         self._l = self._r
-        self._r = self._rd.get_next_packet()
+        self._r = super().get_next_packet()
 
     def get_left(self):
         return self._l
@@ -768,5 +765,5 @@ class sequencer:
         return (status, self.get_nearest(timestamp, time_preference, tiebreak_right))
 
     def close(self):
-        self._rd.close()
+        super().close()
 
