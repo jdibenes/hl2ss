@@ -70,6 +70,9 @@ class _audio_process(mp.Process):
                 return
             self._notify_queue()
 
+    def pending(self):
+        return self._pcm_queue.qsize()
+
     def get_timestamp(self):
         self._din.put((_audio_process.IPC_GET_TIMESTAMP,))
         self._semaphore.release()
@@ -154,6 +157,9 @@ class audio_player:
 
     def put(self, timestamp, samples):
         self._worker.put(timestamp, samples)
+
+    def pending(self):
+        return self._worker.pending()
 
     def get_timestamp(self):
         return self._worker.get_timestamp()
