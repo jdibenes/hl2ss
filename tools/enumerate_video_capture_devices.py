@@ -2,8 +2,6 @@
 import os
 import json
 import argparse
-import hl2ss
-import hl2ss_lnm
 
 parser = argparse.ArgumentParser(description='HL2SS Enumerate Video Capture Devices Tool.')
 parser.add_argument('--host', help='HL2 IP address (e.g. 192.168.1.0)', required=True)
@@ -13,6 +11,13 @@ args = parser.parse_args()
 
 host = args.host
 out  = args.path
+
+import sys
+
+sys.path.append('../viewer')
+
+import hl2ss
+import hl2ss_lnm
 
 filename = os.path.join(out, 'hl2_extended_video_devices.json')
 
