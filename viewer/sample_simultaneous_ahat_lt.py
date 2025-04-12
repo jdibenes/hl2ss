@@ -30,6 +30,11 @@ if __name__ == '__main__':
         pass
     sink_ht.open()
 
+    cv2.namedWindow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-depth')
+    cv2.namedWindow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_AHAT) + '-ab')
+    cv2.namedWindow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-depth')
+    cv2.namedWindow(hl2ss.get_port_name(hl2ss.StreamPort.RM_DEPTH_LONGTHROW) + '-ab')
+
     # Main loop ---------------------------------------------------------------
     while ((cv2.waitKey(1) & 0xFF) != 27):
         _, data_ht = sink_ht.get_most_recent_frame()
