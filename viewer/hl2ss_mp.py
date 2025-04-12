@@ -7,11 +7,6 @@ import hl2ss
 import hl2ss_mx
 
 
-class SourceKind:
-    MP = 0
-    MT = 1
-
-
 #------------------------------------------------------------------------------
 # Source
 #------------------------------------------------------------------------------
@@ -69,11 +64,11 @@ class _mt_source(mt.Thread):
 
 
 def _create_interface_source(source_kind):
-    return _net_source(mp.Queue() if (source_kind == SourceKind.MP) else queue.Queue() if (source_kind == SourceKind.MT) else None)
+    return _net_source(mp.Queue() if (source_kind == hl2ss_mx.SourceKind.MP) else queue.Queue() if (source_kind == hl2ss_mx.SourceKind.MT) else None)
 
 
 def _create_source(receiver, source_wires, interconnect_wires, source_kind):
-    return _mp_source(receiver, mp.Event(), source_wires, interconnect_wires) if (source_kind == SourceKind.MP) else _mt_source(receiver, mt.Event(), source_wires, interconnect_wires) if (source_kind == SourceKind.MT) else None
+    return _mp_source(receiver, mp.Event(), source_wires, interconnect_wires) if (source_kind == hl2ss_mx.SourceKind.MP) else _mt_source(receiver, mt.Event(), source_wires, interconnect_wires) if (source_kind == hl2ss_mx.SourceKind.MT) else None
 
 
 #------------------------------------------------------------------------------
@@ -352,7 +347,7 @@ class producer:
     def configure(self, port, receiver):
         self._rx[port] = receiver
 
-    def initialize(self, port, buffer_size=512, source_kind=SourceKind.MT, default_sink_semaphore=None):
+    def initialize(self, port, buffer_size=512, source_kind=hl2ss_mx.SourceKind.MP, default_sink_semaphore=None):
         self._producer[port] = _module(self._rx[port], buffer_size, source_kind, default_sink_semaphore)
 
     def start(self, port):        
@@ -404,7 +399,7 @@ class consumer:
 #------------------------------------------------------------------------------
 
 class stream(hl2ss._context_manager):
-    def __init__(self, rx, buffer_size=512, source_kind=SourceKind.MT, semaphore=None):
+    def __init__(self, rx, buffer_size=512, source_kind=hl2ss_mx.SourceKind.MP, semaphore=None):
         self.rx = rx
         self.buffer_size = buffer_size
         self.source_kind = source_kind
