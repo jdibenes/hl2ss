@@ -59,6 +59,8 @@ if __name__ == '__main__':
     sink_vlc.open()
     sink_depth.open()
 
+    cv2.namedWindow('RGBD')
+
     # Main Loop ---------------------------------------------------------------
     while (not listener.pressed()):
         vis.poll_events()
