@@ -110,7 +110,7 @@ if __name__ == '__main__':
     folder = os.path.join(path, f'DS-{now.year:04d}-{now.month:02d}-{now.day:02d}-{now.hour:02d}-{now.minute:02d}-{now.second:02d}')
 
     # Create output folder
-    # Fail if folder exists to avoid overwritting previous data, if any
+    # Fail if folder exists to avoid overwriting previous data, if any
     os.makedirs(folder)
 
     filenames = {port : os.path.join(folder, f'{hl2ss.get_port_name(port)}.bin') for port in ports}
