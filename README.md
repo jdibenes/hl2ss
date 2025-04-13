@@ -148,7 +148,7 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - [OpenCV](https://github.com/opencv/opencv-python) `pip install opencv-python`
 - [PyAV](https://github.com/PyAV-Org/PyAV) `pip install av`
 - [NumPy](https://numpy.org/) `pip install numpy`
-- [requests](https://requests.readthedocs.io/en/latest/) `pip install requests` 
+- [Requests](https://requests.readthedocs.io/en/latest/) `pip install requests` 
 
 **Optional packages**
 
