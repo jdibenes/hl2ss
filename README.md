@@ -141,13 +141,14 @@ The Python scripts in the [viewer](viewer) directory demonstrate how to connect 
 - Extended Video: [viewer/client_stream_extended_video.py](viewer/client_stream_extended_video.py)
 - Guest Message Queue: [viewer/client_ipc_gmq.py](viewer/client_ipc_gmq.py) (plugin only)
 - Extended Depth: [viewer/client_stream_extended_depth.py](viewer/client_stream_extended_depth.py)
-- Device Portal MRC: [viewer/client_stream_mrc.py](viewer/client_stream_mrc.py) (hl2ss server optional)
+- Device Portal MRC: [viewer/client_stream_dp_mrc.py](viewer/client_stream_dp_mrc.py) (hl2ss server optional)
 
 **Required packages**
 
 - [OpenCV](https://github.com/opencv/opencv-python) `pip install opencv-python`
 - [PyAV](https://github.com/PyAV-Org/PyAV) `pip install av`
 - [NumPy](https://numpy.org/) `pip install numpy`
+- [requests](https://requests.readthedocs.io/en/latest/) `pip install requests` 
 
 **Optional packages**
 
