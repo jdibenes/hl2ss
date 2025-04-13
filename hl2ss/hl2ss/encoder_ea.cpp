@@ -99,20 +99,24 @@ EA_AudioTransform Encoder_EA::GetTransform(AudioSubtype subtype, uint32_t channe
 }
 
 // OK
-void Encoder_EA::SetAACFormat(AACFormat& format)
-{
-    format.samplerate = 48000;
-    format.channels   = 2;
-}
-
-// OK
-Encoder_EA::Encoder_EA(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, AudioSubtype subtype, AACFormat const& format, uint32_t channels) :
+Encoder_EA::Encoder_EA(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, AudioSubtype subtype, AACFormat const& format, uint32_t channels, bool passthrough) :
 CustomEncoder(pHookCallback, pHookParam, NULL, 0, AudioSubtype::AudioSubtype_S16, format)
 {
+    m_passthrough  = passthrough;
+    if (!m_passthrough)
+    {
     m_kernel_cast  = GetTransform(subtype, channels).cast_kernel;
     m_kernel_wide  = GetTransform(subtype, channels).wide_kernel;
     m_sample_bytes = GetTransform(subtype, channels).sample_bytes;
     m_fill         = GetTransform(subtype, channels).fill;
+    }
+    else
+    {
+    m_kernel_cast  = NULL;
+    m_kernel_wide  = NULL;
+    m_sample_bytes = 0;
+    m_fill         = false;
+    }
 }
 
 // OK
@@ -126,6 +130,8 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame)
     auto buffer    = audio.LockBuffer(AudioBufferAccessMode::Read);
     auto reference = buffer.CreateReference();
 
+    if (!m_passthrough)
+    {
     uint32_t samples      = reference.Capacity() / m_sample_bytes;
     uint32_t output_bytes = samples * sizeof(int16_t);
     uint32_t fill_bytes   = m_fill * output_bytes;
@@ -143,11 +149,22 @@ void Encoder_EA::WriteSample(MediaFrameReference const& frame)
     m_kernel_wide(base_addr, high_addr, samples);
 
     pBuffer->Unlock();
+    }
+    else
+    {
+    uint32_t size = reference.Capacity();
+    
+    CreateBuffer(&pBuffer, size);
+
+    pBuffer->Lock(&pDst, NULL, NULL);
+    memcpy(pDst, reference.data(), size);
+    pBuffer->Unlock();
+    }
 
     WriteBuffer(pBuffer, frame.SystemRelativeTime().Value().count(), frame.Duration().count(), NULL);
 
     pBuffer->Release();
-
+    
     reference.Close();
     buffer.Close();
     audio.Close();

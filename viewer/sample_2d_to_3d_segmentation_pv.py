@@ -7,16 +7,16 @@
 
 from pynput import keyboard
 
-import multiprocessing as mp
 import numpy as np
-import cv2
 import open3d as o3d
+import cv2
 import mmcv
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
+import hl2ss_utilities
 
 from mmdet.apis import inference_detector, init_detector
 from mmdet.core import INSTANCE_OFFSET
@@ -35,9 +35,6 @@ pv_width = 640
 pv_height = 360
 pv_framerate = 15
 
-# Buffer length in seconds
-buffer_length = 5
-
 # Maximum depth, points beyond are removed
 max_depth = 2
 
@@ -52,22 +49,15 @@ wait_time = 1
 
 if __name__ == '__main__':
     # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.space
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.space)
+    listener.open()
 
     # Start PV Subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
     
     uv2xy = calibration_lt.uv2xy
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
@@ -81,20 +71,12 @@ if __name__ == '__main__':
     first_geometry = True
 
     # Start PV and RM Depth Long Throw streams --------------------------------
-    producer = hl2ss_mp.producer()
-    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate))
-    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, buffer_length * pv_framerate)
-    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, buffer_length * hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
-    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
-    manager = mp.Manager()
-    consumer = hl2ss_mp.consumer()
-    sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
-    sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, None)
-    sink_pv.get_attach_response()
-    sink_depth.get_attach_response()
+    sink_pv = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_framerate))
+    sink_lt = hl2ss_mp.stream(hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
+
+    sink_pv.open()
+    sink_lt.open()
 
     # Init Detector -----------------------------------------------------------
     model = init_detector(config, checkpoint, device=device)
@@ -103,9 +85,12 @@ if __name__ == '__main__':
     PALETTE.append((0, 0, 0)) # Add color for unrecognized objects
 
     # Main loop ---------------------------------------------------------------
-    while (enable):
+    while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
+
         # Get RM Depth Long Throw frame and nearest (in time) PV frame --------
-        _, data_depth = sink_depth.get_most_recent_frame()
+        _, data_depth = sink_lt.get_most_recent_frame()
         if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
             continue
 
@@ -115,7 +100,7 @@ if __name__ == '__main__':
 
         # Update PV intrinsics ------------------------------------------------
         # PV intrinsics may change between frames due to autofocus
-        pv_intrinsics = hl2ss.create_pv_intrinsics(data_pv.payload.focal_length, data_pv.payload.principal_point)
+        pv_intrinsics = hl2ss_3dcv.pv_create_intrinsics(data_pv.payload.focal_length, data_pv.payload.principal_point)
         pv_extrinsics = np.eye(4, 4, dtype=np.float32)
         pv_intrinsics, pv_extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, pv_extrinsics)
 
@@ -176,17 +161,12 @@ if __name__ == '__main__':
         else:
             vis.update_geometry(main_pcd)
 
-        vis.poll_events()
-        vis.update_renderer()
-
     # Stop PV and RM Depth Long Throw streams ---------------------------------
-    sink_pv.detach()
-    sink_depth.detach()
-    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_pv.close()
+    sink_lt.close()
 
     # Stop PV subsystem -------------------------------------------------------
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
-    listener.join()
+    listener.close()

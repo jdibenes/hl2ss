@@ -5,12 +5,14 @@
 #include <atomic>
 #include <cpr/cpr.h>
 
+#define HL2SS_DP_INLINE inline
+
 namespace hl2ss
 {
 namespace dp
 {
 //------------------------------------------------------------------------------
-// * Constants
+// Constants
 //------------------------------------------------------------------------------
 
 namespace stream_port
@@ -33,7 +35,7 @@ uint64_t const MRC = 4096;
 }
 
 //------------------------------------------------------------------------------
-// * Client
+// Client
 //------------------------------------------------------------------------------
 
 struct mrc_configuration
@@ -75,7 +77,7 @@ public:
 };
 
 //------------------------------------------------------------------------------
-// * Packet Gatherer
+// Packet Gatherer
 //------------------------------------------------------------------------------
 
 template<typename T>
@@ -147,7 +149,7 @@ public:
 };
 
 //------------------------------------------------------------------------------
-// * Mode 0 Data Acquisition
+// Mode 0 Data Acquisition
 //------------------------------------------------------------------------------
 
 class rx_mrc
@@ -172,7 +174,7 @@ public:
 };
 
 //------------------------------------------------------------------------------
-// * Decoder
+// Decoder
 //------------------------------------------------------------------------------
 
 class decoder_mrc
@@ -181,17 +183,17 @@ private:
     codec m_video_codec;
     codec m_audio_codec;
 
-    std::unique_ptr<uint8_t[]> decode_video(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size, uint16_t& width, uint16_t& height);
+    std::unique_ptr<uint8_t[]> decode_video(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size);
     std::unique_ptr<uint8_t[]> decode_audio(uint8_t* data, uint32_t size, uint32_t& decoded_size);
 
 public:
     void open();
-    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size, uint16_t& width, uint16_t& height);
+    std::unique_ptr<uint8_t[]> decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size);
     void close();
 };
 
 //------------------------------------------------------------------------------
-// * Mode 0 Data Acquisition (Decoded)
+// Mode 0 Data Acquisition (Decoded)
 //------------------------------------------------------------------------------
 
 class rx_decoded_mrc : public rx_mrc
@@ -201,8 +203,6 @@ protected:
 
 public:
     uint8_t decoded_format;
-    uint16_t width;
-    uint16_t height;
 
     rx_decoded_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk, mrc_configuration const& configuration, uint8_t decoded_format);
 
@@ -212,10 +212,10 @@ public:
 };
 
 //------------------------------------------------------------------------------
-// * Unpacking
+// Unpacking
 //------------------------------------------------------------------------------
 
-struct mrc_video_metadata
+struct mrc_metadata
 {
     uint8_t header;
     uint8_t _reserved[3];
@@ -223,33 +223,26 @@ struct mrc_video_metadata
     uint16_t height;
 };
 
-struct mrc_audio_metadata
+struct map_mrc
 {
-    uint8_t header;
-    uint8_t _reserved[7];
+    void* data;
+    mrc_metadata* metadata;
 };
 
-struct map_mrc_video
+HL2SS_DP_INLINE
+map_mrc unpack_mrc(uint8_t* payload, uint32_t size)
 {
-    mrc_video_metadata* header;
-    uint8_t* data;
-};
+    return { payload, (mrc_metadata*)(payload + size - sizeof(mrc_metadata)) };
+}
 
-struct map_mrc_audio
-{
-    mrc_audio_metadata* header;
-    float* data;
-};
-
-map_mrc_video unpack_mrc_video(uint8_t* payload);
-map_mrc_audio unpack_mrc_audio(uint8_t* payload);
-
-constexpr uint8_t mrc_get_kind(uint8_t header)
+HL2SS_DP_INLINE 
+uint8_t mrc_get_kind(uint8_t header)
 {
     return header & 3;
 }
 
-constexpr bool mrc_is_key_frame(uint8_t header)
+HL2SS_DP_INLINE
+bool mrc_is_key_frame(uint8_t header)
 {
     return (header & 4) != 0;
 }

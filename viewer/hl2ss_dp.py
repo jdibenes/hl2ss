@@ -1,4 +1,5 @@
 
+import weakref
 import collections
 import requests
 import struct
@@ -31,12 +32,14 @@ class _client:
         if (self._response.status_code != 200):
             self._response.close()
             self._response.raise_for_status()
+        self._f = weakref.finalize(self, lambda r : r.close(), self._response)
         self._iterator = self._response.iter_content(chunk_size)
 
     def recv(self):
         return next(self._iterator)
 
     def close(self):
+        self._f.detach()
         self._response.close()
 
 
@@ -62,20 +65,18 @@ class _unpacker:
     def unpack(self):
         length = len(self._buffer)
 
-        while (True):
-            if (self._state == 0):
-                if (length >= 8):
-                    self._box_l = struct.unpack('>I', self._buffer[0:4])[0]
-                    self._box_t = self._buffer[4:8].decode()
-                    self._state = 1
-                    continue
-            elif (self._state == 1):
-                if (length >= self._box_l):
-                    self._box_d  = self._buffer[8:self._box_l]
-                    self._buffer = self._buffer[self._box_l:]
-                    self._state  = 0
-                    return True
-            return False
+        if ((self._state == 0) and (length >= 8)):
+            self._box_l  = struct.unpack('>I', self._buffer[0:4])[0]
+            self._box_t  = self._buffer[4:8].decode()
+            self._state  = 1
+
+        if ((self._state == 1) and (length >= self._box_l)):
+            self._box_d  = self._buffer[8:self._box_l]
+            self._buffer = self._buffer[self._box_l:]
+            self._state  = 0
+            return True
+        
+        return False
         
     def get(self):
         return _box(self._box_l, self._box_t, self._box_d)
@@ -114,9 +115,11 @@ def _compute_timestamp(ct, et, tb):
 
 
 class _gatherer:
-    def open(self, host, port, user, password, chunk_size, configuration):
-        self._client = _client()
+    def __init__(self):
+        self._client   = _client()
         self._unpacker = _unpacker()
+
+    def open(self, host, port, user, password, chunk_size, configuration):
         self._state = 0
         self._unpacker.reset()
         self._client.open(host, port, user, password, chunk_size, configuration)
@@ -130,7 +133,7 @@ class _gatherer:
         self._audio_et = 0
         self._video_init = None
 
-    def get_next_packet(self):
+    def get_next_packet(self, wait=True):
         packets = []
         while (True):
             self._unpacker.extend(self._client.recv())
@@ -162,11 +165,23 @@ class _gatherer:
                                                                     # Force 1 second delay on video stream
                                                                     self._video_ct = (ct + 1) * tb
                                                                     self._video_tb = tb
-                                                                    sps_data = stbl_data[106:134]
-                                                                    pps_data = stbl_data[133:141]
-                                                                    sps_data[0:2] = b'\x00\x00'
-                                                                    pps_data[0:2] = b'\x00\x00'
-                                                                    self._video_init = sps_data + pps_data
+                                                                    
+                                                                    sps_size_base = 108
+                                                                    sps_size_end  = sps_size_base + 2
+                                                                    sps_size_data = stbl_data[sps_size_base:sps_size_end]
+                                                                    sps_size = struct.unpack('>H', sps_size_data)[0]
+                                                                    sps_base = sps_size_end
+                                                                    sps_end  = sps_base + sps_size
+                                                                    sps_data = stbl_data[sps_base:sps_end]
+                                                                    pps_size_base = sps_end + 1
+                                                                    pps_size_end  = pps_size_base + 2
+                                                                    pps_size_data = stbl_data[pps_size_base:pps_size_end]
+                                                                    pps_size = struct.unpack('>H', pps_size_data)[0]
+                                                                    pps_base = pps_size_end
+                                                                    pps_end  = pps_base + pps_size
+                                                                    pps_data = stbl_data[pps_base:pps_end]
+
+                                                                    self._video_init = b'\x00\x00' + sps_size_data + sps_data + b'\x00\x00' + pps_size_data + pps_data
                                                                 elif (stbl_type == 'mp4a'):
                                                                     self._audio_id = id
                                                                     self._audio_ct = ct * tb
@@ -211,15 +226,15 @@ class _gatherer:
                                     if (self._video_init is not None):
                                         sample = sample[:6] + self._video_init + sample[6:] # AUD + SPS + PPS + IDR
                                         self._video_init = None
-                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.VIDEO | keyf) + _avcc_to_annex_b(sample), None))
+                                    packets.append(hl2ss._packet(t, _avcc_to_annex_b(sample) + struct.pack('B', StreamKind.VIDEO | keyf), None))
                                     self._video_et += span
                                 elif (id == self._audio_id):
                                     t = _compute_timestamp(self._audio_ct, self._audio_et, self._audio_tb)
-                                    packets.append(hl2ss._packet(t, struct.pack('B', StreamKind.AUDIO | keyf) + _raw_aac_to_adts(sample), None))
+                                    packets.append(hl2ss._packet(t, _raw_aac_to_adts(sample) + struct.pack('B', StreamKind.AUDIO | keyf), None))
                                     self._audio_et += span
                                 offset += size
                         self._state = 1
-            if (len(packets) > 0):
+            if ((len(packets) > 0) or (not wait)):
                 return packets
     
     def close(self):
@@ -273,9 +288,12 @@ class rx_mrc(hl2ss._context_manager):
         self._buffer = collections.deque()
         self._client = _connect_client_mrc(self.host, self.port, self.user, self.password, self.chunk, self.configuration)
 
-    def get_next_packet(self):
+    def get_next_packet(self, wait=True):
         if (len(self._buffer) <= 0):
-            self._buffer.extend(self._client.get_next_packet())
+            packets = self._client.get_next_packet(wait)
+            if (len(packets) <= 0):
+                return None
+            self._buffer.extend(packets)
         return self._buffer.popleft()
 
     def close(self):
@@ -286,28 +304,32 @@ class rx_mrc(hl2ss._context_manager):
 # Decoder
 #------------------------------------------------------------------------------
 
+class MetadataSize:
+    MRC = 1
+
+
 class _MRC_Frame:
     def __init__(self, kind, sample, key_frame):
-        self.kind = kind
-        self.sample = sample
+        self.kind      = kind
+        self.sample    = sample
         self.key_frame = key_frame
 
 
-def unpack_mrc(payload):
-    flag = struct.unpack('B', payload[0:1])[0]
-    data = payload[1:]
-    kind = flag & 3
-    keyf = (flag & 0x04) != 0
-    return _MRC_Frame(kind, data, keyf)
-
-
 class decode_mrc:
-    def create(self):
+    def __init__(self):
         self._video_codec = hl2ss.get_video_codec(hl2ss.VideoProfile.H264_MAIN)
         self._audio_codec = hl2ss.get_audio_codec(hl2ss.AudioProfile.AAC_24000)
 
-    def decode(self, payload, kind, format):
-        return self._video_codec.decode(payload).to_ndarray(format=format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(payload).to_ndarray() if (kind == StreamKind.AUDIO) else None
+    def decode(self, payload, format):
+        data   = payload[:-1]
+        header = payload[-1:]
+
+        flags     = struct.unpack('B', header)[0]
+        kind      = flags & 3
+        key_frame = (flags & 0x04) != 0
+        sample    = data if (format is None) else self._video_codec.decode(data).to_ndarray(format=format) if (kind == StreamKind.VIDEO) else self._audio_codec.decode(data).to_ndarray() if (kind == StreamKind.AUDIO) else None
+
+        return _MRC_Frame(kind, sample, key_frame)
 
 
 #------------------------------------------------------------------------------
@@ -318,16 +340,15 @@ class rx_decoded_mrc(rx_mrc):
     def __init__(self, host, port, user, password, chunk, configuration, format):
         super().__init__(host, port, user, password, chunk, configuration)
         self.format = format
-        self._codec = decode_mrc()
-
+        
     def open(self):
-        self._codec.create()
+        self._codec = decode_mrc()
         super().open()
 
-    def get_next_packet(self):
-        data = super().get_next_packet()
-        data.payload = unpack_mrc(data.payload)
-        data.payload.sample = self._codec.decode(data.payload.sample, data.payload.kind, self.format)
+    def get_next_packet(self, wait=True):
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload, self.format)
         return data
 
     def close(self):

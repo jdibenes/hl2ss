@@ -154,6 +154,10 @@ def rm_vlc_rotate_image(image, rotation):
     return cv2.rotate(image, rotation)
 
 
+def rm_vlc_undistort(image, undistort_map, interpolation=cv2.INTER_LINEAR):
+    return cv2.remap(image, undistort_map[:, :, 0], undistort_map[:, :, 1], interpolation)
+
+
 def rm_vlc_to_rgb(image):
     return np.dstack((image, image, image))
 
@@ -170,14 +174,6 @@ def rm_depth_undistort(depth, undistort_map):
     return cv2.remap(depth, undistort_map[:, :, 0], undistort_map[:, :, 1], cv2.INTER_NEAREST)
 
 
-def rm_depth_to_float(image):
-    return image.astype(np.float32) / hl2ss._RANGEOF.U16_MAX
-
-
-def rm_depth_to_uint8(image):
-    return (image / (hl2ss._RANGEOF.U8_MAX + 1)).astype(np.uint8)
-
-
 def rm_depth_compute_rays(uv2xy, depth_scale):
     xy1 = to_homogeneous(uv2xy)
     scale = compute_norm(xy1) * depth_scale
@@ -188,19 +184,78 @@ def rm_depth_to_points(rays, depth):
     return rays * depth
 
 
-def rm_depth_to_rgb(image):
-    return np.dstack((image, image, image))
+def rm_depth_colormap(depth, max_depth, colormap=cv2.COLORMAP_JET):
+    return cv2.applyColorMap(((depth / max_depth) * 255).astype(np.uint8), colormap)
+
+
+def rm_ab_normalize(ab):
+    return np.sqrt(ab).astype(np.uint8)
+
+
+def rm_ab_undistort(ab, undistort_map, interpolation=cv2.INTER_LINEAR):
+    return cv2.remap(ab, undistort_map[:, :, 0], undistort_map[:, :, 1], interpolation)
+
+
+def rm_ab_to_rgb(ab):
+    return np.dstack((ab, ab, ab))
 
 
 #------------------------------------------------------------------------------
 # PV
 #------------------------------------------------------------------------------
 
+def pv_create_intrinsics(focal_length, principal_point):
+    return np.array([[-focal_length[0], 0, 0, 0], [0, focal_length[1], 0, 0], [principal_point[0], principal_point[1], 1, 0], [0, 0, 0, 1]], dtype=np.float32)
+
+
+def pv_create_intrinsics_placeholder():
+    return np.eye(4, 4, dtype=np.float32)
+
+
+def pv_update_intrinsics(intrinsics, focal_length, principal_point):
+    intrinsics[0, 0] = -focal_length[0]
+    intrinsics[1, 1] =  focal_length[1]
+    intrinsics[2, 0] = principal_point[0]
+    intrinsics[2, 1] = principal_point[1]
+    return intrinsics
+
+
 def pv_fix_calibration(intrinsics, extrinsics):
     R = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=extrinsics.dtype)
     intrinsics[0, 0] = -intrinsics[0, 0]
     extrinsics = extrinsics @ R
     return (intrinsics, extrinsics)
+
+
+#------------------------------------------------------------------------------
+# SI
+#------------------------------------------------------------------------------
+
+def si_head_pose_rotation_matrix(up, forward):
+    y = up
+    z = -forward
+    x = np.cross(y, z)
+    return np.hstack((x, y, z)).reshape((3, 3)).transpose()
+
+
+def si_ray_to_vector(origin, direction):
+    return np.vstack((origin, direction)).reshape((-1, 6))
+
+
+def si_ray_get_origin(ray):
+    return ray[:, 0:3]
+
+
+def si_ray_get_direction(ray):
+    return ray[:, 3:6]
+
+
+def si_ray_transform(ray, transform4x4):
+    return np.hstack((transform(ray[:, 0:3], transform4x4), orient(ray[:, 3:6], transform4x4)))
+
+
+def si_ray_to_point(ray, d):
+    return (ray[:, 0:3] + d * ray[:, 3:6]).reshape((-1, 3))
 
 
 #------------------------------------------------------------------------------
@@ -341,23 +396,23 @@ def _load_calibration_pv(path):
 # Calibration Wrappers
 #------------------------------------------------------------------------------
 
-def _download_calibration_rm(host, port):
+def _download_calibration_rm(host, port, sockopt):
     if (port == hl2ss.StreamPort.RM_VLC_LEFTFRONT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_VLC_LEFTLEFT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_VLC_RIGHTFRONT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_VLC_RIGHTRIGHT):
-        return hl2ss_lnm.download_calibration_rm_vlc(            host, port)
+        return hl2ss_lnm.download_calibration_rm_vlc(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_DEPTH_AHAT):
-        return hl2ss_lnm.download_calibration_rm_depth_ahat(     host, port)
+        return hl2ss_lnm.download_calibration_rm_depth_ahat(     host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_DEPTH_LONGTHROW):
-        return hl2ss_lnm.download_calibration_rm_depth_longthrow(host, port)
+        return hl2ss_lnm.download_calibration_rm_depth_longthrow(host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_IMU_ACCELEROMETER):
-        return hl2ss_lnm.download_calibration_rm_imu(            host, port)
+        return hl2ss_lnm.download_calibration_rm_imu(            host, port, sockopt)
     if (port == hl2ss.StreamPort.RM_IMU_GYROSCOPE):
-        return hl2ss_lnm.download_calibration_rm_imu(            host, port)
+        return hl2ss_lnm.download_calibration_rm_imu(            host, port, sockopt)
 
 
 def _save_calibration_rm(port, calibration, path):
@@ -408,7 +463,7 @@ def _load_calibration_rm(port, path):
 
 def _check_calibration_directory(path):
     if (not os.path.isdir(path)):
-        raise IOError('Calibration path ' + path + ' does not exist')
+        raise IOError('calibration path ' + path + ' does not exist')
 
 
 def _calibration_subdirectory(port, path):
@@ -419,7 +474,7 @@ def _calibration_subdirectory_pv(focus, width, height, path):
     return os.path.join(path, f'{int(focus)}_{int(width)}_{int(height)}')
 
 
-def get_calibration_rm(host, port, path):
+def get_calibration_rm(path, host, port, sockopt=None):
     _check_calibration_directory(path)
 
     base = _calibration_subdirectory(port, path)
@@ -427,14 +482,14 @@ def get_calibration_rm(host, port, path):
     try:
         calibration = _load_calibration_rm(port, base)
     except:
-        calibration = _download_calibration_rm(host, port)
+        calibration = _download_calibration_rm(host, port, sockopt)
         os.makedirs(base, exist_ok=True)
         _save_calibration_rm(port, calibration, base)
 
     return calibration
 
 
-def get_calibration_pv(host, port, path, focus, width, height, framerate):
+def get_calibration_pv(path, host, port, sockopt=None, focus=1000, width=1920, height=1080, framerate=30):
     _check_calibration_directory(path)
 
     root = _calibration_subdirectory(port, path)
@@ -443,7 +498,7 @@ def get_calibration_pv(host, port, path, focus, width, height, framerate):
     try:
         calibration = _load_calibration_pv(base)
     except:
-        calibration = hl2ss_lnm.download_calibration_pv(host, port, width, height, framerate)
+        calibration = hl2ss_lnm.download_calibration_pv(host, port, sockopt, width, height, framerate)
         os.makedirs(base, exist_ok=True)
         _save_calibration_pv(calibration, base)
         

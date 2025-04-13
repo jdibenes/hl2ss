@@ -11,11 +11,12 @@
 
 from pynput import keyboard
 
-import numpy as np
 import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
+import hl2ss_3dcv
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -27,10 +28,6 @@ host = "192.168.1.7"
 # 1: video + rig pose
 # 2: query calibration (single transfer)
 mode = hl2ss.StreamMode.MODE_1
-
-# Framerate denominator (must be > 0)
-# Effective framerate is framerate / divisor
-divisor = 1 
 
 # Depth encoding profile, AB encoding profile and bitrate (None = default)
 # SAME: use same compression as AB
@@ -66,23 +63,16 @@ if (mode == hl2ss.StreamMode.MODE_2):
     print(data.intrinsics)
     quit()
 
-enable = True
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
-
-client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=mode, divisor=divisor, profile_z=profile_z, profile_ab=profile_ab, bitrate=bitrate)
+client = hl2ss_lnm.rx_rm_depth_ahat(host, hl2ss.StreamPort.RM_DEPTH_AHAT, mode=mode, profile_z=profile_z, profile_ab=profile_ab, bitrate=bitrate)
 client.open()
 
 max_depth = 1056
-max_uint8 = 255
 
-while (enable):
+while (not listener.pressed()):
     data = client.get_next_packet()
 
     print(f'Frame captured at {data.timestamp}')
@@ -93,9 +83,9 @@ while (enable):
     depth = data.payload.depth
     ab = data.payload.ab
     
-    cv2.imshow('Depth', cv2.applyColorMap(((depth / max_depth) * max_uint8).astype(np.uint8), cv2.COLORMAP_JET)) # Scaled for visibility
-    cv2.imshow('AB', np.sqrt(ab).astype(np.uint8)) # Scaled for visibility
+    cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(depth, max_depth)) # Scaled for visibility
+    cv2.imshow('AB', hl2ss_3dcv.rm_ab_normalize(ab)) # Scaled for visibility
     cv2.waitKey(1)
 
 client.close()
-listener.join()
+listener.close()

@@ -76,8 +76,12 @@ void Channel_RM_ZLT::OnFrameProcess(UINT8 const* sigma, UINT16 const* depth, UIN
     RM_ZLT_Metadata metadata;
 
     metadata.timestamp    = host_ticks;
-    metadata.sensor_ticks = sensor_ticks;    
-    metadata.pose         = ResearchMode_GetRigNodeWorldPose(host_ticks);
+    metadata.sensor_ticks = sensor_ticks;
+
+    if (m_enable_location)
+    {
+    metadata.pose = ResearchMode_GetRigNodeWorldPose(host_ticks);
+    }
 
     m_pEncoder->WriteSample(sigma, depth, ab, host_ticks, &metadata);
 }

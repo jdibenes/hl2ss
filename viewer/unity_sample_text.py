@@ -5,7 +5,7 @@
 
 from pynput import keyboard
 
-import threading
+import threading as mt
 import hl2ss
 import hl2ss_lnm
 import hl2ss_rus
@@ -32,7 +32,7 @@ rgba = [1, 1, 1, 1]
 
 #------------------------------------------------------------------------------
 
-stop_event = threading.Event()
+stop_event = mt.Event()
 
 def on_press(key):
     if (key == keyboard.Key.esc):

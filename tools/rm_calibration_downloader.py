@@ -1,7 +1,5 @@
 
 import argparse
-import hl2ss
-import hl2ss_3dcv
 
 parser = argparse.ArgumentParser(description='HL2SS RM Calibration Downloader Tool.')
 parser.add_argument('--host', help='HL2 IP address (e.g. 192.168.1.0)', required=True)
@@ -11,6 +9,13 @@ args = parser.parse_args()
 
 host = args.host
 path = args.path
+
+import sys
+
+sys.path.append('../viewer')
+
+import hl2ss
+import hl2ss_3dcv
 
 ports = [hl2ss.StreamPort.RM_VLC_LEFTFRONT,
          hl2ss.StreamPort.RM_VLC_LEFTLEFT,
@@ -23,6 +28,6 @@ ports = [hl2ss.StreamPort.RM_VLC_LEFTFRONT,
 
 for port in ports:
     print('Fetching calibration for ' + hl2ss.get_port_name(port))
-    hl2ss_3dcv.get_calibration_rm(host, port, path)
+    hl2ss_3dcv.get_calibration_rm(path, host, port)
 
 print('RM calibrations saved to ' + path)

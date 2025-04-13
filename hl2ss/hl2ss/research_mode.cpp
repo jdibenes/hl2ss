@@ -189,11 +189,15 @@ bool ResearchMode_WaitForConsent(IResearchModeSensor* sensor)
 bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y, std::vector<float>& mapx, std::vector<float>& mapy, float K[4])
 {
     IResearchModeCameraSensor* pCameraSensor; // Release
+    std::vector<uint8_t> mask;
     int width;
     int height;
     int elements;
     float* lutx;
     float* luty;
+    uint8_t* lutm;
+    bool m;
+    float p;
     float uv[2];
     float xy[2];
     float x;
@@ -224,35 +228,70 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
 
+    int u0 = width  / 2;
+    int v0 = height / 2;
+
     elements = width * height;
 
     uv2x.resize(elements);
     uv2y.resize(elements);
     mapx.resize(elements);
     mapy.resize(elements);
+    mask.resize(elements);
+
+    lutx = uv2x.data();
+    luty = uv2y.data();
+    lutm = mask.data();
+
+    memset(lutm, 0, elements * sizeof(uint8_t));
+
+    for (int v = 0; v < height; ++v)
+    {
+    for (int u = 0; u < width;  ++u)
+    {
+    uv[0] = static_cast<float>(u);
+    uv[1] = static_cast<float>(v);
+    xy[0] = 0.0f;
+    xy[1] = 0.0f;
+
+    HRESULT hr = pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
+    if (FAILED(hr)) { lutm[v * width + u] = true; }
+
+    *(lutx++) = xy[0];
+    *(luty++) = xy[1];
+    }
+    }
+
+    lutx = uv2x.data();
+    luty = uv2y.data();
+    lutm = mask.data();    
+    
+    for (int v = 0; v < height; ++v)
+    {
+    m = false; p = lutx[v * width + u0]; for (int u = u0 + 1; u < width;  ++u) { x = lutx[v * width + u]; if (x < p) { m = true; } p = x; if (m) { lutm[v * width + u] = m; } }
+    m = false; p = lutx[v * width + u0]; for (int u = u0 - 1; u >= 0;     --u) { x = lutx[v * width + u]; if (x > p) { m = true; } p = x; if (m) { lutm[v * width + u] = m; } }
+    }
+
+    for (int u = 0; u < width; ++u)
+    {
+    m = false; p = luty[v0 * width + u]; for (int v = v0 + 1; v < height; ++v) { y = luty[v * width + u]; if (y < p) { m = true; } p = y; if (m) { lutm[v * width + u] = m; } }
+    m = false; p = luty[v0 * width + u]; for (int v = v0 - 1; v >= 0;     --v) { y = luty[v * width + u]; if (y > p) { m = true; } p = y; if (m) { lutm[v * width + u] = m; } }
+    }
 
     min_x =  std::numeric_limits<float>::infinity();
     max_x = -std::numeric_limits<float>::infinity();
     min_y =  std::numeric_limits<float>::infinity();
     max_y = -std::numeric_limits<float>::infinity();
 
-    lutx = uv2x.data();
-    luty = uv2y.data();
-
     for (int v = 0; v < height; ++v)
     {
     for (int u = 0; u < width;  ++u)
     {
-    uv[0] = static_cast<float>(u) + 0.5f;
-    uv[1] = static_cast<float>(v) + 0.5f;
+    x = *(lutx++);
+    y = *(luty++);
+    m = *(lutm++);
 
-    pCameraSensor->MapImagePointToCameraUnitPlane(uv, xy);
-
-    x = xy[0];
-    y = xy[1];
-
-    *(lutx++) = x;
-    *(luty++) = y;
+    if (m) { continue; }
 
     if (x < min_x) { min_x = x; } else if (x > max_x) { max_x = x; }
     if (y < min_y) { min_y = y; } else if (y > max_y) { max_y = y; }
@@ -278,7 +317,9 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     {
     xy[0] = fx * u + cx;
     xy[1] = fy * v + cy;
-
+    uv[0] = -1.0f;
+    uv[1] = -1.0f;
+    
     pCameraSensor->MapCameraSpaceToImagePoint(xy, uv);
 
     *(lutx++) = uv[0];
@@ -460,6 +501,37 @@ void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK
 // OK
 void ResearchMode_SetEyeSelection(bool enable)
 {
-    if (!g_ready) { return; }
     if (enable) { g_pSensorDevice->EnableEyeSelection(); } else { g_pSensorDevice->DisableEyeSelection(); }
+}
+
+// OK
+void ResearchMode_MapImagePointToCameraUnitPlane(IResearchModeSensor* sensor, std::vector<float2> const& in, std::vector<float2>& out)
+{
+    IResearchModeCameraSensor* pCameraSensor; // Release
+
+    out.resize(in.size());
+    sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
+    for (size_t i = 0; i < in.size(); ++i)
+    {
+    out[i].x = 0.0f;
+    out[i].y = 0.0f;
+    pCameraSensor->MapImagePointToCameraUnitPlane((float(&)[2])in[i], (float(&)[2])out[i]);    
+    }
+    pCameraSensor->Release();
+}
+
+// OK
+void ResearchMode_MapCameraSpaceToImagePoint(IResearchModeSensor* sensor, std::vector<float2> const& in, std::vector<float2>& out)
+{
+    IResearchModeCameraSensor* pCameraSensor; // Release
+
+    out.resize(in.size());
+    sensor->QueryInterface(IID_PPV_ARGS(&pCameraSensor));
+    for (size_t i = 0; i < in.size(); ++i)
+    {
+    out[i].x = -1.0f;
+    out[i].y = -1.0f;
+    pCameraSensor->MapCameraSpaceToImagePoint((float(&)[2])in[i], (float(&)[2])out[i]);
+    }
+    pCameraSensor->Release();
 }

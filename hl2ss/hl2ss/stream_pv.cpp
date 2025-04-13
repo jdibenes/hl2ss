@@ -125,7 +125,11 @@ void Channel_PV::OnFrameArrived_Mode0(MediaFrameReference const& frame)
     p.white_balance_gains   = *reinterpret_cast<float3*>(metadata.Lookup(MF_CAPTURE_METADATA_WHITEBALANCE_GAINS).as<IReferenceArray<uint8_t>>().Value().begin());
     p.resolution            = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
     p.timestamp             = frame.SystemRelativeTime().Value().count();
-    p.pose                  = PersonalVideo_GetFrameWorldPose(frame);
+
+    if (m_enable_location)
+    {
+    p.pose = PersonalVideo_GetFrameWorldPose(frame);
+    }
 
     m_pEncoder->WriteSample(frame, &p);
     }

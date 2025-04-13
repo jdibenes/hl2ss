@@ -2,7 +2,7 @@
 # This script receives RAW microphone audio from the HoloLens microphone array
 # and plays it.
 # Audio stream configuration is fixed to 5 channels, 48000 Hz, float32.
-# Only one channel is played at a time.
+# All channels are received but only one channel is played at a time.
 # Press esc to stop.
 #------------------------------------------------------------------------------
 
@@ -11,9 +11,7 @@ from pynput import keyboard
 import numpy as np
 import hl2ss
 import hl2ss_lnm
-import pyaudio
-import queue
-import threading
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -31,42 +29,27 @@ channel = hl2ss.Parameters_MICROPHONE.ARRAY_TOP_LEFT
 
 #------------------------------------------------------------------------------
 
-audio_format = pyaudio.paFloat32
-enable = True
+if __name__ == '__main__':
+    audio_subtype     = np.float32
+    audio_planar      = False
+    audio_channels    = 1 # audio_player only supports 1 or 2 channels
+    audio_sample_rate = hl2ss.Parameters_MICROPHONE.SAMPLE_RATE
 
-def pcmworker(pcmqueue):
-    global enable
-    global audio_format
-    p = pyaudio.PyAudio()
-    stream = p.open(format=audio_format, channels=1, rate=hl2ss.Parameters_MICROPHONE.SAMPLE_RATE, output=True)
-    stream.start_stream()
-    while (enable):
-        stream.write(pcmqueue.get())
-    stream.stop_stream()
-    stream.close()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+    listener.open()
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
+    player = hl2ss_utilities.audio_player(audio_subtype, audio_planar, audio_channels, audio_sample_rate)
+    player.open()
 
-pcmqueue = queue.Queue()
-thread = threading.Thread(target=pcmworker, args=(pcmqueue,))
-listener = keyboard.Listener(on_press=on_press)
-thread.start()
-listener.start()
+    client = hl2ss_lnm.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, profile=hl2ss.AudioProfile.RAW, level=hl2ss.AACLevel.L5)
+    client.open()
 
-client = hl2ss_lnm.rx_microphone(host, hl2ss.StreamPort.MICROPHONE, profile=hl2ss.AudioProfile.RAW, level=hl2ss.AACLevel.L5)
-client.open()
+    while (not listener.pressed()): 
+        data = client.get_next_packet()
+        # Extract channel to play
+        data.payload = data.payload[:, channel::hl2ss.Parameters_MICROPHONE.ARRAY_CHANNELS]
+        player.put(data.timestamp, data.payload)
 
-while (enable): 
-    data = client.get_next_packet()
-    audio = data.payload[0, channel::hl2ss.Parameters_MICROPHONE.ARRAY_CHANNELS]
-    pcmqueue.put(audio.tobytes())
-
-client.close()
-
-enable = False
-pcmqueue.put(b'')
-thread.join()
-listener.join()
+    client.close()
+    player.close()
+    listener.close()

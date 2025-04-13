@@ -18,7 +18,7 @@ namespace hl2ss
 namespace dp
 {
 //------------------------------------------------------------------------------
-// * Client
+// Client
 //------------------------------------------------------------------------------
 
 char const* client::bool_to_str(bool v)
@@ -151,7 +151,7 @@ void client::close()
 }
 
 //------------------------------------------------------------------------------
-// * Packet Gatherer
+// Packet Gatherer
 //------------------------------------------------------------------------------
 
 uint64_t gatherer::compute_timestamp(uint64_t ct, uint64_t et, uint32_t tb)
@@ -282,25 +282,29 @@ std::shared_ptr<packet> gatherer::get_next_packet()
                                                             m_video_ct = (ct + 1) * tb;
                                                             m_video_tb = tb;
 
-                                                            uint32_t sps_size = 134 - 106;
-                                                            uint32_t pps_size = 141 - 133;
-                                                            uint32_t nal_size = sps_size + pps_size;
-                                                            uint8_t* sps_base = stbl_data + 106;
-                                                            uint8_t* pps_base = stbl_data + 133;
+                                                            uint32_t sps_size_base = 108;
+                                                            uint32_t sps_size_end  = sps_size_base + 2;
+                                                            uint32_t sps_size = ntohs(*(uint16_t*)(stbl_data + sps_size_base));
+                                                            uint32_t sps_base = sps_size_end;
+                                                            uint32_t sps_end  = sps_base + sps_size;
+                                                            uint8_t* sps_data = stbl_data + sps_base;
+                                                            uint32_t pps_size_base = sps_end + 1;
+                                                            uint32_t pps_size_end  = pps_size_base + 2;
+                                                            uint32_t pps_size = ntohs(*(uint16_t*)(stbl_data + pps_size_base));
+                                                            uint32_t pps_base = pps_size_end;
+                                                            uint32_t pps_end  = pps_base + pps_size;
+                                                            uint8_t* pps_data = stbl_data + pps_base;
+                                                            uint32_t nal_size = 4 + sps_size + 4 + pps_size;
 
                                                             m_video_init_data = std::make_unique<uint8_t[]>(nal_size);
                                                             m_video_init_size = nal_size;
 
                                                             uint8_t* content = m_video_init_data.get();
 
-                                                            uint8_t* content_sps = content;
-                                                            uint8_t* content_pps = content_sps + sps_size;
-
-                                                            memcpy(content_sps, sps_base, sps_size);
-                                                            memcpy(content_pps, pps_base, pps_size);
-
-                                                            *(uint16_t*)(content_sps) = 0;
-                                                            *(uint16_t*)(content_pps) = 0;
+                                                            memset(content,            0,            2); content += 2;
+                                                            memcpy(content, sps_data - 2, 2 + sps_size); content += 2 + sps_size;
+                                                            memset(content,            0,            2); content += 2;
+                                                            memcpy(content, pps_data - 2, 2 + pps_size); content += 2 + pps_size;
                                                         }
                                                         else if (stbl_type == *(uint32_t*)"mp4a")
                                                         {
@@ -383,44 +387,51 @@ std::shared_ptr<packet> gatherer::get_next_packet()
                         offset += size;
 
                         std::shared_ptr<packet> data = std::make_shared<packet>();
+                        data->init_payload(0);
 
                         if (id == m_video_id)
                         {
                             data->timestamp = compute_timestamp(m_video_ct, m_video_et, m_video_tb);
-                            if (!m_video_init_data)
-                            {
-                                data->init_payload(1 + size);
-                                uint8_t* payload = data->payload.get();
-                                uint8_t* content = payload + 1;
-                                payload[0] = stream_kind::VIDEO | keyf;
-                                memcpy(content, sample, size);
-                            }
-                            else
-                            {
-                                data->init_payload(1 + m_video_init_size + size);
-                                uint8_t* payload = data->payload.get();
-                                uint8_t* aud     = payload + 1;
-                                uint8_t* sps_pps = aud + 6;
-                                uint8_t* content = sps_pps + m_video_init_size;
-                                payload[0] = stream_kind::VIDEO | keyf;
-                                memcpy(aud,     sample,                  6);
-                                memcpy(sps_pps, m_video_init_data.get(), m_video_init_size);
-                                memcpy(content, sample + 6,              size - 6);
-                                m_video_init_data = nullptr;
-                            }
-                            avcc_to_annex_b(data->payload.get() + 1, data->sz_payload - 1);
+                            data->init_payload(m_video_init_size + size + sizeof(mrc_metadata));
+
+                            uint8_t*      payload  = data->payload.get();
+                            mrc_metadata* metadata = (mrc_metadata*)(payload + data->sz_payload - sizeof(mrc_metadata));
+
+                            uint8_t* aud     = payload;
+                            uint8_t* sps_pps = aud + 6;
+                            uint8_t* content = sps_pps + m_video_init_size;
+
+                            memcpy(aud,      sample,                  6);
+                            memcpy(sps_pps,  m_video_init_data.get(), m_video_init_size);
+                            memcpy(content,  sample + 6,              size - 6);
+                            memset(metadata, 0,                       sizeof(mrc_metadata));
+
+                            metadata->header = stream_kind::VIDEO | keyf;
+
+                            m_video_init_data = nullptr;
+                            m_video_init_size = 0;
+
+                            avcc_to_annex_b(data->payload.get(), data->sz_payload - sizeof(mrc_metadata));
+                            
                             m_video_et += span;
                         }
                         else if (id == m_audio_id)
                         {
                             data->timestamp = compute_timestamp(m_audio_ct, m_audio_et, m_audio_tb);
-                            data->init_payload(1 + 7 + size);
-                            uint8_t* payload = data->payload.get();
-                            uint8_t* header  = payload + 1;
+                            data->init_payload(7 + size + sizeof(mrc_metadata));                           
+
+                            uint8_t*      payload  = data->payload.get();
+                            mrc_metadata* metadata = (mrc_metadata*)(payload + data->sz_payload - sizeof(mrc_metadata));
+
+                            uint8_t* header  = payload;
                             uint8_t* content = header + 7;
-                            payload[0] = stream_kind::AUDIO | keyf;
+
                             raw_aac_to_adts(header, size);
                             memcpy(content, sample, size);
+                            memset(metadata, 0, sizeof(mrc_metadata));
+
+                            metadata->header = stream_kind::AUDIO | keyf;
+                            
                             m_audio_et += span;
                         }
 
@@ -448,7 +459,7 @@ void gatherer::close()
 }
 
 //------------------------------------------------------------------------------
-// * Mode 0 Data Acquisition
+// Mode 0 Data Acquisition
 //------------------------------------------------------------------------------
 
 rx_mrc::rx_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk, mrc_configuration const& configuration)
@@ -481,39 +492,45 @@ void rx_mrc::close()
 }
 
 //------------------------------------------------------------------------------
-// * Decoder
+// Decoder
 //------------------------------------------------------------------------------
 
-std::unique_ptr<uint8_t[]> decoder_mrc::decode_video(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size, uint16_t& width, uint16_t& height)
+std::unique_ptr<uint8_t[]> decoder_mrc::decode_video(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size)
 {
-    uint8_t* sample_base = data + 1;
-    uint32_t sample_size = size - 1;
+    uint8_t* sample_base = data;
+    uint32_t sample_size = size - sizeof(mrc_metadata);
     std::shared_ptr<frame> f = m_video_codec.decode(sample_base, sample_size);
-    width = f->av_frame->width;
-    height = f->av_frame->height;
+    uint16_t width  = f->av_frame->width;
+    uint16_t height = f->av_frame->height;
     cv::Mat input = cv::Mat((height * 3) / 2, width, CV_8UC1);
     collect_i420(input.data, width, height, f->av_frame->data, f->av_frame->linesize);
-    decoded_size = width * height * decoder_pv::decoded_bpp(decoded_format);
-    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(8 + decoded_size);
-    cv::Mat output = cv::Mat(height, width, decoder_pv::decoded_cv_type(decoded_format), out.get() + 8);
-    memcpy(out.get(),      data,   1);
-    memcpy(out.get() + 4, &width,  2);
-    memcpy(out.get() + 6, &height, 2);
+    uint32_t image_size = width * height * decoder_pv::decoded_bpp(decoded_format);
+    decoded_size = image_size + sizeof(mrc_metadata);
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    cv::Mat output = cv::Mat(height, width, decoder_pv::decoded_cv_type(decoded_format), out.get());
     cv::cvtColor(input, output, decoder_pv::decoded_cv_i420(decoded_format));
+    mrc_metadata* metadata = (mrc_metadata*)(sample_base + sample_size);
+    metadata->width  = width;
+    metadata->height = height;
+    memcpy(out.get() + image_size, metadata, sizeof(mrc_metadata));
     return out;
 }
 
 std::unique_ptr<uint8_t[]> decoder_mrc::decode_audio(uint8_t* data, uint32_t size, uint32_t& decoded_size)
 {
-    uint8_t* sample_base = data + 1;
-    uint32_t sample_size = size - 1;
+    uint8_t* sample_base = data;
+    uint32_t sample_size = size - sizeof(mrc_metadata);
     std::shared_ptr<frame> f = m_audio_codec.decode(sample_base, sample_size);
-    decoded_size = f->av_frame->linesize[0];
-    uint32_t offset = decoded_size / 2;
-    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(8 + decoded_size);
-    memcpy(out.get(),              data,                      1);
-    memcpy(out.get() + 8,          f->av_frame->data[0], offset);
-    memcpy(out.get() + 8 + offset, f->av_frame->data[1], offset);
+    uint32_t audio_size = f->av_frame->linesize[0];
+    uint32_t offset = audio_size / 2;
+    decoded_size = audio_size + sizeof(mrc_metadata);
+    std::unique_ptr<uint8_t[]> out = std::make_unique<uint8_t[]>(decoded_size);
+    memcpy(out.get(),          f->av_frame->data[0], offset);
+    memcpy(out.get() + offset, f->av_frame->data[1], offset);
+    mrc_metadata* metadata = (mrc_metadata*)(sample_base + sample_size);
+    metadata->width  = (uint16_t)(offset / sizeof(float));
+    metadata->height = 2;
+    memcpy(out.get() + audio_size, metadata, sizeof(mrc_metadata));
     return out;
 }
 
@@ -523,11 +540,13 @@ void decoder_mrc::open()
     m_audio_codec.open(get_audio_codec_id(audio_profile::AAC_24000));
 }
 
-std::unique_ptr<uint8_t[]> decoder_mrc::decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size, uint16_t& width, uint16_t& height)
+std::unique_ptr<uint8_t[]> decoder_mrc::decode(uint8_t* data, uint32_t size, uint8_t decoded_format, uint32_t& decoded_size)
 {
-    switch (data[0] & 3)
+    mrc_metadata* metadata = (mrc_metadata*)(data + size - sizeof(mrc_metadata));
+
+    switch (mrc_get_kind(metadata->header))
     {
-    case stream_kind::VIDEO: return decode_video(data, size, decoded_format, decoded_size, width, height);
+    case stream_kind::VIDEO: return decode_video(data, size, decoded_format, decoded_size);
     case stream_kind::AUDIO: return decode_audio(data, size, decoded_size);
     default:                 return nullptr;
     }
@@ -540,14 +559,12 @@ void decoder_mrc::close()
 }
 
 //------------------------------------------------------------------------------
-// * Mode 0 Data Acquisition (Decoded)
+// Mode 0 Data Acquisition (Decoded)
 //------------------------------------------------------------------------------
 
 rx_decoded_mrc::rx_decoded_mrc(char const* host, char const* port, char const* user, char const* password, uint64_t chunk, mrc_configuration const& configuration, uint8_t decoded_format) : rx_mrc(host, port, user, password, chunk, configuration)
 {
     this->decoded_format = decoded_format;
-    this->width = 0;
-    this->height = 0;
 }
 
 void rx_decoded_mrc::open()
@@ -560,7 +577,7 @@ std::shared_ptr<packet> rx_decoded_mrc::get_next_packet()
 {
     std::shared_ptr<packet> p = rx_mrc::get_next_packet();
     uint32_t size;
-    std::unique_ptr<uint8_t[]> payload = m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format, size, width, height);
+    std::unique_ptr<uint8_t[]> payload = m_decoder.decode(p->payload.get(), p->sz_payload, decoded_format, size);
     p->set_payload(size, std::move(payload));
     return p;
 }
@@ -569,20 +586,6 @@ void rx_decoded_mrc::close()
 {
     rx_mrc::close();
     m_decoder.close();
-}
-
-//------------------------------------------------------------------------------
-// * Unpacking
-//------------------------------------------------------------------------------
-
-map_mrc_video unpack_mrc_video(uint8_t* payload)
-{
-    return { (mrc_video_metadata*)payload, payload + 8 };
-}
-
-map_mrc_audio unpack_mrc_audio(uint8_t* payload)
-{
-    return { (mrc_audio_metadata*)payload, (float*)(payload + 8) };
 }
 }
 }

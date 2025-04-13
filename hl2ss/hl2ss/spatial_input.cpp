@@ -23,6 +23,7 @@ using namespace winrt::Windows::Perception::People;
 
 static SpatialInteractionManager g_sim = nullptr;
 static std::vector<HandJointKind> g_joints;
+static int64_t g_sampling_delay = 0;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -130,12 +131,17 @@ void SpatialInput_ExecuteSensorLoop(HOOK_SI_PROC hook, void* param, HANDLE event
 
     l_hand.resize(HAND_JOINTS);
     r_hand.resize(HAND_JOINTS);
+
+    memset(&head_pose,    0, sizeof(head_pose));
+    memset(&eye_ray,      0, sizeof(eye_ray));
+    memset(l_hand.data(), 0, HAND_SIZE);
+    memset(r_hand.data(), 0, HAND_SIZE);
     
     do
     {
     SetWaitableTimer(timer, &delay, 0, NULL, NULL, 0);
 
-    UINT64 qpc = Timestamp_GetCurrentQPC();
+    UINT64 qpc = Timestamp_GetCurrentQPC() - g_sampling_delay;
     auto world = Locator_GetWorldCoordinateSystem();
 
     int status1 = SpatialInput_GetHeadPoseAndEyeRay(world, qpc, head_pose, eye_ray);
@@ -148,4 +154,10 @@ void SpatialInput_ExecuteSensorLoop(HOOK_SI_PROC hook, void* param, HANDLE event
     while (WaitForSingleObject(event_stop, 0) == WAIT_TIMEOUT);
 
     CloseHandle(timer);
+}
+
+// OK
+void SpatialInput_SetSamplingDelay(int64_t delay)
+{
+    g_sampling_delay = delay;
 }

@@ -4,13 +4,13 @@
 # Press ESC to stop.
 #------------------------------------------------------------------------------
 
-import multiprocessing as mp
-import numpy as np
+#check
 import cv2
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
+import hl2ss_3dcv
 
 # Settings --------------------------------------------------------------------
 
@@ -34,26 +34,19 @@ if __name__ == '__main__':
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, global_opacity=ev_group_index, output_width=0, output_height=0)
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH, global_opacity=ez_group_index, output_width=0, output_height=0)
 
-    producer = hl2ss_mp.producer()
-    producer.configure(hl2ss.StreamPort.EXTENDED_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, width=ev_width, height=ev_height, framerate=ev_fps))
-    producer.configure(hl2ss.StreamPort.EXTENDED_DEPTH, hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, media_index=ez_media_index))
-    producer.initialize(hl2ss.StreamPort.EXTENDED_VIDEO, 300)
-    producer.initialize(hl2ss.StreamPort.EXTENDED_DEPTH, 300)
-    producer.start(hl2ss.StreamPort.EXTENDED_VIDEO)
-    producer.start(hl2ss.StreamPort.EXTENDED_DEPTH)
+    sink_ev = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, width=ev_width, height=ev_height, framerate=ev_fps))
+    sink_ez = hl2ss_mp.stream(hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, media_index=ez_media_index))
 
-    consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()
-    sink_ev = consumer.create_sink(producer, hl2ss.StreamPort.EXTENDED_VIDEO, manager, None)
-    sink_ez = consumer.create_sink(producer, hl2ss.StreamPort.EXTENDED_DEPTH, manager, None)
-    sink_ev.get_attach_response()
-    sink_ez.get_attach_response()
+    sink_ev.open()
+    sink_ez.open()
 
     cv2.namedWindow('RGB')
     cv2.namedWindow('Depth')
 
-    while (cv2.waitKey(1) != 27):
-        _, _, data_ev = sink_ev.get_buffered_frame(-6) # artificial delay of 6 frames to simplify RGB<->Depth frame pairing (might fail)
+    while ((cv2.waitKey(1) & 0xFF) != 27):
+        # Artificial delay of 6 frames to simplify RGB<->Depth frame pairing
+        # might fail due to network lag
+        _, _, data_ev = sink_ev.get_buffered_frame(-6)
         if (data_ev is None):
             continue
 
@@ -66,12 +59,10 @@ if __name__ == '__main__':
             print(f'timestamp mismatch {data_ev.timestamp}-{data_ez.timestamp} delta {ts_delta} seconds ({ts_delta * ev_fps} RGB frames)')
 
         cv2.imshow('RGB', data_ev.payload.image)
-        cv2.imshow('Depth', cv2.applyColorMap(((data_ez.payload.depth / max_depth) * hl2ss._RANGEOF.U8_MAX).astype(np.uint8), cv2.COLORMAP_JET))
+        cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(data_ez.payload.depth, max_depth))
 
-    sink_ez.detach()
-    sink_ev.detach()
-    producer.stop(hl2ss.StreamPort.EXTENDED_DEPTH)
-    producer.stop(hl2ss.StreamPort.EXTENDED_VIDEO)
+    sink_ez.close()
+    sink_ev.close()
 
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH)
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO)

@@ -3,9 +3,14 @@
 #include "holographic_space.h"
 #include "extended_execution.h"
 #include "personal_video.h"
+#include "spatial_input.h"
 #include "research_mode.h"
 #include "server_channel.h"
 #include "types.h"
+
+#include <winrt/Windows.Foundation.Numerics.h>
+
+using namespace winrt::Windows::Foundation::Numerics;
 
 class Channel_RC : public Channel
 {
@@ -38,6 +43,10 @@ private:
     bool MSG_PV_SetRegionsOfInterest();
     bool MSG_EE_SetInterfacePriority();
     bool MSG_EE_SetQuietMode();
+    bool MSG_RM_MapCameraPoints();
+    bool MSG_RM_GetRigNodeWorldPose();
+    bool MSG_TS_GetCurrentTime();
+    bool MSG_SI_SetSamplingDelay();
 
 public:
     Channel_RC(char const* name, char const* port, uint32_t id);
@@ -280,6 +289,8 @@ bool Channel_RC::MSG_RM_SetEyeSelection()
     bool ok;
     uint32_t enable;
 
+    if (!ResearchMode_Status()) { return false; }
+
     ok = recv_u32(m_socket_client, m_event_client, enable);
     if (!ok) { return false; }
 
@@ -410,6 +421,137 @@ bool Channel_RC::MSG_EE_SetQuietMode()
 }
 
 // OK
+bool Channel_RC::MSG_RM_MapCameraPoints()
+{
+    bool ok;
+    uint32_t port;
+    uint32_t operation;
+    uint32_t count;
+    uint32_t size;
+    IResearchModeSensor* pSensor;
+    std::vector<float2> in;
+    std::vector<float2> out;
+    WSABUF wsaBuf[1];
+
+    if (!ResearchMode_Status()) { return false; }
+
+    ok = recv_u32(m_socket_client, m_event_client, port);
+    if (!ok) { return false; }
+
+    ok = recv_u32(m_socket_client, m_event_client, operation);
+    if (!ok) { return false; }
+
+    ok = recv_u32(m_socket_client, m_event_client, count);
+    if (!ok) { return false; }
+
+    in.resize(count);
+    size = sizeof(float2) * count;
+    
+    ok = recv(m_socket_client, m_event_client, in.data(), size);
+    if (!ok) { return false; }
+
+    switch (port)
+    {
+    case PORT_NUMBER_RM_VLF: pSensor = ResearchMode_GetSensor(ResearchModeSensorType::LEFT_FRONT);       break;
+    case PORT_NUMBER_RM_VLL: pSensor = ResearchMode_GetSensor(ResearchModeSensorType::LEFT_LEFT);        break;
+    case PORT_NUMBER_RM_VRF: pSensor = ResearchMode_GetSensor(ResearchModeSensorType::RIGHT_FRONT);      break;
+    case PORT_NUMBER_RM_VRR: pSensor = ResearchMode_GetSensor(ResearchModeSensorType::RIGHT_RIGHT);      break;
+    case PORT_NUMBER_RM_ZHT: pSensor = ResearchMode_GetSensor(ResearchModeSensorType::DEPTH_AHAT);       break;
+    case PORT_NUMBER_RM_ZLT: pSensor = ResearchMode_GetSensor(ResearchModeSensorType::DEPTH_LONG_THROW); break;
+    default:                 return false;
+    }
+
+    switch (operation)
+    {
+    case 0:  ResearchMode_MapImagePointToCameraUnitPlane(pSensor, in, out); break;
+    case 1:  ResearchMode_MapCameraSpaceToImagePoint(pSensor, in, out);     break;
+    default: return false;
+    }
+
+    pack_buffer(wsaBuf, 0, out.data(), size);
+
+    ok = send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { return false; }
+
+    return true;
+}
+
+// OK
+bool Channel_RC::MSG_RM_GetRigNodeWorldPose()
+{
+    bool ok;
+    uint32_t count;
+    uint32_t size_in;
+    uint32_t size_out;
+    std::vector<uint64_t> in;
+    std::vector<float4x4> out;
+    WSABUF wsaBuf[1];
+
+    if (!ResearchMode_Status()) { return false; }
+
+    ok = recv_u32(m_socket_client, m_event_client, count);
+    if (!ok) { return false; }
+
+    in.resize(count);
+    out.resize(count);
+
+    size_in  = sizeof(uint64_t) * count;
+    size_out = sizeof(float4x4) * count;
+
+    ok = recv(m_socket_client, m_event_client, in.data(), size_in);
+    if (!ok) { return false; }
+
+    for (uint32_t i = 0; i < count; ++i) { out[i] = ResearchMode_GetRigNodeWorldPose(in[i]); }
+
+    pack_buffer(wsaBuf, 0, out.data(), size_out);
+
+    ok = send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { return false; }
+
+    return true;
+}
+
+// OK
+bool Channel_RC::MSG_TS_GetCurrentTime()
+{
+    bool ok;
+    uint32_t source;
+    uint64_t timestamp;
+    WSABUF wsaBuf[1];
+
+    ok = recv_u32(m_socket_client, m_event_client, source);
+    if (!ok) { return false; }
+
+    switch (source)
+    {
+    case 0:  timestamp = Timestamp_GetCurrentQPC(); break;
+    case 1:  timestamp = Timestamp_GetCurrentUTC(); break;
+    default: return false;
+    }
+
+    pack_buffer(wsaBuf, 0, &timestamp, sizeof(timestamp));
+
+    ok = send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    if (!ok) { return false; }
+
+    return true;
+}
+
+// OK
+bool Channel_RC::MSG_SI_SetSamplingDelay()
+{
+    bool ok;
+    uint64_t delay;
+
+    ok = recv_u64(m_socket_client, m_event_client, delay);
+    if (!ok) { return false; }
+
+    SpatialInput_SetSamplingDelay(delay);
+
+    return true;
+}
+
+// OK
 bool Channel_RC::Dispatch()
 {
     uint8_t state;
@@ -442,6 +584,10 @@ bool Channel_RC::Dispatch()
     case 0x13: return MSG_PV_SetRegionsOfInterest();
     case 0x14: return MSG_EE_SetInterfacePriority();
     case 0x15: return MSG_EE_SetQuietMode();
+    case 0x16: return MSG_RM_MapCameraPoints();
+    case 0x17: return MSG_RM_GetRigNodeWorldPose();
+    case 0x18: return MSG_TS_GetCurrentTime();
+    case 0x19: return MSG_SI_SetSamplingDelay();
     default:   return false;
     }
 }

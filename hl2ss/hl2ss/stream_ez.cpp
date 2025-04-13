@@ -1,5 +1,6 @@
 
 #include "extended_depth.h"
+#include "research_mode.h"
 #include "server_channel.h"
 #include "server_settings.h"
 #include "encoder_ez.h"
@@ -85,6 +86,13 @@ void Channel_EZ::OnFrameArrived(MediaFrameReference const& frame)
     if (m_counter == 0)
     {
     p.resolution = (static_cast<uint32_t>(m_height) << 16) | static_cast<uint32_t>(m_width);
+    p.timestamp  = frame.SystemRelativeTime().Value().count();
+
+    if (m_enable_location && ResearchMode_Status())
+    {
+    p.pose = ResearchMode_GetRigNodeWorldPose(p.timestamp);
+    }
+
     if (!m_pEncoder->WriteSample(frame, &p)) { SetEvent(m_event_client); }
     }
     m_counter = (m_counter + 1) % m_divisor;
@@ -94,17 +102,20 @@ void Channel_EZ::OnFrameArrived(MediaFrameReference const& frame)
 void Channel_EZ::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
     (void)clean_point;
+    (void)sample_time;
+    (void)metadata_size;
+
+    ULONG const embed_size = sizeof(EZ_Metadata) - sizeof(EZ_Metadata::_reserved) - sizeof(EZ_Metadata::timestamp) - sizeof(EZ_Metadata::pose);
 
     EZ_Metadata* p = static_cast<EZ_Metadata*>(metadata);
-    ULONG full_size = encoded_size + metadata_size;
-    float4x4 pose;
+    ULONG full_size = encoded_size + embed_size;
     WSABUF wsaBuf[5];
-
-    pack_buffer(wsaBuf, 0, &sample_time, sizeof(sample_time));
-    pack_buffer(wsaBuf, 1, &full_size,   sizeof(full_size));
-    pack_buffer(wsaBuf, 2, encoded,      encoded_size);
-    pack_buffer(wsaBuf, 3, p,            metadata_size);
-    pack_buffer(wsaBuf, 4, &pose,        sizeof(pose) * m_enable_location);
+    
+    pack_buffer(wsaBuf, 0, &p->timestamp, sizeof(p->timestamp));
+    pack_buffer(wsaBuf, 1, &full_size,    sizeof(full_size));
+    pack_buffer(wsaBuf, 2, encoded,       encoded_size);
+    pack_buffer(wsaBuf, 3, p,             embed_size);
+    pack_buffer(wsaBuf, 4, &p->pose,      sizeof(p->pose) * m_enable_location);
 
     send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }

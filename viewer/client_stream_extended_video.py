@@ -6,10 +6,11 @@
 from pynput import keyboard
 
 import cv2
+import json
 import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
-import json
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -18,6 +19,7 @@ host = "192.168.1.7"
 
 # Operating mode
 # 0: video
+# 1: video + rignode pose
 # 2: query devices (single transfer)
 # Mode 2 as default since the user has to find their camera in the device list
 mode = hl2ss.StreamMode.MODE_2
@@ -57,9 +59,9 @@ width     = 1280
 height    = 720
 framerate = 30
 
-# Framerate denominator (must be > 0)
-# Effective FPS is framerate / divisor
-divisor = 1 
+# Video encoding profile and bitrate (None = default)
+profile = hl2ss.VideoProfile.H265_MAIN
+bitrate = None
 
 # Decoded format
 # Options include:
@@ -68,6 +70,16 @@ divisor = 1
 # 'bgra'
 # 'rgba'
 # 'gray8'
+# If profile is hl2ss.VideoProfile.RAW then these conversions are only 
+# supported if the video Subtype is NV12
+# For other Subtypes, the user has to cast the image to the appropriate shape
+# and type before converting to the desired format
+# Example: 
+# For RAW video profile and YUY2 Subtype, convert YUY2 to BGR using OpenCV
+#     decoded_format = 'any'
+#     ...
+#     data.payload.image = data.payload.image.reshape((data.payload.resolution[1], data.payload.resolution[0], 2))
+#     data.payload.image = cv2.cvtColor(data.payload.image, cv2.COLOR_YUV2BGR_YUY2)
 decoded_format = 'bgr24'
 
 #------------------------------------------------------------------------------
@@ -80,28 +92,23 @@ if (mode == hl2ss.StreamMode.MODE_2):
 
 hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, shared=shared, global_opacity=group_index, output_width=source_index, output_height=profile_index)
 
-enable = True
+listener = hl2ss_utilities.key_listener(keyboard.Key.esc)
+listener.open()
 
-def on_press(key):
-    global enable
-    enable = key != keyboard.Key.esc
-    return enable
-
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
-
-client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, mode=mode, width=width, height=height, framerate=framerate, divisor=divisor, decoded_format=decoded_format)
+client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, mode=mode, width=width, height=height, framerate=framerate, profile=profile, bitrate=bitrate, decoded_format=decoded_format)
 client.open()
 
-while (enable):
+while (not listener.pressed()):
     data = client.get_next_packet()
 
     print(f'Frame captured at {data.timestamp} with resolution {data.payload.resolution}')
+    print(f'Pose')
+    print(data.pose)
 
     cv2.imshow('Video', data.payload.image)
     cv2.waitKey(1)
 
 client.close()
-listener.join()
+listener.close()
 
 hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO)

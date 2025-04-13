@@ -64,8 +64,13 @@ void Channel_RM_ACC::OnFrameProcess(AccelDataStruct const* imu_buffer, size_t im
     (void)sensor_ticks;
 
     ULONG full_size = static_cast<ULONG>(imu_samples * sizeof(AccelDataStruct));
-    float4x4 pose = ResearchMode_GetRigNodeWorldPose(host_ticks);
+    float4x4 pose;
     WSABUF wsaBuf[4];
+
+    if (m_enable_location)
+    {
+    pose = ResearchMode_GetRigNodeWorldPose(host_ticks);
+    }
 
     pack_buffer(wsaBuf, 0, &host_ticks, sizeof(host_ticks));
     pack_buffer(wsaBuf, 1, &full_size,  sizeof(full_size));

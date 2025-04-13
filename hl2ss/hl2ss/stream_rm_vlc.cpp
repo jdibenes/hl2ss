@@ -106,7 +106,11 @@ void Channel_RM_VLC::OnFrameProcess(BYTE const* image, UINT64 host_ticks, UINT64
     metadata.exposure     = exposure;
     metadata.gain         = gain;  
     metadata._reserved    = 0;
-    metadata.pose         = ResearchMode_GetRigNodeWorldPose(adjusted_timestamp);
+
+    if (m_enable_location)
+    {
+    metadata.pose = ResearchMode_GetRigNodeWorldPose(adjusted_timestamp);
+    }
 
     m_pEncoder->WriteSample(image, adjusted_timestamp, &metadata);
 }

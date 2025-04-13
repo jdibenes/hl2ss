@@ -11,6 +11,9 @@
 struct EZ_Metadata
 {
     uint32_t resolution;
+    uint32_t _reserved;
+    uint64_t timestamp;
+    winrt::Windows::Foundation::Numerics::float4x4 pose;
 };
 
 class Encoder_EZ

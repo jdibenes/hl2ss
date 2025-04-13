@@ -5,14 +5,13 @@
 
 from pynput import keyboard
 
-import numpy as np
-import multiprocessing as mp
 import open3d as o3d
-import cv2
+import time
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
 import hl2ss_3dcv
+import hl2ss_utilities
 
 # Settings --------------------------------------------------------------------
 
@@ -21,9 +20,6 @@ host = '192.168.1.7'
 
 # Calibration path (must exist but can be empty)
 calibration_path = '../calibration'
-
-# Buffer length in seconds
-buffer_length = 10
 
 # Integration parameters
 voxel_length = 1/100
@@ -34,19 +30,12 @@ max_depth = 3.0
 
 if __name__ == '__main__':
     # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.space
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.space)
+    listener.open()
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
 
     uv2xy = hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
@@ -60,35 +49,35 @@ if __name__ == '__main__':
     first_pcd = True
 
     # Start RM Depth Long Throw stream ----------------------------------------
-    producer = hl2ss_mp.producer()
-    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
-    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_length)
-    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_depth = hl2ss_mp.stream(hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
+    sink_depth.open()
 
-    consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()    
-    sink_depth = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
-
-    sink_depth.get_attach_response()
+    last_fs = -1
 
     # Main Loop ---------------------------------------------------------------
-    while (enable):
-        # Wait for RM Depth Long Throw frame ----------------------------------
-        sink_depth.acquire()
-
+    while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
+        
         # Get RM Depth Long Throw frame ---------------------------------------
-        _, data_depth = sink_depth.get_most_recent_frame()
+        fs_depth, data_depth = sink_depth.get_most_recent_frame()
         if ((data_depth is None) or (not hl2ss.is_valid_pose(data_depth.pose))):
             continue
+
+        if (fs_depth <= last_fs):
+            time.sleep(1 / hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS)
+            continue
+
+        last_fs = fs_depth
 
         # Preprocess frames ---------------------------------------------------
         depth = hl2ss_3dcv.rm_depth_undistort(data_depth.payload.depth, calibration_lt.undistort_map)
         depth = hl2ss_3dcv.rm_depth_normalize(depth, scale)
-        color = cv2.remap(data_depth.payload.ab, calibration_lt.undistort_map[:, :, 0], calibration_lt.undistort_map[:, :, 1], cv2.INTER_LINEAR)
+        color = hl2ss_3dcv.rm_ab_undistort(data_depth.payload.ab, calibration_lt.undistort_map)
         
         # Convert to Open3D RGBD image ----------------------------------------
-        color = np.sqrt(color).astype(dtype=np.uint8)
-        color = hl2ss_3dcv.rm_depth_to_rgb(color)
+        color = hl2ss_3dcv.rm_ab_normalize(color)
+        color = hl2ss_3dcv.rm_ab_to_rgb(color)
         color_image = o3d.geometry.Image(color)
         depth_image = o3d.geometry.Image(depth)
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color_image, depth_image, depth_scale=1, depth_trunc=max_depth, convert_rgb_to_intensity=False)
@@ -109,15 +98,11 @@ if __name__ == '__main__':
             pcd.colors = pcd_tmp.colors
             vis.update_geometry(pcd)
 
-        vis.poll_events()
-        vis.update_renderer()
-
     # Stop RM Depth Long Throw stream -----------------------------------------
-    sink_depth.detach()
-    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_depth.close()
 
     # Stop keyboard events ----------------------------------------------------
-    listener.join()
+    listener.close()
 
     # Show final point cloud --------------------------------------------------
     vis.run()

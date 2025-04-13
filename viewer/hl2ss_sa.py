@@ -1,8 +1,9 @@
 
 import multiprocessing as mp
-import threading
+import threading as mt
 import numpy as np
 import open3d as o3d
+import traceback
 import hl2ss
 import hl2ss_lnm
 import hl2ss_3dcv
@@ -47,36 +48,49 @@ class _sm_manager_entry:
         self.rcs = rcs
 
 
-class sm_manager:
-    def __init__(self, host, triangles_per_cubic_meter, threads):
+class sm_manager(hl2ss._context_manager):
+    def __init__(self, host, port, sockopt=None, triangles_per_cubic_meter=1000, vpf=hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized, tif=hl2ss.SM_TriangleIndexFormat.R16UInt, vnf=hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized):
         self._tpcm = triangles_per_cubic_meter
-        self._vpf = hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized
-        self._tif = hl2ss.SM_TriangleIndexFormat.R16UInt
-        self._vnf = hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized
-        self._ipc = hl2ss_lnm.ipc_sm(host, hl2ss.IPCPort.SPATIAL_MAPPING)
+        self._vpf = vpf
+        self._tif = tif
+        self._vnf = vnf
+        self._ipc = hl2ss_lnm.ipc_sm(host, port, sockopt)
         self._surfaces = {}
         self._volumes = None
+        self._updated = False
 
     def open(self):
         self._ipc.open()
 
     def set_volumes(self, volumes):
+        self._set_volumes(volumes)
+
+    def _set_volumes(self, volumes):
         self._volumes = volumes
 
-    def _load_updated_surfaces(self):
-        self._surfaces = self._updated_surfaces
+    def _get_volumes(self):
+        v, self._volumes = self._volumes, None
+        return v
+
+    def _set_surfaces(self, surfaces):
+        self._surfaces = surfaces
+        self._updated = True
 
     def _get_surfaces(self):
         return self._surfaces.values()
 
+    def _get_updated_flag(self):
+        f, self._updated = self._updated, False
+        return f
+
     def get_observed_surfaces(self):
-        self._updated_surfaces = {}
+        next_surfaces = {}
         tasks = hl2ss.sm_mesh_task()        
         updated_surfaces = []
 
-        if (self._volumes is not None):
-            self._ipc.set_volumes(self._volumes)
-            self._volumes = None
+        next_volumes = self._get_volumes()
+        if (next_volumes is not None):
+            self._ipc.set_volumes(next_volumes)
         
         for surface_info in self._ipc.get_observed_surfaces():
             id = surface_info.id
@@ -84,7 +98,7 @@ class sm_manager:
             if (surface_info.id in self._surfaces):
                 previous_entry = self._surfaces[surface_info.id]
                 if (surface_info.update_time <= previous_entry.update_time):
-                    self._updated_surfaces[surface_info.id] = previous_entry
+                    next_surfaces[surface_info.id] = previous_entry
                     continue
             tasks.add_task(id, self._tpcm, self._vpf, self._tif, self._vnf)
             updated_surfaces.append(surface_info)
@@ -96,15 +110,14 @@ class sm_manager:
         for index, mesh in self._ipc.get_meshes(tasks).items():
             if (mesh is None):
                 continue
-            mesh.unpack(self._vpf, self._tif, self._vnf)
             hl2ss_3dcv.sm_mesh_cast(mesh, np.float64, np.uint32, np.float64)
             hl2ss_3dcv.sm_mesh_normalize(mesh)
             rcs = o3d.t.geometry.RaycastingScene()
             rcs.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(sm_mesh_to_open3d_triangle_mesh(mesh)))
             surface_info = updated_surfaces[index]
-            self._updated_surfaces[surface_info.id] = _sm_manager_entry(surface_info.update_time, mesh, rcs)
+            next_surfaces[surface_info.id] = _sm_manager_entry(surface_info.update_time, mesh, rcs)
             
-        self._load_updated_surfaces()
+        self._set_surfaces(next_surfaces)
     
     def close(self):
         self._ipc.close()
@@ -121,105 +134,248 @@ class sm_manager:
             distances[..., index] = entry.rcs.cast_rays(rays)['t_hit'].numpy()
         distances = np.min(distances, axis=-1)
         return distances
+    
+    def get_updated_flag(self):
+        return self._get_updated_flag()
 
 
-class sm_mt_manager(sm_manager):
+class sm_manager_mt(sm_manager):
     def open(self):
-        self._lock = threading.Lock()
+        self._lock = mt.Lock()
+        self._ipc_status = mt.Event()
+        self._ipc_string = None
         self._task = None
         super().open()
 
-    def _load_updated_surfaces(self):
-        self._lock.acquire()
-        super()._load_updated_surfaces()
-        self._lock.release()
+    def _set_volumes(self, volumes):
+        with self._lock:
+            super()._set_volumes(volumes)
+
+    def _get_volumes(self):
+        with self._lock:
+            return super()._get_volumes()
+
+    def _set_surfaces(self, surfaces):
+        with self._lock:
+            super()._set_surfaces(surfaces)
 
     def _get_surfaces(self):
-        self._lock.acquire()
-        surfaces = super()._get_surfaces()
-        self._lock.release()
-        return surfaces
+        with self._lock:
+            return super()._get_surfaces()
+
+    def _get_updated_flag(self):
+        with self._lock:
+            return super()._get_updated_flag()
     
-    def get_observed_surfaces(self):
+    def _get_observed_surfaces(self):
+        try:
+            super().get_observed_surfaces()
+        except:
+            self._ipc_string = traceback.format_exc()
+            self._ipc_status.set()
+
+    def _cleanup_task(self, wait):
         if (self._task is not None):
-            if (self._task.is_alive()):
-                return
+            if ((not wait) and self._task.is_alive()):
+                return False
             self._task.join()
-        self._task = threading.Thread(target=super().get_observed_surfaces)
-        self._task.start()
+            self._task = None
+        return True
+
+    def get_observed_surfaces(self):
+        if (self._cleanup_task(False) and self.get_ipc_status()):
+            self._task = mt.Thread(target=self._get_observed_surfaces)
+            self._task.start()
+
+    def get_ipc_status(self):
+        return not self._ipc_status.is_set()
+    
+    def get_ipc_string(self):
+        return self._ipc_string
     
     def close(self):
-        if (self._task is not None):
-            self._task.join()
+        self._cleanup_task(True)
         super().close()
 
 
-class sm_mp_manager(mp.Process):
+class _sm_manager_stub:
+    def __init__(self, host=None, port=None, sockopt=None, triangles_per_cubic_meter=1000, vpf=hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized, tif=hl2ss.SM_TriangleIndexFormat.R16UInt, vnf=hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized):
+        pass
+
+    def open(self):
+        pass
+
+    def set_volumes(self, volumes):
+        pass
+
+    def get_observed_surfaces(self):
+        pass
+
+    def close(self):
+        pass
+
+    def get_meshes(self):
+        return []
+
+    def cast_rays(self, rays):
+        n = 0
+        distances = np.ones(rays.shape[0:-1] + (n if (n > 0) else 1,)) * np.inf
+        distances = np.min(distances, axis=-1)
+        return distances
+    
+    def get_updated_flag(self):
+        return False
+    
+    def get_ipc_status(self):
+        return self._ipc_status
+
+    def get_ipc_string(self):
+        return self._ipc_string
+    
+    def set_ipc_status(self, status, string):
+        self._ipc_status = status
+        self._ipc_string = string
+
+
+class _sm_manager_mp(mp.Process):
     IPC_STOP = 0
     IPC_SET_VOLUMES = 1
     IPC_GET_OBSERVED_SURFACES = 2
-    IPC_CAST_RAYS = 3
+    IPC_GET_MESHES = 3
+    IPC_CAST_RAYS = 4
+    IPC_GET_IPC_STRING = 5
+    IPC_GET_UPDATED_FLAG = 6
 
-    def __init__(self, host, triangles_per_cubic_meter, threads):
+    def __init__(self, host, port, sockopt=None, triangles_per_cubic_meter=1000, vpf=hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized, tif=hl2ss.SM_TriangleIndexFormat.R16UInt, vnf=hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized):
         super().__init__()
-        self._semaphore = mp.Semaphore(0)
         self._din = mp.Queue()
         self._dout = mp.Queue()        
-        self._ipc = sm_mt_manager(host, triangles_per_cubic_meter, threads)
+        self._event = mp.Event()
+        self._host = host
+        self._port = port
+        self._sockopt = sockopt
+        self._tpcm = triangles_per_cubic_meter
+        self._vpf = vpf
+        self._tif = tif
+        self._vnf = vnf
 
-    def open(self):
-        self.start()
-
-    def close(self):
-        self._din.put(sm_mp_manager.IPC_STOP)
-        self._semaphore.release()
-        self.join()
+    def stop(self):
+        self._din.put((_sm_manager_mp.IPC_STOP,))
 
     def set_volumes(self, volumes):
-        self._din.put(sm_mp_manager.IPC_SET_VOLUMES)
-        self._din.put(volumes)
-        self._semaphore.release()
+        self._din.put((_sm_manager_mp.IPC_SET_VOLUMES, volumes))
 
     def get_observed_surfaces(self):
-        self._din.put(sm_mp_manager.IPC_GET_OBSERVED_SURFACES)
-        self._semaphore.release()
+        self._din.put((_sm_manager_mp.IPC_GET_OBSERVED_SURFACES,))
+
+    def get_meshes(self):
+        self._din.put((_sm_manager_mp.IPC_GET_MESHES,))
+        return self._dout.get()
 
     def cast_rays(self, rays):
-        self._din.put(sm_mp_manager.IPC_CAST_RAYS)
-        self._din.put(rays)
-        self._semaphore.release()
-        d = self._dout.get()
-        return d
+        self._din.put((_sm_manager_mp.IPC_CAST_RAYS, rays))
+        return self._dout.get()
     
-    def _set_volumes(self):
-        volumes = self._din.get()
+    def get_updated_flag(self):
+        self._din.put((_sm_manager_mp.IPC_GET_UPDATED_FLAG,))
+        return self._dout.get()
+    
+    def get_ipc_status(self):
+        return not self._event.is_set()
+    
+    def get_ipc_string(self):
+        self._din.put((_sm_manager_mp.IPC_GET_IPC_STRING,))
+        return self._dout.get()
+    
+    def _set_volumes(self, volumes):
         self._ipc.set_volumes(volumes)
 
     def _get_observed_surfaces(self):
         self._ipc.get_observed_surfaces()
+        if (self._event.is_set() or self._ipc.get_ipc_status()):
+            return
+        self._event.set()
 
-    def _cast_rays(self):
-        rays = self._din.get()
-        d = self._ipc.cast_rays(rays)
-        self._dout.put(d)
+    def _get_meshes(self):
+        return self._ipc.get_meshes()
+
+    def _cast_rays(self, rays):
+        return self._ipc.cast_rays(rays)        
     
+    def _get_updated_flag(self):
+        return self._ipc.get_updated_flag()
+
+    def _get_ipc_string(self):
+        return self._ipc.get_ipc_string()
+    
+    def _process_ipc(self):
+        message = self._din.get()
+
+        if   (message[0] == _sm_manager_mp.IPC_STOP):
+            return False
+        elif (message[0] == _sm_manager_mp.IPC_SET_VOLUMES):
+            self._set_volumes(*message[1:])
+        elif (message[0] == _sm_manager_mp.IPC_GET_OBSERVED_SURFACES):
+            self._get_observed_surfaces()
+        elif (message[0] == _sm_manager_mp.IPC_GET_MESHES):
+            self._dout.put(self._get_meshes())
+        elif (message[0] == _sm_manager_mp.IPC_CAST_RAYS):
+            self._dout.put(self._cast_rays(*message[1:]))
+        elif (message[0] == _sm_manager_mp.IPC_GET_UPDATED_FLAG):
+            self._dout.put(self._get_updated_flag())
+        elif (message[0] == _sm_manager_mp.IPC_GET_IPC_STRING):
+            self._dout.put(self._get_ipc_string())
+
+        return True
+        
     def run(self):
-        self._ipc.open()
+        self._ipc = sm_manager_mt(self._host, self._port, self._sockopt, self._tpcm, self._vpf, self._tif, self._vnf)
 
-        while (True):
-            self._semaphore.acquire()
-            message = self._din.get()
+        try:
+            self._ipc.open()
+        except:
+            self._ipc.close()
+            self._ipc = _sm_manager_stub()
+            self._ipc.set_ipc_status(False, traceback.format_exc())
+            self._ipc.open()
 
-            if (message == sm_mp_manager.IPC_STOP):
-                break
-            elif (message == sm_mp_manager.IPC_SET_VOLUMES):
-                self._set_volumes()
-            elif (message == sm_mp_manager.IPC_GET_OBSERVED_SURFACES):
-                self._get_observed_surfaces()
-            elif (message == sm_mp_manager.IPC_CAST_RAYS):
-                self._cast_rays()
+        while (self._process_ipc()):
+            pass
 
         self._ipc.close()
+
+
+class sm_manager_mp:
+    def __init__(self, host, port, sockopt=None, triangles_per_cubic_meter=1000, vpf=hl2ss.SM_VertexPositionFormat.R16G16B16A16IntNormalized, tif=hl2ss.SM_TriangleIndexFormat.R16UInt, vnf=hl2ss.SM_VertexNormalFormat.R8G8B8A8IntNormalized):
+        self._ipc = _sm_manager_mp(host, port, sockopt, triangles_per_cubic_meter, vpf, tif, vnf)
+
+    def open(self):
+        self._ipc.start()
+
+    def set_volumes(self, volumes):
+        self._ipc.set_volumes(volumes)
+
+    def get_observed_surfaces(self):
+        self._ipc.get_observed_surfaces()
+
+    def get_meshes(self):
+        return self._ipc.get_meshes()
+
+    def cast_rays(self, rays):
+        return self._ipc.cast_rays(rays)
+    
+    def get_updated_flag(self):
+        return self._ipc.get_updated_flag()
+    
+    def get_ipc_status(self):
+        return self._ipc.get_ipc_status()
+    
+    def get_ipc_string(self):
+        return self._ipc.get_ipc_string()
+
+    def close(self):
+        self._ipc.stop()
+        self._ipc.join()
 
 
 #------------------------------------------------------------------------------
@@ -227,58 +383,17 @@ class sm_mp_manager(mp.Process):
 #------------------------------------------------------------------------------
 
 class su_manager:
-    def __init__(self, host):
-        self._enable_scene_object_quads = False
-        self._enable_scene_object_meshes = True
-        self._enable_only_observed_scene_objects = False
-        self._create_mode = hl2ss.SU_Create.NewFromPrevious
-        self._get_orientation = False
-        self._get_position = False
-        self._get_location_matrix = True
-        self._get_quad = False
-        self._get_meshes = True
-        self._get_collider_meshes = False
-        self._guid_list = []
-        self._ipc = hl2ss_lnm.ipc_su(host, hl2ss.IPCPort.SCENE_UNDERSTANDING)
+    def __init__(self, host, port, sockopt=None):
+        self._ipc = hl2ss_lnm.ipc_su(host, port, sockopt)
 
     def open(self):
         self._ipc.open()
 
-    def configure(self, enable_world_mesh, mesh_lod, query_radius, kind_flags):
-        self._enable_world_mesh = enable_world_mesh
-        self._requested_mesh_level_of_detail = mesh_lod
-        self._query_radius = query_radius
-        self._kinds = kind_flags
-
-    def update(self):
+    def update(self, task):
         self._items = {}
-
-        task = hl2ss.su_task(
-            self._enable_scene_object_quads,
-            self._enable_scene_object_meshes, 
-            self._enable_only_observed_scene_objects, 
-            self._enable_world_mesh, 
-            self._requested_mesh_level_of_detail, 
-            self._query_radius, 
-            self._create_mode, 
-            self._kinds, 
-            self._get_orientation, 
-            self._get_position, 
-            self._get_location_matrix, 
-            self._get_quad, 
-            self._get_meshes, 
-            self._get_collider_meshes, 
-            self._guid_list
-        )
-        task.pack()
-
         result = self._ipc.query(task)
-        result.unpack()
-
         for item in result.items:
-            item.unpack()
-            for mesh in item.meshes:
-                mesh.unpack()
+            for mesh in (item.meshes + item.collider_meshes):
                 hl2ss_3dcv.su_normalize(mesh, item.location @ result.pose)
             self._items[item.id.hex()] = item
 

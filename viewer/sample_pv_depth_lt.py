@@ -5,10 +5,10 @@
 
 from pynput import keyboard
 
-import multiprocessing as mp
 import numpy as np
 import open3d as o3d
 import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mp
@@ -28,9 +28,6 @@ pv_width = 640
 pv_height = 360
 pv_fps = 30
 
-# Buffer length in seconds
-buffer_size = 10
-
 # Maximum depth in meters
 max_depth = 3.0
 
@@ -38,24 +35,17 @@ max_depth = 3.0
 
 if __name__ == '__main__':
     # Keyboard events ---------------------------------------------------------
-    enable = True
-
-    def on_press(key):
-        global enable
-        enable = key != keyboard.Key.space
-        return enable
-
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = hl2ss_utilities.key_listener(keyboard.Key.space)
+    listener.open()
 
     # Start PV Subsystem ------------------------------------------------------
     hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Get RM Depth Long Throw calibration -------------------------------------
     # Calibration data will be downloaded if it's not in the calibration folder
-    calibration_lt = hl2ss_3dcv.get_calibration_rm(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, calibration_path)
-    
-    uv2xy = calibration_lt.uv2xy #hl2ss_3dcv.compute_uv2xy(calibration_lt.intrinsics, hl2ss.Parameters_RM_DEPTH_LONGTHROW.WIDTH, hl2ss.Parameters_RM_DEPTH_LONGTHROW.HEIGHT)
+    calibration_lt = hl2ss_3dcv.get_calibration_rm(calibration_path, host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+
+    uv2xy = calibration_lt.uv2xy
     xy1, scale = hl2ss_3dcv.rm_depth_compute_rays(uv2xy, calibration_lt.scale)
 
     xy1_o = xy1[:-1, :-1, :]
@@ -67,34 +57,29 @@ if __name__ == '__main__':
     pcd = o3d.geometry.PointCloud()
     first_pcd = True
 
-    # Start PV and RM Depth Long Throw streams --------------------------------
-    producer = hl2ss_mp.producer()
-    producer.configure(hl2ss.StreamPort.PERSONAL_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_fps))
-    producer.configure(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
-    producer.initialize(hl2ss.StreamPort.PERSONAL_VIDEO, pv_fps * buffer_size)
-    producer.initialize(hl2ss.StreamPort.RM_DEPTH_LONGTHROW, hl2ss.Parameters_RM_DEPTH_LONGTHROW.FPS * buffer_size)
-    producer.start(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.start(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    cv2.namedWindow('RGB')
+    cv2.namedWindow('Depth')
 
-    consumer = hl2ss_mp.consumer()
-    manager = mp.Manager()
-    sink_pv = consumer.create_sink(producer, hl2ss.StreamPort.PERSONAL_VIDEO, manager, None)
-    sink_lt = consumer.create_sink(producer, hl2ss.StreamPort.RM_DEPTH_LONGTHROW, manager, ...)
-    
-    sink_pv.get_attach_response()
-    sink_lt.get_attach_response()
+    # Start PV and RM Depth Long Throw streams --------------------------------
+    sink_pv = hl2ss_mp.stream(hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width=pv_width, height=pv_height, framerate=pv_fps))
+    sink_lt = hl2ss_mp.stream(hl2ss_lnm.rx_rm_depth_longthrow(host, hl2ss.StreamPort.RM_DEPTH_LONGTHROW))
+
+    sink_pv.open()
+    sink_lt.open()
 
     # Initialize PV intrinsics and extrinsics ---------------------------------
-    pv_intrinsics = hl2ss.create_pv_intrinsics_placeholder()
+    pv_intrinsics = hl2ss_3dcv.pv_create_intrinsics_placeholder()
     pv_extrinsics = np.eye(4, 4, dtype=np.float32)
 
-    VI = hl2ss_utilities.framerate_counter()
-    VI.reset()
+    vi_counter = hl2ss_utilities.framerate_counter()
+    vi_counter.reset()
 
     # Main Loop ---------------------------------------------------------------
-    while (enable):
-        # Wait for RM Depth Long Throw frame ----------------------------------
-        sink_lt.acquire()
+    while (not listener.pressed()):
+        vis.poll_events()
+        vis.update_renderer()
+
+        cv2.waitKey(1)
 
         # Get RM Depth Long Throw frame and nearest (in time) PV frame --------
         _, data_lt = sink_lt.get_most_recent_frame()
@@ -106,13 +91,13 @@ if __name__ == '__main__':
             continue
         
         # Preprocess frames ---------------------------------------------------
-        depth = data_lt.payload.depth #hl2ss_3dcv.rm_depth_undistort(data_lt.payload.depth, calibration_lt.undistort_map)
+        depth = data_lt.payload.depth
         z     = hl2ss_3dcv.rm_depth_normalize(depth, scale)
         color = data_pv.payload.image
 
         # Update PV intrinsics ------------------------------------------------
         # PV intrinsics may change between frames due to autofocus
-        pv_intrinsics = hl2ss.update_pv_intrinsics(pv_intrinsics, data_pv.payload.focal_length, data_pv.payload.principal_point)
+        pv_intrinsics = hl2ss_3dcv.pv_update_intrinsics(pv_intrinsics, data_pv.payload.focal_length, data_pv.payload.principal_point)
         color_intrinsics, color_extrinsics = hl2ss_3dcv.pv_fix_calibration(pv_intrinsics, pv_extrinsics)
 
         # Generate depth map for PV image -------------------------------------
@@ -156,20 +141,10 @@ if __name__ == '__main__':
 
             pv_z[v0:v1, u0:u1] = pv_list[n, 4]
 
-        # FPS -----------------------------------------------------------------
-        # ~5 FPS for 1920x1080
-        VI.increment()
-        if (VI.delta() >= 2):
-            print(f'FPS: {VI.get()}')
-            reset_VI = True
-        else:
-            reset_VI = False
-
         # Display RGBD pair ---------------------------------------------------
         cv2.imshow('RGB', color)
-        cv2.imshow('Depth', pv_z / max_depth) # scale for visibility
-        cv2.waitKey(1)
-
+        cv2.imshow('Depth', hl2ss_3dcv.rm_depth_colormap(pv_z, max_depth))
+        
         # Convert to Open3D RGBD image and create pointcloud ------------------
         color_image = o3d.geometry.Image(color[:,:,::-1].copy())
         depth_image = o3d.geometry.Image(pv_z)
@@ -189,20 +164,19 @@ if __name__ == '__main__':
         else:
             vis.update_geometry(pcd)
 
-        vis.poll_events()
-        vis.update_renderer()
-
-        if (reset_VI):
-            VI.reset()
+        # FPS -----------------------------------------------------------------
+        # ~5 FPS for 1920x1080
+        vi_counter.increment()
+        if (vi_counter.delta() >= 2):
+            print(f'FPS: {vi_counter.get()}')
+            vi_counter.reset()
 
     # Stop PV and RM Depth Long Throw streams ---------------------------------
-    sink_pv.detach()
-    sink_lt.detach()
-    producer.stop(hl2ss.StreamPort.PERSONAL_VIDEO)
-    producer.stop(hl2ss.StreamPort.RM_DEPTH_LONGTHROW)
+    sink_pv.close()
+    sink_lt.close()
 
     # Stop PV subsystem -------------------------------------------------------
     hl2ss_lnm.stop_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
     # Stop keyboard events ----------------------------------------------------
-    listener.join()
+    listener.close()
