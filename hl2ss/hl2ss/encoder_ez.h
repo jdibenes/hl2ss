@@ -16,12 +16,10 @@ struct EZ_Metadata
     winrt::Windows::Foundation::Numerics::float4x4 pose;
 };
 
-class Encoder_EZ
+class Encoder_EZ : CustomEncoder
 {
 private:
     zdepth::DepthCompressor m_compressor;
-    HOOK_ENCODER_PROC m_hook;
-    void* m_param;
     uint16_t m_width;
     uint16_t m_height;
     bool m_raw;
