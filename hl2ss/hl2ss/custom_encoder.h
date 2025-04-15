@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "queue.h"
 #include "custom_sink_writers.h"
 
 uint8_t const NV12_ZERO_CHROMA = 0x80;
@@ -17,12 +18,19 @@ private:
     HOOK_ENCODER_PROC m_pHookCallback;
     void* m_pHookParam;
     HOOK_METADATA_PROC m_pMetadataFree;
-
+    std::queue<IMFSample*> m_buffer;
+    CRITICAL_SECTION m_lock; // DeleteCriticalSection
+    HANDLE m_semaphore; // CloseHandle
+    HANDLE m_thread; // CloseHandle
+    
     CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size);
 
+    void ReceiveSample(IMFSample* pSample);
     void ProcessSample(IMFSample* pSample);
-
-    static void Thunk_Sink(IMFSample* pSample, void* param);
+    void SendLoop();
+    
+    static void Thunk_Sink(IMFSample* pSample, void* self);
+    static DWORD WINAPI Thunk_Send(void* self);
 
 protected:
     CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, AudioSubtype input_subtype, AACFormat  const& format);

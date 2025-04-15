@@ -1,6 +1,7 @@
 
 #include <mfapi.h>
 #include "custom_encoder.h"
+#include "lock.h"
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -16,6 +17,10 @@ CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, 
     m_pMetadataFree = pMetadataFree;
 
     memset(m_metadata.get(), 0, metadata_size);
+
+    InitializeCriticalSection(&m_lock);
+    m_semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
+    m_thread = CreateThread(NULL, 0, CustomEncoder::Thunk_Send, this, 0, NULL);
 }
 
 // OK
@@ -35,6 +40,22 @@ CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size)
 // OK
 CustomEncoder::~CustomEncoder()
 {
+    ReleaseSemaphore(m_semaphore, 1, NULL);
+    WaitForSingleObject(m_thread, INFINITE);
+    CloseHandle(m_thread);
+    CloseHandle(m_semaphore);
+    DeleteCriticalSection(&m_lock);
+}
+
+// OK
+void CustomEncoder::ReceiveSample(IMFSample* pSample)
+{
+    pSample->AddRef();
+    {
+    CriticalSection cs(&m_lock);
+    m_buffer.push(pSample);
+    }
+    ReleaseSemaphore(m_semaphore, 1, NULL);
 }
 
 // OK
@@ -64,9 +85,33 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
 }
 
 // OK
-void CustomEncoder::Thunk_Sink(IMFSample* pSample, void* param)
+void CustomEncoder::SendLoop()
 {
-    static_cast<CustomEncoder*>(param)->ProcessSample(pSample);
+    IMFSample* sample;
+    while (true)
+    {
+    WaitForSingleObject(m_semaphore, INFINITE);
+    {
+    CriticalSection cs(&m_lock);
+    if (m_buffer.empty()) { return; }
+    sample = pull(m_buffer);
+    }
+    ProcessSample(sample);
+    sample->Release();
+    }
+}
+
+// OK
+void CustomEncoder::Thunk_Sink(IMFSample* pSample, void* self)
+{
+    static_cast<CustomEncoder*>(self)->ReceiveSample(pSample);
+}
+
+// OK
+DWORD WINAPI CustomEncoder::Thunk_Send(void* self)
+{
+    static_cast<CustomEncoder*>(self)->SendLoop();
+    return 0;
 }
 
 // OK
