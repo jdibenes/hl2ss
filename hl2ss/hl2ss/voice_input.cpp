@@ -1,6 +1,6 @@
 
 #include <vector>
-#include <queue>
+#include "queue.h"
 #include "extended_execution.h"
 #include "voice_input.h"
 #include "lock.h"
@@ -150,7 +150,5 @@ uint32_t VoiceInput_GetCount()
 VoiceInput_Result VoiceInput_Pop()
 {
     CriticalSection cs(&g_lock);
-    VoiceInput_Result result = g_queue.front();
-    g_queue.pop();
-    return result;
+    return pull(g_queue);
 }
