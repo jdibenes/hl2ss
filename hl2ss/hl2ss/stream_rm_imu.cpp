@@ -8,7 +8,7 @@
 
 using namespace winrt::Windows::Foundation::Numerics;
 
-typedef void(*RM_IMU_PROC)(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_IMU_PROC hook, void* param);
+typedef void(*RM_IMU_PROC)(IResearchModeSensorFrame*, HOOK_RM_IMU_PROC, void*);
 
 class Channel_RM_IMU : public Channel
 {
