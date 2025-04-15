@@ -37,6 +37,7 @@ static ExtendedExecutionForegroundSession g_eefs = nullptr;
 static bool g_status = false;
 static std::atomic<int32_t> g_interface_priority[INTERFACE_SLOTS];
 static long g_log_error = 0;
+static std::atomic<bool> g_encoder_buffering;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -193,6 +194,18 @@ int32_t ExtendedExecution_GetInterfacePriority(uint32_t id)
 {
     if (id >= INTERFACE_SLOTS) { return THREAD_PRIORITY_NORMAL; }
     return g_interface_priority[id];
+}
+
+// OK
+void ExtendedExecution_SetEncoderBuffering(bool enable)
+{
+    g_encoder_buffering = enable;
+}
+
+// OK
+bool ExtendedExecution_GetEncoderBuffering()
+{
+    return g_encoder_buffering;
 }
 
 // OK

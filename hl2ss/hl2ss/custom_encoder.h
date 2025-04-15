@@ -18,12 +18,11 @@ private:
     HOOK_ENCODER_PROC m_pHookCallback;
     void* m_pHookParam;
     HOOK_METADATA_PROC m_pMetadataFree;
+    bool m_buffering;
     std::queue<IMFSample*> m_buffer;
     CRITICAL_SECTION m_lock; // DeleteCriticalSection
     HANDLE m_semaphore; // CloseHandle
     HANDLE m_thread; // CloseHandle
-    
-    CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size);
 
     void ReceiveSample(IMFSample* pSample);
     void ProcessSample(IMFSample* pSample);
@@ -33,6 +32,7 @@ private:
     static DWORD WINAPI Thunk_Send(void* self);
 
 protected:
+    CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size);
     CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, AudioSubtype input_subtype, AACFormat  const& format);
     CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size, VideoSubtype input_subtype, H26xFormat const& format, uint32_t stride, std::vector<uint64_t> const& encoder_options);
     

@@ -1,6 +1,7 @@
 
 #include <mfapi.h>
 #include "custom_encoder.h"
+#include "extended_execution.h"
 #include "lock.h"
 
 //-----------------------------------------------------------------------------
@@ -15,6 +16,7 @@ CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, 
     m_pHookCallback = pHookCallback;
     m_pHookParam    = pHookParam;
     m_pMetadataFree = pMetadataFree;
+    m_buffering     = ExtendedExecution_GetEncoderBuffering();
 
     memset(m_metadata.get(), 0, metadata_size);
 
@@ -51,12 +53,19 @@ CustomEncoder::~CustomEncoder()
 // OK
 void CustomEncoder::ReceiveSample(IMFSample* pSample)
 {
+    if (!m_buffering)
+    {
+    ProcessSample(pSample);
+    }
+    else
+    {
     pSample->AddRef();
     {
     CriticalSection cs(&m_lock);
     m_buffer.push(pSample);
     }
     ReleaseSemaphore(m_semaphore, 1, NULL);
+    }
 }
 
 // OK
@@ -135,7 +144,7 @@ void CustomEncoder::WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LON
     pSample->SetSampleTime(timestamp);
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, static_cast<UINT8*>(metadata), m_metadata_size);
 
-    m_pSinkWriter->WriteSample(pSample);
+    if (m_pSinkWriter) { m_pSinkWriter->WriteSample(pSample); } else { Thunk_Sink(pSample, this); }
 
     pSample->Release();
 }
