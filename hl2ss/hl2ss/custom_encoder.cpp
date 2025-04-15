@@ -40,6 +40,7 @@ CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size)
 // OK
 CustomEncoder::~CustomEncoder()
 {
+    m_pSinkWriter.reset();
     ReleaseSemaphore(m_semaphore, 1, NULL);
     WaitForSingleObject(m_thread, INFINITE);
     CloseHandle(m_thread);
