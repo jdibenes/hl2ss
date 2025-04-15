@@ -87,7 +87,7 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
 // OK
 void CustomEncoder::SendLoop()
 {
-    IMFSample* sample;
+    IMFSample* sample; // Release
     while (true)
     {
     WaitForSingleObject(m_semaphore, INFINITE);
