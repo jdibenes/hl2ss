@@ -69,3 +69,30 @@ public:
     HRESULT SetCurrentLength(DWORD cbCurrentLength);
     HRESULT Unlock();
 };
+
+class VectorBuffer : public IMFMediaBuffer
+{
+private:
+    ULONG m_nRefCount;
+    std::vector<uint8_t> m_v;
+
+    VectorBuffer();
+    ~VectorBuffer();
+
+public:
+    static HRESULT CreateInstance(VectorBuffer** ppBuffer);
+
+    std::vector<uint8_t>& Get();
+
+    // IUnknown Methods
+    ULONG   AddRef();
+    ULONG   Release();
+    HRESULT QueryInterface(REFIID iid, void** ppv);
+
+    // IMFMediaBuffer Methods
+    HRESULT GetCurrentLength(DWORD* pcbCurrentLength);
+    HRESULT GetMaxLength(DWORD* pcbMaxLength);
+    HRESULT Lock(BYTE** ppbBuffer, DWORD* pcbMaxLength, DWORD* pcbCurrentLength);
+    HRESULT SetCurrentLength(DWORD cbCurrentLength);
+    HRESULT Unlock();
+};
