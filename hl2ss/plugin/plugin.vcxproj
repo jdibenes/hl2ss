@@ -284,6 +284,7 @@
     <ClCompile Include="..\hl2ss\custom_sink_writers.cpp" />
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
     <ClCompile Include="..\hl2ss\custom_video_effect.cpp" />
+    <ClCompile Include="..\hl2ss\encoder_any.cpp" />
     <ClCompile Include="..\hl2ss\encoder_ea.cpp" />
     <ClCompile Include="..\hl2ss\encoder_ez.cpp" />
     <ClCompile Include="..\hl2ss\encoder_mc.cpp" />
@@ -323,9 +324,7 @@
     <ClCompile Include="..\hl2ss\stream_ez.cpp" />
     <ClCompile Include="..\hl2ss\stream_mc.cpp" />
     <ClCompile Include="..\hl2ss\stream_pv.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_acc.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_gyr.cpp" />
-    <ClCompile Include="..\hl2ss\stream_rm_mag.cpp" />
+    <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zht.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp" />
@@ -375,6 +374,7 @@
     <ClInclude Include="..\hl2ss\custom_sink_writers.h" />
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
     <ClInclude Include="..\hl2ss\custom_video_effect.h" />
+    <ClInclude Include="..\hl2ss\encoder_any.h" />
     <ClInclude Include="..\hl2ss\encoder_ea.h" />
     <ClInclude Include="..\hl2ss\encoder_ez.h" />
     <ClInclude Include="..\hl2ss\encoder_mc.h" />
@@ -415,9 +415,7 @@
     <ClInclude Include="..\hl2ss\stream_ez.h" />
     <ClInclude Include="..\hl2ss\stream_mc.h" />
     <ClInclude Include="..\hl2ss\stream_pv.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_acc.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_gyr.h" />
-    <ClInclude Include="..\hl2ss\stream_rm_mag.h" />
+    <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zht.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zlt.h" />

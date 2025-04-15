@@ -183,6 +183,7 @@
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h" />
+    <ClInclude Include="encoder_any.h" />
     <ClInclude Include="encoder_ez.h" />
     <ClInclude Include="extended_depth.h" />
     <ClInclude Include="ipc_mqx.h" />
@@ -234,10 +235,8 @@
     <ClInclude Include="stream_pv.h" />
     <ClInclude Include="research_mode.h" />
     <ClInclude Include="server.h" />
-    <ClInclude Include="stream_rm_gyr.h" />
-    <ClInclude Include="stream_rm_mag.h" />
     <ClInclude Include="stream_rm_zht.h" />
-    <ClInclude Include="stream_rm_acc.h" />
+    <ClInclude Include="stream_rm_imu.h" />
     <ClInclude Include="stream_rm_vlc.h" />
     <ClInclude Include="stream_rm_zlt.h" />
     <ClInclude Include="stream_si.h" />
@@ -279,6 +278,7 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c" />
+    <ClCompile Include="encoder_any.cpp" />
     <ClCompile Include="encoder_ez.cpp" />
     <ClCompile Include="extended_depth.cpp" />
     <ClCompile Include="ipl.cpp" />
@@ -326,14 +326,12 @@
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />
-    <ClCompile Include="stream_rm_gyr.cpp" />
-    <ClCompile Include="stream_rm_mag.cpp" />
     <ClCompile Include="stream_rm_zlt.cpp" />
     <ClCompile Include="stream_si.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="stream_pv.cpp" />
-    <ClCompile Include="stream_rm_acc.cpp" />
+    <ClCompile Include="stream_rm_imu.cpp" />
     <ClCompile Include="stream_rm_zht.cpp" />
     <ClCompile Include="stream_rm_vlc.cpp" />
     <ClCompile Include="extended_execution.cpp" />

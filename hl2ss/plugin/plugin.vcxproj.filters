@@ -270,15 +270,6 @@
     <ClCompile Include="..\hl2ss\stream_pv.cpp">
       <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_acc.cpp">
-      <Filter>Libraries\hl2ss\interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_gyr.cpp">
-      <Filter>Libraries\hl2ss\interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="..\hl2ss\stream_rm_mag.cpp">
-      <Filter>Libraries\hl2ss\interfaces</Filter>
-    </ClCompile>
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp">
       <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClCompile>
@@ -302,6 +293,12 @@
     </ClCompile>
     <ClCompile Include="..\hl2ss\stream_ez.cpp">
       <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\stream_rm_imu.cpp">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_any.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -536,15 +533,6 @@
     <ClInclude Include="..\hl2ss\stream_pv.h">
       <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_acc.h">
-      <Filter>Libraries\hl2ss\interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_gyr.h">
-      <Filter>Libraries\hl2ss\interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\hl2ss\stream_rm_mag.h">
-      <Filter>Libraries\hl2ss\interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h">
       <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClInclude>
@@ -571,6 +559,12 @@
     </ClInclude>
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\researchmode\ResearchModeApi.h">
       <Filter>Libraries\researchmode</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\stream_rm_imu.h">
+      <Filter>Libraries\hl2ss\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_any.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

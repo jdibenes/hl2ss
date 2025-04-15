@@ -4,7 +4,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stream_rm_acc.cpp">
+    <ClCompile Include="stream_rm_imu.cpp">
       <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="stream_rm_vlc.cpp">
@@ -244,12 +244,6 @@
     <ClCompile Include="server_channel.cpp">
       <Filter>Source Files\server</Filter>
     </ClCompile>
-    <ClCompile Include="stream_rm_gyr.cpp">
-      <Filter>Source Files\interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="stream_rm_mag.cpp">
-      <Filter>Source Files\interfaces</Filter>
-    </ClCompile>
     <ClCompile Include="holographic_space.cpp">
       <Filter>Source Files\system</Filter>
     </ClCompile>
@@ -278,6 +272,9 @@
       <Filter>Source Files\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="encoder_ez.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_any.cpp">
       <Filter>Source Files\encoders</Filter>
     </ClCompile>
   </ItemGroup>
@@ -405,7 +402,7 @@
     <ClInclude Include="research_mode.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
-    <ClInclude Include="stream_rm_acc.h">
+    <ClInclude Include="stream_rm_imu.h">
       <Filter>Header Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="stream_rm_vlc.h">
@@ -663,12 +660,6 @@
     <ClInclude Include="server_channel.h">
       <Filter>Header Files\server</Filter>
     </ClInclude>
-    <ClInclude Include="stream_rm_gyr.h">
-      <Filter>Header Files\interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="stream_rm_mag.h">
-      <Filter>Header Files\interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="message_queue.h">
       <Filter>Header Files\devices</Filter>
     </ClInclude>
@@ -704,6 +695,9 @@
     </ClInclude>
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\researchmode\ResearchModeApi.h">
       <Filter>Libraries\researchmode</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_any.h">
+      <Filter>Header Files\encoders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
