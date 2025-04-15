@@ -210,6 +210,7 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     float span_y;
     float span_u;
     float span_v;
+    float f;
     float fx;
     float fy;
     float cx;
@@ -305,6 +306,9 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     fx = span_x / span_u;
     fy = span_y / span_v;
+    f  = fx >= fy ? fx : fy;
+    fx = f;
+    fy = f;
     cx = min_x;
     cy = min_y;
 
@@ -327,8 +331,8 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     }
     }
 
-    K[0] = span_u / span_x;
-    K[1] = span_v / span_y;
+    K[0] = 1.0f / fx;
+    K[1] = 1.0f / fy;
     K[2] = -min_x * K[0];
     K[3] = -min_y * K[1];
 
