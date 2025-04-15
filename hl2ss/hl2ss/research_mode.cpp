@@ -449,7 +449,7 @@ void ResearchMode_ProcessSample_ZLT(IResearchModeSensorFrame* pSensorFrame, HOOK
 }
 
 // OK
-void ResearchMode_ProcessSample_ACC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_ACC_PROC hook, void* param)
+void ResearchMode_ProcessSample_ACC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_IMU_PROC hook, void* param)
 {
     IResearchModeAccelFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -461,13 +461,13 @@ void ResearchMode_ProcessSample_ACC(IResearchModeSensorFrame* pSensorFrame, HOOK
 
     pSensorIMUFrame->GetCalibratedAccelarationSamples(&pIMUBuffer, &nIMUSamples);
 
-    hook(pIMUBuffer, nIMUSamples, timestamp.HostTicks, timestamp.SensorTicks, param);
+    hook(pIMUBuffer, nIMUSamples * sizeof(AccelDataStruct), timestamp.HostTicks, timestamp.SensorTicks, param);
 
     pSensorIMUFrame->Release();
 }
 
 // OK
-void ResearchMode_ProcessSample_GYR(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_GYR_PROC hook, void* param)
+void ResearchMode_ProcessSample_GYR(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_IMU_PROC hook, void* param)
 {
     IResearchModeGyroFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -479,13 +479,13 @@ void ResearchMode_ProcessSample_GYR(IResearchModeSensorFrame* pSensorFrame, HOOK
 
     pSensorIMUFrame->GetCalibratedGyroSamples(&pIMUBuffer, &nIMUSamples);
 
-    hook(pIMUBuffer, nIMUSamples, timestamp.HostTicks, timestamp.SensorTicks, param);
+    hook(pIMUBuffer, nIMUSamples * sizeof(GyroDataStruct), timestamp.HostTicks, timestamp.SensorTicks, param);
 
     pSensorIMUFrame->Release();
 }
 
 // OK
-void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_MAG_PROC hook, void* param)
+void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_IMU_PROC hook, void* param)
 {
     IResearchModeMagFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -497,7 +497,7 @@ void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK
 
     pSensorIMUFrame->GetMagnetometerSamples(&pIMUBuffer, &nIMUSamples);
 
-    hook(pIMUBuffer, nIMUSamples, timestamp.HostTicks, timestamp.SensorTicks, param);
+    hook(pIMUBuffer, nIMUSamples * sizeof(MagDataStruct), timestamp.HostTicks, timestamp.SensorTicks, param);
 
     pSensorIMUFrame->Release();
 }
