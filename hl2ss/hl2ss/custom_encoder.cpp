@@ -20,6 +20,8 @@ CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, 
 
     memset(m_metadata.get(), 0, metadata_size);
 
+    if (!m_buffering) { return; }
+
     InitializeCriticalSection(&m_lock);
     m_semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
     m_thread = CreateThread(NULL, 0, CustomEncoder::Thunk_Send, this, 0, NULL);
@@ -43,6 +45,9 @@ CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size)
 CustomEncoder::~CustomEncoder()
 {
     m_pSinkWriter.reset();
+
+    if (!m_buffering) { return; }
+
     ReleaseSemaphore(m_semaphore, 1, NULL);
     WaitForSingleObject(m_thread, INFINITE);
     CloseHandle(m_thread);
