@@ -134,13 +134,13 @@ def get_av_codec_kind(rd):
 def unpack_to_mp4(input_filenames, output_filename):
     time_base = fractions.Fraction(1, hl2ss.TimeBase.HUNDREDS_OF_NANOSECONDS)
 
-    readers = [hl2ss_io.sequencer(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None) for input_filename in input_filenames]
+    readers = [hl2ss_io.sequencer(hl2ss_io.create_rd(input_filename, hl2ss.ChunkSize.SINGLE_TRANSFER, None)) for input_filename in input_filenames]
     for reader in readers:
         reader.open()
 
     container = av.open(output_filename, mode='w')
-    streams = [container.add_stream(get_av_codec_name(reader), rate=get_av_framerate(reader)) for reader in readers]
-    codecs = [av.CodecContext.create(get_av_codec_name(reader), "r") for reader in readers]
+    streams = [container.add_stream(get_av_codec_name(reader.rd), rate=get_av_framerate(reader.rd)) for reader in readers]
+    codecs = [av.CodecContext.create(get_av_codec_name(reader.rd), "r") for reader in readers]
 
     for stream in streams:
         stream.time_base = time_base
@@ -149,11 +149,11 @@ def unpack_to_mp4(input_filenames, output_filename):
 
     for reader in readers:
         data = reader.get_left()
-        if ((get_av_codec_kind(reader) == av_codec_kind.VIDEO) and (data is not None) and (data.timestamp < base)):
+        if ((get_av_codec_kind(reader.rd) == av_codec_kind.VIDEO) and (data is not None) and (data.timestamp < base)):
             base = data.timestamp
 
     for reader, codec, stream in zip(readers, codecs, streams):
-        metadata_size = hl2ss.get_metadata_size(reader.port)
+        metadata_size = hl2ss.get_metadata_size(reader.rd.port)
         while (True):
             data = reader.get_left()
             if (data is None):
