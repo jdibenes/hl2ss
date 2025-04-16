@@ -143,6 +143,10 @@ interface_priority = {
 # Delay SI readouts by the specified amount (in hundreds of nanoseconds)
 si_sampling_delay = 0
 
+# Encoder buffering
+# Buffer encoded frames before sending over network
+encoder_buffering = False
+
 #------------------------------------------------------------------------------
 
 # Connect to server -----------------------------------------------------------
@@ -291,6 +295,9 @@ for port, priority in interface_priority.items():
 
 client.si_set_sampling_delay(si_sampling_delay) # Set Spatial Input sampling delay
 print(f'Set SI sampling delay : {si_sampling_delay}')
+
+client.ee_set_encoder_buffering(encoder_buffering)
+print(f'Set encoder buffering : {encoder_buffering}')
 
 # Disconnect ------------------------------------------------------------------
 client.close()
