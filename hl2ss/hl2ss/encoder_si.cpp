@@ -14,7 +14,7 @@ CustomEncoder(pHookCallback, pHookParam, NULL, 0)
 }
 
 // OK
-void Encoder_SI::WriteSample(uint32_t valid, SpatialInput_Frame* head_pose, SpatialInput_Ray* eye_ray, JointPose* left_hand, JointPose* right_hand, UINT64 timestamp)
+void Encoder_SI::WriteSample(uint32_t valid, SpatialInput_Frame* head_pose, SpatialInput_Ray* eye_ray, JointPose* left_hand, JointPose* right_hand, LONGLONG timestamp)
 {
     int32_t const packet_size = sizeof(uint32_t) + sizeof(SpatialInput_Frame) + sizeof(SpatialInput_Ray) + (2 * HAND_SIZE);
 
