@@ -6,7 +6,7 @@ import hl2ss_mx
 import hl2ss_ulm_stream
 
 
-class PV_DecodedFormat:
+class _PV_DecodedFormat:
     BGR  = 0
     RGB  = 1
     BGRA = 2
@@ -169,7 +169,7 @@ class _rx_decoded_pv(_source):
 
     def _unpack_payload(self, payload):
         frame = self._codec.decode(payload, 'any')
-        if (self._decoded_format != PV_DecodedFormat.ANY):
+        if (self._decoded_format != _PV_DecodedFormat.ANY):
             w = int(frame.resolution[0])
             h = int(frame.resolution[1])
             c = frame.image.size // (w * h)
@@ -360,12 +360,12 @@ def _translate_extended_depth(host, port, rx, buffer_size, configuration, decode
 
 class _tlb:
     pv_decoded_format = {
-        'bgr24' : PV_DecodedFormat.BGR,
-        'rgb24' : PV_DecodedFormat.RGB,
-        'bgra'  : PV_DecodedFormat.BGRA,
-        'rgba'  : PV_DecodedFormat.RGBA,
-        'gray8' : PV_DecodedFormat.GRAY,
-        'any'   : PV_DecodedFormat.ANY,
+        'bgr24' : _PV_DecodedFormat.BGR,
+        'rgb24' : _PV_DecodedFormat.RGB,
+        'bgra'  : _PV_DecodedFormat.BGRA,
+        'rgba'  : _PV_DecodedFormat.RGBA,
+        'gray8' : _PV_DecodedFormat.GRAY,
+        'any'   : _PV_DecodedFormat.ANY,
     }
 
     registry = [
