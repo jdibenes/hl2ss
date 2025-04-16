@@ -1,18 +1,18 @@
 
-#include "encoder_any.h"
+#include "encoder_rm_imu.h"
 
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
 
 // OK
-Encoder_ANY::Encoder_ANY(HOOK_ENCODER_PROC pHookCallback, void* pHookParam) :
-CustomEncoder(pHookCallback, pHookParam, NULL, sizeof(ANY_Metadata))
+Encoder_RM_IMU::Encoder_RM_IMU(HOOK_ENCODER_PROC pHookCallback, void* pHookParam) :
+CustomEncoder(pHookCallback, pHookParam, NULL, sizeof(RM_IMU_Metadata))
 {
 }
 
 // OK
-void Encoder_ANY::WriteSample(BYTE const* data, uint32_t data_size, LONGLONG timestamp, ANY_Metadata* metadata)
+void Encoder_RM_IMU::WriteSample(BYTE const* data, uint32_t data_size, LONGLONG timestamp, RM_IMU_Metadata* metadata)
 {
     IMFMediaBuffer* pBuffer; // Release
     BYTE* pDst;
