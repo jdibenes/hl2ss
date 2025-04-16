@@ -723,8 +723,8 @@ def create_rd(filename, chunk, decoded):
 #------------------------------------------------------------------------------
 
 class sequencer:
-    def __init__(self, filename, chunk, decoded):
-        self.rd = create_rd(filename, chunk, decoded)
+    def __init__(self, rd):
+        self.rd = rd
 
     def open(self):
         self.rd.open()
