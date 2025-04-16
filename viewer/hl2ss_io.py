@@ -702,7 +702,7 @@ class _rd_decoded(_rd):
         
     def get_next_packet(self):
         data = super().get_next_packet()
-        if ((data is not None) and (self.format is not None)):
+        if (data is not None):
             data.payload = self.__decode(data.payload)
         return data
 
