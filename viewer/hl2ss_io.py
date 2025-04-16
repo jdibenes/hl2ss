@@ -722,7 +722,7 @@ def create_rd(filename, chunk, decoded):
 # Sequencer
 #------------------------------------------------------------------------------
 
-class sequencer:
+class sequencer(hl2ss._context_manager):
     def __init__(self, rd):
         self.rd = rd
 
