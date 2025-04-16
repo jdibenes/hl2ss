@@ -124,7 +124,7 @@ def _create_wr_extended_depth(filename, port, mode, divisor, profile_z, options,
 # Writer Wrappers
 #------------------------------------------------------------------------------
 
-class wr_rm_vlc(hl2ss._context_manager):
+class _wr_rm_vlc(hl2ss._context_manager):
     def __init__(self, filename, port, mode, divisor, profile, level, bitrate, options, user):
         self.filename = filename
         self.port = port
@@ -146,7 +146,7 @@ class wr_rm_vlc(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_rm_depth_ahat(hl2ss._context_manager):
+class _wr_rm_depth_ahat(hl2ss._context_manager):
     def __init__(self, filename, port, mode, divisor, profile_z, profile_ab, level, bitrate, options, user):
         self.filename = filename
         self.port = port
@@ -169,7 +169,7 @@ class wr_rm_depth_ahat(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_rm_depth_longthrow(hl2ss._context_manager):
+class _wr_rm_depth_longthrow(hl2ss._context_manager):
     def __init__(self, filename, port, mode, divisor, png_filter, user):
         self.filename = filename
         self.port = port
@@ -188,7 +188,7 @@ class wr_rm_depth_longthrow(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_rm_imu(hl2ss._context_manager):
+class _wr_rm_imu(hl2ss._context_manager):
     def __init__(self, filename, port, mode, user):
         self.filename = filename
         self.port = port
@@ -205,7 +205,7 @@ class wr_rm_imu(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_pv(hl2ss._context_manager):
+class _wr_pv(hl2ss._context_manager):
     def __init__(self, filename, port, mode, width, height, framerate, divisor, profile, level, bitrate, options, user):
         self.filename = filename
         self.port = port
@@ -230,7 +230,7 @@ class wr_pv(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_microphone(hl2ss._context_manager):
+class _wr_microphone(hl2ss._context_manager):
     def __init__(self, filename, port, profile, level, user):
         self.filename = filename
         self.port = port
@@ -248,7 +248,7 @@ class wr_microphone(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_si(hl2ss._context_manager):
+class _wr_si(hl2ss._context_manager):
     def __init__(self, filename, port, user):
         self.filename = filename
         self.port = port
@@ -264,7 +264,7 @@ class wr_si(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_eet(hl2ss._context_manager):
+class _wr_eet(hl2ss._context_manager):
     def __init__(self, filename, port, fps, user):
         self.filename = filename
         self.port = port
@@ -281,7 +281,7 @@ class wr_eet(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_extended_audio(hl2ss._context_manager):
+class _wr_extended_audio(hl2ss._context_manager):
     def __init__(self, filename, port, mixer_mode, loopback_gain, microphone_gain, profile, level, user):
         self.filename = filename
         self.port = port
@@ -302,7 +302,7 @@ class wr_extended_audio(hl2ss._context_manager):
         self._wr.close()
 
 
-class wr_extended_depth(hl2ss._context_manager):
+class _wr_extended_depth(hl2ss._context_manager):
     def __init__(self, filename, port, mode, divisor, profile_z, options, user):
         self.filename = filename
         self.port = port
@@ -327,43 +327,43 @@ class wr_extended_depth(hl2ss._context_manager):
 #------------------------------------------------------------------------------
 
 def _create_wr_from_rx_rm_vlc(filename, rx, user):
-    return wr_rm_vlc(filename, rx.port, rx.mode, rx.divisor, rx.profile, rx.level, rx.bitrate, rx.options, user)
+    return _wr_rm_vlc(filename, rx.port, rx.mode, rx.divisor, rx.profile, rx.level, rx.bitrate, rx.options, user)
 
 
 def _create_wr_from_rx_rm_depth_ahat(filename, rx, user):
-    return wr_rm_depth_ahat(filename, rx.port, rx.mode, rx.divisor, rx.profile_z, rx.profile_ab, rx.level, rx.bitrate, rx.options, user)
+    return _wr_rm_depth_ahat(filename, rx.port, rx.mode, rx.divisor, rx.profile_z, rx.profile_ab, rx.level, rx.bitrate, rx.options, user)
 
 
 def _create_wr_from_rx_rm_depth_longthrow(filename, rx, user):
-    return wr_rm_depth_longthrow(filename, rx.port, rx.mode, rx.divisor, rx.png_filter, user)
+    return _wr_rm_depth_longthrow(filename, rx.port, rx.mode, rx.divisor, rx.png_filter, user)
 
 
 def _create_wr_from_rx_rm_imu(filename, rx, user):
-    return wr_rm_imu(filename, rx.port, rx.mode, user)
+    return _wr_rm_imu(filename, rx.port, rx.mode, user)
 
 
 def _create_wr_from_rx_pv(filename, rx, user):
-    return wr_pv(filename, rx.port, rx.mode, rx.width, rx.height, rx.framerate, rx.divisor, rx.profile, rx.level, rx.bitrate, rx.options, user)
+    return _wr_pv(filename, rx.port, rx.mode, rx.width, rx.height, rx.framerate, rx.divisor, rx.profile, rx.level, rx.bitrate, rx.options, user)
 
 
 def _create_wr_from_rx_microphone(filename, rx, user):
-    return wr_microphone(filename, rx.port, rx.profile, rx.level, user)
+    return _wr_microphone(filename, rx.port, rx.profile, rx.level, user)
 
 
 def _create_wr_from_rx_si(filename, rx, user):
-    return wr_si(filename, rx.port, user)
+    return _wr_si(filename, rx.port, user)
 
 
 def _create_wr_from_rx_eet(filename, rx, user):
-    return wr_eet(filename, rx.port, rx.fps, user)
+    return _wr_eet(filename, rx.port, rx.fps, user)
 
 
 def _create_wr_from_rx_extended_audio(filename, rx, user):
-    return wr_extended_audio(filename, rx.port, rx.mixer_mode, rx.loopback_gain, rx.microphone_gain, rx.profile, rx.level, user)
+    return _wr_extended_audio(filename, rx.port, rx.mixer_mode, rx.loopback_gain, rx.microphone_gain, rx.profile, rx.level, user)
 
 
 def _create_wr_from_rx_extended_depth(filename, rx, user):
-    return wr_extended_depth(filename, rx.port, rx.mode, rx.divisor, rx.profile_z, rx.options, user)
+    return _wr_extended_depth(filename, rx.port, rx.mode, rx.divisor, rx.profile_z, rx.options, user)
 
 
 def create_wr_from_rx(filename, rx, user):
@@ -722,18 +722,18 @@ def create_rd(filename, chunk, decoded):
 # Sequencer
 #------------------------------------------------------------------------------
 
-class sequencer(_rd_decoded):
+class sequencer:
     def __init__(self, filename, chunk, decoded):
-        super().__init__(filename, chunk, decoded if (decoded) else None)
+        self.rd = create_rd(filename, chunk, decoded)
 
     def open(self):
-        super().open()
-        self._l = super().get_next_packet()
-        self._r = super().get_next_packet()
+        self.rd.open()
+        self._l = self.rd.get_next_packet()
+        self._r = self.rd.get_next_packet()
 
     def advance(self):
         self._l = self._r
-        self._r = super().get_next_packet()
+        self._r = self.rd.get_next_packet()
 
     def get_left(self):
         return self._l
@@ -765,5 +765,5 @@ class sequencer(_rd_decoded):
         return (status, self.get_nearest(timestamp, time_preference, tiebreak_right))
 
     def close(self):
-        super().close()
+        self.rd.close()
 
