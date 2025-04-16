@@ -763,6 +763,9 @@ class sequencer:
     def get_next_packet(self, timestamp, time_preference=hl2ss_mx.TimePreference.PREFER_NEAREST, tiebreak_right=False):
         status = self.sync(timestamp)
         return (status, self.get_nearest(timestamp, time_preference, tiebreak_right))
+    
+    def get_reader(self):
+        return self.rd
 
     def close(self):
         self.rd.close()
