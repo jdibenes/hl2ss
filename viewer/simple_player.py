@@ -15,14 +15,14 @@ import hl2ss_utilities
 # Settings --------------------------------------------------------------------
 
 # Directory containing the recorded data
-path = './data/DS-2025-04-11-19-45-11'
+path = './data/DS-2025-04-16-17-45-07'
 
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     # Create readers ----------------------------------------------------------
     # Stream type is detected automatically
-    rd_pv = hl2ss_io.sequencer(os.path.join(path, f'{hl2ss.get_port_name(hl2ss.StreamPort.PERSONAL_VIDEO)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24')
+    rd_pv = hl2ss_io.sequencer(hl2ss_io.create_rd(os.path.join(path, f'{hl2ss.get_port_name(hl2ss.StreamPort.PERSONAL_VIDEO)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24'))
     rd_mc = hl2ss_io.create_rd(os.path.join(path, f'{hl2ss.get_port_name(hl2ss.StreamPort.MICROPHONE)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, True)
 
     rd_pv.open()
