@@ -59,6 +59,10 @@ void Channel_SI::OnFrameArrived(uint32_t valid, SpatialInput_Frame* head_pose, S
 // OK
 void Channel_SI::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
+    (void)clean_point;
+    (void)metadata;
+    (void)metadata_size;
+
     WSABUF wsaBuf[3];
 
     pack_buffer(wsaBuf, 0, &sample_time,  sizeof(sample_time));
