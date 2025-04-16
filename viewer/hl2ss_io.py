@@ -724,7 +724,7 @@ def create_rd(filename, chunk, decoded):
 
 class sequencer(_rd_decoded):
     def __init__(self, filename, chunk, decoded):
-        super().__init__(filename, chunk, decoded)
+        super().__init__(filename, chunk, decoded if (decoded) else None)
 
     def open(self):
         super().open()
