@@ -274,7 +274,13 @@
     <ClCompile Include="encoder_ez.cpp">
       <Filter>Source Files\encoders</Filter>
     </ClCompile>
-    <ClCompile Include="encoder_any.cpp">
+    <ClCompile Include="encoder_rm_imu.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_si.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_eet.cpp">
       <Filter>Source Files\encoders</Filter>
     </ClCompile>
   </ItemGroup>
@@ -696,7 +702,13 @@
     <ClInclude Include="..\..\3rdparty\HoloLens2ForCV\researchmode\ResearchModeApi.h">
       <Filter>Libraries\researchmode</Filter>
     </ClInclude>
-    <ClInclude Include="encoder_any.h">
+    <ClInclude Include="encoder_rm_imu.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_si.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_eet.h">
       <Filter>Header Files\encoders</Filter>
     </ClInclude>
   </ItemGroup>

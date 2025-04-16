@@ -183,8 +183,10 @@
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h" />
-    <ClInclude Include="encoder_any.h" />
+    <ClInclude Include="encoder_rm_imu.h" />
+    <ClInclude Include="encoder_eet.h" />
     <ClInclude Include="encoder_ez.h" />
+    <ClInclude Include="encoder_si.h" />
     <ClInclude Include="extended_depth.h" />
     <ClInclude Include="ipc_mqx.h" />
     <ClInclude Include="ipl.h" />
@@ -278,8 +280,10 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c" />
-    <ClCompile Include="encoder_any.cpp" />
+    <ClCompile Include="encoder_rm_imu.cpp" />
+    <ClCompile Include="encoder_eet.cpp" />
     <ClCompile Include="encoder_ez.cpp" />
+    <ClCompile Include="encoder_si.cpp" />
     <ClCompile Include="extended_depth.cpp" />
     <ClCompile Include="ipl.cpp" />
     <ClCompile Include="message_queue.cpp" />
