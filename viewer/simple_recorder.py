@@ -12,6 +12,7 @@ import os
 import time
 import hl2ss
 import hl2ss_lnm
+import hl2ss_mx
 import hl2ss_mp
 import hl2ss_ds
 import hl2ss_utilities
@@ -147,9 +148,16 @@ if __name__ == '__main__':
     producer.configure(hl2ss.StreamPort.EXTENDED_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, width=ev_width, height=ev_height, framerate=ev_framerate, profile=video_profile, decoded_format=None))
     producer.configure(hl2ss.StreamPort.EXTENDED_DEPTH, hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, media_index=ez_media_index, stride_mask=ez_stride_mask, decoded=False))
 
+    consumer = hl2ss_mp.consumer()
+    sinks = {}
+
     for port in ports:
         producer.initialize(port)
         producer.start(port)
+        sinks[port] = consumer.get_default_sink(producer, port)
+        sinks[port].get_attach_response()
+        while (sinks[port].get_buffered_frame(-1)[0] != hl2ss_mx.Status.OK):
+            pass
         print(f'Started stream {hl2ss.get_port_name(port)}')
     
     writers = {port : hl2ss_ds.wr(filenames[port], producer, port, user_data) for port in ports}
@@ -177,6 +185,7 @@ if __name__ == '__main__':
         print(f'Stopped writer {hl2ss.get_port_name(port)}')
 
     for port in ports:
+        sinks[port].detach()
         producer.stop(port)
         print(f'Stopped stream {hl2ss.get_port_name(port)}')
 
