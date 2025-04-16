@@ -2,7 +2,7 @@
 #include "research_mode.h"
 #include "server_channel.h"
 #include "server_settings.h"
-#include "encoder_any.h"
+#include "encoder_rm_imu.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 
@@ -15,7 +15,7 @@ class Channel_RM_IMU : public Channel
 private:
     IResearchModeSensor* m_sensor;
     RM_IMU_PROC m_process_sample;
-    std::unique_ptr<Encoder_ANY> m_pEncoder;
+    std::unique_ptr<Encoder_RM_IMU> m_pEncoder;
     bool m_enable_location;
 
     bool Startup();
@@ -78,7 +78,7 @@ void Channel_RM_IMU::OnFrameProcess(void const* imu_buffer, size_t imu_bytes, UI
 {
     (void)sensor_ticks;
 
-    ANY_Metadata metadata;
+    RM_IMU_Metadata metadata;
 
     metadata.timestamp = host_ticks;
 
@@ -97,7 +97,7 @@ void Channel_RM_IMU::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT3
     (void)sample_time;
     (void)metadata_size;
 
-    ANY_Metadata* p = static_cast<ANY_Metadata*>(metadata);
+    RM_IMU_Metadata* p = static_cast<RM_IMU_Metadata*>(metadata);
     WSABUF wsaBuf[4];
 
     pack_buffer(wsaBuf, 0, &p->timestamp, sizeof(p->timestamp));
@@ -111,7 +111,7 @@ void Channel_RM_IMU::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT3
 // OK
 void Channel_RM_IMU::Execute_Mode0(bool enable_location)
 {
-    m_pEncoder        = std::make_unique<Encoder_ANY>(Thunk_Encoder, this);
+    m_pEncoder        = std::make_unique<Encoder_RM_IMU>(Thunk_Encoder, this);
     m_enable_location = enable_location;
 
     ResearchMode_ExecuteSensorLoop(m_sensor, Thunk_Sensor, this, m_event_client);
