@@ -6,6 +6,7 @@ from pynput import keyboard
 import os
 import time
 import cv2
+import hl2ss_imshow
 import hl2ss
 import hl2ss_lnm
 import hl2ss_mx
@@ -92,8 +93,7 @@ if __name__ == '__main__':
     client_rc.ee_set_encoder_buffering(True)
     client_rc.close()
    
-    # Start receivers ---------------------------------------------------------
-    
+    # Start receivers ---------------------------------------------------------    
     producer = hl2ss_mp.producer()
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, sockopt, profile=video_profile, decoded=False))
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTLEFT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTLEFT, sockopt, profile=video_profile, decoded=False))
