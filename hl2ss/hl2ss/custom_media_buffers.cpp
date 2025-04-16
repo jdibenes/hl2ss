@@ -287,6 +287,7 @@ HRESULT VectorBuffer::Lock(BYTE** ppbBuffer, DWORD* pcbMaxLength, DWORD* pcbCurr
 // OK
 HRESULT VectorBuffer::SetCurrentLength(DWORD cbCurrentLength)
 {
+    (void)cbCurrentLength;
     return S_OK;
 }
 
