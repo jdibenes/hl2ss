@@ -297,7 +297,13 @@
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp">
       <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="..\hl2ss\encoder_any.cpp">
+    <ClCompile Include="..\hl2ss\encoder_eet.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_rm_imu.cpp">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hl2ss\encoder_si.cpp">
       <Filter>Libraries\hl2ss\encoders</Filter>
     </ClCompile>
   </ItemGroup>
@@ -563,7 +569,13 @@
     <ClInclude Include="..\hl2ss\stream_rm_imu.h">
       <Filter>Libraries\hl2ss\interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\hl2ss\encoder_any.h">
+    <ClInclude Include="..\hl2ss\encoder_eet.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_rm_imu.h">
+      <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\encoder_si.h">
       <Filter>Libraries\hl2ss\encoders</Filter>
     </ClInclude>
   </ItemGroup>
