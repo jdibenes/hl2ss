@@ -67,6 +67,7 @@ void Channel_EET::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 c
     (void)sample_time;
     (void)metadata;
     (void)metadata_size;
+
     WSABUF wsaBuf[1];
     pack_buffer(wsaBuf, 0, encoded, encoded_size);
     send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
@@ -84,7 +85,11 @@ void Channel_EET::Execute_Mode1()
     ok = ExtendedEyeTracking_SetTargetFrameRate(fps);
     if (!ok) { return; }
 
+    m_pEncoder = std::make_unique<Encoder_EET>(Thunk_Encoder, this);
+
     ExtendedEyeTracking_ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
+
+    m_pEncoder.reset();
 }
 
 // OK
