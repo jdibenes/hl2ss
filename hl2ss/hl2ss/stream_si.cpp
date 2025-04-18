@@ -60,15 +60,12 @@ void Channel_SI::OnFrameArrived(uint32_t valid, SpatialInput_Frame* head_pose, S
 void Channel_SI::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
     (void)clean_point;
+    (void)sample_time;
     (void)metadata;
     (void)metadata_size;
 
-    WSABUF wsaBuf[3];
-
-    pack_buffer(wsaBuf, 0, &sample_time,  sizeof(sample_time));
-    pack_buffer(wsaBuf, 1, &encoded_size, sizeof(encoded_size));
-    pack_buffer(wsaBuf, 2, encoded,       encoded_size);
-
+    WSABUF wsaBuf[1];
+    pack_buffer(wsaBuf, 0, encoded, encoded_size);
     send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
