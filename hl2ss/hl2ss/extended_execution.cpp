@@ -164,8 +164,10 @@ Exception ExtendedExecution_GetExceptions()
 // OK
 void ExtendedExecution_MessageBox(winrt::hstring message)
 {
+    {
     CriticalSection cs(&g_lock);
     g_mailbox.push(message);
+    }
     SetEvent(g_event);
 }
 
