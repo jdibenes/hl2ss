@@ -281,6 +281,7 @@
     <ClCompile Include="..\hl2ss\custom_media_sink.cpp" />
     <ClCompile Include="..\hl2ss\custom_media_types.cpp" />
     <ClCompile Include="..\hl2ss\custom_media_type_handler.cpp" />
+    <ClCompile Include="..\hl2ss\custom_sample_buffer.cpp" />
     <ClCompile Include="..\hl2ss\custom_sink_writers.cpp" />
     <ClCompile Include="..\hl2ss\custom_stream_sink.cpp" />
     <ClCompile Include="..\hl2ss\custom_video_effect.cpp" />
@@ -373,6 +374,7 @@
     <ClInclude Include="..\hl2ss\custom_media_sink.h" />
     <ClInclude Include="..\hl2ss\custom_media_types.h" />
     <ClInclude Include="..\hl2ss\custom_media_type_handler.h" />
+    <ClInclude Include="..\hl2ss\custom_sample_buffer.h" />
     <ClInclude Include="..\hl2ss\custom_sink_writers.h" />
     <ClInclude Include="..\hl2ss\custom_stream_sink.h" />
     <ClInclude Include="..\hl2ss\custom_video_effect.h" />

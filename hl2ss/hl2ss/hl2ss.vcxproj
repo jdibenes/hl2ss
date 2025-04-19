@@ -183,6 +183,7 @@
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.h" />
     <ClInclude Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.h" />
+    <ClInclude Include="custom_sample_buffer.h" />
     <ClInclude Include="encoder_rm_imu.h" />
     <ClInclude Include="encoder_eet.h" />
     <ClInclude Include="encoder_ez.h" />
@@ -280,6 +281,7 @@
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_lazy.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_ldm.c" />
     <ClCompile Include="..\..\3rdparty\Zdepth\zstd\src\zstd_opt.c" />
+    <ClCompile Include="custom_sample_buffer.cpp" />
     <ClCompile Include="encoder_rm_imu.cpp" />
     <ClCompile Include="encoder_eet.cpp" />
     <ClCompile Include="encoder_ez.cpp" />

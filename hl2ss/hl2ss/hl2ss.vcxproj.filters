@@ -283,6 +283,9 @@
     <ClCompile Include="encoder_eet.cpp">
       <Filter>Source Files\encoders</Filter>
     </ClCompile>
+    <ClCompile Include="custom_sample_buffer.cpp">
+      <Filter>Source Files\sink</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -710,6 +713,9 @@
     </ClInclude>
     <ClInclude Include="encoder_eet.h">
       <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="custom_sample_buffer.h">
+      <Filter>Header Files\sink</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

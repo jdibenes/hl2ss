@@ -306,6 +306,9 @@
     <ClCompile Include="..\hl2ss\encoder_si.cpp">
       <Filter>Libraries\hl2ss\encoders</Filter>
     </ClCompile>
+    <ClCompile Include="..\hl2ss\custom_sample_buffer.cpp">
+      <Filter>Libraries\hl2ss\sink</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hl2ss.h">
@@ -577,6 +580,9 @@
     </ClInclude>
     <ClInclude Include="..\hl2ss\encoder_si.h">
       <Filter>Libraries\hl2ss\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hl2ss\custom_sample_buffer.h">
+      <Filter>Libraries\hl2ss\sink</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
