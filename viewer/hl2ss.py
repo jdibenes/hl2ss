@@ -2325,6 +2325,7 @@ class ipc_rc(_context_manager):
     _CMD_TS_GET_CURRENT_TIME = 0x18
     _CMD_SI_SET_SAMPLING_DELAY = 0x19
     _CMD_EE_SET_ENCODER_BUFFERING = 0x20
+    _CMD_EE_SET_READER_BUFFERING = 0x21
 
     def __init__(self, host, port, sockopt):
         self.host = host
@@ -2468,6 +2469,10 @@ class ipc_rc(_context_manager):
 
     def ee_set_encoder_buffering(self, enable):
         command = struct.pack('<BI', ipc_rc._CMD_EE_SET_ENCODER_BUFFERING, 1 if (enable) else 0)
+        self._client.sendall(command)
+
+    def ee_set_reader_buffering(self, enable):
+        command = struct.pack('<BI', ipc_rc._CMD_EE_SET_READER_BUFFERING, 1 if (enable) else 0)
         self._client.sendall(command)
 
 
