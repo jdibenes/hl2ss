@@ -33,5 +33,7 @@ void ExtendedExecution_SetInterfacePriority(uint32_t id, int32_t priority);
 int32_t ExtendedExecution_GetInterfacePriority(uint32_t id);
 void ExtendedExecution_SetEncoderBuffering(bool enable);
 bool ExtendedExecution_GetEncoderBuffering();
+void ExtendedExecution_SetReaderBuffering(bool enable);
+bool ExtendedExecution_GetReaderBuffering();
 void ExtendedExecution_SetQuietMode(bool quiet);
 bool ExtendedExecution_GetQuietMode();

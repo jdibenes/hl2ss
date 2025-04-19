@@ -37,7 +37,8 @@ static ExtendedExecutionForegroundSession g_eefs = nullptr;
 static bool g_status = false;
 static std::atomic<int32_t> g_interface_priority[INTERFACE_SLOTS];
 static long g_log_error = 0;
-static std::atomic<bool> g_encoder_buffering;
+static std::atomic<bool> g_encoder_buffering = false;
+static std::atomic<bool> g_reader_buffering = false;
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -116,6 +117,8 @@ static bool ExtendedExecution_GetFileRegister(winrt::hstring option)
 // OK
 void ExtendedExecution_Initialize()
 {
+    for (int id = 0; id < INTERFACE_SLOTS; ++id) { g_interface_priority[id] = THREAD_PRIORITY_NORMAL; }
+
     InitializeCriticalSection(&g_lock);
     g_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     g_thread = CreateThread(NULL, 0, ExtendedExecution_MailboxService, NULL, 0, NULL);
@@ -208,6 +211,18 @@ void ExtendedExecution_SetEncoderBuffering(bool enable)
 bool ExtendedExecution_GetEncoderBuffering()
 {
     return g_encoder_buffering;
+}
+
+// OK
+void ExtendedExecution_SetReaderBuffering(bool enable)
+{
+    g_reader_buffering = enable;
+}
+
+// OK
+bool ExtendedExecution_GetReaderBuffering()
+{
+    return g_reader_buffering;
 }
 
 // OK
