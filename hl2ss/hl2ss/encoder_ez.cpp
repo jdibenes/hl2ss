@@ -28,20 +28,22 @@ bool Encoder_EZ::WriteSample(MediaFrameReference const& frame, EZ_Metadata* meta
 
     VectorBuffer::CreateInstance(&pBuffer);
     std::vector<uint8_t>& v = pBuffer->Get();
+    bool ok;
 
     if (!m_raw)
     {
     zdepth::DepthResult result = m_compressor.Compress(m_width, m_height, reinterpret_cast<uint16_t*>(b.data()), v, true);
-    if (result != zdepth::DepthResult::Success) { return false; }
+    ok = result == zdepth::DepthResult::Success;
     }
     else
     {
     v.resize(b.Length());
     memcpy(v.data(), b.data(), b.Length());
+    ok = true;
     }
 
-    WriteBuffer(pBuffer, frame.SystemRelativeTime().Value().count(), 0, metadata);
+    if (ok) { WriteBuffer(pBuffer, frame.SystemRelativeTime().Value().count(), 0, metadata); }
     pBuffer->Release();
 
-    return true;
+    return ok;
 }
