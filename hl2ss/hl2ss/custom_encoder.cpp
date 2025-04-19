@@ -16,15 +16,11 @@ CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, 
     m_pHookCallback = pHookCallback;
     m_pHookParam    = pHookParam;
     m_pMetadataFree = pMetadataFree;
-    m_buffering     = ExtendedExecution_GetEncoderBuffering();
 
     memset(m_metadata.get(), 0, metadata_size);
 
-    if (!m_buffering) { return; }
-
-    InitializeCriticalSection(&m_lock);
-    m_semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
-    m_thread = CreateThread(NULL, 0, CustomEncoder::Thunk_Send, this, 0, NULL);
+    m_buffer_i.Startup(CustomEncoder::Thunk_Write,   this, ExtendedExecution_GetReaderBuffering());
+    m_buffer_o.Startup(CustomEncoder::Thunk_Process, this, ExtendedExecution_GetEncoderBuffering());
 }
 
 // OK
@@ -44,33 +40,21 @@ CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size)
 // OK
 CustomEncoder::~CustomEncoder()
 {
+    m_buffer_i.Cleanup();
     m_pSinkWriter.reset();
+    m_buffer_o.Cleanup();
+}
 
-    if (!m_buffering) { return; }
-
-    ReleaseSemaphore(m_semaphore, 1, NULL);
-    WaitForSingleObject(m_thread, INFINITE);
-    CloseHandle(m_thread);
-    CloseHandle(m_semaphore);
-    DeleteCriticalSection(&m_lock);
+// OK
+void CustomEncoder::WriteSample(IMFSample* pSample)
+{
+    if (m_pSinkWriter) { m_pSinkWriter->WriteSample(pSample); } else { Thunk_Sink(pSample, this); }
 }
 
 // OK
 void CustomEncoder::ReceiveSample(IMFSample* pSample)
 {
-    if (!m_buffering)
-    {
-    ProcessSample(pSample);
-    }
-    else
-    {
-    pSample->AddRef();
-    {
-    CriticalSection cs(&m_lock);
-    m_buffer.push(pSample);
-    }
-    ReleaseSemaphore(m_semaphore, 1, NULL);
-    }
+    m_buffer_o.Push(pSample);
 }
 
 // OK
@@ -100,20 +84,9 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
 }
 
 // OK
-void CustomEncoder::SendLoop()
+void CustomEncoder::Thunk_Write(IMFSample* pSample, void* self)
 {
-    IMFSample* sample; // Release
-    while (true)
-    {
-    WaitForSingleObject(m_semaphore, INFINITE);
-    {
-    CriticalSection cs(&m_lock);
-    if (m_buffer.empty()) { return; }
-    sample = pull(m_buffer);
-    }
-    ProcessSample(sample);
-    sample->Release();
-    }
+    static_cast<CustomEncoder*>(self)->WriteSample(pSample);
 }
 
 // OK
@@ -123,10 +96,9 @@ void CustomEncoder::Thunk_Sink(IMFSample* pSample, void* self)
 }
 
 // OK
-DWORD WINAPI CustomEncoder::Thunk_Send(void* self)
+void CustomEncoder::Thunk_Process(IMFSample* pSample, void* self)
 {
-    static_cast<CustomEncoder*>(self)->SendLoop();
-    return 0;
+    static_cast<CustomEncoder*>(self)->ProcessSample(pSample);
 }
 
 // OK
@@ -149,7 +121,7 @@ void CustomEncoder::WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LON
     pSample->SetSampleTime(timestamp);
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, static_cast<UINT8*>(metadata), m_metadata_size);
 
-    if (m_pSinkWriter) { m_pSinkWriter->WriteSample(pSample); } else { Thunk_Sink(pSample, this); }
+    m_buffer_i.Push(pSample);
 
     pSample->Release();
 }

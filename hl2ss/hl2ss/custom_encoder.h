@@ -3,6 +3,7 @@
 
 #include "queue.h"
 #include "custom_sink_writers.h"
+#include "custom_sample_buffer.h"
 
 uint8_t const NV12_ZERO_CHROMA = 0x80;
 
@@ -18,18 +19,16 @@ private:
     HOOK_ENCODER_PROC m_pHookCallback;
     void* m_pHookParam;
     HOOK_METADATA_PROC m_pMetadataFree;
-    bool m_buffering;
-    std::queue<IMFSample*> m_buffer;
-    CRITICAL_SECTION m_lock; // DeleteCriticalSection
-    HANDLE m_semaphore; // CloseHandle
-    HANDLE m_thread; // CloseHandle
+    SampleBuffer m_buffer_i;
+    SampleBuffer m_buffer_o;
 
+    void WriteSample(IMFSample* pSample);
     void ReceiveSample(IMFSample* pSample);
     void ProcessSample(IMFSample* pSample);
-    void SendLoop();
     
+    static void Thunk_Write(IMFSample* pSample, void* self);
     static void Thunk_Sink(IMFSample* pSample, void* self);
-    static DWORD WINAPI Thunk_Send(void* self);
+    static void Thunk_Process(IMFSample* pSample, void* self);
 
 protected:
     CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, HOOK_METADATA_PROC pMetadataFree, uint32_t metadata_size);
