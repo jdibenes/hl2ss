@@ -1,0 +1,1122 @@
+RM DLL base 00007FFDC7F10000 size 258048 entry 00007FFDC7F12AB0
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+CResearchModeSensor::GetNextBuffer(struct IResearchModeSensorFrame * *):
+00007FFDC7F20940 D503237F             pacibsp  
+00007FFDC7F20944 A9BE53F3             stp         x19,x20,[sp,#-0x20]!  
+00007FFDC7F20948 A9015BF5             stp         x21,x22,[sp,#0x10]  
+00007FFDC7F2094C A9BC7BFD             stp         fp,lr,[sp,#-0x40]!  
+00007FFDC7F20950 910003FD             mov         fp,sp  
+00007FFDC7F20954 AA0003F5             mov         x21,x0  
+00007FFDC7F20958 F9000BFF             str         xzr,[sp,#0x10]  
+00007FFDC7F2095C F9400AA0             ldr         x0,[x21,#0x10]  
+00007FFDC7F20960 AA0103F6             mov         x22,x1  
+00007FFDC7F20964 52800085             mov         w5,#4  
+00007FFDC7F20968 910282A4             add         x4,x21,#0xA0  
+00007FFDC7F2096C 52800303             mov         w3,#0x18  
+00007FFDC7F20970 910062A2             add         x2,x21,#0x18  
+00007FFDC7F20974 180006A1             ldr         w1,CResearchModeSensor::GetNextBuffer+108h (07FFDC7F20A48h)  
+00007FFDC7F20978 D2800013             mov         x19,#0  
+
+[CALL] FIXED
+00007FFDC7F2097C 94001E71             bl          `anonymous namespace'::DeviceIoControlSynchronousOverlapped (07FFDC7F28340h)  
+00007FFDC7F20980 2A0003F4             mov         w20,w0  
+00007FFDC7F20984 37F803D4             tbnz        w20,#0x1F,CResearchModeSensor::GetNextBuffer+0BCh (07FFDC7F209FCh)  ; goto @DeviceIoControlSynchronousOverlapped.FAIL
+
+00007FFDC7F20988 B9407AA8             ldr         w8,[x21,#0x78]  
+00007FFDC7F2098C 910083E9             add         x9,sp,#0x20  
+00007FFDC7F20990 3CC182B0             ldur        q16,[x21,#0x18]  
+00007FFDC7F20994 910043E4             add         x4,sp,#0x10  
+00007FFDC7F20998 B940A2A3             ldr         w3,[x21,#0xA0]  
+00007FFDC7F2099C 9100C2A2             add         x2,x21,#0x30  
+00007FFDC7F209A0 F9400AA0             ldr         x0,[x21,#0x10]  
+00007FFDC7F209A4 910083E1             add         x1,sp,#0x20  
+00007FFDC7F209A8 7100111F             cmp         w8,#4  
+00007FFDC7F209AC F94016A8             ldr         x8,[x21,#0x28]  
+00007FFDC7F209B0 3D800130             str         q16,[x9]  
+00007FFDC7F209B4 F9000928             str         x8,[x9,#0x10]  
+00007FFDC7F209B8 54000061             bne         CResearchModeSensor::GetNextBuffer+84h (07FFDC7F209C4h)  
+
+[CALL] FIXED IGNORED FOR VLC
+00007FFDC7F209BC 94000A11             bl          CResearchModeDepthFrame::CreateFrame (07FFDC7F23200h)  
+00007FFDC7F209C0 14000002             b           CResearchModeSensor::GetNextBuffer+88h (07FFDC7F209C8h)  
+
+[CALL] FIXED FOR VLC
+00007FFDC7F209C4 94000CA3             bl          CResearchModeVLCFrame::CreateFrame (07FFDC7F23C50h)  
+
+00007FFDC7F209C8 F9400BF3             ldr         x19,[sp,#0x10]  ; x19=0x00000190d2cfb9d8
+00007FFDC7F209CC 2A0003F4             mov         w20,w0  
+00007FFDC7F209D0 37F80174             tbnz        w20,#0x1F,CResearchModeSensor::GetNextBuffer+0BCh (07FFDC7F209FCh)  ; goto @DeviceIoControlSynchronousOverlapped.FAIL
+00007FFDC7F209D4 F9400268             ldr         x8,[x19]  
+00007FFDC7F209D8 AA1303E0             mov         x0,x19  
+00007FFDC7F209DC F9401508             ldr         x8,[x8,#0x28]  
+00007FFDC7F209E0 AA0803EF             mov         x15,x8  
+00007FFDC7F209E4 900000F1             adrp        xip1,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F209E8 F942FE31             ldr         xip1,[xip1,#0x5F8]  
+
+[CALL] 0x00007FFDC7F1DE60 operator delete(void *,class ST::IAllocator &) ; does nothing
+00007FFDC7F209EC D63F0220             blr         xip1  
+
+[CALL] 0x00007ffdc7f23e90 CResearchModeVLCFrame::ReadNextBufferFromSensor(void)
+00007FFDC7F209F0 D63F01E0             blr         x15  
+00007FFDC7F209F4 2A0003F4             mov         w20,w0  
+00007FFDC7F209F8 36F80194             tbz         w20,#0x1F,CResearchModeSensor::GetNextBuffer+0E8h (07FFDC7F20A28h)  ; goto @CResearchModeVLCFrame::ReadNextBufferFromSensor.SUCCESS
+
+@DeviceIoControlSynchronousOverlapped.FAIL:
+00007FFDC7F209FC B4000153             cbz         x19,CResearchModeSensor::GetNextBuffer+0E4h (07FFDC7F20A24h)  
+00007FFDC7F20A00 F9400668             ldr         x8,[x19,#8]  
+00007FFDC7F20A04 52800021             mov         w1,#1  
+00007FFDC7F20A08 91002260             add         x0,x19,#8  
+00007FFDC7F20A0C F9400108             ldr         x8,[x8]  
+00007FFDC7F20A10 AA0803EF             mov         x15,x8  
+00007FFDC7F20A14 900000F1             adrp        xip1,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F20A18 F942FE31             ldr         xip1,[xip1,#0x5F8]  
+
+[CALL] 0x00007FFDC7F1DE60 operator delete(void *,class ST::IAllocator &) ; does nothing
+00007FFDC7F20A1C D63F0220             blr         xip1  
+
+[CALL] ??? ; skipped on success
+00007FFDC7F20A20 D63F01E0             blr         x15  
+
+00007FFDC7F20A24 D2800013             mov         x19,#0  
+
+@CResearchModeVLCFrame::ReadNextBufferFromSensor.SUCCESS:
+00007FFDC7F20A28 F90002D3             str         x19,[x22]  
+00007FFDC7F20A2C 2A1403E0             mov         w0,w20  
+00007FFDC7F20A30 A8C47BFD             ldp         fp,lr,[sp],#0x40  
+00007FFDC7F20A34 A9415BF5             ldp         x21,x22,[sp,#0x10]  
+00007FFDC7F20A38 A8C253F3             ldp         x19,x20,[sp],#0x20  
+00007FFDC7F20A3C D50323FF             autibsp  
+00007FFDC7F20A40 D65F03C0             ret  
+00007FFDC7F20A44 D503201F             nop  
+00007FFDC7F20A48 24 50 5B 00          ?? ?????? 
+00007FFDC7F20A4C 00 00 00 00          ?? ?????? 
+
+CResearchModeSensor::GetSampleBufferSize(unsigned __int64 *):
+00007FFDC7F20A50 B940A008             ldr         w8,[x0,#0xA0]  
+00007FFDC7F20A54 52800000             mov         w0,#0  
+00007FFDC7F20A58 F9000028             str         x8,[x1]  
+00007FFDC7F20A5C D65F03C0             ret  
+
+CResearchModeMagSensor::GetSensorType(void):
+00007FFDC7F20A60 B9407800             ldr         w0,[x0,#0x78]  
+00007FFDC7F20A64 D65F03C0             ret  
+00007FFDC7F20A68 D503201F             nop  
+00007FFDC7F20A6C 00 00 00 00          ?? ?????? 
+
+CResearchModeSensor::Initialize(void *,struct _HOLOGRAPHIC_SENSOR_DESCRIPTOR_ARRAY const &,struct SensorDescriptor &,bool):
+00007FFDC7F20A70 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+`anonymous namespace'::DeviceIoControlSynchronousOverlapped(void):
+00007FFDC7F28340 D503237F             pacibsp  
+00007FFDC7F28344 A9BD53F3             stp         x19,x20,[sp,#-0x30]!  
+00007FFDC7F28348 A9015BF5             stp         x21,x22,[sp,#0x10]  
+00007FFDC7F2834C A90263F7             stp         x23,x24,[sp,#0x20]  
+00007FFDC7F28350 A9BC7BFD             stp         fp,lr,[sp,#-0x40]!  
+00007FFDC7F28354 910003FD             mov         fp,sp  
+00007FFDC7F28358 4F00E410             movi        v16.16b,#0  
+00007FFDC7F2835C 910063E8             add         x8,sp,#0x18  
+00007FFDC7F28360 AA0003F4             mov         x20,x0  
+00007FFDC7F28364 2A0103F3             mov         w19,w1  
+00007FFDC7F28368 AD004110             stp         q16,q16,[x8]  
+00007FFDC7F2836C 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28370 91086108             add         x8,x8,#0x218  
+00007FFDC7F28374 C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F28378 AA0203F5             mov         x21,x2  
+00007FFDC7F2837C 2A0303F6             mov         w22,w3  
+00007FFDC7F28380 D2800003             mov         x3,#0  
+00007FFDC7F28384 52800002             mov         w2,#0  
+00007FFDC7F28388 52800021             mov         w1,#1  
+00007FFDC7F2838C D2800000             mov         x0,#0  
+00007FFDC7F28390 AA0403F7             mov         x23,x4  
+00007FFDC7F28394 2A0503F8             mov         w24,w5  
+
+[CALL] 0x00007ffded52d080 CreateEventW(0, 1, 0, 0)
+00007FFDC7F28398 D63F0120             blr         x9  
+
+00007FFDC7F2839C F9001BE0             str         x0,[sp,#0x30]  
+00007FFDC7F283A0 B5000060             cbnz        x0,`anonymous namespace'::DeviceIoControlSynchronousOverlapped+6Ch (07FFDC7F283ACh)  ; @CreateEventW.SUCCESS
+00007FFDC7F283A4 180006E0             ldr         w0,`anonymous namespace'::DeviceIoControlSynchronousOverlapped+140h (07FFDC7F28480h)  
+00007FFDC7F283A8 14000030             b           `anonymous namespace'::DeviceIoControlSynchronousOverlapped+128h (07FFDC7F28468h)  ; @CreateEventW.FAIL
+
+@CreateEventW.SUCCESS:
+00007FFDC7F283AC 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F283B0 91048108             add         x8,x8,#0x120  
+00007FFDC7F283B4 C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F283B8 910063E7             add         x7,sp,#0x18  
+00007FFDC7F283BC 910043E6             add         x6,sp,#0x10  
+00007FFDC7F283C0 2A1803E5             mov         w5,w24  
+00007FFDC7F283C4 AA1703E4             mov         x4,x23  
+00007FFDC7F283C8 2A1603E3             mov         w3,w22  
+00007FFDC7F283CC AA1503E2             mov         x2,x21  
+00007FFDC7F283D0 2A1303E1             mov         w1,w19  
+00007FFDC7F283D4 AA1403E0             mov         x0,x20  
+
+                                          
+[CALL] 0x00007ffded4dbd40 DeviceIoControl(x0=0x0000000000000aa0, w1=0x005b5024, x2=0x00000190d2d76638, w3=0x00000018, x4=0x00000190d2d766c0, w5=0x00000004, x6=0x0000005c9d2ff700, x7=0x0000005c9d2ff708)
+0x00000190d2d76638: 01 00 00 00 
+                    00 00 00 00 
+                    19 4d 04 00 00 00 00 00 (LUID)
+                    18 4d 04 00 
+                    00 00 00 00 
+0x00000190d2d766c0: 74 b1 04 00 ; bytes written? 307,572 = 307,200 + 372 -> 372/4 = 93
+0x0000005c9d2ff700: 04 00 00 00
+CALL FROM GETPROPERTY 00007FFDC7F23024 X0=0x0000000000000AA0  w1=0x005B5018  X2=0000005C9D2FF650    X3=0x00000020  X4=0x00000190D2CF1F00  w5=0x00000040  X6=0x0000005C9D2FF5F0  X7=0x0000005C9D2FF5F8
+0x0000005C9D2FF650: 8f 24 4c 3d c6 4d fc 4f a5 0d f1 20 e0 e8 02 4a 19 4d 04 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00000190D2CF1F00: 19 4d 04 00 00 00 00 00 (LUID)
+                    8f 24 4c 3d c6 4d fc 4f a5 0d f1 20 e0 e8 02 4a (PROPERTY GUID)
+                    00 00 00 00 
+                    5a a9 2d 00
+                    00 00 00 00 
+                    2c 00 00 00 (sizeof header?)
+                    14 00 00 00 (sizeof resolution?)
+                    80 02 00 00 (width) ^above is DISCARDED
+                    e0 01 00 00 (height)
+                    00 00 00 00 (stride)
+                    00 00 00 00 (bits per pixel)
+                    00 00 00 00 (bytes per pixel)
+CALL FROM GETPROPERTY 00007FFDC7F23068 X0 = 0000000000000AA0, X1 = 00000000005B5018, X2 = 0000005C9D2FF650, X3 = 0000000000000020, X4 = 00000190D2CF1F00, X5 = 0000000000000040, X6 = 0000000000000000, X7 = 0000000000000000
+0x0000005C9D2FF650: 52 3f 21 94 0f a1 f3 4a bf 31 8e 6e 8d f0 89 4c 19 4d 04 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00000190D2CF1F00: 19 4d 04 00 00 00 00 00 (LUID)
+                    52 3f 21 94 0f a1 f3 4a bf 31 8e 6e 8d f0 89 4c (Property GUID)
+                    00 00 00 00 
+                    5c a9 2d 00 
+                    00 00 00 00 
+                    2c 00 00 00 (sizeof header?)
+                    14 00 00 00 (size of data?)
+                    01 00 00 00 
+                    37 30 2c 8e 00 00 00 00 (ticks host)
+                    00 f0 c0 03 00 00 00 00 (ticks per second)
+CALL FROM GETPROPERTY 00007FFDC7F23EEC X0 = 0000000000000AA0  X1 = 00000000005B5018  X2 = 0000005C9D2FF6A0  X3 = 0000000000000020  X4 = 00000190D2CF3040  X5 = 0000000000000040  X6 = 0000005C9D2FF640  X7 = 0000005C9D2FF648
+0x0000005C9D2FF6A0: 26 49 d6 17 27 4c 84 48 b5 75 6e 1d 74 a7 ac 4c 19 4d 04 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00000190D2CF3040: 19 4d 04 00 00 00 00 00 
+                    26 49 d6 17 27 4c 84 48 b5 75 6e 1d 74 a7 ac 4c
+                    00 00 00 00 
+                    5b a9 2d 00 
+                    00 00 00 00 
+                    2c 00 00 00 
+                    14 00 00 00 
+                    01 00 00 00 
+                    58 1a 67 0b 39 00 00 00 (tick sensor)
+                    00 f0 c0 03 00 00 00 00 (ticks per second)
+CALL FROM GETPROPERTY 00007FFDC7F23F1C X0 = 0000000000000AA0 X1 = 00000000005B5018 X2 = 0000005C9D2FF6A0 X3 = 0000000000000020 X4 = 00000190D2CF3040 X5 = 0000000000000034 X6 = 0000005C9D2FF640 X7 = 0000005C9D2FF648
+0x0000005C9D2FF6A0: c8 63 e2 8d 2e ea a9 44 bf 66 ea 8c 28 d8 48 4e 19 4d 04 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00000190D2CF3040: 19 4d 04 00 00 00 00 00 
+                    c8 63 e2 8d 2e ea a9 44 bf 66 ea 8c 28 d8 48 4e 
+                    00 00 00 00 
+                    5e a9 2d 00
+                    00 00 00 00 
+                    2c 00 00 00 
+                    08 00 00 00 
+                    70 66 5b 00 00 00 00 00 (exposure)
+CALL FROM GETPROPERTY 00007FFDC7F23F48 X0 = 0000000000000AA0 X1 = 00000000005B5018 X2 = 0000005C9D2FF6A0 X3 = 0000000000000020 X4 = 00000190D2CF3040 X5 = 0000000000000038 X6 = 0000005C9D2FF640 X7 = 0000005C9D2FF648
+0x0000005C9D2FF6A0: b2 d4 83 f5 3a 3d 52 41 9d 8f 95 8c 49 3a d3 e0 19 4d 04 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00000190D2CF3040: 19 4d 04 00 00 00 00 00
+                    b2 d4 83 f5 3a 3d 52 41 9d 8f 95 8c 49 3a d3 e0 
+                    00 00 00 00 
+                    5d a9 2d 00 
+                    00 00 00 00 
+                    2c 00 00 00
+                    0c 00 00 00 
+                    01 00 00 00 
+                    bc 00 00 00 (gain)
+                    ff 00 00 00 
+
+00007FFDC7F283D8 D63F0120             blr         x9  
+00007FFDC7F283DC 34000060             cbz         w0,`anonymous namespace'::DeviceIoControlSynchronousOverlapped+0A8h (07FFDC7F283E8h)  ; goto @WAIT?
+
+@GetOverlappedResult.SUCCESS:
+00007FFDC7F283E0 52800013             mov         w19,#0  
+00007FFDC7F283E4 1400001B             b           `anonymous namespace'::DeviceIoControlSynchronousOverlapped+110h (07FFDC7F28450h)  ; goto @READY?
+
+@WAIT?:
+00007FFDC7F283E8 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F283EC 9102C108             add         x8,x8,#0xB0  
+00007FFDC7F283F0 C8DFFD09             ldar        x9,[x8]  
+
+[CALL] 0x00007ffded4da630 GetLastError() 
+00007FFDC7F283F4 D63F0120             blr         x9  
+00007FFDC7F283F8 2A0003F3             mov         w19,w0  
+00007FFDC7F283FC 710F967F             cmp         w19,#0x3E5  
+00007FFDC7F28400 540001E1             bne         `anonymous namespace'::DeviceIoControlSynchronousOverlapped+0FCh (07FFDC7F2843Ch)  ; goto @NOT_PENDING
+
+@PENDING:
+00007FFDC7F28404 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28408 9104A108             add         x8,x8,#0x128  
+00007FFDC7F2840C C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F28410 52800023             mov         w3,#1  
+00007FFDC7F28414 910043E2             add         x2,sp,#0x10  
+00007FFDC7F28418 910063E1             add         x1,sp,#0x18  
+00007FFDC7F2841C AA1403E0             mov         x0,x20  
+
+[CALL] 0x00007ffded4da8a0 GetOverlappedResult(x0=0x0000000000000aa0, x1=0x0000005c9d2ff708, x2=0x0000005c9d2ff700, w3=0x00000001)
+0x0000005c9d2ff708 : 00 00 00 00 00 00 00 00 | 04 00 00 00 00 00 00 00 | 00 00 00 00 00 00 00 00 | f0 03 00 00 00 00 00 00
+00007FFDC7F28420 D63F0120             blr         x9  
+00007FFDC7F28424 35FFFDE0             cbnz        w0,`anonymous namespace'::DeviceIoControlSynchronousOverlapped+0A0h (07FFDC7F283E0h)  ; goto @GetOverlappedResult.SUCCESS
+
+@GetOverlappedResult.FAIL:
+00007FFDC7F28428 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  ; x8=07FFDC7F3C000
+00007FFDC7F2842C 9102C108             add         x8,x8,#0xB0  ; x8=07FFDC7F3C0B0
+00007FFDC7F28430 C8DFFD09             ldar        x9,[x8]  ; x9=00007ffded4da630               
+
+[CALL] 0x00007ffded4da630 GetLastError()
+00007FFDC7F28434 D63F0120             blr         x9  
+00007FFDC7F28438 2A0003F3             mov         w19,w0  
+00007FFDC7F2843C 7100027F             cmp         w19,#0  
+00007FFDC7F28440 5400008D             ble         `anonymous namespace'::DeviceIoControlSynchronousOverlapped+110h (07FFDC7F28450h)  ; goto @READY?
+00007FFDC7F28444 52B000E9             mov         w9,#0x80070000  
+00007FFDC7F28448 12003E68             and         w8,w19,#0xFFFF  
+00007FFDC7F2844C 2A090113             orr         w19,w8,w9  
+
+@READY?:
+00007FFDC7F28450 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  ; x8=07FFDC7F3C000
+00007FFDC7F28454 9103C108             add         x8,x8,#0xF0  x8=07FFDC7F3C0F0
+00007FFDC7F28458 F9401BE0             ldr         x0,[sp,#0x30]  
+00007FFDC7F2845C C8DFFD09             ldar        x9,[x8]  
+
+[CALL] 0x00007ffded4da3b0 CloseHandle(x0=0x00000000000003f0)
+00007FFDC7F28460 D63F0120             blr         x9  
+
+00007FFDC7F28464 2A1303E0             mov         w0,w19  
+
+@CreateEventW.FAIL:
+00007FFDC7F28468 A8C47BFD             ldp         fp,lr,[sp],#0x40  
+00007FFDC7F2846C A94263F7             ldp         x23,x24,[sp,#0x20]  
+00007FFDC7F28470 A9415BF5             ldp         x21,x22,[sp,#0x10]  
+00007FFDC7F28474 A8C353F3             ldp         x19,x20,[sp],#0x30  
+00007FFDC7F28478 D50323FF             autibsp  
+00007FFDC7F2847C D65F03C0             ret  
+00007FFDC7F28480 0E 00 07 80          ?? ?????? ; HRESULT VALUE
+00007FFDC7F28484 00 00 00 00          ?? ?????? 
+
+OpenDevice(struct _GUID,int):
+00007FFDC7F28488 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+CResearchModeVLCFrame::CreateFrame(void *,struct _HOLOGRAPHIC_SENSOR_DESCRIPTOR_ARRAY,struct SensorDescriptor &,unsigned __int64,class CResearchModeFrame * *):
+00007FFDC7F23C50 D503237F             pacibsp  
+00007FFDC7F23C54 A9BD53F3             stp         x19,x20,[sp,#-0x30]!  
+00007FFDC7F23C58 A9015BF5             stp         x21,x22,[sp,#0x10]  
+00007FFDC7F23C5C A90263F7             stp         x23,x24,[sp,#0x20]  
+00007FFDC7F23C60 A9BC7BFD             stp         fp,lr,[sp,#-0x40]!  
+00007FFDC7F23C64 910003FD             mov         fp,sp  
+00007FFDC7F23C68 AA0003F5             mov         x21,x0  
+00007FFDC7F23C6C D2802200             mov         x0,#0x110  
+00007FFDC7F23C70 AA0103F4             mov         x20,x1  
+00007FFDC7F23C74 AA0203F7             mov         x23,x2  
+00007FFDC7F23C78 AA0303F8             mov         x24,x3  
+00007FFDC7F23C7C AA0403F6             mov         x22,x4  
+
+[CALL] FIXED
+00007FFDC7F23C80 97FFB9CC             bl          operator new (07FFDC7F123B0h)  
+00007FFDC7F23C84 AA0003F3             mov         x19,x0  
+00007FFDC7F23C88 F9000BF3             str         x19,[sp,#0x10]  
+00007FFDC7F23C8C B40005F3             cbz         x19,CResearchModeVLCFrame::CreateFrame+0F8h (07FFDC7F23D48h)  
+
+00007FFDC7F23C90 900000E8             adrp        x8,CResearchModeMFDepthFrame::`vftable'+10h (07FFDC7F3F000h)  
+00007FFDC7F23C94 91026108             add         x8,x8,#0x98  
+00007FFDC7F23C98 B9001A7F             str         wzr,[x19,#0x18]  
+00007FFDC7F23C9C 900000E9             adrp        x9,CResearchModeMFDepthFrame::`vftable'+10h (07FFDC7F3F000h)  
+00007FFDC7F23CA0 9101A129             add         x9,x9,#0x68  
+00007FFDC7F23CA4 A909FE7F             stp         xzr,xzr,[x19,#0x98]  
+00007FFDC7F23CA8 A90AFE7F             stp         xzr,xzr,[x19,#0xA8]  
+00007FFDC7F23CAC A9002668             stp         x8,x9,[x19]  
+00007FFDC7F23CB0 900000E8             adrp        x8,CResearchModeMFDepthFrame::`vftable'+10h (07FFDC7F3F000h)  
+00007FFDC7F23CB4 91012108             add         x8,x8,#0x48  
+00007FFDC7F23CB8 F9000A68             str         x8,[x19,#0x10]  
+00007FFDC7F23CBC B4000473             cbz         x19,CResearchModeVLCFrame::CreateFrame+0F8h (07FFDC7F23D48h)  
+00007FFDC7F23CC0 3DC00290             ldr         q16,[x20]  
+00007FFDC7F23CC4 910083E9             add         x9,sp,#0x20  
+00007FFDC7F23CC8 F9400A88             ldr         x8,[x20,#0x10]  
+00007FFDC7F23CCC AA1803E4             mov         x4,x24  
+00007FFDC7F23CD0 AA1703E3             mov         x3,x23  
+00007FFDC7F23CD4 910083E2             add         x2,sp,#0x20  
+00007FFDC7F23CD8 3D800130             str         q16,[x9]  
+00007FFDC7F23CDC AA1503E1             mov         x1,x21  
+00007FFDC7F23CE0 91002260             add         x0,x19,#8  
+00007FFDC7F23CE4 F9000928             str         x8,[x9,#0x10]  
+
+[CALL] FIXED
+00007FFDC7F23CE8 97FFFC5A             bl          CResearchModeFrame::InitializeBuffer (07FFDC7F22E50h)  
+00007FFDC7F23CEC 2A0003F4             mov         w20,w0  
+00007FFDC7F23CF0 2A1403F5             mov         w21,w20  
+00007FFDC7F23CF4 36F80194             tbz         w20,#0x1F,CResearchModeVLCFrame::CreateFrame+0D4h (07FFDC7F23D24h)  
+
+00007FFDC7F23CF8 B40002B3             cbz         x19,CResearchModeVLCFrame::CreateFrame+0FCh (07FFDC7F23D4Ch)  
+00007FFDC7F23CFC F9400A68             ldr         x8,[x19,#0x10]  
+00007FFDC7F23D00 52800021             mov         w1,#1  
+00007FFDC7F23D04 91004260             add         x0,x19,#0x10  
+00007FFDC7F23D08 F9400108             ldr         x8,[x8]  
+00007FFDC7F23D0C AA0803EF             mov         x15,x8  
+00007FFDC7F23D10 B00000D1             adrp        xip1,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F23D14 F942FE31             ldr         xip1,[xip1,#0x5F8]  
+
+[CALL] ???
+00007FFDC7F23D18 D63F0220             blr         xip1  
+
+[CALL] ???
+00007FFDC7F23D1C D63F01E0             blr         x15  
+
+00007FFDC7F23D20 1400000B             b           CResearchModeVLCFrame::CreateFrame+0FCh (07FFDC7F23D4Ch)  
+00007FFDC7F23D24 F9400268             ldr         x8,[x19]  
+00007FFDC7F23D28 AA1303E0             mov         x0,x19  
+00007FFDC7F23D2C F9400508             ldr         x8,[x8,#8]  
+00007FFDC7F23D30 AA0803EF             mov         x15,x8  
+00007FFDC7F23D34 B00000D1             adrp        xip1,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F23D38 F942FE31             ldr         xip1,[xip1,#0x5F8]  
+
+[CALL] 0x00007FFDC7F1DE60 operator delete(void *,class ST::IAllocator &) ; consists of a single ret, does nothing
+00007FFDC7F23D3C D63F0220             blr         xip1  
+
+[CALL] 0x00007ffdc7f231b0 CResearchModeAccelFrame::AddRef(void)
+00007FFDC7F23D40 D63F01E0             blr         x15  
+
+00007FFDC7F23D44 14000003             b           CResearchModeVLCFrame::CreateFrame+100h (07FFDC7F23D50h)  
+00007FFDC7F23D48 180001D4             ldr         w20,CResearchModeVLCFrame::CreateFrame+130h (07FFDC7F23D80h)  
+00007FFDC7F23D4C D2800013             mov         x19,#0  
+00007FFDC7F23D50 91002268             add         x8,x19,#8  
+00007FFDC7F23D54 F100027F             cmp         x19,#0  
+00007FFDC7F23D58 9A8803E8             cseleq      x8,xzr,x8  
+00007FFDC7F23D5C F90002C8             str         x8,[x22]  
+00007FFDC7F23D60 2A1403E0             mov         w0,w20  
+00007FFDC7F23D64 A8C47BFD             ldp         fp,lr,[sp],#0x40  
+00007FFDC7F23D68 A94263F7             ldp         x23,x24,[sp,#0x20]  
+00007FFDC7F23D6C A9415BF5             ldp         x21,x22,[sp,#0x10]  
+00007FFDC7F23D70 A8C353F3             ldp         x19,x20,[sp],#0x30  
+00007FFDC7F23D74 D50323FF             autibsp  
+00007FFDC7F23D78 D65F03C0             ret  
+00007FFDC7F23D7C D503201F             nop  
+00007FFDC7F23D80 0E 00 07 80          ?? ?????? 
+00007FFDC7F23D84 00 00 00 00          ?? ?????? 
+00007FFDC7F23D88 00 00 00 00          ?? ?????? 
+00007FFDC7F23D8C 00 00 00 00          ?? ?????? 
+
+CResearchModeOasisVLCFrame::GetBuffer(unsigned char const * *,unsigned __int64 *):
+00007FFDC7F23D90 F9405808             ldr         x8,[x0,#0xB0]  
+00007FFDC7F23D94 F9000028             str         x8,[x1]  
+00007FFDC7F23D98 F9405C09             ldr         x9,[x0,#0xB8]  
+00007FFDC7F23D9C 52800000             mov         w0,#0  
+00007FFDC7F23DA0 F9000049             str         x9,[x2]  
+00007FFDC7F23DA4 D65F03C0             ret  
+00007FFDC7F23DA8 00 00 00 00          ?? ?????? 
+00007FFDC7F23DAC 00 00 00 00          ?? ?????? 
+
+CResearchModeOasisVLCFrame::GetExposure(unsigned __int64 *):
+00007FFDC7F23DB0 F9408008             ldr         x8,[x0,#0x100]  
+00007FFDC7F23DB4 52800000             mov         w0,#0  
+00007FFDC7F23DB8 F9000028             str         x8,[x1]  
+00007FFDC7F23DBC D65F03C0             ret  
+
+CResearchModeOasisVLCFrame::GetGain(unsigned int *):
+00007FFDC7F23DC0 B9410808             ldr         w8,[x0,#0x108]  
+00007FFDC7F23DC4 52800000             mov         w0,#0  
+00007FFDC7F23DC8 B9000028             str         w8,[x1]  
+00007FFDC7F23DCC D65F03C0             ret  
+
+CResearchModeOasisVLCFrame::InternalQueryInterface(struct _GUID const &,void * *)
+00007FFDC7F23DD0 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+CResearchModeFrame::InitializeBuffer(void *,struct _HOLOGRAPHIC_SENSOR_DESCRIPTOR_ARRAY,struct SensorDescriptor &,unsigned __int64):
+00007FFDC7F22E50 D503237F             pacibsp  
+00007FFDC7F22E54 A9BF7BFD             stp         fp,lr,[sp,#-0x10]!  
+00007FFDC7F22E58 910003FD             mov         fp,sp  
+00007FFDC7F22E5C 3DC00050             ldr         q16,[x2]  
+00007FFDC7F22E60 F9000C01             str         x1,[x0,#0x18]  
+00007FFDC7F22E64 9100E009             add         x9,x0,#0x38  
+00007FFDC7F22E68 F9400848             ldr         x8,[x2,#0x10]  
+00007FFDC7F22E6C AA0403E1             mov         x1,x4  
+00007FFDC7F22E70 3D800810             str         q16,[x0,#0x20]  
+00007FFDC7F22E74 F9001808             str         x8,[x0,#0x30]  
+00007FFDC7F22E78 AD404871             ldp         q17,q18,[x3]  
+00007FFDC7F22E7C 91024000             add         x0,x0,#0x90  
+00007FFDC7F22E80 AD004931             stp         q17,q18,[x9]  
+00007FFDC7F22E84 AD415073             ldp         q19,q20,[x3,#0x20]  
+00007FFDC7F22E88 AD015133             stp         q19,q20,[x9,#0x20]  
+00007FFDC7F22E8C 3DC01075             ldr         q21,[x3,#0x40]  
+00007FFDC7F22E90 3D801135             str         q21,[x9,#0x40]  
+00007FFDC7F22E94 F9402868             ldr         x8,[x3,#0x50]  
+00007FFDC7F22E98 F9002928             str         x8,[x9,#0x50]  
+
+[CALL] FIXED std::vector<unsigned char,std::allocator<unsigned char> >::resize(x0=0x00000190d2cfba68 (this), x1=0x000000000004b174)
+00007FFDC7F22E9C 97FFF16F             bl          std::vector<unsigned char,std::allocator<unsigned char> >::resize (07FFDC7F1F458h)  
+
+00007FFDC7F22EA0 52800000             mov         w0,#0  
+00007FFDC7F22EA4 A8C17BFD             ldp         fp,lr,[sp],#0x10  
+00007FFDC7F22EA8 D50323FF             autibsp  
+00007FFDC7F22EAC D65F03C0             ret  
+
+CResearchModeFrame::InternalQueryInterface(struct _GUID const &,void * *):
+00007FFDC7F22EB0 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+CResearchModeVLCFrame::ReadNextBufferFromSensor(void):
+00007FFDC7F23E90 D503237F             pacibsp  
+00007FFDC7F23E94 A9BE7BFD             stp         fp,lr,[sp,#-0x20]!  
+00007FFDC7F23E98 A90153F3             stp         x19,x20,[sp,#0x10]  
+00007FFDC7F23E9C 910003FD             mov         fp,sp  
+
+00007FFDC7F23EA0 97FFB54C             bl          __security_push_cookie (07FFDC7F113D0h)  
+00007FFDC7F23EA4 D10083FF             sub         sp,sp,#0x20  
+00007FFDC7F23EA8 AA0003F3             mov         x19,x0  
+00007FFDC7F23EAC 4F00E410             movi        v16.16b,#0  
+00007FFDC7F23EB0 F9401668             ldr         x8,[x19,#0x28]  
+00007FFDC7F23EB4 910023E9             add         x9,sp,#8  
+00007FFDC7F23EB8 3D800130             str         q16,[x9]  
+00007FFDC7F23EBC B900113F             str         wzr,[x9,#0x10]  
+00007FFDC7F23EC0 F90003E8             str         x8,[sp]  
+
+[CALL] FIXED
+00007FFDC7F23EC4 97FFFC37             bl          CResearchModeFrame::ReadNextBufferFromSensor (07FFDC7F22FA0h)  
+00007FFDC7F23EC8 B00000F4             adrp        x20,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23ECC 37F80300             tbnz        w0,#0x1F,CResearchModeVLCFrame::ReadNextBufferFromSensor+9Ch (07FFDC7F23F2Ch)  
+
+00007FFDC7F23ED0 F944EA83             ldr         x3,[x20,#0x9D0]  
+00007FFDC7F23ED4 B00000E8             adrp        x8,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23ED8 F9400E60             ldr         x0,[x19,#0x18]  
+00007FFDC7F23EDC D2800285             mov         x5,#0x14  
+00007FFDC7F23EE0 910023E4             add         x4,sp,#8  
+00007FFDC7F23EE4 911CE102             add         x2,x8,#0x738  
+00007FFDC7F23EE8 910003E1             mov         x1,sp  
+
+[CALL] FIXED GET TICKS
+00007FFDC7F23EEC 94001251             bl          SensorGetPropertyValue (07FFDC7F28830h)  
+00007FFDC7F23EF0 37F801E0             tbnz        w0,#0x1F,CResearchModeVLCFrame::ReadNextBufferFromSensor+9Ch (07FFDC7F23F2Ch)  
+00007FFDC7F23EF4 F840C3E8             ldur        x8,[sp,#0xC]  
+00007FFDC7F23EF8 D2800105             mov         x5,#8  
+00007FFDC7F23EFC F84143E9             ldur        x9,[sp,#0x14]  
+00007FFDC7F23F00 910023E4             add         x4,sp,#8  
+00007FFDC7F23F04 F944EA83             ldr         x3,[x20,#0x9D0]  
+00007FFDC7F23F08 910003E1             mov         x1,sp  
+00007FFDC7F23F0C F9400E60             ldr         x0,[x19,#0x18]  
+00007FFDC7F23F10 A90C2668             stp         x8,x9,[x19,#0xC0]  
+00007FFDC7F23F14 B00000E8             adrp        x8,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23F18 911E4102             add         x2,x8,#0x790  
+
+[CALL] FIXED GET EXPOSURE
+00007FFDC7F23F1C 94001245             bl          SensorGetPropertyValue (07FFDC7F28830h)  
+00007FFDC7F23F20 37F80060             tbnz        w0,#0x1F,CResearchModeVLCFrame::ReadNextBufferFromSensor+9Ch (07FFDC7F23F2Ch)  
+00007FFDC7F23F24 F94007E8             ldr         x8,[sp,#8]  
+00007FFDC7F23F28 F9007E68             str         x8,[x19,#0xF8]  
+00007FFDC7F23F2C F944EA83             ldr         x3,[x20,#0x9D0]  
+00007FFDC7F23F30 B00000E8             adrp        x8,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23F34 911AE102             add         x2,x8,#0x6B8  
+00007FFDC7F23F38 F9400E60             ldr         x0,[x19,#0x18]  
+00007FFDC7F23F3C D2800185             mov         x5,#0xC  
+00007FFDC7F23F40 910023E4             add         x4,sp,#8  
+00007FFDC7F23F44 910003E1             mov         x1,sp  
+
+[CALL] FIXED GET GAIN
+00007FFDC7F23F48 9400123A             bl          SensorGetPropertyValue (07FFDC7F28830h)  
+00007FFDC7F23F4C 37F80060             tbnz        w0,#0x1F,CResearchModeVLCFrame::ReadNextBufferFromSensor+0C8h (07FFDC7F23F58h)  
+00007FFDC7F23F50 B9400FE8             ldr         w8,[sp,#0xC]  
+00007FFDC7F23F54 B9010268             str         w8,[x19,#0x100]  
+00007FFDC7F23F58 910083FF             add         sp,sp,#0x20  
+
+00007FFDC7F23F5C 97FFB525             bl          __security_pop_cookie (07FFDC7F113F0h)  
+00007FFDC7F23F60 A94153F3             ldp         x19,x20,[sp,#0x10]  
+00007FFDC7F23F64 A8C27BFD             ldp         fp,lr,[sp],#0x20  
+00007FFDC7F23F68 D50323FF             autibsp  
+00007FFDC7F23F6C D65F03C0             ret  
+
+[thunk]:CResearchModeOasisVLCFrame::`vector deleting destructor'`adjustor{16}' (unsigned int):
+00007FFDC7F23F70 D1004000             sub         x0,x0,#0x10  
+00007FFDC7F23F74 14000003             b           CResearchModeOasisVLCFrame::`vector deleting destructor' (07FFDC7F23F80h)  
+00007FFDC7F23F78 D503201F             nop  
+00007FFDC7F23F7C 00 00 00 00          ?? ?????? 
+
+CResearchModeOasisVLCFrame::`vector deleting destructor'(unsigned int):
+00007FFDC7F23F80 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+CResearchModeFrame::ReadNextBufferFromSensor(void):
+00007FFDC7F22FA0 D503237F             pacibsp  
+00007FFDC7F22FA4 A9BE7BFD             stp         fp,lr,[sp,#-0x20]!  
+00007FFDC7F22FA8 A90153F3             stp         x19,x20,[sp,#0x10]  
+00007FFDC7F22FAC 910003FD             mov         fp,sp  
+00007FFDC7F22FB0 97FFB908             bl          __security_push_cookie (07FFDC7F113D0h)  
+
+00007FFDC7F22FB4 D10083FF             sub         sp,sp,#0x20  
+00007FFDC7F22FB8 AA0003F3             mov         x19,x0  
+00007FFDC7F22FBC F9401668             ldr         x8,[x19,#0x28]  
+00007FFDC7F22FC0 91008261             add         x1,x19,#0x20  
+00007FFDC7F22FC4 F9404A63             ldr         x3,[x19,#0x90]  
+00007FFDC7F22FC8 F9400E60             ldr         x0,[x19,#0x18]  
+00007FFDC7F22FCC F90003E8             str         x8,[sp]  
+00007FFDC7F22FD0 F9404E68             ldr         x8,[x19,#0x98]  
+00007FFDC7F22FD4 CB030104             sub         x4,x8,x3  
+
+[CALL] FIXED
+00007FFDC7F22FD8 9400165C             bl          SensorGetSample (07FFDC7F28948h)  
+00007FFDC7F22FDC 2A0003F4             mov         w20,w0  
+00007FFDC7F22FE0 37F806F4             tbnz        w20,#0x1F,CResearchModeFrame::ReadNextBufferFromSensor+11Ch (07FFDC7F230BCh)  ; goto @SensorGetSample.FAIL
+00007FFDC7F22FE4 A9492261             ldp         x1,x8,[x19,#0x90]  
+00007FFDC7F22FE8 9102C264             add         x4,x19,#0xB0  
+00007FFDC7F22FEC 9102A263             add         x3,x19,#0xA8  
+00007FFDC7F22FF0 910003E0             mov         x0,sp  
+00007FFDC7F22FF4 CB010102             sub         x2,x8,x1  
+
+[CALL FIXED]
+00007FFDC7F22FF8 940015CE             bl          SensorExtractSamplePayload (07FFDC7F28730h)  
+00007FFDC7F22FFC 2A0003F4             mov         w20,w0  
+00007FFDC7F23000 37F805F4             tbnz        w20,#0x1F,CResearchModeFrame::ReadNextBufferFromSensor+11Ch (07FFDC7F230BCh)  ; goto @SensorGetSample.FAIL
+00007FFDC7F23004 B00000E8             adrp        x8,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23008 F944E903             ldr         x3,[x8,#0x9D0]  
+00007FFDC7F2300C F9400E60             ldr         x0,[x19,#0x18]  
+00007FFDC7F23010 B00000E9             adrp        x9,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23014 911B2122             add         x2,x9,#0x6C8  
+00007FFDC7F23018 D2800285             mov         x5,#0x14  
+00007FFDC7F2301C 910023E4             add         x4,sp,#8  
+00007FFDC7F23020 910003E1             mov         x1,sp  
+
+[CALL FIXED] GET RESOLUTION
+00007FFDC7F23024 94001603             bl          SensorGetPropertyValue (07FFDC7F28830h)  
+00007FFDC7F23028 2A0003F4             mov         w20,w0  
+00007FFDC7F2302C 37F80494             tbnz        w20,#0x1F,CResearchModeFrame::ReadNextBufferFromSensor+11Ch (07FFDC7F230BCh)  ; goto @SensorGetSample.FAIL
+00007FFDC7F23030 294127E8             ldp         w8,w9,[sp,#8]  
+00007FFDC7F23034 D2800285             mov         x5,#0x14  
+00007FFDC7F23038 F9400E60             ldr         x0,[x19,#0x18]  
+00007FFDC7F2303C 910023E4             add         x4,sp,#8  
+00007FFDC7F23040 910003E1             mov         x1,sp  
+00007FFDC7F23044 291C2668             stp         w8,w9,[x19,#0xE0]  
+00007FFDC7F23048 B94013E8             ldr         w8,[sp,#0x10]  
+00007FFDC7F2304C 58000469             ldr         x9,CResearchModeFrame::ReadNextBufferFromSensor+138h (07FFDC7F230D8h)  
+00007FFDC7F23050 F80EC269             stur        x9,[x19,#0xEC]  
+00007FFDC7F23054 B00000E9             adrp        x9,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23058 911D6122             add         x2,x9,#0x758  
+00007FFDC7F2305C B900EA68             str         w8,[x19,#0xE8]  
+00007FFDC7F23060 B00000E8             adrp        x8,ST::BiRational15KCameraModel<float>::`vftable'+20h (07FFDC7F40000h)  
+00007FFDC7F23064 F944E903             ldr         x3,[x8,#0x9D0]  
+
+[CALL FIXED] GET SENSOR TICKS (copies to padding of struct after source?)
+00007FFDC7F23068 940015F2             bl          SensorGetPropertyValue (07FFDC7F28830h)  
+00007FFDC7F2306C 2A0003F4             mov         w20,w0  
+00007FFDC7F23070 37F80274             tbnz        w20,#0x1F,CResearchModeFrame::ReadNextBufferFromSensor+11Ch (07FFDC7F230BCh)  ; goto @SensorGetSample.FAIL
+00007FFDC7F23074 B9400BE8             ldr         w8,[sp,#8]  
+00007FFDC7F23078 B900BA68             str         w8,[x19,#0xB8]  
+00007FFDC7F2307C B9408268             ldr         w8,[x19,#0x80]  
+00007FFDC7F23080 7100111F             cmp         w8,#4  ; always NE for VLC
+
+00007FFDC7F23084 54000161             bne         CResearchModeFrame::ReadNextBufferFromSensor+110h (07FFDC7F230B0h)  ; skip to @VLC.Skip
+00007FFDC7F23088 F840C3E1             ldur        x1,[sp,#0xC]  
+00007FFDC7F2308C B6F800A1             tbz         x1,#0x3F,CResearchModeFrame::ReadNextBufferFromSensor+100h (07FFDC7F230A0h)  
+00007FFDC7F23090 CB0103E1             neg         x1,x1  
+
+[CALL FIXED] ; Appears to be a QPC timing function (not used for VLC)
+00007FFDC7F23094 97FFFEF3             bl          <lambda_982849a65b9870fd8d71ff83658d98bb>::operator() (07FFDC7F22C60h)  
+00007FFDC7F23098 CB0003E0             neg         x0,x0  
+00007FFDC7F2309C 14000002             b           CResearchModeFrame::ReadNextBufferFromSensor+104h (07FFDC7F230A4h)  
+
+[CALL FIXED] ; Appears to be a QPC timing function (not used for VLC)
+00007FFDC7F230A0 97FFFEF0             bl          <lambda_982849a65b9870fd8d71ff83658d98bb>::operator() (07FFDC7F22C60h)  
+
+00007FFDC7F230A4 580001E8             ldr         x8,CResearchModeFrame::ReadNextBufferFromSensor+140h (07FFDC7F230E0h)  
+00007FFDC7F230A8 A90D2260             stp         x0,x8,[x19,#0xD0]  
+00007FFDC7F230AC 14000004             b           CResearchModeFrame::ReadNextBufferFromSensor+11Ch (07FFDC7F230BCh)  ; goto @SensorGetSample.FAIL
+
+@VLC.Skip:
+00007FFDC7F230B0 F840C3E8             ldur        x8,[sp,#0xC]  
+00007FFDC7F230B4 F84143E9             ldur        x9,[sp,#0x14]  
+00007FFDC7F230B8 A90D2668             stp         x8,x9,[x19,#0xD0]  
+
+@SensorGetSample.FAIL
+00007FFDC7F230BC 2A1403E0             mov         w0,w20  
+00007FFDC7F230C0 910083FF             add         sp,sp,#0x20  
+
+00007FFDC7F230C4 97FFB8CB             bl          __security_pop_cookie (07FFDC7F113F0h)  
+00007FFDC7F230C8 A94153F3             ldp         x19,x20,[sp,#0x10]  
+00007FFDC7F230CC A8C27BFD             ldp         fp,lr,[sp],#0x20  
+00007FFDC7F230D0 D50323FF             autibsp  
+00007FFDC7F230D4 D65F03C0             ret  
+00007FFDC7F230D8 08 00 00 00          ?? ?????? 
+00007FFDC7F230DC 01 00 00 00          ?? ?????? 
+00007FFDC7F230E0 80 96 98 00          ?? ?????? 
+00007FFDC7F230E4 00 00 00 00          ?? ?????? 
+00007FFDC7F230E8 00 00 00 00          ?? ?????? 
+00007FFDC7F230EC 00 00 00 00          ?? ?????? 
+00007FFDC7F230F0 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+SensorGetSample(void *,struct _HOLOGRAPHIC_SENSOR_DESCRIPTOR_ARRAY const *,unsigned __int64,void *,unsigned __int64,struct _OVERLAPPED *):
+x0: Device Handle
+x1: 0x00000190D2CFB9F8 (control data used in device IO) [01 00 00 00 | 00 00 00 00 | 19 4d 04 00 | 00 00 00 00 | 18 4d 04 00]
+x2: 0x14 (20) (control data size?)
+x3: 0x00000190D9B73000 (data*? destination?)
+x4: Buffer Size 000000000004B174 (data size?)
+x5: NULL
+
+00007FFDC7F28948 D503237F             pacibsp  
+00007FFDC7F2894C A9BD53F3             stp         x19,x20,[sp,#-0x30]!  
+00007FFDC7F28950 A9015BF5             stp         x21,x22,[sp,#0x10]  
+00007FFDC7F28954 F90013F7             str         x23,[sp,#0x20]  
+00007FFDC7F28958 A9BC7BFD             stp         fp,lr,[sp,#-0x40]!  
+00007FFDC7F2895C 910003FD             mov         fp,sp  
+00007FFDC7F28960 4F00E410             movi        v16.16b,#0  
+00007FFDC7F28964 910063E8             add         x8,sp,#0x18  
+00007FFDC7F28968 AA0003F4             mov         x20,x0  
+00007FFDC7F2896C AA0103F5             mov         x21,x1  
+00007FFDC7F28970 AD004110             stp         q16,q16,[x8]  
+00007FFDC7F28974 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28978 91086108             add         x8,x8,#0x218  
+00007FFDC7F2897C C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F28980 AA0303F6             mov         x22,x3  
+00007FFDC7F28984 D2800003             mov         x3,#0  
+00007FFDC7F28988 52800002             mov         w2,#0  
+00007FFDC7F2898C 52800021             mov         w1,#1  
+00007FFDC7F28990 D2800000             mov         x0,#0  
+00007FFDC7F28994 AA0403F7             mov         x23,x4  
+00007FFDC7F28998 52800013             mov         w19,#0  
+
+[CALL] 0x00007ffded52d080 CreateEventW(0, 1, 0, 0)
+00007FFDC7F2899C D63F0120             blr         x9  
+00007FFDC7F289A0 F9001BE0             str         x0,[sp,#0x30]  
+00007FFDC7F289A4 B5000060             cbnz        x0,SensorGetSample+68h (07FFDC7F289B0h)  ; goto @CreateEventW.SUCCESS
+00007FFDC7F289A8 18000800             ldr         w0,SensorGetSample+160h (07FFDC7F28AA8h)  
+00007FFDC7F289AC 14000038             b           SensorGetSample+144h (07FFDC7F28A8Ch)  ; goto @CreateEventW.FAIL
+
+@CreateEventW.SUCCESS:
+00007FFDC7F289B0 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F289B4 91048108             add         x8,x8,#0x120  
+00007FFDC7F289B8 C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F289BC 2A1703E5             mov         w5,w23  
+00007FFDC7F289C0 910063E7             add         x7,sp,#0x18  
+00007FFDC7F289C4 D2800006             mov         x6,#0  
+00007FFDC7F289C8 AA1603E4             mov         x4,x22  
+00007FFDC7F289CC 52800303             mov         w3,#0x18  
+00007FFDC7F289D0 AA1503E2             mov         x2,x21  
+00007FFDC7F289D4 180006C1             ldr         w1,SensorGetSample+164h (07FFDC7F28AACh)  
+00007FFDC7F289D8 AA1403E0             mov         x0,x20  
+
+[CALL] 0x00007ffded4dbd40 DeviceIoControl(x0=0000000000000AA0, x1=00000000005B502A, x2=00000190D2CFB9F8, x3=0000000000000018, X4=00000190D9B73000, X5=000000000004B174, X6=0000000000000000, X7=0000005C9D2FF668)
+data 0x00000190D2CFB9F8 : 01 00 00 00 00 00 00 00 
+                          19 4d 04 00 00 00 00 00 
+                          18 4d 04 00 00 00 00 00
+00007FFDC7F289DC D63F0120             blr         x9  
+00007FFDC7F289E0 34000060             cbz         w0,SensorGetSample+0A4h (07FFDC7F289ECh)  ; goto @DeviceIoControl.PENDING
+00007FFDC7F289E4 52800013             mov         w19,#0  
+00007FFDC7F289E8 14000023             b           SensorGetSample+12Ch (07FFDC7F28A74h)  ; goto @DeviceIoControl.SUCCESS
+
+@DeviceIoControl.PENDING:
+00007FFDC7F289EC 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F289F0 9102C108             add         x8,x8,#0xB0  
+00007FFDC7F289F4 C8DFFD09             ldar        x9,[x8]  
+
+[CALL] 0x00007ffded4da630 GetLastError()
+00007FFDC7F289F8 D63F0120             blr         x9  
+
+00007FFDC7F289FC 710F941F             cmp         w0,#0x3E5  
+00007FFDC7F28A00 540000C0             beq         SensorGetSample+0D0h (07FFDC7F28A18h)  
+00007FFDC7F28A04 7100001F             cmp         w0,#0  
+00007FFDC7F28A08 1A93D013             cselle      w19,w0,w19  
+00007FFDC7F28A0C 540002CD             ble         SensorGetSample+11Ch (07FFDC7F28A64h)  
+00007FFDC7F28A10 12003C08             and         w8,w0,#0xFFFF  
+00007FFDC7F28A14 14000012             b           SensorGetSample+114h (07FFDC7F28A5Ch)  
+00007FFDC7F28A18 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28A1C 9104A108             add         x8,x8,#0x128  
+00007FFDC7F28A20 C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F28A24 52800023             mov         w3,#1  
+00007FFDC7F28A28 910043E2             add         x2,sp,#0x10  
+00007FFDC7F28A2C 910063E1             add         x1,sp,#0x18  
+00007FFDC7F28A30 AA1403E0             mov         x0,x20  
+
+[CALL] 0x00007ffded4da8a0 GetOverlappedResult(x0=0000000000000AA0, x1=0000005C9D2FF668, x2=0000005C9D2FF660, x3=0000000000000001)
+00007FFDC7F28A34 D63F0120             blr         x9  
+00007FFDC7F28A38 350001E0             cbnz        w0,SensorGetSample+12Ch (07FFDC7F28A74h)  ; goto @DeviceIoControl.SUCCESS
+00007FFDC7F28A3C 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28A40 9102C108             add         x8,x8,#0xB0  
+00007FFDC7F28A44 C8DFFD09             ldar        x9,[x8]  
+
+[CALL] 0x00007ffded4da630 GetLastError()
+00007FFDC7F28A48 D63F0120             blr         x9  
+
+00007FFDC7F28A4C 2A0003F3             mov         w19,w0  
+00007FFDC7F28A50 7100027F             cmp         w19,#0  
+00007FFDC7F28A54 5400008D             ble         SensorGetSample+11Ch (07FFDC7F28A64h)  
+00007FFDC7F28A58 12003E68             and         w8,w19,#0xFFFF  
+00007FFDC7F28A5C 52B000E9             mov         w9,#0x80070000  
+00007FFDC7F28A60 2A090113             orr         w19,w8,w9  
+00007FFDC7F28A64 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28A68 91022108             add         x8,x8,#0x88  
+00007FFDC7F28A6C C8DFFD09             ldar        x9,[x8]  
+
+[CALL] 0x00007ffded5dc490 wil::details::DebugBreak(void)
+00007FFDC7F28A70 D63F0120             blr         x9  
+
+@DeviceIoControl.SUCCESS:
+00007FFDC7F28A74 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28A78 9103C108             add         x8,x8,#0xF0  
+00007FFDC7F28A7C F9401BE0             ldr         x0,[sp,#0x30]  
+00007FFDC7F28A80 C8DFFD09             ldar        x9,[x8]  
+
+[CALL] 0x00007ffded4da3b0 CloseHandle()
+00007FFDC7F28A84 D63F0120             blr         x9  
+00007FFDC7F28A88 2A1303E0             mov         w0,w19  
+
+@CreateEventW.FAIL:
+00007FFDC7F28A8C A8C47BFD             ldp         fp,lr,[sp],#0x40  
+00007FFDC7F28A90 F94013F7             ldr         x23,[sp,#0x20]  
+00007FFDC7F28A94 A9415BF5             ldp         x21,x22,[sp,#0x10]  
+00007FFDC7F28A98 A8C353F3             ldp         x19,x20,[sp],#0x30  
+00007FFDC7F28A9C D50323FF             autibsp  
+00007FFDC7F28AA0 D65F03C0             ret  
+00007FFDC7F28AA4 D503201F             nop  
+00007FFDC7F28AA8 0E 00 07 80          ?? ?????? 
+00007FFDC7F28AAC 2A 50 5B 00          ?? ?????? 
+00007FFDC7F28AB0 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+SensorExtractSamplePayload(struct _LUID const *,void const *,unsigned __int64,void const * *,unsigned __int64 *):
+X0 = 0000005C9D2FF6C0 [19 4d 04 00 00 00 00 00]
+X1 = 00000190D9B73000 frame data*
+X2 = 000000000004B174 frame size
+X3 = 00000190D2CFBA80 output pointer to image in frame data* (frame data + 0x174)
+X4 = 00000190D2CFBA88 output size?
+
+00007FFDC7F28730 D503237F             pacibsp  
+00007FFDC7F28734 A9BC53F3             stp         x19,x20,[sp,#-0x40]!  
+00007FFDC7F28738 A9015BF5             stp         x21,x22,[sp,#0x10]  
+00007FFDC7F2873C A90263F7             stp         x23,x24,[sp,#0x20]  
+00007FFDC7F28740 F9001BF9             str         x25,[sp,#0x30]  
+00007FFDC7F28744 A9BF7BFD             stp         fp,lr,[sp,#-0x10]!  
+00007FFDC7F28748 910003FD             mov         fp,sp  
+00007FFDC7F2874C AA0203F7             mov         x23,x2  
+00007FFDC7F28750 F10082FF             cmp         x23,#0x20  
+00007FFDC7F28754 AA0003F9             mov         x25,x0  
+00007FFDC7F28758 AA0103F5             mov         x21,x1  
+00007FFDC7F2875C AA0303F8             mov         x24,x3  
+00007FFDC7F28760 AA0403F6             mov         x22,x4  
+00007FFDC7F28764 54000523             blo         SensorExtractSamplePayload+0D8h (07FFDC7F28808h)  ; goto @FAIL? if frame size < 32
+00007FFDC7F28768 B94002A9             ldr         w9,[x21]  
+00007FFDC7F2876C 531D7128             lsl         w8,w9,#3  
+00007FFDC7F28770 4B090109             sub         w9,w8,w9  
+00007FFDC7F28774 531E752A             lsl         w10,w9,#2  
+00007FFDC7F28778 1100114B             add         w11,w10,#4  
+00007FFDC7F2877C EB2B42FF             cmp         x23,w11,uxtw #0  
+00007FFDC7F28780 54000443             blo         SensorExtractSamplePayload+0D8h (07FFDC7F28808h)  ; goto @FAIL? if 
+00007FFDC7F28784 52800013             mov         w19,#0  
+00007FFDC7F28788 B94002A8             ldr         w8,[x21]  
+00007FFDC7F2878C 6B08027F             cmp         w19,w8  
+00007FFDC7F28790 54000382             bhs         SensorExtractSamplePayload+0D0h (07FFDC7F28800h)  
+00007FFDC7F28794 D3407E68             uxtw        x8,w19  
+00007FFDC7F28798 D2800389             mov         x9,#0x1C  
+00007FFDC7F2879C 9B095514             madd        x20,x8,x9,x21  
+00007FFDC7F287A0 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F287A4 9117A108             add         x8,x8,#0x5E8  
+00007FFDC7F287A8 C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F287AC D2800102             mov         x2,#8  
+00007FFDC7F287B0 AA1903E1             mov         x1,x25  
+00007FFDC7F287B4 91001280             add         x0,x20,#4  
+
+[CALL] 0x00007ffdee3d1b70 RtlCompareMemory(source1=00000190D9B73004, source2=0000005C9D2FF6C0, length=0000000000000008) ; compares LUID
+00007FFDC7F287B8 D63F0120             blr         x9  
+00007FFDC7F287BC F100201F             cmp         x0,#8  
+00007FFDC7F287C0 54000060             beq         SensorExtractSamplePayload+9Ch (07FFDC7F287CCh)  ; goto @success
+
+00007FFDC7F287C4 11000673             add         w19,w19,#1  
+00007FFDC7F287C8 17FFFFF0             b           SensorExtractSamplePayload+58h (07FFDC7F28788h)  
+00007FFDC7F287CC B9400E80             ldr         w0,[x20,#0xC]  
+00007FFDC7F287D0 37F801E0             tbnz        w0,#0x1F,SensorExtractSamplePayload+0DCh (07FFDC7F2880Ch)  
+00007FFDC7F287D4 2943228A             ldp         w10,w8,[x20,#0x18]  
+00007FFDC7F287D8 0B0A0109             add         w9,w8,w10  
+00007FFDC7F287DC EB2942FF             cmp         x23,w9,uxtw #0  
+00007FFDC7F287E0 54000143             blo         SensorExtractSamplePayload+0D8h (07FFDC7F28808h)  ; goto @FAIL? if 
+00007FFDC7F287E4 8B2A42A8             add         x8,x21,w10,uxtw #0  
+00007FFDC7F287E8 F9000308             str         x8,[x24]  
+00007FFDC7F287EC B4000076             cbz         x22,SensorExtractSamplePayload+0C8h (07FFDC7F287F8h)  
+00007FFDC7F287F0 B9401E88             ldr         w8,[x20,#0x1C]  
+00007FFDC7F287F4 F90002C8             str         x8,[x22]  
+00007FFDC7F287F8 52800000             mov         w0,#0  
+00007FFDC7F287FC 14000004             b           SensorExtractSamplePayload+0DCh (07FFDC7F2880Ch)  
+00007FFDC7F28800 18000140             ldr         w0,SensorExtractSamplePayload+0F8h (07FFDC7F28828h)  
+00007FFDC7F28804 14000002             b           SensorExtractSamplePayload+0DCh (07FFDC7F2880Ch)  
+
+@FAIL?:
+00007FFDC7F28808 18000120             ldr         w0,SensorExtractSamplePayload+0FCh (07FFDC7F2882Ch)  
+00007FFDC7F2880C A8C17BFD             ldp         fp,lr,[sp],#0x10  
+00007FFDC7F28810 F9401BF9             ldr         x25,[sp,#0x30]  
+00007FFDC7F28814 A94263F7             ldp         x23,x24,[sp,#0x20]  
+00007FFDC7F28818 A9415BF5             ldp         x21,x22,[sp,#0x10]  
+00007FFDC7F2881C A8C453F3             ldp         x19,x20,[sp],#0x40  
+00007FFDC7F28820 D50323FF             autibsp  
+00007FFDC7F28824 D65F03C0             ret  
+00007FFDC7F28828 90 04 07 80          ?? ?????? 
+00007FFDC7F2882C 7A 00 07 80          ?? ?????? 
+
+SensorGetPropertyValue(void *,struct _LUID const *,struct _GUID const *,struct _LUID,void *,unsigned __int64,struct _LUID *)
+00007FFDC7F28830 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+SensorGetPropertyValue(void *,struct _LUID const *,struct _GUID const *,struct _LUID,void *,unsigned __int64,struct _LUID *):
+data from 00007FFDC7F23024 call ->
+X0 = 0000000000000AA0 (Device Handle)
+X1 = 0000005C9D2FF6C0 (Device LUID) [19 4d 04 00 00 00 00 00]
+X2 = 00007FFDC7F406C8 (Property GUID) [8f244c3d c64d fc4f a50d f120e0e8024a]
+X3 = 0000000000000000 (LUID?) 
+X4 = 0000005C9D2FF6C8 (void*? out data?) [fe ff ff ff ff ff ff ff d0 b9 cf d2 90 01 00 00 80 f7 2f 9d]
+X5 = 0000000000000014 (size? out size?) 20 for resolution?
+X6 = 0000000000000000 (LUID*?)
+data from 00007FFDC7F23068 call ->
+X0 = 0000000000000AA0 
+X1 = 0000005C9D2FF6C0 
+X2 = 00007FFDC7F40758 (Property GUID) [523f2194 0fa1 f34a bf31 8e6e8df0894c]
+X3 = 0000000000000000 
+X4 = 0000005C9D2FF6C8 
+X5 = 0000000000000014 
+X6 = 0000000000000000 
+X7 = 0000000000000000
+data from 00007FFDC7F23EEC call ->
+X0 = 0000000000000AA0 
+X1 = 0000005C9D2FF710 [19 4d 04 00 00 00 00 00]
+X2 = 00007FFDC7F40738 [2649d617 274c 8448 b575 6e1d74a7ac4c]
+X3 = 0000000000000000 
+X4 = 0000005C9D2FF718 
+X5 = 0000000000000014 (20)
+X6 = 0000000000000000 
+X7 = 0000000000000000
+data from 00007FFDC7F23F1C call -> EXPOSURE
+X0 = 0000000000000AA0 
+X1 = 0000005C9D2FF710 [19 4d 04 00 00 00 00 00]
+X2 = 00007FFDC7F40790 [c863e28d 2eea a944 bf66 ea8c28d8484e]
+X3 = 0000000000000000 
+X4 = 0000005C9D2FF718 
+X5 = 0000000000000008 
+X6 = 0000000000000000 
+X7 = 0000000000000000
+data from 00007FFDC7F23F48 call -> GAIN
+X0 = 0000000000000AA0
+X1 = 0000005C9D2FF710 [19 4d 04 00 00 00 00 00]
+X2 = 00007FFDC7F406B8 [b2d483f5 3a3d 5241 9d8f 958c493ad3e0]
+X3 = 0000000000000000 
+X4 = 0000005C9D2FF718 
+X5 = 000000000000000C 
+X6 = 0000000000000000 
+X7 = 0000000000000000
+
+00007FFDC7F28830 D503237F             pacibsp  
+00007FFDC7F28834 A9BC7BFD             stp         fp,lr,[sp,#-0x40]!  
+00007FFDC7F28838 A90153F3             stp         x19,x20,[sp,#0x10]  
+00007FFDC7F2883C A9025BF5             stp         x21,x22,[sp,#0x20]  
+00007FFDC7F28840 A90363F7             stp         x23,x24,[sp,#0x30]  
+00007FFDC7F28844 910003FD             mov         fp,sp  
+00007FFDC7F28848 97FFA2E2             bl          __security_push_cookie (07FFDC7F113D0h)  
+
+00007FFDC7F2884C D10083FF             sub         sp,sp,#0x20  
+00007FFDC7F28850 3DC00050             ldr         q16,[x2]  
+00007FFDC7F28854 910003E8             mov         x8,sp  
+00007FFDC7F28858 A9007FFF             stp         xzr,xzr,[sp]  
+00007FFDC7F2885C AA0103F6             mov         x22,x1  
+00007FFDC7F28860 AA0503F5             mov         x21,x5  
+00007FFDC7F28864 9100B2B3             add         x19,x21,#0x2C  
+00007FFDC7F28868 3D800110             str         q16,[x8]  
+00007FFDC7F2886C F94002C8             ldr         x8,[x22]  
+00007FFDC7F28870 AA0003F8             mov         x24,x0  
+00007FFDC7F28874 A9010FE8             stp         x8,x3,[sp,#0x10]  
+00007FFDC7F28878 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F2887C 91158108             add         x8,x8,#0x560  
+00007FFDC7F28880 C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F28884 AA1303E0             mov         x0,x19  
+00007FFDC7F28888 AA0403F7             mov         x23,x4  
+
+[CALL] 0x00007ffded84b510 malloc
+00007FFDC7F2888C D63F0120             blr         x9  
+00007FFDC7F28890 AA0003F4             mov         x20,x0  
+00007FFDC7F28894 B5000074             cbnz        x20,SensorGetPropertyValue+70h (07FFDC7F288A0h)  
+00007FFDC7F28898 18000553             ldr         w19,SensorGetPropertyValue+110h (07FFDC7F28940h)  
+00007FFDC7F2889C 1400001F             b           SensorGetPropertyValue+0E8h (07FFDC7F28918h)  
+00007FFDC7F288A0 2A1303E5             mov         w5,w19  
+00007FFDC7F288A4 AA1403E4             mov         x4,x20  
+00007FFDC7F288A8 52800403             mov         w3,#0x20  
+00007FFDC7F288AC 910003E2             mov         x2,sp  
+00007FFDC7F288B0 180004A1             ldr         w1,SensorGetPropertyValue+114h (07FFDC7F28944h)  
+00007FFDC7F288B4 AA1803E0             mov         x0,x24  
+
+[CALL] `anonymous namespace'::DeviceIoControlSynchronousOverlapped(X0 = 0000000000000AA0, X1 = 00000000005B5018, X2 = 0000005C9D2FF650, X3 = 0000000000000020, X4 = 00000190D2CF1F00, X5 = 0000000000000040, X6 = 0000000000000000, X7 = 0000000000000000)
+[CALL]                                                             X0 = 0000000000000AA0, X1 = 00000000005B5018, X2 = 0000005C9D2FF650, X3 = 0000000000000020, X4 = 00000190D2CF1F00, X5 = 0000000000000040, X6 = 0000000000000000, X7 = 0000000000000000
+[CALL]                                                             X0 = 0000000000000AA0  X1 = 00000000005B5018  X2 = 0000005C9D2FF6A0  X3 = 0000000000000020  X4 = 00000190D2CF3040  X5 = 0000000000000040  X6 = 0000000000000000  X7 = 0000000000000000
+00007FFDC7F288B8 97FFFEA2             bl          `anonymous namespace'::DeviceIoControlSynchronousOverlapped (07FFDC7F28340h)  
+00007FFDC7F288BC 2A0003F3             mov         w19,w0  
+00007FFDC7F288C0 37F80233             tbnz        w19,#0x1F,SensorGetPropertyValue+0D4h (07FFDC7F28904h)  
+00007FFDC7F288C4 D2800102             mov         x2,#8  
+00007FFDC7F288C8 AA1603E1             mov         x1,x22  
+00007FFDC7F288CC AA1403E0             mov         x0,x20  
+
+00007FFDC7F288D0 97FFBF52             bl          memcmp (07FFDC7F18618h)  
+00007FFDC7F288D4 34000060             cbz         w0,SensorGetPropertyValue+0B0h (07FFDC7F288E0h)  
+00007FFDC7F288D8 12AFFFF3             mov         w19,#-0x7FFF0001  
+00007FFDC7F288DC 1400000A             b           SensorGetPropertyValue+0D4h (07FFDC7F28904h)  
+00007FFDC7F288E0 B9401A93             ldr         w19,[x20,#0x18]  
+00007FFDC7F288E4 37F80113             tbnz        w19,#0x1F,SensorGetPropertyValue+0D4h (07FFDC7F28904h)  
+00007FFDC7F288E8 B9402A88             ldr         w8,[x20,#0x28]  
+00007FFDC7F288EC AA1703E0             mov         x0,x23  
+00007FFDC7F288F0 EB0802BF             cmp         x21,x8  
+00007FFDC7F288F4 9A8832A2             csello      x2,x21,x8  
+00007FFDC7F288F8 B9402688             ldr         w8,[x20,#0x24]  
+00007FFDC7F288FC 8B284281             add         x1,x20,w8,uxtw #0  
+
+00007FFDC7F28900 97FFAA2E             bl          memcpy (07FFDC7F131B8h)  
+00007FFDC7F28904 900000A8             adrp        x8,__imp_CALIBRATION_GetNumberOfInertialSensors (07FFDC7F3C000h)  
+00007FFDC7F28908 9113C108             add         x8,x8,#0x4F0  
+00007FFDC7F2890C C8DFFD09             ldar        x9,[x8]  
+00007FFDC7F28910 AA1403E0             mov         x0,x20  
+
+[CALL] 0x00007ffded84b4a0 free()
+00007FFDC7F28914 D63F0120             blr         x9  
+00007FFDC7F28918 2A1303E0             mov         w0,w19  
+00007FFDC7F2891C 910083FF             add         sp,sp,#0x20  
+
+00007FFDC7F28920 97FFA2B4             bl          __security_pop_cookie (07FFDC7F113F0h)  
+00007FFDC7F28924 A94363F7             ldp         x23,x24,[sp,#0x30]  
+00007FFDC7F28928 A9425BF5             ldp         x21,x22,[sp,#0x20]  
+00007FFDC7F2892C A94153F3             ldp         x19,x20,[sp,#0x10]  
+00007FFDC7F28930 A8C47BFD             ldp         fp,lr,[sp],#0x40  
+00007FFDC7F28934 D50323FF             autibsp  
+00007FFDC7F28938 D65F03C0             ret  
+00007FFDC7F2893C D503201F             nop  
+00007FFDC7F28940 0E 00 07 80          ?? ?????? 
+00007FFDC7F28944 18 50 5B 00          ?? ?????? 
+
+SensorGetSample(void *,struct _HOLOGRAPHIC_SENSOR_DESCRIPTOR_ARRAY const *,unsigned __int64,void *,unsigned __int64,struct _OVERLAPPED *)
+00007FFDC7F28948 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+<lambda_982849a65b9870fd8d71ff83658d98bb>::operator()(unsigned __int64):
+00007FFDC7F22C60 D503237F             pacibsp  
+00007FFDC7F22C64 F81F0FF3             str         x19,[sp,#-0x10]!  
+00007FFDC7F22C68 A9BF7BFD             stp         fp,lr,[sp,#-0x10]!  
+00007FFDC7F22C6C 910003FD             mov         fp,sp  
+00007FFDC7F22C70 AA0103F3             mov         x19,x1  
+00007FFDC7F22C74 94000039             bl          GetQpcFrequency (07FFDC7F22D58h)  
+00007FFDC7F22C78 B5000040             cbnz        x0,<lambda_982849a65b9870fd8d71ff83658d98bb>::operator()+20h (07FFDC7F22C80h)  
+00007FFDC7F22C7C D43E0080             brk         #0xF004  
+00007FFDC7F22C80 9AC00A68             udiv        x8,x19,x0  
+00007FFDC7F22C84 9B00CD09             msub        x9,x8,x0,x19  
+00007FFDC7F22C88 5800014B             ldr         x11,<lambda_982849a65b9870fd8d71ff83658d98bb>::operator()+50h (07FFDC7F22CB0h)  
+00007FFDC7F22C8C 9AC00A68             udiv        x8,x19,x0  
+00007FFDC7F22C90 9B0B7D29             mul         x9,x9,x11  
+00007FFDC7F22C94 9AC0092A             udiv        x10,x9,x0  
+00007FFDC7F22C98 9B0B2900             madd        x0,x8,x11,x10  
+00007FFDC7F22C9C A8C17BFD             ldp         fp,lr,[sp],#0x10  
+00007FFDC7F22CA0 F84107F3             ldr         x19,[sp],#0x10  
+00007FFDC7F22CA4 D50323FF             autibsp  
+00007FFDC7F22CA8 D65F03C0             ret  
+00007FFDC7F22CAC D503201F             nop  
+00007FFDC7F22CB0 80 96 98 00          ?? ?????? 
+00007FFDC7F22CB4 00 00 00 00          ?? ?????? 
+00007FFDC7F22CB8 00 00 00 00          ?? ?????? 
+00007FFDC7F22CBC 00 00 00 00          ?? ?????? 
+
+[thunk]:CResearchModeFrame::`vector deleting destructor'`adjustor{8}' (unsigned int):
+00007FFDC7F22CC0 D1002000             sub         x0,x0,#8  
+00007FFDC7F22CC4 14000003             b           CResearchModeFrame::`vector deleting destructor' (07FFDC7F22CD0h)  
+00007FFDC7F22CC8 D503201F             nop  
+00007FFDC7F22CCC 00 00 00 00          ?? ?????? 
+
+CResearchModeFrame::`vector deleting destructor'(unsigned int):
+00007FFDC7F22CD0 D503237F             pacibsp  
+
+//*****************************************************************************
+//*****************************************************************************
+//*****************************************************************************
+
+RM VLC METADATA?
+140: sensorticks per second
+148: hostticks
+154: hostticks per second
+164 : gain (u32)
+168 : exposure (u64)
+170 : ? (u32?)
+174 : image data
+
+0x00000190D9B73000  01 00 00 00 19 4d 04 00 00 00 00 00 00 00 00 00 20 00 00 00  .....M.......... ...
+0x00000190D9B73014  54 01 00 00 74 01 00 00 00 b0 04 00 06 00 00 00 19 4d 04 00  T...t....°.......M..
+0x00000190D9B73028  00 00 00 00 8f d1 af c2 91 31 26 4b 92 8a 27 0f 70 b4 86 3e  .....Ñ¯Â‘1&K’Š'.p´.>
+0x00000190D9B7303C  00 00 00 00 b0 99 0e 00 00 00 00 00 0c 01 00 00 08 00 00 00  ....°™..............
+0x00000190D9B73050  19 4d 04 00 00 00 00 00 52 3f 21 94 0f a1 f3 4a bf 31 8e 6e  .M......R?!”.¡óJ¿1Žn
+0x00000190D9B73064  8d f0 89 4c 00 00 00 00 5c a9 2d 00 00 00 00 00 14 01 00 00  .ð.L....\©-.........
+0x00000190D9B73078  14 00 00 00 19 4d 04 00 00 00 00 00 26 49 d6 17 27 4c 84 48  .....M......&IÖ.'L.H
+0x00000190D9B7308C  b5 75 6e 1d 74 a7 ac 4c 00 00 00 00 5b a9 2d 00 00 00 00 00  µun.t§¬L....[©-.....
+0x00000190D9B730A0  28 01 00 00 14 00 00 00 19 4d 04 00 00 00 00 00 b2 d4 83 f5  (........M.......Ôƒõ
+0x00000190D9B730B4  3a 3d 52 41 9d 8f 95 8c 49 3a d3 e0 00 00 00 00 5d a9 2d 00  :=RA...ŒI:Óà....]©-.
+0x00000190D9B730C8  00 00 00 00 3c 01 00 00 0c 00 00 00 19 4d 04 00 00 00 00 00  ....<........M......
+0x00000190D9B730DC  c8 63 e2 8d 2e ea a9 44 bf 66 ea 8c 28 d8 48 4e 00 00 00 00  Ècâ..ê©D¿fêŒ(ØHN....
+0x00000190D9B730F0  5e a9 2d 00 00 00 00 00 48 01 00 00 08 00 00 00 19 4d 04 00  ^©-.....H........M..
+0x00000190D9B73104  00 00 00 00 1a f1 07 c2 14 db 1f 45 9c 97 08 e7 0d 9b e9 02  .....ñ.Â.Û.Eœ—.ç..é.
+0x00000190D9B73118  e8 00 07 80 00 00 00 00 00 00 00 00 50 01 00 00 04 00 00 00  è..€........P.......
+0x00000190D9B7312C  00 00 70 42 00 00 70 42 01 00 00 00 37 30 2c 8e 00 00 00 00  ..pB..pB....70,Ž....
+0x00000190D9B73140  00 f0 c0 03 00 00 00 00 01 00 00 00 58 1a 67 0b 39 00 00 00  .ðÀ.........X.g.9...
+0x00000190D9B73154  00 f0 c0 03 00 00 00 00 01 00 00 00 bc 00 00 00 ff 00 00 00  .ðÀ.............ÿ...
+0x00000190D9B73168  70 66 5b 00 00 00 00 00 00 00 d4 43
+
+///
+0x00000190D9B73000  01 00 00 00 
+                    19 4d 04 00 00 00 00 00 (LUID)
+                    00 00 00 00 (some error code)
+                    20 00 00 00 (size of this header?)
+                    54 01 00 00 
+                    74 01 00 00 (metadata size)
+                    00 b0 04 00 (image size)
+0x00000190D9B73020  06 00 00 00 19 4d 04 00 00 00 00 00 8f d1 af c2 91 31 26 4b 
+                    92 8a 27 0f 70 b4 86 3e 00 00 00 00 b0 99 0e 00 00 00 00 00 
+                    0c 01 00 00
+0x00000190D9B7304C  08 00 00 00 19 4d 04 00 00 00 00 00 52 3f 21 94 0f a1 f3 4a 
+                    bf 31 8e 6e 8d f0 89 4c 00 00 00 00 5c a9 2d 00 00 00 00 00 
+                    14 01 00 00
+0x00000190D9B73078  14 00 00 00 19 4d 04 00 00 00 00 00 26 49 d6 17 27 4c 84 48
+                    b5 75 6e 1d 74 a7 ac 4c 00 00 00 00 5b a9 2d 00 00 00 00 00
+                    28 01 00 00
+0x00000190D9B730A4  14 00 00 00 19 4d 04 00 00 00 00 00 b2 d4 83 f5 3a 3d 52 41 
+                    9d 8f 95 8c 49 3a d3 e0 00 00 00 00 5d a9 2d 00 00 00 00 00 
+                    3c 01 00 00
+                    0c 00 00 00 19 4d 04 00 00 00 00 00 c8 63 e2 8d 2e ea a9 44 
+                    bf 66 ea 8c 28 d8 48 4e 00 00 00 00 5e a9 2d 00 00 00 00 00 
+                    48 01 00 00
+0x00000190D9B730FC  08 00 00 00 19 4d 04 00 00 00 00 00 1a f1 07 c2 14 db 1f 45 
+                    9c 97 08 e7 0d 9b e9 02 e8 00 07 80 00 00 00 00 00 00 00 00
+                    50 01 00 00 
+                    04 00 00 00 
+                    00 00 70 42 
+                    00 00 70 42 
+                    01 00 00 00 
+                    37 30 2c 8e 00 00 00 00 (host ticks=8E2C 3037)
+                    00 f0 c0 03 00 00 00 00 (ticks per second)
+                    01 00 00 00 
+                    58 1a 67 0b 39 00 00 00 (sensor ticks=39 0B67 1A58)
+                    00 f0 c0 03 00 00 00 00 (ticks per second)
+                    01 00 00 00 
+                    bc 00 00 00 (188 gain)
+                    ff 00 00 00 (?)
+                    70 66 5b 00 00 00 00 00 (exposure)
+                    00 00 d4 43
+
+
