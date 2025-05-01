@@ -381,6 +381,46 @@ void ResearchMode_ExecuteSensorLoop(IResearchModeSensor* sensor, HOOK_RM_PROC ho
     sensor->CloseStream();
 }
 
+// TODO:
+void ResearchMode_ExecuteSensorLoopCustom_VLC(IResearchModeSensor* sensor, HOOK_RM_VLC_PROC hook, void* param, HANDLE event_stop)
+{
+    int32_t const sample_size = 0x174 + 640 * 480;
+
+    uint8_t* data = new uint8_t[sample_size]; // delete
+    DWORD bytes_read = 0;
+    OVERLAPPED ov;
+
+    //memset(&ov, 0, sizeof(ov));
+    //ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    HANDLE event_data = CreateEvent(NULL, TRUE, FALSE, NULL); // CloseHandle
+    memset(&ov, 0, sizeof(ov));
+    ov.hEvent = event_data;
+
+    sensor->OpenStream();
+    
+    HANDLE device = *(HANDLE*)(((uint8_t*)sensor) + 0x10);
+
+    do
+    {
+    //memset(&ov, 0, sizeof(ov));
+    //ov.hEvent = event_data;
+
+    DeviceIoControl(device, 0x005B502A, (((uint8_t*)sensor) + 0x18), 24, data, sample_size, &bytes_read, &ov);
+    WaitForSingleObject(ov.hEvent, INFINITE);
+    GetOverlappedResult(device, &ov, &bytes_read, TRUE);
+    ResetEvent(ov.hEvent);
+    //DeviceIoControl(device, 0x005B502A, (((uint8_t*)sensor) + 0x18), 24, data, sample_size, &bytes_read, NULL); // non-overlapped crashes for multiple cameras
+    hook(data + 0x174, *reinterpret_cast<UINT64*>(data + 0x138), *reinterpret_cast<UINT64*>(data + 0x14C), *reinterpret_cast<UINT64*>(data + 0x168), *reinterpret_cast<UINT32*>(data + 0x160), param);
+    }
+    while (WaitForSingleObject(event_stop, 0) == WAIT_TIMEOUT);
+
+    sensor->CloseStream();
+
+    CloseHandle(event_data);
+
+    delete[] data;
+}
+
 // OK
 void ResearchMode_ProcessSample_VLC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_VLC_PROC hook, void* param)
 {
