@@ -129,6 +129,29 @@ if __name__ == '__main__':
     if (hl2ss.StreamPort.EXTENDED_DEPTH in ports):
         hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH, global_opacity=ez_group_index, output_width=ez_source_index, output_height=ez_profile_index)
 
+    # Configure system --------------------------------------------------------
+    client_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    client_rc.open()
+    # Configure PV camera
+    client_rc.pv_wait_for_subsystem(True)
+    client_rc.pv_set_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Infinity, 3000, hl2ss.PV_DriverFallback.Disable)
+    client_rc.pv_set_exposure(hl2ss.PV_ExposureMode.Manual, 16666)
+    client_rc.pv_set_exposure_priority_video(hl2ss.PV_ExposurePriorityVideo.Disabled)
+    client_rc.pv_set_white_balance_preset(hl2ss.PV_ColorTemperaturePreset.Flash)
+    client_rc.pv_set_video_temporal_denoising(hl2ss.PV_VideoTemporalDenoisingMode.Off)
+    client_rc.pv_set_backlight_compensation(hl2ss.PV_BacklightCompensationState.Disable)
+    # Disable buffering
+    client_rc.ee_set_reader_buffering(False)
+    client_rc.ee_set_encoder_buffering(False)
+    # Enable RM VLC patch
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTFRONT,  True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTLEFT,   True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTFRONT, True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, True)
+    # Wait for command completion
+    client_rc.ee_get_application_version()
+    client_rc.close()
+    
     # Start receivers ---------------------------------------------------------
     producer = hl2ss_mp.producer()
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, profile=video_profile, decoded=False))
