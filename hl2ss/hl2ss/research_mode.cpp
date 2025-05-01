@@ -414,6 +414,10 @@ void ResearchMode_ExecuteSensorLoop_VLC(IResearchModeSensor* sensor, HOOK_RM_VLC
     }
     while (WaitForSingleObject(event_stop, 0) == WAIT_TIMEOUT);
 
+    IResearchModeSensorFrame* pSensorFrame; // Release
+    sensor->GetNextBuffer(&pSensorFrame);
+    pSensorFrame->Release();
+
     sensor->CloseStream();
 
     delete[] data;
