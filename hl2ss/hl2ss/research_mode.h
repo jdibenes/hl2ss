@@ -48,6 +48,7 @@ bool ResearchMode_WaitForConsent(IResearchModeSensor* sensor);
 bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>& uv2x, std::vector<float>& uv2y, std::vector<float>& mapx, std::vector<float>& mapy, float K[4]);
 bool ResearchMode_GetExtrinsics(IResearchModeSensor* sensor, DirectX::XMFLOAT4X4& extrinsics);
 void ResearchMode_ExecuteSensorLoop(IResearchModeSensor* sensor, HOOK_RM_PROC hook, void* param, HANDLE event_stop);
+void ResearchMode_ExecuteSensorLoop_VLC(IResearchModeSensor* sensor, HOOK_RM_VLC_PROC hook, void* param, HANDLE event_stop);
 void ResearchMode_ProcessSample_VLC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_VLC_PROC hook, void* param);
 void ResearchMode_ProcessSample_ZHT(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_ZHT_PROC hook, void* param);
 void ResearchMode_ProcessSample_ZLT(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_ZLT_PROC hook, void* param);
@@ -58,3 +59,5 @@ void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK
 void ResearchMode_SetEyeSelection(bool enable);
 void ResearchMode_MapImagePointToCameraUnitPlane(IResearchModeSensor* sensor, std::vector<winrt::Windows::Foundation::Numerics::float2> const& in, std::vector<winrt::Windows::Foundation::Numerics::float2>& out);
 void ResearchMode_MapCameraSpaceToImagePoint(IResearchModeSensor* sensor, std::vector<winrt::Windows::Foundation::Numerics::float2> const& in, std::vector<winrt::Windows::Foundation::Numerics::float2>& out);
+void ResearchMode_SetLoopControl(uint32_t id, bool enable);
+bool ResearchMode_GetLoopControl(uint32_t id);

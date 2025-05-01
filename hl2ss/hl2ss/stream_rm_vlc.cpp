@@ -162,7 +162,8 @@ void Channel_RM_VLC::Execute_Mode0(bool enable_location)
 
     TranslateEncoderOptions(options, m_exposure_factor, m_constant_factor);
 
-    ResearchMode_ExecuteSensorLoop(m_sensor, Thunk_Sensor, this, m_event_client);
+    if (!ResearchMode_GetLoopControl(m_sensor->GetSensorType())) { ResearchMode_ExecuteSensorLoop(    m_sensor, Thunk_Sensor, this, m_event_client); }
+    else                                                         { ResearchMode_ExecuteSensorLoop_VLC(m_sensor, Thunk_Sample, this, m_event_client); }
 
     m_pEncoder.reset();
 }
