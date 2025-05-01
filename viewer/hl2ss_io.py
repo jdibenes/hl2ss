@@ -638,10 +638,12 @@ class _rd_decoded(_rd):
         self._codec = hl2ss.decode_extended_depth(self.profile_z)
     
     def __decode_rm_vlc(self, payload):
-        return self._codec.decode(payload)
+        d = self._codec.decode(payload)
+        return d if (d.image is not None) else None
     
     def __decode_rm_depth_ahat(self, payload):
-        return self._codec.decode(payload)
+        d = self._codec.decode(payload)
+        return d if ((d.depth is not None) and (d.ab is not None)) else None
     
     def __decode_rm_depth_longthrow(self, payload):
         return self._codec.decode(payload)
@@ -650,7 +652,8 @@ class _rd_decoded(_rd):
         return self._codec.decode(payload)
     
     def __decode_pv(self, payload):
-        return self._codec.decode(payload, self.format)
+        d = self._codec.decode(payload, self.format)
+        return d if (d.image is not None) else None
     
     def __decode_microphone(self, payload):
         return self._codec.decode(payload)
@@ -701,10 +704,13 @@ class _rd_decoded(_rd):
         self.__set_codec()
         
     def get_next_packet(self):
-        data = super().get_next_packet()
-        if (data is not None):
+        while (True):
+            data = super().get_next_packet()
+            if (data is None):
+                return None
             data.payload = self.__decode(data.payload)
-        return data
+            if (data.payload is not None):
+                return data
 
     def close(self):
         super().close()
