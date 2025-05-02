@@ -971,6 +971,7 @@ class _codec_h264:
         for packet in self._codec.parse(payload[6:] + _codec_h264._aud):
             for frame in self._codec.decode(packet):
                 return frame
+        return None
 
 
 class _codec_hevc:
@@ -983,6 +984,7 @@ class _codec_hevc:
         for packet in self._codec.parse(payload + _codec_hevc._aud):
             for frame in self._codec.decode(packet):
                 return frame
+        return None
 
 
 class _codec_aac:
@@ -993,6 +995,7 @@ class _codec_aac:
         for packet in self._codec.parse(payload):
             for frame in self._codec.decode(packet):
                 return frame
+        return None
 
 
 def get_video_codec(profile):
