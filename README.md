@@ -26,7 +26,7 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - Scene Understanding (3D Meshes + Semantic labels for planar surfaces)
 - Voice Input
 - Extended Eye Tracking (30, 60, or 90 FPS)
-- Extended Audio (Microphone + Application audio, 2 channels @ 48000 Hz, 16-bit PCM, AAC encoded)
+- Extended Audio (Microphone + Application audio, RAW or AAC encoded)
   - Internal Microphone mirror
   - External USB-C Microphone
 - Extended Video (H264 or HEVC encoded)
@@ -265,6 +265,7 @@ If you wish to create the server application appxbundle, right click the hl2ss p
 
 - Multiple streams can be active at the same time but only one client per stream is allowed.
 - Spatial Input is not supported in flat mode.
+- PV camera Mixed Reality Capture is not supported in shared mode.
 
 ## References
 
