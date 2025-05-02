@@ -219,3 +219,108 @@ HRESULT BufferBuffer::CreateInstance(BufferBuffer** ppBuffer, Buffer const& ref)
     *ppBuffer = new BufferBuffer(ref);
     return S_OK;
 }
+
+//*****************************************************************************
+// VectorBuffer
+//*****************************************************************************
+
+//-----------------------------------------------------------------------------
+// IUnknown Methods
+//-----------------------------------------------------------------------------
+
+// OK
+ULONG VectorBuffer::AddRef()
+{
+    return InterlockedIncrement(&m_nRefCount);
+}
+
+// OK
+ULONG VectorBuffer::Release()
+{
+    ULONG uCount = InterlockedDecrement(&m_nRefCount);
+    if (uCount == 0) { delete this; }
+    return uCount;
+}
+
+// OK
+HRESULT VectorBuffer::QueryInterface(REFIID iid, void** ppv)
+{
+    if (!ppv) { return E_POINTER; }
+
+    *ppv = NULL;
+
+    if      (iid == IID_IUnknown)       { *ppv = static_cast<IUnknown*>(this); }
+    else if (iid == IID_IMFMediaBuffer) { *ppv = static_cast<IMFMediaBuffer*>(this); }
+    else                                { return E_NOINTERFACE; }
+
+    AddRef();
+    return S_OK;
+}
+
+//-----------------------------------------------------------------------------
+// IMFMediaBuffer Methods
+//-----------------------------------------------------------------------------
+
+// OK
+HRESULT VectorBuffer::GetCurrentLength(DWORD* pcbCurrentLength)
+{
+    *pcbCurrentLength = static_cast<DWORD>(m_v.size());
+    return S_OK;
+}
+
+// OK
+HRESULT VectorBuffer::GetMaxLength(DWORD* pcbMaxLength)
+{
+    *pcbMaxLength = static_cast<DWORD>(m_v.size());
+    return S_OK;
+}
+
+// OK
+HRESULT VectorBuffer::Lock(BYTE** ppbBuffer, DWORD* pcbMaxLength, DWORD* pcbCurrentLength)
+{
+    *ppbBuffer = m_v.data();
+    if (pcbMaxLength) { *pcbMaxLength = static_cast<DWORD>(m_v.size()); }
+    if (pcbCurrentLength) { *pcbCurrentLength = static_cast<DWORD>(m_v.size()); }
+    return S_OK;
+}
+
+// OK
+HRESULT VectorBuffer::SetCurrentLength(DWORD cbCurrentLength)
+{
+    (void)cbCurrentLength;
+    return S_OK;
+}
+
+// OK
+HRESULT VectorBuffer::Unlock()
+{
+    return S_OK;
+}
+
+//-----------------------------------------------------------------------------
+// VectorBuffer Methods
+//-----------------------------------------------------------------------------
+
+// OK
+VectorBuffer::VectorBuffer()
+{
+    m_nRefCount = 1;
+}
+
+// OK
+VectorBuffer::~VectorBuffer()
+{
+}
+
+// OK
+HRESULT VectorBuffer::CreateInstance(VectorBuffer** ppBuffer)
+{
+    *ppBuffer = new VectorBuffer();
+    return S_OK;
+}
+
+// OK
+std::vector<uint8_t>& VectorBuffer::Get()
+{
+    return m_v;
+}

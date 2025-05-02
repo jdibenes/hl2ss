@@ -617,7 +617,7 @@ PlayerSettings:
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
   metroPackageName: hl2ss-unity
-  metroPackageVersion: 1.0.36.0
+  metroPackageVersion: 1.0.37.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: jcds

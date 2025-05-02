@@ -1,6 +1,8 @@
 
 #include <mfapi.h>
 #include "custom_encoder.h"
+#include "extended_execution.h"
+#include "lock.h"
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -16,6 +18,9 @@ CustomEncoder::CustomEncoder(HOOK_ENCODER_PROC pHookCallback, void* pHookParam, 
     m_pMetadataFree = pMetadataFree;
 
     memset(m_metadata.get(), 0, metadata_size);
+
+    m_buffer_i.Startup(CustomEncoder::Thunk_Write,   this, ExtendedExecution_GetReaderBuffering());
+    m_buffer_o.Startup(CustomEncoder::Thunk_Process, this, ExtendedExecution_GetEncoderBuffering());
 }
 
 // OK
@@ -35,6 +40,21 @@ CustomEncoder(pHookCallback, pHookParam, pMetadataFree, metadata_size)
 // OK
 CustomEncoder::~CustomEncoder()
 {
+    m_buffer_i.Cleanup();
+    m_pSinkWriter.reset();
+    m_buffer_o.Cleanup();
+}
+
+// OK
+void CustomEncoder::WriteSample(IMFSample* pSample)
+{
+    if (m_pSinkWriter) { m_pSinkWriter->WriteSample(pSample); } else { Thunk_Sink(pSample, this); }
+}
+
+// OK
+void CustomEncoder::ReceiveSample(IMFSample* pSample)
+{
+    m_buffer_o.Push(pSample);
 }
 
 // OK
@@ -64,9 +84,21 @@ void CustomEncoder::ProcessSample(IMFSample* pSample)
 }
 
 // OK
-void CustomEncoder::Thunk_Sink(IMFSample* pSample, void* param)
+void CustomEncoder::Thunk_Write(IMFSample* pSample, void* self)
 {
-    static_cast<CustomEncoder*>(param)->ProcessSample(pSample);
+    static_cast<CustomEncoder*>(self)->WriteSample(pSample);
+}
+
+// OK
+void CustomEncoder::Thunk_Sink(IMFSample* pSample, void* self)
+{
+    static_cast<CustomEncoder*>(self)->ReceiveSample(pSample);
+}
+
+// OK
+void CustomEncoder::Thunk_Process(IMFSample* pSample, void* self)
+{
+    static_cast<CustomEncoder*>(self)->ProcessSample(pSample);
 }
 
 // OK
@@ -89,7 +121,7 @@ void CustomEncoder::WriteBuffer(IMFMediaBuffer* pBuffer, LONGLONG timestamp, LON
     pSample->SetSampleTime(timestamp);
     pSample->SetBlob(MF_USER_DATA_PAYLOAD, static_cast<UINT8*>(metadata), m_metadata_size);
 
-    m_pSinkWriter->WriteSample(pSample);
+    m_buffer_i.Push(pSample);
 
     pSample->Release();
 }

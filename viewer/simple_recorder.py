@@ -12,6 +12,7 @@ import os
 import time
 import hl2ss
 import hl2ss_lnm
+import hl2ss_mx
 import hl2ss_mp
 import hl2ss_ds
 import hl2ss_utilities
@@ -128,6 +129,29 @@ if __name__ == '__main__':
     if (hl2ss.StreamPort.EXTENDED_DEPTH in ports):
         hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.EXTENDED_DEPTH, global_opacity=ez_group_index, output_width=ez_source_index, output_height=ez_profile_index)
 
+    # Configure system --------------------------------------------------------
+    client_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+    client_rc.open()
+    # Configure PV camera
+    client_rc.pv_wait_for_subsystem(True)
+    client_rc.pv_set_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Infinity, 3000, hl2ss.PV_DriverFallback.Disable)
+    client_rc.pv_set_exposure(hl2ss.PV_ExposureMode.Manual, 16666)
+    client_rc.pv_set_exposure_priority_video(hl2ss.PV_ExposurePriorityVideo.Disabled)
+    client_rc.pv_set_white_balance_preset(hl2ss.PV_ColorTemperaturePreset.Flash)
+    client_rc.pv_set_video_temporal_denoising(hl2ss.PV_VideoTemporalDenoisingMode.Off)
+    client_rc.pv_set_backlight_compensation(hl2ss.PV_BacklightCompensationState.Disable)
+    # Disable buffering
+    client_rc.ee_set_reader_buffering(False)
+    client_rc.ee_set_encoder_buffering(False)
+    # Enable RM VLC patch
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTFRONT,  True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTLEFT,   True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTFRONT, True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, True)
+    # Wait for command completion
+    client_rc.ee_get_application_version()
+    client_rc.close()
+    
     # Start receivers ---------------------------------------------------------
     producer = hl2ss_mp.producer()
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTFRONT, profile=video_profile, decoded=False))
@@ -147,9 +171,16 @@ if __name__ == '__main__':
     producer.configure(hl2ss.StreamPort.EXTENDED_VIDEO, hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.EXTENDED_VIDEO, width=ev_width, height=ev_height, framerate=ev_framerate, profile=video_profile, decoded_format=None))
     producer.configure(hl2ss.StreamPort.EXTENDED_DEPTH, hl2ss_lnm.rx_extended_depth(host, hl2ss.StreamPort.EXTENDED_DEPTH, media_index=ez_media_index, stride_mask=ez_stride_mask, decoded=False))
 
+    consumer = hl2ss_mp.consumer()
+    sinks = {}
+
     for port in ports:
         producer.initialize(port)
         producer.start(port)
+        sinks[port] = consumer.get_default_sink(producer, port)
+        sinks[port].get_attach_response()
+        while (sinks[port].get_buffered_frame(-1)[0] != hl2ss_mx.Status.OK):
+            pass
         print(f'Started stream {hl2ss.get_port_name(port)}')
     
     writers = {port : hl2ss_ds.wr(filenames[port], producer, port, user_data) for port in ports}
@@ -177,6 +208,7 @@ if __name__ == '__main__':
         print(f'Stopped writer {hl2ss.get_port_name(port)}')
 
     for port in ports:
+        sinks[port].detach()
         producer.stop(port)
         print(f'Stopped stream {hl2ss.get_port_name(port)}')
 

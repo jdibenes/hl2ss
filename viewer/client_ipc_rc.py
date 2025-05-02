@@ -143,6 +143,19 @@ interface_priority = {
 # Delay SI readouts by the specified amount (in hundreds of nanoseconds)
 si_sampling_delay = 0
 
+# Encoder buffering
+# Buffer encoded frames before sending over network
+encoder_buffering = False
+
+# Reader buffering
+# Buffer sensor frames before sending to the encoder
+reader_buffering = False
+
+# RM VLC loop control
+# Set to True to enable workaround for RM VLC issues
+# Might crash on future HoloLens OS / Research Mode DLL versions
+rm_vlc_loop_control = False
+
 #------------------------------------------------------------------------------
 
 # Connect to server -----------------------------------------------------------
@@ -291,6 +304,18 @@ for port, priority in interface_priority.items():
 
 client.si_set_sampling_delay(si_sampling_delay) # Set Spatial Input sampling delay
 print(f'Set SI sampling delay : {si_sampling_delay}')
+
+client.ee_set_encoder_buffering(encoder_buffering)
+print(f'Set encoder buffering : {encoder_buffering}')
+
+client.ee_set_reader_buffering(reader_buffering)
+print(f'Set reader buffering : {reader_buffering}')
+
+client.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTFRONT,  rm_vlc_loop_control)
+client.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTLEFT,   rm_vlc_loop_control)
+client.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTFRONT, rm_vlc_loop_control)
+client.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, rm_vlc_loop_control)
+print(f'Set rm vlc loop control : {rm_vlc_loop_control}')
 
 # Disconnect ------------------------------------------------------------------
 client.close()

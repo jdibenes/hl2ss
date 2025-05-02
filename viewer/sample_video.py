@@ -39,22 +39,31 @@ pv_framerate = 30
 
 if __name__ == '__main__':
     if ((hl2ss.StreamPort.RM_DEPTH_LONGTHROW in ports) and (hl2ss.StreamPort.RM_DEPTH_AHAT in ports)):
-        print('Error: Simultaneous RM Depth Long Throw and RM Depth AHAT streaming is not supported. See known issues at https://github.com/jdibenes/hl2ss.')
+        print('Error: Simultaneous RM Depth Long Throw and RM Depth AHAT streaming is not supported.')
         quit()
 
     # Start PV Subsystem if PV is selected ------------------------------------
     if (hl2ss.StreamPort.PERSONAL_VIDEO in ports):
         hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO)
 
-    # Start streams -----------------------------------------------------------
+    # Configure system --------------------------------------------------------
     client_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
     client_rc.open()
-    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTFRONT,  hl2ss.EE_InterfacePriority.HIGHEST)
-    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_LEFTLEFT,   hl2ss.EE_InterfacePriority.HIGHEST)
-    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_RIGHTFRONT, hl2ss.EE_InterfacePriority.HIGHEST)
-    client_rc.ee_set_interface_priority(hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, hl2ss.EE_InterfacePriority.HIGHEST)
+    # Disable buffer between sensor output and encoder input
+    client_rc.ee_set_reader_buffering(False)
+    # Disable buffer between encoder output and network send
+    client_rc.ee_set_encoder_buffering(False)
+    # Mitigate RM VLC flicker
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTFRONT,  True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_LEFTLEFT,   True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTFRONT, True)
+    client_rc.rm_set_loop_control(hl2ss.StreamPort.RM_VLC_RIGHTRIGHT, True)
+    # RC commands that do not return a value are processed asynchronously
+    # Call ee_get_application_version to ensure all commands have been processed before continuing
+    client_rc.ee_get_application_version()
     client_rc.close()
 
+    # Start streams -----------------------------------------------------------
     producer = hl2ss_mp.producer()
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTFRONT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTFRONT))
     producer.configure(hl2ss.StreamPort.RM_VLC_LEFTLEFT, hl2ss_lnm.rx_rm_vlc(host, hl2ss.StreamPort.RM_VLC_LEFTLEFT))
@@ -149,6 +158,9 @@ if __name__ == '__main__':
 
     # Stop streams ------------------------------------------------------------
     for port in ports:
+        if (not sinks[port].get_source_status()):
+            print(f'Error during {hl2ss.get_port_name(port)} capture: ')
+            print(sinks[port].get_source_string())
         sinks[port].detach()
         producer.stop(port)
         print(f'Stopped {hl2ss.get_port_name(port)}')

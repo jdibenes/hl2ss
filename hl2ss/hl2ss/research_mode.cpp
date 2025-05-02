@@ -4,6 +4,7 @@
 #include "timestamp.h"
 #include "research_mode.h"
 #include "lock.h"
+#include "log.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Windows.Perception.Spatial.h>
@@ -16,6 +17,13 @@ using namespace winrt::Windows::Perception::Spatial::Preview;
 extern "C" { HMODULE LoadLibraryA(LPCSTR lpLibFileName); }
 
 typedef HRESULT(__cdecl* PFN_CREATEPROVIDER)(IResearchModeSensorDevice**);
+
+struct RM_IO_STATUS
+{
+    OVERLAPPED overlapped;
+    DWORD      bytes_read;
+    DWORD      _reserved;
+};
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -46,6 +54,7 @@ static ResearchModeSensorConsent g_imu_consent_value = ResearchModeSensorConsent
 static IResearchModeSensor* g_sensors[g_sensor_count]; // Release
 static SpatialLocator g_locator = nullptr;
 static bool g_ready = false;
+static std::atomic<bool> g_loop_control[g_sensor_count];
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -109,6 +118,7 @@ void ResearchMode_Startup()
     g_pSensorDeviceConsent->RequestIMUAccessAsync(ResearchMode_IMUAccessCallback);
 
     for (uint32_t sensor_index = 0; sensor_index < g_sensor_count; ++sensor_index) { g_pSensorDevice->GetSensor(g_sensor_lut[sensor_index], &(g_sensors[sensor_index])); }
+    for (uint32_t sensor_index = 0; sensor_index < g_sensor_count; ++sensor_index) { g_loop_control[sensor_index] = false; }
 
     g_pSensorDevice->QueryInterface(IID_PPV_ARGS(&pSensorDevicePerception));
 
@@ -210,6 +220,7 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     float span_y;
     float span_u;
     float span_v;
+    float f;
     float fx;
     float fy;
     float cx;
@@ -305,6 +316,9 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 
     fx = span_x / span_u;
     fy = span_y / span_v;
+    f  = fx >= fy ? fx : fy;
+    fx = f;
+    fy = f;
     cx = min_x;
     cy = min_y;
 
@@ -327,8 +341,8 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
     }
     }
 
-    K[0] = span_u / span_x;
-    K[1] = span_v / span_y;
+    K[0] = 1.0f / fx;
+    K[1] = 1.0f / fy;
     K[2] = -min_x * K[0];
     K[3] = -min_y * K[1];
 
@@ -375,6 +389,38 @@ void ResearchMode_ExecuteSensorLoop(IResearchModeSensor* sensor, HOOK_RM_PROC ho
     while (WaitForSingleObject(event_stop, 0) == WAIT_TIMEOUT);
 
     sensor->CloseStream();
+}
+
+// OK
+void ResearchMode_ExecuteSensorLoop_VLC(IResearchModeSensor* sensor, HOOK_RM_VLC_PROC hook, void* param, HANDLE event_stop)
+{
+    int32_t const data_size = 0x0004B174;
+
+    uint8_t*     data = new uint8_t[data_size]; // delete[]
+    RM_IO_STATUS io;
+
+    ShowMessage("RM %d: Using DeviceIoControl capture", sensor->GetSensorType());
+
+    memset(data, 0, data_size);
+    
+    sensor->OpenStream();
+
+    do
+    {
+    memset(&io, 0, sizeof(io));
+    DeviceIoControl(*lea<HANDLE*>(sensor, 0x10), 0x005B502A, lea<void*>(sensor, 0x18), 24, data, data_size, &io.bytes_read, &io.overlapped);
+    GetOverlappedResult(*lea<HANDLE*>(sensor, 0x10), &io.overlapped, &io.bytes_read, TRUE);
+    hook(lea<BYTE*>(data, 0x174), *lea<UINT64*>(data, 0x138), *lea<UINT64*>(data, 0x14C), *lea<UINT64*>(data, 0x168), *lea<UINT32*>(data, 0x160), param);
+    }
+    while (WaitForSingleObject(event_stop, 0) == WAIT_TIMEOUT);
+
+    IResearchModeSensorFrame* pSensorFrame; // Release
+    sensor->GetNextBuffer(&pSensorFrame);
+    pSensorFrame->Release();
+
+    sensor->CloseStream();
+
+    delete[] data;
 }
 
 // OK
@@ -445,7 +491,7 @@ void ResearchMode_ProcessSample_ZLT(IResearchModeSensorFrame* pSensorFrame, HOOK
 }
 
 // OK
-void ResearchMode_ProcessSample_ACC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_ACC_PROC hook, void* param)
+void ResearchMode_ProcessSample_ACC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_IMU_PROC hook, void* param)
 {
     IResearchModeAccelFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -457,13 +503,13 @@ void ResearchMode_ProcessSample_ACC(IResearchModeSensorFrame* pSensorFrame, HOOK
 
     pSensorIMUFrame->GetCalibratedAccelarationSamples(&pIMUBuffer, &nIMUSamples);
 
-    hook(pIMUBuffer, nIMUSamples, timestamp.HostTicks, timestamp.SensorTicks, param);
+    hook(pIMUBuffer, nIMUSamples * sizeof(AccelDataStruct), timestamp.HostTicks, timestamp.SensorTicks, param);
 
     pSensorIMUFrame->Release();
 }
 
 // OK
-void ResearchMode_ProcessSample_GYR(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_GYR_PROC hook, void* param)
+void ResearchMode_ProcessSample_GYR(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_IMU_PROC hook, void* param)
 {
     IResearchModeGyroFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -475,13 +521,13 @@ void ResearchMode_ProcessSample_GYR(IResearchModeSensorFrame* pSensorFrame, HOOK
 
     pSensorIMUFrame->GetCalibratedGyroSamples(&pIMUBuffer, &nIMUSamples);
 
-    hook(pIMUBuffer, nIMUSamples, timestamp.HostTicks, timestamp.SensorTicks, param);
+    hook(pIMUBuffer, nIMUSamples * sizeof(GyroDataStruct), timestamp.HostTicks, timestamp.SensorTicks, param);
 
     pSensorIMUFrame->Release();
 }
 
 // OK
-void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_MAG_PROC hook, void* param)
+void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_IMU_PROC hook, void* param)
 {
     IResearchModeMagFrame* pSensorIMUFrame; // Release
     ResearchModeSensorTimestamp timestamp;
@@ -493,7 +539,7 @@ void ResearchMode_ProcessSample_MAG(IResearchModeSensorFrame* pSensorFrame, HOOK
 
     pSensorIMUFrame->GetMagnetometerSamples(&pIMUBuffer, &nIMUSamples);
 
-    hook(pIMUBuffer, nIMUSamples, timestamp.HostTicks, timestamp.SensorTicks, param);
+    hook(pIMUBuffer, nIMUSamples * sizeof(MagDataStruct), timestamp.HostTicks, timestamp.SensorTicks, param);
 
     pSensorIMUFrame->Release();
 }
@@ -534,4 +580,18 @@ void ResearchMode_MapCameraSpaceToImagePoint(IResearchModeSensor* sensor, std::v
     pCameraSensor->MapCameraSpaceToImagePoint((float(&)[2])in[i], (float(&)[2])out[i]);
     }
     pCameraSensor->Release();
+}
+
+// OK
+void ResearchMode_SetLoopControl(uint32_t id, bool enable)
+{
+    if (id >= g_sensor_count) { return; }
+    g_loop_control[id] = enable;
+}
+
+// OK
+bool ResearchMode_GetLoopControl(uint32_t id)
+{
+    if (id >= g_sensor_count) { return false; }
+    return g_loop_control[id];
 }

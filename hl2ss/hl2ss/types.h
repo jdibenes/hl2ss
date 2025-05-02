@@ -42,3 +42,9 @@ constexpr uint32_t bit_field(uint32_t v, uint32_t b, uint32_t mask)
 {
     return (v >> b) & mask;
 }
+
+template <typename T>
+T lea(void* base, int32_t offset)
+{
+    return static_cast<T>(static_cast<void*>(static_cast<uint8_t*>(base) + offset));
+}

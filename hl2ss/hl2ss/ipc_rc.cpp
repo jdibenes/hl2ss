@@ -47,6 +47,9 @@ private:
     bool MSG_RM_GetRigNodeWorldPose();
     bool MSG_TS_GetCurrentTime();
     bool MSG_SI_SetSamplingDelay();
+    bool MSG_EE_SetEncoderBuffering();
+    bool MSG_EE_SetReaderBuffering();
+    bool MSG_RM_SetLoopControl();
 
 public:
     Channel_RC(char const* name, char const* port, uint32_t id);
@@ -552,6 +555,52 @@ bool Channel_RC::MSG_SI_SetSamplingDelay()
 }
 
 // OK
+bool Channel_RC::MSG_EE_SetEncoderBuffering()
+{
+    bool ok;
+    uint32_t enable;
+
+    ok = recv_u32(m_socket_client, m_event_client, enable);
+    if (!ok) { return false; }
+
+    ExtendedExecution_SetEncoderBuffering(enable != 0);
+
+    return true;
+}
+
+// OK
+bool Channel_RC::MSG_EE_SetReaderBuffering()
+{
+    bool ok;
+    uint32_t enable;
+
+    ok = recv_u32(m_socket_client, m_event_client, enable);
+    if (!ok) { return false; }
+
+    ExtendedExecution_SetReaderBuffering(enable != 0);
+
+    return true;
+}
+
+// OK
+bool Channel_RC::MSG_RM_SetLoopControl()
+{
+    bool ok;
+    uint32_t id;
+    uint32_t enable;
+
+    ok = recv_u32(m_socket_client, m_event_client, id);
+    if (!ok) { return false; }
+
+    ok = recv_u32(m_socket_client, m_event_client, enable);
+    if (!ok) { return false; }
+
+    ResearchMode_SetLoopControl(id - PORT_NUMBER_BASE, enable != 0);
+
+    return true;
+}
+
+// OK
 bool Channel_RC::Dispatch()
 {
     uint8_t state;
@@ -588,6 +637,9 @@ bool Channel_RC::Dispatch()
     case 0x17: return MSG_RM_GetRigNodeWorldPose();
     case 0x18: return MSG_TS_GetCurrentTime();
     case 0x19: return MSG_SI_SetSamplingDelay();
+    case 0x20: return MSG_EE_SetEncoderBuffering();
+    case 0x21: return MSG_EE_SetReaderBuffering();
+    case 0x22: return MSG_RM_SetLoopControl();
     default:   return false;
     }
 }

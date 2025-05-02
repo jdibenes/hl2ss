@@ -111,8 +111,10 @@ void MessageQueue_Server_RX_Pull(uint32_t& command, void* data)
 // OK (USER)
 void MessageQueue_Server_TX_Push(uint32_t id)
 {
+    {
     CriticalSection cs(&m_lock_so);
     m_queue_so.push(id);
+    }
     ReleaseSemaphore(m_semaphore_so, 1, NULL);
 }
 

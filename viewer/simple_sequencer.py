@@ -14,14 +14,14 @@ import hl2ss_mx
 # Settings --------------------------------------------------------------------
 
 # Directory containing the recorded data
-folder = './data/DS-2025-04-11-19-45-11/'
+folder = './data/DS-2025-04-16-17-45-07/'
 
 #------------------------------------------------------------------------------
 
 # Create readers --------------------------------------------------------------
 rd_pv = hl2ss_io.create_rd(os.path.join(folder, f'{hl2ss.get_port_name(hl2ss.StreamPort.PERSONAL_VIDEO)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, 'bgr24')
-rd_lf = hl2ss_io.sequencer(os.path.join(folder, f'{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_LEFTFRONT)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, True)
-rd_rf = hl2ss_io.sequencer(os.path.join(folder, f'{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_RIGHTFRONT)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, True)
+rd_lf = hl2ss_io.sequencer(hl2ss_io.create_rd(os.path.join(folder, f'{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_LEFTFRONT)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, True))
+rd_rf = hl2ss_io.sequencer(hl2ss_io.create_rd(os.path.join(folder, f'{hl2ss.get_port_name(hl2ss.StreamPort.RM_VLC_RIGHTFRONT)}.bin'), hl2ss.ChunkSize.SINGLE_TRANSFER, True))
 
 # Open readers ----------------------------------------------------------------
 rd_pv.open()

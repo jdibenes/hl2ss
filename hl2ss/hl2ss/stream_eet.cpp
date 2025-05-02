@@ -2,6 +2,7 @@
 #include "extended_eye_tracking.h"
 #include "server_channel.h"
 #include "server_settings.h"
+#include "encoder_eet.h"
 
 #include <winrt/Windows.Foundation.Numerics.h>
 #include <winrt/Microsoft.MixedReality.EyeTracking.h>
@@ -9,32 +10,11 @@
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Microsoft::MixedReality::EyeTracking;
 
-struct EET_Frame
-{
-    float3   c_origin;
-    float3   c_direction;
-    float3   l_origin;
-    float3   l_direction;
-    float3   r_origin;
-    float3   r_direction;
-    float    l_openness;
-    float    r_openness;
-    float    vergence_distance;
-    uint32_t valid;
-};
-
-struct EET_Packet
-{
-    uint64_t  timestamp;
-    uint32_t  size;
-    uint32_t  _reserved;
-    EET_Frame frame;
-    float4x4  pose;
-};
-
 class Channel_EET : public Channel
 {
 private:
+    std::unique_ptr<Encoder_EET> m_pEncoder;
+
     bool Startup();
     void Run();
     void Cleanup();
@@ -42,9 +22,10 @@ private:
     void Execute_Mode1();
 
     void OnFrameArrived(EyeGazeTrackerReading const& frame, UINT64 host_ticks);
-    void OnEmptyArrived(UINT64 host_ticks);
+    void OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size);
 
     static void Thunk_Sensor(EyeGazeTrackerReading const& frame, UINT64 host_ticks, void* self);
+    static void Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self);
 
 public:
     Channel_EET(char const* name, char const* port, uint32_t id);
@@ -63,56 +44,32 @@ static std::unique_ptr<Channel_EET> g_channel;
 // OK
 void Channel_EET::Thunk_Sensor(EyeGazeTrackerReading const& frame, UINT64 host_ticks, void* self)
 {
-    if (frame)
-    {
     static_cast<Channel_EET*>(self)->OnFrameArrived(frame, host_ticks);
-    }
-    else
-    {
-    static_cast<Channel_EET*>(self)->OnEmptyArrived(host_ticks);
-    }
+}
+
+// OK
+void Channel_EET::Thunk_Encoder(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size, void* self)
+{
+    static_cast<Channel_EET*>(self)->OnEncodingComplete(encoded, encoded_size, clean_point, sample_time, metadata, metadata_size);
 }
 
 // OK
 void Channel_EET::OnFrameArrived(EyeGazeTrackerReading const& frame, UINT64 host_ticks)
 {
-    EET_Packet eet_packet;
-    WSABUF wsaBuf[1];
-
-    memset(&eet_packet, 0, sizeof(eet_packet));
-
-    bool cg_valid = frame.TryGetCombinedEyeGazeInTrackerSpace(eet_packet.frame.c_origin, eet_packet.frame.c_direction);
-    bool lg_valid = frame.TryGetLeftEyeGazeInTrackerSpace(eet_packet.frame.l_origin, eet_packet.frame.l_direction);
-    bool rg_valid = frame.TryGetRightEyeGazeInTrackerSpace(eet_packet.frame.r_origin, eet_packet.frame.r_direction);
-    bool lo_valid = frame.TryGetLeftEyeOpenness(eet_packet.frame.l_openness);
-    bool ro_valid = frame.TryGetRightEyeOpenness(eet_packet.frame.r_openness);
-    bool vd_valid = frame.TryGetVergenceDistance(eet_packet.frame.vergence_distance);
-    bool ec_valid = frame.IsCalibrationValid();
-
-    eet_packet.timestamp   = host_ticks;
-    eet_packet.size        = sizeof(EET_Packet::_reserved) + sizeof(EET_Packet::frame);
-    eet_packet._reserved   = 0;
-    eet_packet.frame.valid = (vd_valid << 6) | (ro_valid << 5) | (lo_valid << 4) | (rg_valid << 3) | (lg_valid << 2) | (cg_valid << 1) | (ec_valid << 0);
-    eet_packet.pose        = ExtendedEyeTracking_GetNodeWorldPose(host_ticks);
-
-    pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
-
-    send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
+    float4x4 pose = ExtendedEyeTracking_GetNodeWorldPose(host_ticks);
+    m_pEncoder->WriteSample(frame, pose, host_ticks);
 }
 
 // OK
-void Channel_EET::OnEmptyArrived(UINT64 host_ticks)
+void Channel_EET::OnEncodingComplete(void* encoded, DWORD encoded_size, UINT32 clean_point, LONGLONG sample_time, void* metadata, UINT32 metadata_size)
 {
-    EET_Packet eet_packet;
+    (void)clean_point;
+    (void)sample_time;
+    (void)metadata;
+    (void)metadata_size;
+
     WSABUF wsaBuf[1];
-
-    memset(&eet_packet, 0, sizeof(eet_packet));
-
-    eet_packet.timestamp = host_ticks;
-    eet_packet.size      = sizeof(EET_Packet::_reserved) + sizeof(EET_Packet::frame);
-
-    pack_buffer(wsaBuf, 0, &eet_packet, sizeof(eet_packet));
-
+    pack_buffer(wsaBuf, 0, encoded, encoded_size);
     send_multiple(m_socket_client, m_event_client, wsaBuf, sizeof(wsaBuf) / sizeof(WSABUF));
 }
 
@@ -128,7 +85,11 @@ void Channel_EET::Execute_Mode1()
     ok = ExtendedEyeTracking_SetTargetFrameRate(fps);
     if (!ok) { return; }
 
+    m_pEncoder = std::make_unique<Encoder_EET>(Thunk_Encoder, this);
+
     ExtendedEyeTracking_ExecuteSensorLoop(Thunk_Sensor, this, m_event_client);
+
+    m_pEncoder.reset();
 }
 
 // OK
