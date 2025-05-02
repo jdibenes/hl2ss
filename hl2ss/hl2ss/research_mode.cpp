@@ -402,12 +402,12 @@ void ResearchMode_ExecuteSensorLoop_VLC(IResearchModeSensor* sensor, HOOK_RM_VLC
     ShowMessage("RM %d: Using DeviceIoControl capture", sensor->GetSensorType());
 
     memset(data, 0, data_size);
-    memset(&io,  0, sizeof(io));
-
+    
     sensor->OpenStream();
 
     do
     {
+    memset(&io, 0, sizeof(io));
     DeviceIoControl(*lea<HANDLE*>(sensor, 0x10), 0x005B502A, lea<void*>(sensor, 0x18), 24, data, data_size, &io.bytes_read, &io.overlapped);
     GetOverlappedResult(*lea<HANDLE*>(sensor, 0x10), &io.overlapped, &io.bytes_read, TRUE);
     hook(lea<BYTE*>(data, 0x174), *lea<UINT64*>(data, 0x138), *lea<UINT64*>(data, 0x14C), *lea<UINT64*>(data, 0x168), *lea<UINT32*>(data, 0x160), param);
