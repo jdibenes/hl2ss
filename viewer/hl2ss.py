@@ -968,9 +968,12 @@ class _codec_h264:
         self._codec = self._codec = av.CodecContext.create('h264', 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload[6:] + _codec_h264._aud):
-            for frame in self._codec.decode(packet):
-                return frame
+        try:
+            for packet in self._codec.parse(payload[6:] + _codec_h264._aud):
+                for frame in self._codec.decode(packet):
+                    return frame
+        except:
+            pass
         return None
 
 
@@ -981,9 +984,12 @@ class _codec_hevc:
         self._codec = self._codec = av.CodecContext.create('hevc', 'r')
 
     def decode(self, payload):
-        for packet in self._codec.parse(payload + _codec_hevc._aud):
-            for frame in self._codec.decode(packet):
-                return frame
+        try:
+            for packet in self._codec.parse(payload + _codec_hevc._aud):
+                for frame in self._codec.decode(packet):
+                    return frame
+        except:
+            pass
         return None
 
 
