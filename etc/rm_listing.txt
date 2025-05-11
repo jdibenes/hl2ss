@@ -711,7 +711,7 @@ x5: NULL
 
 [CALL] 0x00007ffded4dbd40 DeviceIoControl(x0=0000000000000AA0, x1=00000000005B502A, x2=00000190D2CFB9F8, x3=0000000000000018, X4=00000190D9B73000, X5=000000000004B174, X6=0000000000000000, X7=0000005C9D2FF668)
 data 0x00000190D2CFB9F8 : 01 00 00 00 00 00 00 00 
-                          19 4d 04 00 00 00 00 00 
+                          19 4d 04 00 00 00 00 00 (LUID)
                           18 4d 04 00 00 00 00 00
 00007FFDC7F289DC D63F0120             blr         x9  
 00007FFDC7F289E0 34000060             cbz         w0,SensorGetSample+0A4h (07FFDC7F289ECh)  ; goto @DeviceIoControl.PENDING
@@ -1050,12 +1050,12 @@ CResearchModeFrame::`vector deleting destructor'(unsigned int):
 //*****************************************************************************
 
 RM VLC METADATA?
-140: sensorticks per second
-148: hostticks
-154: hostticks per second
-164 : gain (u32)
+138: hostticks
+140: hostticks per second
+14C: sensorticks
+154: sensorticks per second
+160 : gain (u32)
 168 : exposure (u64)
-170 : ? (u32?)
 174 : image data
 
 0x00000190D9B73000  01 00 00 00 19 4d 04 00 00 00 00 00 00 00 00 00 20 00 00 00  .....M.......... ...
@@ -1083,45 +1083,79 @@ RM VLC METADATA?
                     19 4d 04 00 00 00 00 00 (LUID)
                     00 00 00 00 (some error code)
                     20 00 00 00 (size of this header?)
-                    54 01 00 00 
+                    54 01 00 00 (size of this minus header)
                     74 01 00 00 (metadata size)
                     00 b0 04 00 (image size)
-0x00000190D9B73020  06 00 00 00 19 4d 04 00 00 00 00 00 8f d1 af c2 91 31 26 4b 
-                    92 8a 27 0f 70 b4 86 3e 00 00 00 00 b0 99 0e 00 00 00 00 00 
-                    0c 01 00 00
-0x00000190D9B7304C  08 00 00 00 19 4d 04 00 00 00 00 00 52 3f 21 94 0f a1 f3 4a 
-                    bf 31 8e 6e 8d f0 89 4c 00 00 00 00 5c a9 2d 00 00 00 00 00 
-                    14 01 00 00
-0x00000190D9B73078  14 00 00 00 19 4d 04 00 00 00 00 00 26 49 d6 17 27 4c 84 48
-                    b5 75 6e 1d 74 a7 ac 4c 00 00 00 00 5b a9 2d 00 00 00 00 00
-                    28 01 00 00
-0x00000190D9B730A4  14 00 00 00 19 4d 04 00 00 00 00 00 b2 d4 83 f5 3a 3d 52 41 
-                    9d 8f 95 8c 49 3a d3 e0 00 00 00 00 5d a9 2d 00 00 00 00 00 
-                    3c 01 00 00
-                    0c 00 00 00 19 4d 04 00 00 00 00 00 c8 63 e2 8d 2e ea a9 44 
-                    bf 66 ea 8c 28 d8 48 4e 00 00 00 00 5e a9 2d 00 00 00 00 00 
-                    48 01 00 00
-0x00000190D9B730FC  08 00 00 00 
-0x00000190D9B73100  19 4d 04 00 00 00 00 00 
-0x00000190D9B73108  1a f1 07 c2 14 db 1f 45 9c 97 08 e7 0d 9b e9 02 
-0x00000190D9B73118  e8 00 07 80 
+0x00000190D9B73020  06 00 00 00 (struct count)
+
+                    19 4d 04 00 00 00 00 00 (LUID)
+                    8f d1 af c2 91 31 26 4b 92 8a 27 0f 70 b4 86 3e (some GUID)
+                    00 00 00 00 (some error code)
+                    b0 99 0e 00 
+                    00 00 00 00 
+                    0c 01 00 00 (offset from struct count 0x00000190D9B73020)
+0x00000190D9B7304C  08 00 00 00 (size of unknown1 struct)
+
+                    19 4d 04 00 00 00 00 00 (LUID)
+                    52 3f 21 94 0f a1 f3 4a bf 31 8e 6e 8d f0 89 4c (some GUID)
+                    00 00 00 00 (some error code)
+                    5c a9 2d 00 
+                    00 00 00 00 
+                    14 01 00 00 (offset from struct count 0x00000190D9B73020)
+0x00000190D9B73078  14 00 00 00 (size of host ticks struct)
+
+                    19 4d 04 00 00 00 00 00 (LUID)
+                    26 49 d6 17 27 4c 84 48 b5 75 6e 1d 74 a7 ac 4c (some GUID)
+                    00 00 00 00 (some error code)
+                    5b a9 2d 00 
+                    00 00 00 00
+                    28 01 00 00 (offset from struct count 0x00000190D9B73020)
+0x00000190D9B730A4  14 00 00 00 (size of sensor ticks struct)
+
+                    19 4d 04 00 00 00 00 00 (LUID)
+                    b2 d4 83 f5 3a 3d 52 41 9d 8f 95 8c 49 3a d3 e0 (some GUID)
+                    00 00 00 00 (some error code)
+                    5d a9 2d 00 
+                    00 00 00 00 
+                    3c 01 00 00 (offset from struct count 0x00000190D9B73020)
+                    0c 00 00 00 (size of gain struct)
+
+                    19 4d 04 00 00 00 00 00 (LUID)
+                    c8 63 e2 8d 2e ea a9 44 bf 66 ea 8c 28 d8 48 4e (some GUID)
+                    00 00 00 00 (some error code)
+                    5e a9 2d 00 
+                    00 00 00 00 
+                    48 01 00 00 (offset from struct count 0x00000190D9B73020)
+0x00000190D9B730FC  08 00 00 00 (size of exposure struct)
+
+0x00000190D9B73100  19 4d 04 00 00 00 00 00 (LUID)
+0x00000190D9B73108  1a f1 07 c2 14 db 1f 45 9c 97 08 e7 0d 9b e9 02 (some GUID)
+0x00000190D9B73118  e8 00 07 80 (some error code)
 0x00000190D9B7311C  00 00 00 00 
 0x00000190D9B73120  00 00 00 00
-0x00000190D9B73124  50 01 00 00 
-0x00000190D9B73128  04 00 00 00 
-0x00000190D9B7312C  00 00 70 42 
+0x00000190D9B73124  50 01 00 00 (offset from struct count 0x00000190D9B73020)
+0x00000190D9B73128  04 00 00 00 (size of unknown2)
+
+/**** DATA ****/
+
+0x00000190D9B7312C  00 00 70 42 (unknown1)
 0x00000190D9B73130  00 00 70 42 
+
 0x00000190D9B73134  01 00 00 00 
 0x00000190D9B73138  37 30 2c 8e 00 00 00 00 (host ticks=8E2C 3037)
 0x00000190D9B73140  00 f0 c0 03 00 00 00 00 (ticks per second)
+
 0x00000190D9B73148  01 00 00 00 
 0x00000190D9B7314C  58 1a 67 0b 39 00 00 00 (sensor ticks=39 0B67 1A58)
 0x00000190D9B73154  00 f0 c0 03 00 00 00 00 (ticks per second)
+
 0x00000190D9B7315C  01 00 00 00 
 0x00000190D9B73160  bc 00 00 00 (188 gain)
-0x00000190D9B73164  ff 00 00 00 (?)
+0x00000190D9B73164  ff 00 00 00 (maximum gain?)
+
 0x00000190D9B73168  70 66 5b 00 00 00 00 00 (exposure)
-0x00000190D9B73170  00 00 d4 43
+
+0x00000190D9B73170  00 00 d4 43 (unknown2)
 0x00000190D9B73174
 
 
