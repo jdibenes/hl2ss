@@ -27,7 +27,7 @@ def to_inhomogeneous(array):
 
 
 def compute_uv2xy(intrinsics, width, height):
-    uv2x, uv2y = np.meshgrid((np.arange(width, dtype=intrinsics.dtype)  - intrinsics[2, 0]) / intrinsics[0, 0], (np.arange(height, dtype=intrinsics.dtype) - intrinsics[2, 1]) / intrinsics[1, 1])
+    uv2x, uv2y = np.meshgrid((np.arange(width, dtype=intrinsics.dtype) - intrinsics[2, 0]) / intrinsics[0, 0], (np.arange(height, dtype=intrinsics.dtype) - intrinsics[2, 1]) / intrinsics[1, 1])
     return np.dstack((uv2x, uv2y))
 
 
