@@ -187,6 +187,7 @@
     <ClInclude Include="encoder_rm_imu.h" />
     <ClInclude Include="encoder_eet.h" />
     <ClInclude Include="encoder_ez.h" />
+    <ClInclude Include="encoder_rm_vlc_mosaic.h" />
     <ClInclude Include="encoder_si.h" />
     <ClInclude Include="extended_depth.h" />
     <ClInclude Include="ipc_mqx.h" />
@@ -238,6 +239,7 @@
     <ClInclude Include="stream_pv.h" />
     <ClInclude Include="research_mode.h" />
     <ClInclude Include="server.h" />
+    <ClInclude Include="stream_rm_vlc_mosaic.h" />
     <ClInclude Include="stream_rm_zht.h" />
     <ClInclude Include="stream_rm_imu.h" />
     <ClInclude Include="stream_rm_vlc.h" />
@@ -285,6 +287,7 @@
     <ClCompile Include="encoder_rm_imu.cpp" />
     <ClCompile Include="encoder_eet.cpp" />
     <ClCompile Include="encoder_ez.cpp" />
+    <ClCompile Include="encoder_rm_vlc_mosaic.cpp" />
     <ClCompile Include="encoder_si.cpp" />
     <ClCompile Include="extended_depth.cpp" />
     <ClCompile Include="ipl.cpp" />
@@ -332,6 +335,7 @@
     <ClCompile Include="stream_mc.cpp" />
     <ClCompile Include="microphone_capture.cpp" />
     <ClCompile Include="ipc_rc.cpp" />
+    <ClCompile Include="stream_rm_vlc_mosaic.cpp" />
     <ClCompile Include="stream_rm_zlt.cpp" />
     <ClCompile Include="stream_si.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</ExcludedFromBuild>

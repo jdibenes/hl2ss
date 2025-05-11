@@ -292,6 +292,7 @@
     <ClCompile Include="..\hl2ss\encoder_pv.cpp" />
     <ClCompile Include="..\hl2ss\encoder_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\encoder_rm_vlc.cpp" />
+    <ClCompile Include="..\hl2ss\encoder_rm_vlc_mosaic.cpp" />
     <ClCompile Include="..\hl2ss\encoder_rm_zht.cpp" />
     <ClCompile Include="..\hl2ss\encoder_rm_zlt.cpp" />
     <ClCompile Include="..\hl2ss\encoder_si.cpp" />
@@ -329,6 +330,7 @@
     <ClCompile Include="..\hl2ss\stream_pv.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_imu.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_vlc.cpp" />
+    <ClCompile Include="..\hl2ss\stream_rm_vlc_mosaic.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zht.cpp" />
     <ClCompile Include="..\hl2ss\stream_rm_zlt.cpp" />
     <ClCompile Include="..\hl2ss\stream_si.cpp" />
@@ -385,6 +387,7 @@
     <ClInclude Include="..\hl2ss\encoder_pv.h" />
     <ClInclude Include="..\hl2ss\encoder_rm_imu.h" />
     <ClInclude Include="..\hl2ss\encoder_rm_vlc.h" />
+    <ClInclude Include="..\hl2ss\encoder_rm_vlc_mosaic.h" />
     <ClInclude Include="..\hl2ss\encoder_rm_zht.h" />
     <ClInclude Include="..\hl2ss\encoder_rm_zlt.h" />
     <ClInclude Include="..\hl2ss\encoder_si.h" />
@@ -423,6 +426,7 @@
     <ClInclude Include="..\hl2ss\stream_pv.h" />
     <ClInclude Include="..\hl2ss\stream_rm_imu.h" />
     <ClInclude Include="..\hl2ss\stream_rm_vlc.h" />
+    <ClInclude Include="..\hl2ss\stream_rm_vlc_mosaic.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zht.h" />
     <ClInclude Include="..\hl2ss\stream_rm_zlt.h" />
     <ClInclude Include="..\hl2ss\stream_si.h" />

@@ -38,6 +38,7 @@ typedef void (*HOOK_RM_VLC_PROC)(BYTE const*, UINT64, UINT64, UINT64, UINT32, vo
 typedef void (*HOOK_RM_ZHT_PROC)(UINT16 const*, UINT16 const*, UINT64, UINT64, void*);
 typedef void (*HOOK_RM_ZLT_PROC)(BYTE const*, UINT16 const*, UINT16 const*, UINT64, UINT64, void*);
 typedef void (*HOOK_RM_IMU_PROC)(void const*, size_t, UINT64, UINT64, void*);
+typedef void (*HOOK_RM_VLC_MOSAIC_PROC)(BYTE const* const*, UINT64 const* const*, UINT64 const* const*, UINT64 const* const*, UINT32 const* const*, int, void*);
 
 void ResearchMode_Startup();
 void ResearchMode_Cleanup();
@@ -49,6 +50,7 @@ bool ResearchMode_GetIntrinsics(IResearchModeSensor* sensor, std::vector<float>&
 bool ResearchMode_GetExtrinsics(IResearchModeSensor* sensor, DirectX::XMFLOAT4X4& extrinsics);
 void ResearchMode_ExecuteSensorLoop(IResearchModeSensor* sensor, HOOK_RM_PROC hook, void* param, HANDLE event_stop);
 void ResearchMode_ExecuteSensorLoop_VLC(IResearchModeSensor* sensor, HOOK_RM_VLC_PROC hook, void* param, HANDLE event_stop);
+void ResearchMode_ExecuteSensorLoop_VLC_Mosaic(IResearchModeSensor** sensor, int count, HOOK_RM_VLC_MOSAIC_PROC hook, void* param, HANDLE event_stop);
 void ResearchMode_ProcessSample_VLC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_VLC_PROC hook, void* param);
 void ResearchMode_ProcessSample_ZHT(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_ZHT_PROC hook, void* param);
 void ResearchMode_ProcessSample_ZLT(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_ZLT_PROC hook, void* param);

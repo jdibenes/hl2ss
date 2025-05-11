@@ -424,6 +424,53 @@ void ResearchMode_ExecuteSensorLoop_VLC(IResearchModeSensor* sensor, HOOK_RM_VLC
 }
 
 // OK
+void ResearchMode_ExecuteSensorLoop_VLC_Mosaic(IResearchModeSensor** sensor, int count, HOOK_RM_VLC_MOSAIC_PROC hook, void* param, HANDLE event_stop)
+{
+    int32_t const data_size = 0x0004B174;
+
+    uint8_t*     data = new uint8_t[count * data_size]; // delete[]
+    RM_IO_STATUS io[4];
+    BYTE*        image[4];
+    UINT64*      host_ticks[4];
+    UINT64*      sensor_ticks[4];
+    UINT64*      exposure[4];
+    UINT32*      gain[4];
+
+    for (int i = 0; i < count; ++i)
+    {
+    image[i]        = lea<BYTE*>(  data, (i * data_size) + 0x174);
+    host_ticks[i]   = lea<UINT64*>(data, (i * data_size) + 0x138);
+    sensor_ticks[i] = lea<UINT64*>(data, (i * data_size) + 0x14C);
+    exposure[i]     = lea<UINT64*>(data, (i * data_size) + 0x168);
+    gain[i]         = lea<UINT32*>(data, (i * data_size) + 0x160);
+    }
+
+    memset(data, 0, count * data_size);
+
+    for (int i = 0; i < count; ++i) { sensor[i]->OpenStream(); }
+
+    do
+    {
+    memset(io, 0, sizeof(io));
+    for (int i = 0; i < count; ++i) { DeviceIoControl(*lea<HANDLE*>(sensor[i], 0x10), 0x005B502A, lea<void*>(sensor[i], 0x18), 24, lea<uint8_t*>(data, i * data_size), data_size, &io[i].bytes_read, &io[i].overlapped); }
+    for (int i = 0; i < count; ++i) { GetOverlappedResult(*lea<HANDLE*>(sensor[i], 0x10), &io[i].overlapped, &io[i].bytes_read, TRUE); }
+    hook(image, host_ticks, sensor_ticks, exposure, gain, count, param);
+    }
+    while (WaitForSingleObject(event_stop, 0) == WAIT_TIMEOUT);
+
+    for (int i = 0; i < count; ++i)
+    {
+    IResearchModeSensorFrame* pSensorFrame; // Release
+    sensor[i]->GetNextBuffer(&pSensorFrame);
+    pSensorFrame->Release();
+    }
+
+    for (int i = 0; i < count; ++i) { sensor[i]->CloseStream(); }
+
+    delete[] data;
+}
+
+// OK
 void ResearchMode_ProcessSample_VLC(IResearchModeSensorFrame* pSensorFrame, HOOK_RM_VLC_PROC hook, void* param)
 {
     IResearchModeSensorVLCFrame* pVLCFrame; // Release

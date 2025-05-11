@@ -38,6 +38,7 @@
 #include "stream_rm_zht.h"
 #include "stream_rm_zlt.h"
 #include "stream_si.h"
+#include "stream_rm_vlc_mosaic.h"
 
 #include "log.h"
 
@@ -108,6 +109,7 @@ void HL2SS_Load(bool standalone)
     RM_ACC_Startup();
     RM_GYR_Startup();
     RM_MAG_Startup();
+    RM_VMU_Startup();
     }
 
     PV_Startup();

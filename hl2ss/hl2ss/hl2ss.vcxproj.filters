@@ -286,6 +286,12 @@
     <ClCompile Include="custom_sample_buffer.cpp">
       <Filter>Source Files\sink</Filter>
     </ClCompile>
+    <ClCompile Include="stream_rm_vlc_mosaic.cpp">
+      <Filter>Source Files\interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="encoder_rm_vlc_mosaic.cpp">
+      <Filter>Source Files\encoders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -716,6 +722,12 @@
     </ClInclude>
     <ClInclude Include="custom_sample_buffer.h">
       <Filter>Header Files\sink</Filter>
+    </ClInclude>
+    <ClInclude Include="encoder_rm_vlc_mosaic.h">
+      <Filter>Header Files\encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="stream_rm_vlc_mosaic.h">
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

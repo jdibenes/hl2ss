@@ -26,6 +26,7 @@ class StreamPort:
     EXTENDED_AUDIO       = 3818
     EXTENDED_VIDEO       = 3819
     EXTENDED_DEPTH       = 3821
+    RM_VLC_MOSAIC        = 3822
 
 
 # IPC TCP Ports
@@ -439,7 +440,7 @@ class _gatherer:
 
     def open(self, host, port, sockopt, chunk_size, mode):
         self._chunk_size = chunk_size
-        self._unpacker.reset(mode)
+        self._unpacker.reset(mode & 1)
         self._client.open(host, port, sockopt)
         
     def sendall(self, data):
@@ -918,6 +919,29 @@ class rx_extended_depth(_context_manager):
         self._client.close()
 
 
+class rx_rm_vmu(_context_manager):
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile, level, bitrate, options):
+        self.host = host
+        self.port = port
+        self.sockopt = sockopt
+        self.chunk = chunk
+        self.mode = mode
+        self.divisor = divisor
+        self.profile = profile
+        self.level = level
+        self.bitrate = bitrate
+        self.options = options
+
+    def open(self):
+        self._client = _connect_client_rm_vlc(self.host, self.port, self.sockopt, self.chunk, self.mode, self.divisor, self.profile, self.level, self.bitrate, self.options)
+
+    def get_next_packet(self, wait=True):
+        return self._client.get_next_packet(wait)
+
+    def close(self):
+        self._client.close()
+
+
 #------------------------------------------------------------------------------
 # Codecs
 #------------------------------------------------------------------------------
@@ -1041,6 +1065,7 @@ class _MetadataSize:
     EXTENDED_EYE_TRACKER = 0
     EXTENDED_AUDIO       = 0
     EXTENDED_DEPTH       = 4
+    RM_VLC_MOSAIC        = 112
 
     OF = {
         StreamPort.RM_VLC_LEFTFRONT     : RM_VLC,
@@ -1059,6 +1084,7 @@ class _MetadataSize:
         StreamPort.EXTENDED_AUDIO       : EXTENDED_AUDIO,
         StreamPort.EXTENDED_VIDEO       : PERSONAL_VIDEO,
         StreamPort.EXTENDED_DEPTH       : EXTENDED_DEPTH,
+        StreamPort.RM_VLC_MOSAIC        : RM_VLC_MOSAIC,
     }
 
 
@@ -1074,6 +1100,10 @@ class _decompress_zdepth:
     def decode(self, payload):
         result, width, height, decompressed = self._codec.Decompress(bytes(payload))
         return np.frombuffer(decompressed, dtype=np.uint16).reshape((height, width))
+    
+
+def get_nv12_y(image):
+    return image[..., :((2 * image.shape[-2]) // 3), :]
 
 
 #------------------------------------------------------------------------------
@@ -1116,6 +1146,50 @@ class decode_rm_vlc:
         gain         = np.frombuffer(metadata, dtype=np.uint32, offset=16, count=1)
 
         return _RM_VLC_Frame(image, sensor_ticks, exposure, gain)
+
+
+#------------------------------------------------------------------------------
+# RM VLC Mosaic Decoder
+#------------------------------------------------------------------------------
+
+class _RM_VMU_Frame:
+    def __init__(self, image, host_ticks, sensor_ticks, exposure, gain):
+        self.image        = image
+        self.host_ticks   = host_ticks
+        self.sensor_ticks = sensor_ticks
+        self.exposure     = exposure
+        self.gain         = gain
+
+
+class _decode_rm_vmu_h26x:
+    def __init__(self, profile):
+        self._codec = get_video_codec(profile)
+
+    def decode(self, payload):
+        d = self._codec.decode(payload)
+        return get_nv12_y(d.to_ndarray()).reshape((-1, Parameters_RM_VLC.HEIGHT, Parameters_RM_VLC.WIDTH)) if (d is not None) else None
+
+
+class _decode_rm_vmu_raw:
+    def decode(self, payload):
+        return np.frombuffer(payload, dtype=np.uint8).reshape((-1, Parameters_RM_VLC.HEIGHT, Parameters_RM_VLC.WIDTH))
+
+
+class decode_rm_vmu:
+    def __init__(self, profile):
+        self._codec = _decode_rm_vmu_raw() if (profile == VideoProfile.RAW) else _decode_rm_vmu_h26x(profile)
+
+    def decode(self, payload):
+        data     = payload[:-112]
+        metadata = payload[-112:]
+
+        image        = self._codec.decode(data)
+        host_ticks   = np.frombuffer(metadata, dtype=np.uint64, offset=0,  count=4)
+        sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=32, count=4)
+        exposure     = np.frombuffer(metadata, dtype=np.uint64, offset=64, count=4)
+        gain         = np.frombuffer(metadata, dtype=np.uint32, offset=96, count=4)
+
+        return _RM_VMU_Frame(image, host_ticks, sensor_ticks, exposure, gain)
 
 
 #------------------------------------------------------------------------------
@@ -1889,6 +1963,28 @@ class rx_decoded_extended_depth(rx_extended_depth):
             data.payload = self._codec.decode(data.payload)
         return data
     
+    def close(self):
+        super().close()
+
+
+class rx_decoded_rm_vmu(rx_rm_vmu):
+    def __init__(self, host, port, sockopt, chunk, mode, divisor, profile, level, bitrate, options):
+        super().__init__(host, port, sockopt, chunk, mode, divisor, profile, level, bitrate, options)
+
+    def open(self):
+        self._codec = decode_rm_vmu(self.profile)
+        super().open()
+
+    def get_next_packet(self, wait=True):
+        while (True):
+            data = super().get_next_packet(wait)
+            if (data is not None):
+                data.payload = self._codec.decode(data.payload)
+                if (data.payload.image is not None):
+                    return data
+            if (not wait):
+                return None
+
     def close(self):
         super().close()
 
