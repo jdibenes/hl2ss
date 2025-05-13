@@ -65,7 +65,8 @@ HoloLens 2 server software and Python client library for streaming sensor data v
 - [hl2da plugin](https://github.com/jdibenes/hl2da): Access sensor data from Unity, Unreal, and native UWP applications running on the HoloLens 2.
 - [hl2av plugin](https://github.com/jdibenes/hl2av): Simple H264 encoder and decoder for HoloLens 2.
 - [mrtk_remote_ui](https://github.com/jdibenes/mrtk_remote_ui): Unity/MRTK framework for creating and controlling simple User Interfaces on HoloLens 2 remotely from Python code.
-- [MARCuS](https://github.com/jdibenes/marcus): Interactive Rubik's Cube Solver for HoloLens 2 using Unity, MRTK, and hl2ss.
+- [MARCuS](https://github.com/jdibenes/marcus): Interactive Rubik's Cube Solver for HoloLens 2 using Unity and MRTK.
+- [hl2flo](https://github.com/jdibenes/hl2flo): Create optical flow datasets using HoloLens 2.
 
 **Technical Report** 
 
