@@ -727,7 +727,12 @@ class rx_rm_vlc(_context_manager):
         self._client = _connect_client_rm_vlc(self.host, self.port, self.sockopt, self.chunk, self.mode, self.divisor, self.profile, self.level, self.bitrate, self.options)
 
     def get_next_packet(self, wait=True):
-        return self._client.get_next_packet(wait)
+        while (True):
+            data = self._client.get_next_packet(wait)
+            if ((data is not None) and (len(data.payload) > _MetadataSize.RM_VLC)):
+                return data
+            if (not wait):
+                return None
 
     def close(self):
         self._client.close()
@@ -751,7 +756,12 @@ class rx_rm_depth_ahat(_context_manager):
         self._client = _connect_client_rm_depth_ahat(self.host, self.port, self.sockopt, self.chunk, self.mode, self.divisor, self.profile_z, self.profile_ab, self.level, self.bitrate, self.options)
 
     def get_next_packet(self, wait=True):
-        return self._client.get_next_packet(wait)
+        while (True):
+            data = self._client.get_next_packet(wait)
+            if ((data is not None) and (struct.unpack_from('<II', data.payload, 0)[1] > 0)):
+                return data
+            if (not wait):
+                return None
 
     def close(self):
         self._client.close()
@@ -815,7 +825,12 @@ class rx_pv(_context_manager):
         self._client = _connect_client_pv(self.host, self.port, self.sockopt, self.chunk, self.mode, self.width, self.height, self.framerate, self.divisor, self.profile, self.level, self.bitrate, self.options)
 
     def get_next_packet(self, wait=True):
-        return self._client.get_next_packet(wait)
+        while (True):
+            data = self._client.get_next_packet(wait)
+            if ((data is not None) and (len(data.payload) > _MetadataSize.PERSONAL_VIDEO)):
+                return data
+            if (not wait):
+                return None
 
     def close(self):
         self._client.close()
@@ -968,12 +983,9 @@ class _codec_h264:
         self._codec = self._codec = av.CodecContext.create('h264', 'r')
 
     def decode(self, payload):
-        try:
-            for packet in self._codec.parse(payload[6:] + _codec_h264._aud):
-                for frame in self._codec.decode(packet):
-                    return frame
-        except:
-            pass
+        for packet in self._codec.parse(payload[6:] + _codec_h264._aud):
+            for frame in self._codec.decode(packet):
+                return frame
         return None
 
 
@@ -984,12 +996,9 @@ class _codec_hevc:
         self._codec = self._codec = av.CodecContext.create('hevc', 'r')
 
     def decode(self, payload):
-        try:
-            for packet in self._codec.parse(payload + _codec_hevc._aud):
-                for frame in self._codec.decode(packet):
-                    return frame
-        except:
-            pass
+        for packet in self._codec.parse(payload + _codec_hevc._aud):
+            for frame in self._codec.decode(packet):
+                return frame
         return None
 
 
@@ -1093,8 +1102,7 @@ class _decode_rm_vlc_h26x:
         self._codec = get_video_codec(profile)
 
     def decode(self, payload):
-        d = self._codec.decode(payload)
-        return d.to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH] if (d is not None) else None
+        return self._codec.decode(payload).to_ndarray()[:Parameters_RM_VLC.HEIGHT, :Parameters_RM_VLC.WIDTH]
 
 
 class _decode_rm_vlc_raw:
@@ -1107,8 +1115,8 @@ class decode_rm_vlc:
         self._codec = _decode_rm_vlc_raw() if (profile == VideoProfile.RAW) else _decode_rm_vlc_h26x(profile)
 
     def decode(self, payload):
-        data     = payload[:-24]
-        metadata = payload[-24:]
+        data     = payload[:-_MetadataSize.RM_VLC]
+        metadata = payload[-_MetadataSize.RM_VLC:]
 
         image        = self._codec.decode(data)
         sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0,  count=1)
@@ -1146,10 +1154,7 @@ class _decode_rm_depth_ahat_z_ab_h26x:
         self._codec = get_video_codec(profile)
 
     def decode(self, payload):
-        d = self._codec.decode(payload)
-        if (d is None):
-            return None, None
-        yuv = d.to_ndarray()
+        yuv = self._codec.decode(payload).to_ndarray()
 
         y = yuv[_decode_rm_depth_ahat_z_ab_h26x.BEGIN_Z_Y : _decode_rm_depth_ahat_z_ab_h26x.END_Z_Y, :]
         u = yuv[_decode_rm_depth_ahat_z_ab_h26x.BEGIN_I_U : _decode_rm_depth_ahat_z_ab_h26x.END_I_U, :].reshape((Parameters_RM_DEPTH_AHAT.HEIGHT, -1))
@@ -1185,8 +1190,7 @@ class _decode_rm_depth_ahat_x_ab_h26x:
         self._codec = get_video_codec(profile)
 
     def decode(self, payload):
-        d = self._codec.decode(payload)
-        return np.square(d.to_ndarray()[:Parameters_RM_DEPTH_AHAT.HEIGHT, :Parameters_RM_DEPTH_AHAT.WIDTH], dtype=np.uint16) if (d is not None) else None
+        return np.square(self._codec.decode(payload).to_ndarray()[:Parameters_RM_DEPTH_AHAT.HEIGHT, :Parameters_RM_DEPTH_AHAT.WIDTH], dtype=np.uint16)
 
 
 class _decode_rm_depth_ahat_x_ab_raw:
@@ -1232,8 +1236,8 @@ class decode_rm_depth_ahat:
         self._codec = _decode_rm_depth_ahat_same(profile_ab, base) if (profile_z == DepthProfile.SAME) else _decode_rm_depth_ahat_zdepth(profile_ab, base)
 
     def decode(self, payload):
-        data     = payload[:-8]
-        metadata = payload[-8:]
+        data     = payload[:-_MetadataSize.RM_DEPTH_AHAT]
+        metadata = payload[-_MetadataSize.RM_DEPTH_AHAT:]
 
         depth, ab    = self._codec.decode(data)
         sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0, count=1)
@@ -1268,8 +1272,8 @@ class decode_rm_depth_longthrow:
         self._codec = _decode_rm_depth_longthrow_raw() if (profile == VideoProfile.RAW) else _decode_rm_depth_longthrow_png()
 
     def decode(self, payload):
-        data     = payload[:-8]
-        metadata = payload[-8:]
+        data     = payload[:-_MetadataSize.RM_DEPTH_LONGTHROW]
+        metadata = payload[-_MetadataSize.RM_DEPTH_LONGTHROW:]
 
         depth, ab    = self._codec.decode(data)
         sensor_ticks = np.frombuffer(metadata, dtype=np.uint64, offset=0, count=1)
@@ -1360,8 +1364,7 @@ class _decode_pv_h26x:
         self._codec = get_video_codec(profile)
 
     def decode(self, payload, width, height, format):
-        d = self._codec.decode(payload)
-        return d.to_ndarray(format=format) if (d is not None) else None
+        return self._codec.decode(payload).to_ndarray(format=format)
 
 
 class _decode_pv_raw:
@@ -1388,8 +1391,8 @@ class decode_pv:
         self._codec =  _decode_pv_raw() if (profile == VideoProfile.RAW) else _decode_pv_h26x(profile)
 
     def decode(self, payload, format):
-        data     = payload[:-80]
-        metadata = payload[-80:]
+        data     = payload[:-_MetadataSize.PERSONAL_VIDEO]
+        metadata = payload[-_MetadataSize.PERSONAL_VIDEO:]
 
         focal_length          = np.frombuffer(metadata, dtype=np.float32, offset=0,  count=2)
         principal_point       = np.frombuffer(metadata, dtype=np.float32, offset=8,  count=2)
@@ -1687,8 +1690,8 @@ class decode_extended_depth:
         self._codec = _decode_extended_depth_zdepth() if (profile_z == DepthProfile.ZDEPTH) else _decode_extended_depth_raw()
 
     def decode(self, payload):
-        data     = payload[:-4]
-        metadata = payload[-4:]
+        data     = payload[:-_MetadataSize.EXTENDED_DEPTH]
+        metadata = payload[-_MetadataSize.EXTENDED_DEPTH:]
 
         resolution = np.frombuffer(metadata, dtype=np.uint16, offset=0, count=2)
         depth      = self._codec.decode(data, resolution[0], resolution[1])
@@ -1709,14 +1712,10 @@ class rx_decoded_rm_vlc(rx_rm_vlc):
         super().open()
 
     def get_next_packet(self, wait=True):
-        while (True):
-            data = super().get_next_packet(wait)
-            if (data is not None):
-                data.payload = self._codec.decode(data.payload)
-                if (data.payload.image is not None):
-                    return data
-            if (not wait):
-                return None
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
+        return data
 
     def close(self):
         super().close()
@@ -1731,14 +1730,10 @@ class rx_decoded_rm_depth_ahat(rx_rm_depth_ahat):
         super().open()
 
     def get_next_packet(self, wait=True):
-        while (True):
-            data = super().get_next_packet(wait)
-            if (data is not None):
-                data.payload = self._codec.decode(data.payload)
-                if ((data.payload.depth is not None) and (data.payload.ab is not None)):
-                    return data
-            if (not wait):
-                return None
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload)
+        return data
 
     def close(self):
         super().close()
@@ -1790,14 +1785,10 @@ class rx_decoded_pv(rx_pv):
         super().open()
 
     def get_next_packet(self, wait=True):
-        while (True):
-            data = super().get_next_packet(wait)
-            if (data is not None):
-                data.payload = self._codec.decode(data.payload, self.format)
-                if (data.payload.image is not None):
-                    return data
-            if (not wait):
-                return None
+        data = super().get_next_packet(wait)
+        if (data is not None):
+            data.payload = self._codec.decode(data.payload, self.format)
+        return data
 
     def close(self):
         super().close()
