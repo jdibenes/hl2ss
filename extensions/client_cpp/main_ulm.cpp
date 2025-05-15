@@ -618,6 +618,13 @@ void test_rc(char const* host)
     
     ipc->si_set_sampling_delay(0);
 
+    ipc->ee_set_encoder_buffering(false);
+    ipc->ee_set_reader_buffering(false);
+    ipc->rm_set_loop_control(hl2ss::stream_port::RM_VLC_LEFTFRONT,  true);
+    ipc->rm_set_loop_control(hl2ss::stream_port::RM_VLC_LEFTLEFT,   true);
+    ipc->rm_set_loop_control(hl2ss::stream_port::RM_VLC_RIGHTFRONT, true);
+    ipc->rm_set_loop_control(hl2ss::stream_port::RM_VLC_RIGHTRIGHT, true);
+
     std::cout << "ipc done" << std::endl;
 }
 
@@ -848,7 +855,7 @@ void test_extended_depth(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 16;
+    int test_id = 10;
 
     try
     {
