@@ -651,6 +651,33 @@ HL2SS_ULM_BEGIN
 }
 HL2SS_ULM_END(-1)
 
+HL2SS_CLIENT_EXPORT
+int32_t HL2SS_CALL rc_ee_set_encoder_buffering(void* ipc, uint32_t enable)
+HL2SS_ULM_BEGIN
+{
+    handle::as<hl2ss::ipc_rc>(ipc)->ee_set_encoder_buffering(enable);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t HL2SS_CALL rc_ee_set_reader_buffering(void* ipc, uint32_t enable)
+HL2SS_ULM_BEGIN
+{
+    handle::as<hl2ss::ipc_rc>(ipc)->ee_set_reader_buffering(enable);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
+HL2SS_CLIENT_EXPORT
+int32_t HL2SS_CALL rc_rm_set_loop_control(void* ipc, uint16_t port, uint32_t enable)
+HL2SS_ULM_BEGIN
+{
+    handle::as<hl2ss::ipc_rc>(ipc)->rm_set_loop_control(port, enable);
+    return 0;
+}
+HL2SS_ULM_END(-1)
+
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------

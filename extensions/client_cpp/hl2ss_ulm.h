@@ -420,6 +420,15 @@ int32_t HL2SS_CALL rc_ts_get_current_time(void* ipc, uint32_t source, uint64_t& 
 HL2SS_CLIENT_IMPORT
 int32_t HL2SS_CALL rc_si_set_sampling_delay(void* ipc, int64_t delay);
 
+HL2SS_CLIENT_IMPORT
+int32_t HL2SS_CALL rc_ee_set_encoder_buffering(void* ipc, uint32_t enable);
+
+HL2SS_CLIENT_IMPORT
+int32_t HL2SS_CALL rc_ee_set_reader_buffering(void* ipc, uint32_t enable);
+
+HL2SS_CLIENT_IMPORT
+int32_t HL2SS_CALL rc_rm_set_loop_control(void* ipc, uint16_t port, uint32_t enable);
+
 //------------------------------------------------------------------------------
 // Spatial Mapping
 //------------------------------------------------------------------------------
@@ -819,6 +828,21 @@ public:
     void si_set_sampling_delay(int64_t delay)
     {
         check_result(hl2ss::ulm::rc_si_set_sampling_delay(m_handle, delay));
+    }
+
+    void ee_set_encoder_buffering(bool enable)
+    {
+        check_result(hl2ss::ulm::rc_ee_set_encoder_buffering(m_handle, enable));
+    }
+
+    void ee_set_reader_buffering(bool enable)
+    {
+        check_result(hl2ss::ulm::rc_ee_set_reader_buffering(m_handle, enable));
+    }
+
+    void rm_set_loop_control(uint16_t port, bool enable)
+    {
+        check_result(hl2ss::ulm::rc_rm_set_loop_control(m_handle, port, enable));
     }
 };
 
