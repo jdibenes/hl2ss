@@ -2023,6 +2023,9 @@ public:
     std::unique_ptr<matrix_4x4[]> rm_get_rignode_world_poses(uint64_t const* timestamps, uint32_t count);
     uint64_t ts_get_current_time(uint32_t source);
     void si_set_sampling_delay(int64_t delay);
+    void ee_set_encoder_buffering(bool enable);
+    void ee_set_reader_buffering(bool enable);
+    void rm_set_loop_control(uint16_t port, bool enable);
 };
 
 //------------------------------------------------------------------------------

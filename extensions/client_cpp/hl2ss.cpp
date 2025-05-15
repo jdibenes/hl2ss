@@ -1422,6 +1422,9 @@ uint8_t const RM_MAP_CAMERA_POINTS               = 0x16;
 uint8_t const RM_GET_RIGNODE_WORLD_POSES         = 0x17;
 uint8_t const TS_GET_CURRENT_TIME                = 0x18;
 uint8_t const SI_SET_SAMPLING_DELAY              = 0x19;
+uint8_t const EE_SET_ENCODER_BUFFERING           = 0x20;
+uint8_t const EE_SET_READER_BUFFERING            = 0x21;
+uint8_t const RM_SET_LOOP_CONTROL                = 0x22;
 };
 
 ipc_rc::ipc_rc(char const* host, uint16_t port) : ipc(host, port)
@@ -1563,7 +1566,7 @@ void ipc_rc::pv_set_regions_of_interest(bool clear, bool set, bool auto_exposure
 
 void ipc_rc::ee_set_interface_priority(uint16_t port, int32_t priority)
 {
-    send(cmd_ipc_rc::EE_SET_INTERFACE_PRIORITY, { (uint32_t)port, *(uint32_t*)&priority });
+    send(cmd_ipc_rc::EE_SET_INTERFACE_PRIORITY, {(uint32_t)port, *(uint32_t*)&priority});
 }
 
 void ipc_rc::ee_set_quiet_mode(uint32_t mode)
@@ -1601,6 +1604,21 @@ void ipc_rc::si_set_sampling_delay(int64_t delay)
 {
     send(cmd_ipc_rc::SI_SET_SAMPLING_DELAY, {});
     send(&delay, sizeof(delay));
+}
+
+void ipc_rc::ee_set_encoder_buffering(bool enable)
+{
+    send(cmd_ipc_rc::EE_SET_ENCODER_BUFFERING, {enable});
+}
+
+void ipc_rc::ee_set_reader_buffering(bool enable)
+{
+    send(cmd_ipc_rc::EE_SET_READER_BUFFERING, {enable});
+}
+
+void ipc_rc::rm_set_loop_control(uint16_t port, bool enable)
+{
+    send(cmd_ipc_rc::RM_SET_LOOP_CONTROL, {port, enable});
 }
 
 //------------------------------------------------------------------------------
