@@ -430,6 +430,15 @@ void rx_rm_vlc::create_configuration(std::vector<uint8_t>& sc)
     create_configuration_for_rm_vlc(sc, mode, divisor, profile, level, bitrate, options);
 }
 
+std::unique_ptr<packet> rx_rm_vlc::get_next_packet()
+{
+    while (true)
+    {
+    auto data = rx::get_next_packet();
+    if (data->sz_payload > sizeof(rm_vlc_metadata)) { return data; }
+    }
+}
+
 rx_rm_depth_ahat::rx_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options) : rx(host, port, chunk, mode)
 {
     this->divisor = divisor;
@@ -443,6 +452,15 @@ rx_rm_depth_ahat::rx_rm_depth_ahat(char const* host, uint16_t port, uint64_t chu
 void rx_rm_depth_ahat::create_configuration(std::vector<uint8_t>& sc)
 {
     create_configuration_for_rm_depth_ahat(sc, mode, divisor, profile_z, profile_ab, level, bitrate, options);
+}
+
+std::unique_ptr<packet> rx_rm_depth_ahat::get_next_packet()
+{
+    while (true)
+    {
+    auto data = rx::get_next_packet();
+    if (((uint32_t*)data->payload.get())[1] > 0) { return data; }
+    }
 }
 
 rx_rm_depth_longthrow::rx_rm_depth_longthrow(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t png_filter) : rx(host, port, chunk, mode)
@@ -480,6 +498,15 @@ rx_pv::rx_pv(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint
 void rx_pv::create_configuration(std::vector<uint8_t>& sc)
 {
     create_configuration_for_pv(sc, mode, width, height, framerate, divisor, profile, level, bitrate, options);
+}
+
+std::unique_ptr<packet> rx_pv::get_next_packet()
+{
+    while (true)
+    {
+    auto data = rx::get_next_packet();
+    if (data->sz_payload > sizeof(pv_metadata)) { return data; }
+    }
 }
 
 rx_microphone::rx_microphone(char const* host, uint16_t port, uint64_t chunk, uint8_t profile, uint8_t level) : rx(host, port, chunk, stream_mode::MODE_0)

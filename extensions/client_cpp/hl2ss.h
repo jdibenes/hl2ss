@@ -1596,6 +1596,8 @@ public:
     std::vector<uint64_t> options;
 
     rx_rm_vlc(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+
+    std::unique_ptr<packet> get_next_packet() override;
 };
 
 class rx_rm_depth_ahat : public rx
@@ -1612,6 +1614,8 @@ public:
     std::vector<uint64_t> options;
 
     rx_rm_depth_ahat(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint8_t divisor, uint8_t profile_z, uint8_t profile_ab, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+
+    std::unique_ptr<packet> get_next_packet() override;
 };
 
 class rx_rm_depth_longthrow : public rx
@@ -1652,6 +1656,8 @@ public:
     std::vector<uint64_t> options;
 
     rx_pv(char const* host, uint16_t port, uint64_t chunk, uint8_t mode, uint16_t width, uint16_t height, uint8_t framerate, uint8_t divisor, uint8_t profile, uint8_t level, uint32_t bitrate, std::vector<uint64_t> const& options);
+
+    std::unique_ptr<packet> get_next_packet() override;
 };
 
 class rx_microphone : public rx
