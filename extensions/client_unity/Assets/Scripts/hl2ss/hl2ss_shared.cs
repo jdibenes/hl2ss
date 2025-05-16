@@ -56,11 +56,6 @@ public static partial class hl2ss
             public IntPtr data { get; }
         }
 
-        public interface adapter<T>
-        {
-            public T view { get; }
-        }
-
         //-----------------------------------------------------------------------------
         // Core
         //-----------------------------------------------------------------------------
@@ -79,8 +74,10 @@ public static partial class hl2ss
         // Grab
         //-----------------------------------------------------------------------------
 
-        public class packet_view : handle, adapter<hl2ss.ulm.packet>
+        public class packet_view : handle
         {
+            protected hl2ss.ulm.packet view;
+
             protected packet_view(IntPtr h, hl2ss.ulm.packet p) : base(h) 
             {
                 view = p;
@@ -101,8 +98,6 @@ public static partial class hl2ss
             public packet_view(IntPtr source, ulong timestamp, int time_preference, bool tiebreak_right) : this(source, timestamp, time_preference, Convert.ToInt32(tiebreak_right), new hl2ss.ulm.packet())
             {
             }
-
-            public hl2ss.ulm.packet view { get; private set; }
 
             public void unpack(out hl2ss.map_rm_vlc region)
             { 
@@ -238,9 +233,9 @@ public static partial class hl2ss
         // Remote Configuration
         //-----------------------------------------------------------------------------
         
-        public class rc_vector_2_view : handle, buffer
+        public class rc_rm_map_camera_points_view : handle, buffer
         {
-            public rc_vector_2_view(IntPtr ipc, ushort port, uint operation, float[] points, uint count) : base(hl2ss.ulm.rc_rm_map_camera_points(ipc, port, operation, points, count, out IntPtr d))
+            public rc_rm_map_camera_points_view(IntPtr ipc, ushort port, uint operation, float[] points, uint count) : base(hl2ss.ulm.rc_rm_map_camera_points(ipc, port, operation, points, count, out IntPtr d))
             {
                 data = d;
                 size = count;
@@ -251,9 +246,9 @@ public static partial class hl2ss
             public ulong size { get; private set; }
         }
 
-        public class rc_matrix_4x4_view : handle, buffer
+        public class rc_rm_get_rignode_world_poses_view : handle, buffer
         {
-            public rc_matrix_4x4_view(IntPtr ipc, ulong[] timestamps, uint count) : base(hl2ss.ulm.rc_rm_get_rignode_world_poses(ipc, timestamps, count, out IntPtr d))
+            public rc_rm_get_rignode_world_poses_view(IntPtr ipc, ulong[] timestamps, uint count) : base(hl2ss.ulm.rc_rm_get_rignode_world_poses(ipc, timestamps, count, out IntPtr d))
             {
                 data = d;
                 size = count;
@@ -391,14 +386,14 @@ public static partial class hl2ss
                 check_result(hl2ss.ulm.rc_ee_set_quiet_mode(m_handle, Convert.ToByte(mode)));
             }
 
-            public rc_vector_2_view rm_map_camera_points(ushort port, uint operation, float[] points, uint count)
+            public rc_rm_map_camera_points_view rm_map_camera_points(ushort port, uint operation, float[] points, uint count)
             {
-                return new rc_vector_2_view(m_handle, port, operation, points, count);
+                return new rc_rm_map_camera_points_view(m_handle, port, operation, points, count);
             }
 
-            public rc_matrix_4x4_view rm_get_rignode_world_poses(ulong[] timestamps, uint count)
+            public rc_rm_get_rignode_world_poses_view rm_get_rignode_world_poses(ulong[] timestamps, uint count)
             {
-                return new rc_matrix_4x4_view(m_handle, timestamps, count);
+                return new rc_rm_get_rignode_world_poses_view(m_handle, timestamps, count);
             }
 
             public ulong ts_get_current_time(uint source)
@@ -446,16 +441,16 @@ public static partial class hl2ss
             public ulong size { get; private set; }
         }
 
-        public class sm_mesh_collection : handle, adapter<hl2ss.ulm.sm_mesh[]>
+        public class sm_mesh_collection_view : handle
         {
-            public sm_mesh_collection(IntPtr ipc, uint count, byte[] data, ulong size) : base(hl2ss.ulm.sm_get_meshes(ipc, count, data, size, out IntPtr meshes_data))
+            protected hl2ss.ulm.sm_mesh[] view;
+
+            public sm_mesh_collection_view(IntPtr ipc, uint count, byte[] data, ulong size) : base(hl2ss.ulm.sm_get_meshes(ipc, count, data, size, out IntPtr meshes_data))
             {
                 view = new hl2ss.ulm.sm_mesh[count];
                 for (uint i = 0; i < count; ++i) { view[i] = new hl2ss.ulm.sm_mesh(); }
                 for (uint i = 0; i < count; ++i) { check_result(hl2ss.ulm.sm_unpack_mesh(meshes_data, i, view[i])); }
             }
-
-            public hl2ss.ulm.sm_mesh[] view { get; private set; }
 
             public hl2ss.ulm.sm_mesh[] meshes { get { return view; } }
         }
@@ -476,9 +471,9 @@ public static partial class hl2ss
                 return new sm_surface_info_view(m_handle);
             }
 
-            public sm_mesh_collection get_meshes(hl2ss.sm_mesh_task tasks)
+            public sm_mesh_collection_view get_meshes(hl2ss.sm_mesh_task tasks)
             {
-                return new sm_mesh_collection(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size());
+                return new sm_mesh_collection_view(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size());
             }
         }
 
@@ -486,19 +481,17 @@ public static partial class hl2ss
         // Scene Understanding
         //-----------------------------------------------------------------------------
 
-        public class su_item : hl2ss.ulm.su_item
+        public class su_item_view : hl2ss.ulm.su_item
         {
             public hl2ss.ulm.su_mesh[] unpacked_meshes;
             public hl2ss.ulm.su_mesh[] unpacked_collider_meshes;
         }
 
-        public class su_result : hl2ss.ulm.su_result
+        public class su_result_view : handle
         {
-            public su_item[] items;
-        }
+            protected hl2ss.ulm.su_result view;
+            public su_item_view[] items;
 
-        public class su_result_view : handle, adapter<su_result>
-        {
             protected void unpack_meshes(IntPtr meshes_data, ulong count, out hl2ss.ulm.su_mesh[] meshes)
             {
                 meshes = new hl2ss.ulm.su_mesh[count];
@@ -508,26 +501,24 @@ public static partial class hl2ss
 
             protected void unpack_item(uint index)
             {
-                su_item item = view.items[index];
+                su_item_view item = items[index];
                 unpack_meshes(item.meshes_data, item.meshes_count, out item.unpacked_meshes);
                 unpack_meshes(item.collider_meshes_data, item.collider_meshes_count, out item.unpacked_collider_meshes);
             }
 
-            protected su_result_view(IntPtr ipc, hl2ss.ulm.su_task task, su_result h) : base(hl2ss.ulm.su_query(ipc, task, h))
+            protected su_result_view(IntPtr ipc, hl2ss.ulm.su_task task, hl2ss.ulm.su_result h) : base(hl2ss.ulm.su_query(ipc, task, h))
             {
                 view = h;
                 if (view.status != 0) { return; }
-                view.items = new su_item[view.items_count];
-                for (uint i = 0; i < view.items_count; ++i) { view.items[i] = new su_item(); }
-                for (uint i = 0; i < view.items_count; ++i) { check_result(hl2ss.ulm.su_unpack_item(view.items_data, i, view.items[i])); }
+                items = new su_item_view[view.items_count];
+                for (uint i = 0; i < view.items_count; ++i) { items[i] = new su_item_view(); }
+                for (uint i = 0; i < view.items_count; ++i) { check_result(hl2ss.ulm.su_unpack_item(view.items_data, i, items[i])); }
                 for (uint i = 0; i < view.items_count; ++i) { unpack_item(i); }
             }
 
-            public su_result_view(IntPtr ipc, hl2ss.ulm.su_task task) : this(ipc, task, new su_result())
+            public su_result_view(IntPtr ipc, hl2ss.ulm.su_task task) : this(ipc, task, new hl2ss.ulm.su_result())
             {
             }
-
-            public su_result view { get; private set; }
 
             public uint status { get { return view.status; } }
 
@@ -536,8 +527,6 @@ public static partial class hl2ss
             public matrix_4x4 pose { get { return view.pose; } }
 
             public ulong items_count { get { return view.items_count; } }
-
-            public su_item[] items { get { return view.items; } }
 
             public IntPtr items_data { get { return view.items_data; } }
         }
@@ -639,8 +628,10 @@ public static partial class hl2ss
         // Guest Message Queue
         //-----------------------------------------------------------------------------
 
-        public class gmq_message_view : handle, adapter<hl2ss.ulm.gmq_message>
+        public class gmq_message_view : handle
         {
+            protected hl2ss.ulm.gmq_message view;
+
             protected gmq_message_view(IntPtr ipc, hl2ss.ulm.gmq_message p) : base(hl2ss.ulm.gmq_pull(ipc, p))
             {
                 view = p;
@@ -649,8 +640,6 @@ public static partial class hl2ss
             public gmq_message_view(IntPtr ipc) : this(ipc, new hl2ss.ulm.gmq_message())
             {
             }
-
-            public hl2ss.ulm.gmq_message view { get; private set; }
 
             public uint command { get { return view.command; } }
 
