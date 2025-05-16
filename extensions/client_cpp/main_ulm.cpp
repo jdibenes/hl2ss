@@ -806,13 +806,13 @@ void test_extended_depth(char const* host)
     uint64_t media_index = 12;
     uint64_t buffer_size = 300;
 
-    auto configuration_subsystem = hl2ss::ulm::configuration_pv_subsystem();
+    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
 
     configuration_subsystem.global_opacity = group_index;
     configuration_subsystem.output_width = source_index;
     configuration_subsystem.output_height = profile_index;
 
-    auto configuration = hl2ss::ulm::configuration_extended_depth();
+    auto configuration = hl2ss::svc::configuration_extended_depth();
 
     configuration.media_index = media_index;
 
