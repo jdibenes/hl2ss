@@ -855,8 +855,10 @@ public static partial class hl2ss
     [StructLayout(LayoutKind.Sequential, Pack = 2)]
     public class version
     {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-        public ushort[] field;
+        public ushort field_0;
+        public ushort field_1;
+        public ushort field_2;
+        public ushort field_3;
     }
 
     //------------------------------------------------------------------------------
