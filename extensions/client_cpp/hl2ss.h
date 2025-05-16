@@ -399,7 +399,7 @@ struct rm_imu_sample
 
 struct map_rm_imu
 {
-    hl2ss::rm_imu_sample* samples;
+    rm_imu_sample* samples;
     uint32_t count;
 };
 
@@ -518,7 +518,7 @@ struct si_frame
 
 struct map_si
 {
-    hl2ss::si_frame* tracking;
+    si_frame* tracking;
 };
 
 //------------------------------------------------------------------------------
@@ -550,7 +550,7 @@ struct eet_frame
 
 struct map_eet
 {
-    hl2ss::eet_frame* tracking;
+    eet_frame* tracking;
 };
 
 //------------------------------------------------------------------------------
@@ -1161,29 +1161,29 @@ char const* get_port_name(uint16_t port)
 {
     switch (port)
     {
-    case hl2ss::stream_port::RM_VLC_LEFTFRONT:     return "rm_vlc_leftfront";
-    case hl2ss::stream_port::RM_VLC_LEFTLEFT:      return "rm_vlc_leftleft";
-    case hl2ss::stream_port::RM_VLC_RIGHTFRONT:    return "rm_vlc_rightfront";
-    case hl2ss::stream_port::RM_VLC_RIGHTRIGHT:    return "rm_vlc_rightright";
-    case hl2ss::stream_port::RM_DEPTH_AHAT:        return "rm_depth_ahat";
-    case hl2ss::stream_port::RM_DEPTH_LONGTHROW:   return "rm_depth_longthrow";
-    case hl2ss::stream_port::RM_IMU_ACCELEROMETER: return "rm_imu_accelerometer";
-    case hl2ss::stream_port::RM_IMU_GYROSCOPE:     return "rm_imu_gyroscope";
-    case hl2ss::stream_port::RM_IMU_MAGNETOMETER:  return "rm_imu_magnetometer";
-    case hl2ss::ipc_port::REMOTE_CONFIGURATION:    return "remote_configuration";
-    case hl2ss::stream_port::PERSONAL_VIDEO:       return "personal_video";
-    case hl2ss::stream_port::MICROPHONE:           return "microphone";
-    case hl2ss::stream_port::SPATIAL_INPUT:        return "spatial_input";
-    case hl2ss::ipc_port::SPATIAL_MAPPING:         return "spatial_mapping";
-    case hl2ss::ipc_port::SCENE_UNDERSTANDING:     return "scene_understanding";
-    case hl2ss::ipc_port::VOICE_INPUT:             return "voice_input";
-    case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     return "unity_message_queue";
-    case hl2ss::stream_port::EXTENDED_EYE_TRACKER: return "extended_eye_tracker";
-    case hl2ss::stream_port::EXTENDED_AUDIO:       return "extended_audio";
-    case hl2ss::stream_port::EXTENDED_VIDEO:       return "extended_video";
-    case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     return "guest_message_queue";
-    case hl2ss::stream_port::EXTENDED_DEPTH:       return "extended_depth";
-    default:                                       return nullptr;
+    case stream_port::RM_VLC_LEFTFRONT:     return "rm_vlc_leftfront";
+    case stream_port::RM_VLC_LEFTLEFT:      return "rm_vlc_leftleft";
+    case stream_port::RM_VLC_RIGHTFRONT:    return "rm_vlc_rightfront";
+    case stream_port::RM_VLC_RIGHTRIGHT:    return "rm_vlc_rightright";
+    case stream_port::RM_DEPTH_AHAT:        return "rm_depth_ahat";
+    case stream_port::RM_DEPTH_LONGTHROW:   return "rm_depth_longthrow";
+    case stream_port::RM_IMU_ACCELEROMETER: return "rm_imu_accelerometer";
+    case stream_port::RM_IMU_GYROSCOPE:     return "rm_imu_gyroscope";
+    case stream_port::RM_IMU_MAGNETOMETER:  return "rm_imu_magnetometer";
+    case ipc_port::REMOTE_CONFIGURATION:    return "remote_configuration";
+    case stream_port::PERSONAL_VIDEO:       return "personal_video";
+    case stream_port::MICROPHONE:           return "microphone";
+    case stream_port::SPATIAL_INPUT:        return "spatial_input";
+    case ipc_port::SPATIAL_MAPPING:         return "spatial_mapping";
+    case ipc_port::SCENE_UNDERSTANDING:     return "scene_understanding";
+    case ipc_port::VOICE_INPUT:             return "voice_input";
+    case ipc_port::UNITY_MESSAGE_QUEUE:     return "unity_message_queue";
+    case stream_port::EXTENDED_EYE_TRACKER: return "extended_eye_tracker";
+    case stream_port::EXTENDED_AUDIO:       return "extended_audio";
+    case stream_port::EXTENDED_VIDEO:       return "extended_video";
+    case ipc_port::GUEST_MESSAGE_QUEUE:     return "guest_message_queue";
+    case stream_port::EXTENDED_DEPTH:       return "extended_depth";
+    default:                                return nullptr;
     }
 }
 
