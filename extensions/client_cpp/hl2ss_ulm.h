@@ -1106,7 +1106,7 @@ void stop_subsystem_pv(char const* host, uint16_t port)
 template<typename T>
 std::unique_ptr<hl2ss::shared::calibration_view<T>> download_calibration(char const* host, uint16_t port, void const* configuration)
 {
-    return std::make_unique<calibration_view<T>>(host, port, configuration);
+    return std::make_unique<hl2ss::shared::calibration_view<T>>(host, port, configuration);
 }
 
 HL2SS_INLINE
