@@ -98,9 +98,12 @@ void test_rm_vlc(char const* host)
     uint16_t port = hl2ss::stream_port::RM_VLC_LEFTFRONT;
     uint64_t buffer_size = 300;
 
-    auto configuration = hl2ss::svc::configuration_rm_vlc();
+    auto configuration = hl2ss::ulm::configuration_rm_vlc();
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_vlc>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, false);
+
+    std::cout << "K " <<calibration->data->intrinsics[0] << ","<<calibration->data->intrinsics[1]<< ","<<calibration->data->intrinsics[2]<< ","<<calibration->data->intrinsics[3];
+
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -111,7 +114,7 @@ void test_rm_vlc(char const* host)
         if ((cv::waitKey(1) & 0xFF) == 27) { break; }
 
         auto data = source->get_by_index(-1);
-        if (data->status != 0)
+        if (data->status != hl2ss::mt::status::OK)
         {
             sleep(1000 / hl2ss::parameters_rm_vlc::FPS);
             continue;
@@ -119,8 +122,8 @@ void test_rm_vlc(char const* host)
 
         auto region = data->unpack<hl2ss::map_rm_vlc>();
         
-        //cv::Mat image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, region.image);
-        //cv::imshow(window_name, image);
+        cv::Mat image = cv::Mat(hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH, CV_8UC1, region.image);
+        cv::imshow(window_name, image);
 
         std::cout << "timestamp: " << data->timestamp << std::endl;
         print(region.metadata);
@@ -133,9 +136,9 @@ void test_rm_depth_ahat(char const* host)
     uint16_t port = hl2ss::stream_port::RM_DEPTH_AHAT;
     uint64_t buffer_size = 450;
 
-    auto configuration = hl2ss::svc::configuration_rm_depth_ahat();
+    auto configuration = hl2ss::ulm::configuration_rm_depth_ahat();
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_depth_ahat>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
  
     std::string window_name_base = hl2ss::get_port_name(port);
     std::string window_name_depth = window_name_base + "-depth";
@@ -174,9 +177,9 @@ void test_rm_depth_longthrow(char const* host)
     uint16_t port = hl2ss::stream_port::RM_DEPTH_LONGTHROW;
     uint64_t buffer_size = 50;
 
-    auto configuration = hl2ss::svc::configuration_rm_depth_longthrow();
+    auto configuration = hl2ss::ulm::configuration_rm_depth_longthrow();
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_depth_longthrow>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     std::string window_name_base = hl2ss::get_port_name(port);
     std::string window_name_depth = window_name_base + "-depth";
@@ -215,7 +218,7 @@ void test_rm_imu(char const* host)
     uint16_t port = hl2ss::stream_port::RM_IMU_ACCELEROMETER;
     uint64_t buffer_size = 100;
 
-    auto configuration = hl2ss::svc::configuration_rm_imu();
+    auto configuration = hl2ss::ulm::configuration_rm_imu();
     try
     {
         auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_imu>(host, port, &configuration);
@@ -224,7 +227,7 @@ void test_rm_imu(char const* host)
     {
         std::cerr << e.what() << '\n';
     }
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     cv::namedWindow(hl2ss::get_port_name(port));
 
@@ -253,8 +256,8 @@ void test_pv(char const* host)
     uint16_t port = hl2ss::stream_port::PERSONAL_VIDEO;
     uint64_t buffer_size = 300;
 
-    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
-    auto configuration = hl2ss::svc::configuration_pv();
+    auto configuration_subsystem = hl2ss::ulm::configuration_pv_subsystem();
+    auto configuration = hl2ss::ulm::configuration_pv();
 
     configuration.width = 1920;
     configuration.height = 1080;
@@ -275,7 +278,7 @@ void test_pv(char const* host)
     hl2ss::svc::start_subsystem_pv(host, port, &configuration_subsystem);
 
     auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_pv>(host, port, &configuration);
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, decoded_format);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded_format);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -310,8 +313,8 @@ void test_microphone(char const* host)
     uint16_t port = hl2ss::stream_port::MICROPHONE;
     uint64_t buffer_size = 100;
 
-    auto configuration = hl2ss::svc::configuration_microphone();
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto configuration = hl2ss::ulm::configuration_microphone();
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -340,8 +343,8 @@ void test_si(char const* host)
     uint16_t port = hl2ss::stream_port::SPATIAL_INPUT;
     uint64_t buffer_size = 300;
 
-    auto configuration = hl2ss::svc::configuration_si();
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto configuration = hl2ss::ulm::configuration_si();
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -374,11 +377,11 @@ void test_eet(char const* host)
     uint16_t port = hl2ss::stream_port::EXTENDED_EYE_TRACKER;
     uint64_t buffer_size = 900;
 
-    auto configuration = hl2ss::svc::configuration_eet();
+    auto configuration = hl2ss::ulm::configuration_eet();
 
     configuration.fps = 90;
 
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -414,10 +417,10 @@ void test_extended_audio(char const* host)
     uint16_t port = hl2ss::stream_port::EXTENDED_AUDIO;
     uint64_t buffer_size = 100;
 
-    auto configuration = hl2ss::svc::configuration_extended_audio();
+    auto configuration = hl2ss::ulm::configuration_extended_audio();
     auto device_list = hl2ss::svc::download_device_list(host, port, &configuration);
     std::cout << "device_list size " << device_list->size << std::endl;
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -449,13 +452,13 @@ void test_extended_video(char const* host)
     float source_index = 2;
     float profile_index = 4;
 
-    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
+    auto configuration_subsystem = hl2ss::ulm::configuration_pv_subsystem();
 
     configuration_subsystem.global_opacity = group_index;
     configuration_subsystem.output_width = source_index;
     configuration_subsystem.output_height = profile_index;
 
-    auto configuration = hl2ss::svc::configuration_pv();
+    auto configuration = hl2ss::ulm::configuration_pv();
 
     configuration.width = 1280;
     configuration.height = 720;
@@ -477,7 +480,7 @@ void test_extended_video(char const* host)
 
     auto device_list = hl2ss::svc::download_device_list(host, port, nullptr);
     std::cout << "device_list size " << device_list->size << std::endl;
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, decoded_format);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded_format);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -511,11 +514,11 @@ void test_pv_shared(char const* host)
     uint16_t port = hl2ss::stream_port::PERSONAL_VIDEO;
     uint64_t buffer_size = 300;
 
-    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
+    auto configuration_subsystem = hl2ss::ulm::configuration_pv_subsystem();
 
     configuration_subsystem.shared = true;
 
-    auto configuration = hl2ss::svc::configuration_pv();
+    auto configuration = hl2ss::ulm::configuration_pv();
 
     configuration.width = 1920;
     configuration.height = 1080;
@@ -535,7 +538,7 @@ void test_pv_shared(char const* host)
 
     hl2ss::svc::start_subsystem_pv(host, port, &configuration_subsystem);
 
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, decoded_format);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded_format);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -570,7 +573,7 @@ void test_rc(char const* host)
 {
     uint16_t port = hl2ss::ipc_port::REMOTE_CONFIGURATION;
     
-    auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_rc>(host, port);
+    auto ipc = hl2ss::svc::open_ipc<hl2ss::shared::ipc_rc>(host, port);
 
     hl2ss::version v = ipc->ee_get_application_version();
     std::cout << "version: " << v.field[0] << "." << v.field[1] << "." << v.field[2] << "." << v.field[3] << std::endl;
@@ -636,7 +639,7 @@ void test_sm(char const* host)
     hl2ss::sm_bounding_volume volumes;
     hl2ss::sm_mesh_task tasks;
 
-    auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_sm>(host, port);
+    auto ipc = hl2ss::svc::open_ipc<hl2ss::shared::ipc_sm>(host, port);
 
     volumes.add_sphere({ 0.0f, 0.0f, 0.0f, 8.0f });
 
@@ -666,7 +669,7 @@ void test_su(char const* host)
 {
     uint16_t port = hl2ss::ipc_port::SCENE_UNDERSTANDING;
 
-    auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_su>(host, port);
+    auto ipc = hl2ss::svc::open_ipc<hl2ss::shared::ipc_su>(host, port);
 
     hl2ss::su_task task;
 
@@ -727,7 +730,7 @@ void test_vi(char const* host)
 {
     uint16_t port = hl2ss::ipc_port::VOICE_INPUT;
 
-    auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_vi>(host, port);
+    auto ipc = hl2ss::svc::open_ipc<hl2ss::shared::ipc_vi>(host, port);
 
     ipc->start("cat\0dog\0stop\0red\0blue\0");
 
@@ -752,7 +755,7 @@ void test_umq(char const* host)
 {
     uint16_t port = hl2ss::ipc_port::UNITY_MESSAGE_QUEUE;
 
-    auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_umq>(host, port);
+    auto ipc = hl2ss::svc::open_ipc<hl2ss::shared::ipc_umq>(host, port);
 
     auto buffer = hl2ss::umq_command_buffer();
     char const text[] = "Hello";
@@ -771,7 +774,7 @@ void test_gmq(char const* host)
 {
     uint16_t port = hl2ss::ipc_port::GUEST_MESSAGE_QUEUE;
 
-    auto ipc = hl2ss::svc::open_ipc<hl2ss::svc::ipc_gmq>(host, port);
+    auto ipc = hl2ss::svc::open_ipc<hl2ss::shared::ipc_gmq>(host, port);
 
     while (true)
     {
@@ -806,19 +809,19 @@ void test_extended_depth(char const* host)
     uint64_t media_index = 12;
     uint64_t buffer_size = 300;
 
-    auto configuration_subsystem = hl2ss::svc::configuration_pv_subsystem();
+    auto configuration_subsystem = hl2ss::ulm::configuration_pv_subsystem();
 
     configuration_subsystem.global_opacity = group_index;
     configuration_subsystem.output_width = source_index;
     configuration_subsystem.output_height = profile_index;
 
-    auto configuration = hl2ss::svc::configuration_extended_depth();
+    auto configuration = hl2ss::ulm::configuration_extended_depth();
 
     configuration.media_index = media_index;
 
     hl2ss::svc::start_subsystem_pv(host, port, &configuration_subsystem);
 
-    auto source = hl2ss::svc::open_stream(host, port, buffer_size, &configuration, true);
+    auto source = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, true);
 
     std::string window_name = hl2ss::get_port_name(port);
 
@@ -855,7 +858,7 @@ void test_extended_depth(char const* host)
 int main()
 {
     char const* host = "192.168.1.7";
-    int test_id = 10;
+    int test_id = 0;
 
     try
     {
