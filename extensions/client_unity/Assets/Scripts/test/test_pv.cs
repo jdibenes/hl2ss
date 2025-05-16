@@ -17,14 +17,14 @@ public class test_pv : MonoBehaviour
     {
         host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv configuration);
+        hl2ss.svc.configuration_pv configuration = new hl2ss.svc.configuration_pv();
 
         configuration.width = 640;
         configuration.height = 360;
         configuration.framerate = 30;
-        configuration.decoded_format = hl2ss.pv_decoded_format.RGB;
+        byte decoded_format = hl2ss.pv_decoded_format.RGB;
 
-        switch (configuration.decoded_format)
+        switch (decoded_format)
         {
         case hl2ss.pv_decoded_format.RGB:
             texture_format = TextureFormat.RGB24;
@@ -50,7 +50,7 @@ public class test_pv : MonoBehaviour
             throw new System.Exception("Unsupported decoded format");
         }
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv_subsystem configuration_subsystem);
+        hl2ss.svc.configuration_pv_subsystem configuration_subsystem = new hl2ss.svc.configuration_pv_subsystem();
 
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration_subsystem);
 
@@ -59,13 +59,13 @@ public class test_pv : MonoBehaviour
             var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.data);
         }
 
-        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration);
+        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration, decoded_format);
     }
 
     // Update is called once per frame
     void Update()
     {
-        using (hl2ss.svc.packet packet = source_pv.get_by_index(-1))
+        using (var packet = source_pv.get_by_index(-1))
         {
             if (packet.status != 0) { return; }
             packet.unpack(out hl2ss.map_pv region);
@@ -75,7 +75,8 @@ public class test_pv : MonoBehaviour
 
             if (!tex_pv)
             {
-                source_pv.get_pv_dimensions(out ushort width, out ushort height);
+                ushort width = metadata.width;
+                ushort height = metadata.height;
                 Debug.Log(string.Format("pv dimensions: {0} x {1}", width, height));
                 pv_frame_size = width * height * bpp;
                 tex_pv = new Texture2D(width, height, texture_format, false);

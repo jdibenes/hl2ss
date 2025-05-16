@@ -16,9 +16,9 @@ public class test_microphone : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_microphone configuration);
+        hl2ss.svc.configuration_microphone configuration = new hl2ss.svc.configuration_microphone();
 
-        source_microphone = hl2ss.svc.open_stream(host, hl2ss.stream_port.MICROPHONE, 1000, configuration);
+        source_microphone = hl2ss.svc.open_stream(host, hl2ss.stream_port.MICROPHONE, 1000, configuration, true);
         index = 0;
 
         buffer = new List<float>();
@@ -62,7 +62,7 @@ public class test_microphone : MonoBehaviour
 
             index++;
 
-            packet.unpack(out hl2ss.map_microphone_aac region);
+            packet.unpack<float>(out hl2ss.map_microphone region);
 
             float[] b = new float[packet.sz_payload / sizeof(float)];
             Marshal.Copy(region.samples, b, 0, b.Length);

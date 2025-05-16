@@ -17,7 +17,7 @@ public class test_ipc_umq : MonoBehaviour
 
         buffer.add(0xFFFFFFFE, Encoding.UTF8.GetBytes("Hello from Unity"));
 
-        ipc.push(buffer.get_data(), buffer.get_size());
+        ipc.push(buffer.get_data(), (uint)buffer.get_size());
         ipc.pull(response, (uint)response.Length);
 
         Debug.Log(string.Format("Response {0}", response[0]));

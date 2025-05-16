@@ -1,6 +1,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 using UnityEngine;
 
 public class test_ipc_vi : MonoBehaviour
@@ -11,13 +12,25 @@ public class test_ipc_vi : MonoBehaviour
     void Start()
     {
         string host = run_once.host_address;
-        string[] commands = new string[] { "cat", "dog", "red", "blue" };
+        //string[] commands = new string[] { "cat", "dog", "red", "blue" };
+        byte[] commands = Encoding.UTF8.GetBytes("cat\0dog\0red\0blue\0\0");
 
         hl2ss.svc.open_ipc(host, hl2ss.ipc_port.VOICE_INPUT, out ipc);
         
         ipc.start(commands);
     }
 
+    /*
+ * data.ToArray()
+ * string[] commands
+                List<byte> data = new List<byte>();
+        foreach (var s in commands)
+        {
+            data.AddRange(Encoding.UTF8.GetBytes(s));
+            data.Add(0);
+        }
+        data.Add(0);
+*/
     // Update is called once per frame
     void Update()
     {

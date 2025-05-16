@@ -14,7 +14,7 @@ public class test_rm_imu : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_rm_imu configuration);
+        hl2ss.svc.configuration_rm_imu configuration = new hl2ss.svc.configuration_rm_imu();
 
         if (port != hl2ss.stream_port.RM_IMU_MAGNETOMETER)
         {
@@ -24,7 +24,7 @@ public class test_rm_imu : MonoBehaviour
             }
         }
 
-        source_rm_imu = hl2ss.svc.open_stream(host, port, 1000, configuration);
+        source_rm_imu = hl2ss.svc.open_stream(host, port, 1000, configuration, true);
     }
 
     // Update is called once per frame

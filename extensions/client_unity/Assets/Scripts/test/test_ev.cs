@@ -20,17 +20,17 @@ public class test_ev : MonoBehaviour
     {
         host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv configuration);
+        hl2ss.svc.configuration_pv configuration = new hl2ss.svc.configuration_pv();
 
         configuration.width = 1280;
         configuration.height = 720;
         configuration.framerate = 30;
-        configuration.decoded_format = hl2ss.pv_decoded_format.RGB;
+        byte decoded_format = hl2ss.pv_decoded_format.RGB;
 
         TextureFormat texture_format;
         int bpp;
 
-        switch (configuration.decoded_format)
+        switch (decoded_format)
         {
         case hl2ss.pv_decoded_format.RGB:
             texture_format = TextureFormat.RGB24;
@@ -58,7 +58,7 @@ public class test_ev : MonoBehaviour
 
         pv_frame_size = configuration.width * configuration.height * bpp;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv_subsystem configuration_subsystem);
+        hl2ss.svc.configuration_pv_subsystem configuration_subsystem = new hl2ss.svc.configuration_pv_subsystem();
 
         configuration_subsystem.global_opacity = group_index;
         configuration_subsystem.output_width   = source_index;
@@ -66,14 +66,14 @@ public class test_ev : MonoBehaviour
 
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.EXTENDED_VIDEO, configuration_subsystem);
 
-        using (var device_list_handle = hl2ss.svc.download_device_list(host, hl2ss.stream_port.EXTENDED_VIDEO))
+        using (var device_list_handle = hl2ss.svc.download_device_list(host, hl2ss.stream_port.EXTENDED_VIDEO, configuration))
         {
             var string_bytes = new byte[device_list_handle.size];
             Marshal.Copy(device_list_handle.data, string_bytes, 0, (int)device_list_handle.size);
             Debug.Log(Encoding.Unicode.GetString(string_bytes));
         }
 
-        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_VIDEO, 300, configuration);
+        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_VIDEO, 300, configuration, decoded_format);
 
         tex_pv = new Texture2D(configuration.width, configuration.height, texture_format, false);
 
@@ -83,7 +83,7 @@ public class test_ev : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        using (hl2ss.svc.packet packet = source_pv.get_by_index(-1))
+        using (var packet = source_pv.get_by_index(-1))
         {
             if (packet.status != 0) { return; }
             packet.unpack(out hl2ss.map_pv region);

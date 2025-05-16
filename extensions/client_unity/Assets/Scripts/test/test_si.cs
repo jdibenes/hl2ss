@@ -11,9 +11,9 @@ public class test_si : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_si configuration);
+        hl2ss.svc.configuration_si configuration = new hl2ss.svc.configuration_si();
 
-        source_si = hl2ss.svc.open_stream(host, hl2ss.stream_port.SPATIAL_INPUT, 300, configuration);        
+        source_si = hl2ss.svc.open_stream(host, hl2ss.stream_port.SPATIAL_INPUT, 300, configuration, true);
     }
 
     // Update is called once per frame

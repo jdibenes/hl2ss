@@ -25,14 +25,14 @@ public class test_rm_depth_ahat : MonoBehaviour
         string host = run_once.host_address;
         ushort port = hl2ss.stream_port.RM_DEPTH_AHAT;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_rm_depth_ahat configuration);
+        hl2ss.svc.configuration_rm_depth_ahat configuration = new hl2ss.svc.configuration_rm_depth_ahat();
 
         using (var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration))
         {
             var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_depth_ahat>(calibration_handle.data);
         }
 
-        source_rm_depth_ahat = hl2ss.svc.open_stream(host, port, 450, configuration);
+        source_rm_depth_ahat = hl2ss.svc.open_stream(host, port, 450, configuration, true);
 
         tex_z  = new Texture2D(hl2ss.parameters_rm_depth_ahat.WIDTH, hl2ss.parameters_rm_depth_ahat.HEIGHT, TextureFormat.R16, false);
         tex_ab = new Texture2D(hl2ss.parameters_rm_depth_ahat.WIDTH, hl2ss.parameters_rm_depth_ahat.HEIGHT, TextureFormat.R16, false);

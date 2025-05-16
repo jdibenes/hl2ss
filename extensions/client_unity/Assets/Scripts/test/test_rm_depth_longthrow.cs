@@ -25,14 +25,14 @@ public class test_rm_depth_longthrow : MonoBehaviour
         string host = run_once.host_address;
         ushort port = hl2ss.stream_port.RM_DEPTH_LONGTHROW;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_rm_depth_longthrow configuration);
+        hl2ss.svc.configuration_rm_depth_longthrow configuration = new hl2ss.svc.configuration_rm_depth_longthrow();
 
         using (var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration))
         {
             var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_depth_longthrow>(calibration_handle.data);
         }
 
-        source_rm_depth_longthrow = hl2ss.svc.open_stream(host, port, 50, configuration);
+        source_rm_depth_longthrow = hl2ss.svc.open_stream(host, port, 50, configuration, true);
 
         tex_z  = new Texture2D(hl2ss.parameters_rm_depth_longthrow.WIDTH, hl2ss.parameters_rm_depth_longthrow.HEIGHT, TextureFormat.R16, false);
         tex_ab = new Texture2D(hl2ss.parameters_rm_depth_longthrow.WIDTH, hl2ss.parameters_rm_depth_longthrow.HEIGHT, TextureFormat.R16, false);

@@ -35,7 +35,7 @@ public class test_ipc_sm : MonoBehaviour
             for (ulong i = 0; i < surfaces.size; ++i)
             {
                 hl2ss.sm_surface_info info = Marshal.PtrToStructure<hl2ss.sm_surface_info>(IntPtr.Add(surfaces.data, (int)i * Marshal.SizeOf<hl2ss.sm_surface_info>()));
-                tasks.add_task(info.id, 1000.0f, hl2ss.sm_vertex_position_format.R32G32B32A32Float, hl2ss.sm_triangle_index_format.R32Uint, hl2ss.sm_vertex_normal_format.R32G32B32A32Float, true, false);
+                tasks.add_task(info.id, 1000.0f, hl2ss.sm_vertex_position_format.R32G32B32A32Float, hl2ss.sm_triangle_index_format.R32Uint, hl2ss.sm_vertex_normal_format.R32G32B32A32Float);
             }
 
             using (var result = ipc.get_meshes(tasks))

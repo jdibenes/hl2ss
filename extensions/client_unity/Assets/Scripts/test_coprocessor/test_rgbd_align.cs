@@ -11,7 +11,7 @@ public class test_rgbd_align : MonoBehaviour
     public Shader colormap_shader;
 
     private string host;
-    hl2ss.ulm.configuration_pv configuration_pv;
+    hl2ss.svc.configuration_pv configuration_pv;
 
     hl2ss.calibration_rm_depth_longthrow zlt_calibration;
     private Matrix4x4 zlt_extrinsics_inv;
@@ -33,14 +33,14 @@ public class test_rgbd_align : MonoBehaviour
         // Configure
         host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_pv_subsystem configuration_subsystem);
-        hl2ss.svc.create_configuration(out configuration_pv);
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_rm_depth_longthrow configuration_zlt);
+        hl2ss.svc.configuration_pv_subsystem configuration_subsystem = new hl2ss.svc.configuration_pv_subsystem();
+        configuration_pv = new hl2ss.svc.configuration_pv();
+        hl2ss.svc.configuration_rm_depth_longthrow configuration_zlt = new hl2ss.svc.configuration_rm_depth_longthrow();
 
         configuration_pv.width = 640;
         configuration_pv.height = 360;
         configuration_pv.framerate = 30;
-        configuration_pv.decoded_format = hl2ss.pv_decoded_format.RGBA;
+        byte decoded_format = hl2ss.pv_decoded_format.RGBA;
 
         // Get calibration
         using var calibration_handle = hl2ss.svc.download_calibration(host, hl2ss.stream_port.RM_DEPTH_LONGTHROW, configuration_zlt);
@@ -56,8 +56,8 @@ public class test_rgbd_align : MonoBehaviour
         // Start streams
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration_subsystem);
 
-        source_pv  = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration_pv);
-        source_zlt = hl2ss.svc.open_stream(host, hl2ss.stream_port.RM_DEPTH_LONGTHROW, 50, configuration_zlt);
+        source_pv  = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration_pv, decoded_format);
+        source_zlt = hl2ss.svc.open_stream(host, hl2ss.stream_port.RM_DEPTH_LONGTHROW, 50, configuration_zlt, true);
 
         // Configure coprocessor
         hl2da.coprocessor.RM_DepthInitializeRays(hl2da.SENSOR_ID.RM_DEPTH_LONGTHROW, zlt_calibration.uv2xy);
@@ -82,10 +82,10 @@ public class test_rgbd_align : MonoBehaviour
     void Update()
     {
         // Get Depth and RGB data
-        using hl2ss.svc.packet packet_zlt = source_zlt.get_by_index(-1);
+        using var packet_zlt = source_zlt.get_by_index(-1);
         if (packet_zlt.status != 0) { return; }
 
-        using hl2ss.svc.packet packet_pv = source_pv.get_by_timestamp(packet_zlt.timestamp, hl2ss.mt.time_preference.PREFER_NEAREST, 1); 
+        using var packet_pv = source_pv.get_by_timestamp(packet_zlt.timestamp, hl2ss.mt.time_preference.PREFER_NEAREST, true); 
         if (packet_pv.status != 0) { return; }
 
         // Check poses are valid

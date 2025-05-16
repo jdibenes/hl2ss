@@ -17,21 +17,21 @@ public class test_ea : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_extended_audio configuration);
+        hl2ss.svc.configuration_extended_audio configuration = new hl2ss.svc.configuration_extended_audio();
 
-        using (var device_list_handle = hl2ss.svc.download_device_list(host, hl2ss.stream_port.EXTENDED_AUDIO))
+        using (var device_list_handle = hl2ss.svc.download_device_list(host, hl2ss.stream_port.EXTENDED_AUDIO, configuration))
         {
             var string_bytes = new byte[device_list_handle.size];
             Marshal.Copy(device_list_handle.data, string_bytes, 0, (int)device_list_handle.size);
             Debug.Log(Encoding.Unicode.GetString(string_bytes));
         }
 
-        source_ea = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_AUDIO, 1000, configuration);
+        source_ea = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_AUDIO, 1000, configuration, true);
         index = 0;
 
         buffer = new List<float>();
         audio_source = audio_source_object.GetComponent<AudioSource>();
-        audio_source.clip = AudioClip.Create("audio_mc", 4 * hl2ss.parameters_extended_audio.GROUP_SIZE_AAC, hl2ss.parameters_extended_audio.CHANNELS, (int)hl2ss.parameters_extended_audio.SAMPLE_RATE, true, OnAudioRead);
+        audio_source.clip = AudioClip.Create("audio_mc", 4 * hl2ss.parameters_microphone.GROUP_SIZE_AAC, hl2ss.parameters_microphone.CHANNELS, (int)hl2ss.parameters_microphone.SAMPLE_RATE, true, OnAudioRead);
         audio_source.Play();
     }
 
@@ -70,7 +70,7 @@ public class test_ea : MonoBehaviour
 
             index++;
 
-            packet.unpack(out hl2ss.map_extended_audio_aac region);
+            packet.unpack<float>(out hl2ss.map_microphone region);
 
             float[] b = new float[packet.sz_payload / sizeof(float)];
             Marshal.Copy(region.samples, b, 0, b.Length);

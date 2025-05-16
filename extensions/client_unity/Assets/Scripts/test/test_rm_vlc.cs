@@ -19,14 +19,14 @@ public class test_rm_vlc : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_rm_vlc configuration);
+        hl2ss.svc.configuration_rm_vlc configuration = new hl2ss.svc.configuration_rm_vlc();
 
         using (var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration))
         {
             var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_vlc>(calibration_handle.data);
         }
 
-        source_rm_vlc = hl2ss.svc.open_stream(host, port, 300, configuration);
+        source_rm_vlc = hl2ss.svc.open_stream(host, port, 300, configuration, true);
 
         tex_vlc = new Texture2D(hl2ss.parameters_rm_vlc.WIDTH, hl2ss.parameters_rm_vlc.HEIGHT, TextureFormat.R8, false);
         texr_vlc = new RenderTexture(hl2ss.parameters_rm_vlc.WIDTH, hl2ss.parameters_rm_vlc.HEIGHT, 0, RenderTextureFormat.BGRA32);

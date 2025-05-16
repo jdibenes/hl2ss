@@ -31,17 +31,17 @@ public class test_ipc_su : MonoBehaviour
 
         using (var result = ipc.query(task))
         {
-            if (result.header.status == 0)
+            if (result.status == 0)
             {
-                Debug.Log(string.Format("got {0}/{1} objects", result.items.Length, result.header.count));
-                for (uint i = 0; i < result.header.count; ++i)
+                Debug.Log(string.Format("got {0}/{1} objects", result.items.Length, result.items_count));
+                for (uint i = 0; i < result.items_count; ++i)
                 {
-                    Debug.Log(string.Format("item_kind: {0}", result.items[i].content.kind));
-                    Debug.Log(string.Format("item_alignment: {0}", result.items[i].content.alignment));
-                    Debug.Log(string.Format("meshes_count: {0}", result.items[i].content.meshes_count));
-                    Debug.Log(string.Format("collider_meshes_count: {0}", result.items[i].content.collider_meshes_count));
+                    Debug.Log(string.Format("item_kind: {0}", result.items[i].kind));
+                    Debug.Log(string.Format("item_alignment: {0}", result.items[i].alignment));
+                    Debug.Log(string.Format("meshes_count: {0}", result.items[i].meshes_count));
+                    Debug.Log(string.Format("collider_meshes_count: {0}", result.items[i].collider_meshes_count));
 
-                    for (uint j = 0; j < result.items[i].content.meshes_count; ++j)
+                    for (uint j = 0; j < result.items[i].meshes_count; ++j)
                     {
                         Debug.Log(string.Format("mesh_vertices {0}", result.items[i].unpacked_meshes[j].vertex_positions_size / (3 * sizeof(uint))));
                         Debug.Log(string.Format("mesh_triangles {0}", result.items[i].unpacked_meshes[j].triangle_indices_size / (3 * sizeof(uint))));

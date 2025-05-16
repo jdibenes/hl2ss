@@ -11,11 +11,11 @@ public class test_eet : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.create_configuration(out hl2ss.ulm.configuration_eet configuration);
+        hl2ss.svc.configuration_eet configuration = new hl2ss.svc.configuration_eet();
 
-        configuration.framerate = hl2ss.eet_framerate.FPS_90;
+        configuration.fps = 90;
 
-        source_eet = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_EYE_TRACKER, 900, configuration);
+        source_eet = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_EYE_TRACKER, 900, configuration, true);
     }
 
     // Update is called once per frame
