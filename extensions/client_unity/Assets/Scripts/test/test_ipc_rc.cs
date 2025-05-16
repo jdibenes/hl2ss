@@ -1,4 +1,6 @@
 
+using System;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 public class test_ipc_rc : MonoBehaviour
@@ -34,6 +36,29 @@ public class test_ipc_rc : MonoBehaviour
         ipc.pv_set_regions_of_interest(true, true, true, true, true, hl2ss.pv_region_of_interest_type.Unknown, 100, 0.0f, 0.0f, 1.0f, 1.0f);
         ipc.ee_set_interface_priority(hl2ss.stream_port.PERSONAL_VIDEO, hl2ss.ee_interface_priority.NORMAL);
         ipc.ee_set_quiet_mode(false);
+
+        var points = ipc.rm_map_camera_points(hl2ss.stream_port.RM_VLC_LEFTFRONT, hl2ss.rm_map_camera_point_operation.ImagePointToCameraUnitPlane, new float[4] { 0, 0, 320, 240 }, 2);
+        ulong timestamp = ipc.ts_get_current_time(hl2ss.ts_source.QPC);
+        var poses = ipc.rm_get_rignode_world_poses(new ulong[2] { timestamp, timestamp - hl2ss.time_base.HUNDREDS_OF_NANOSECONDS }, 2);
+
+        float[] image_points = new float[4];
+        Marshal.Copy(points.data, image_points, 0, 4);
+        Debug.Log(string.Format("{0} {1} {2} {3}", image_points[0], image_points[1], image_points[2], image_points[3]));
+
+        Debug.Log(timestamp);
+        Matrix4x4 pose0 = Marshal.PtrToStructure<Matrix4x4>(poses.data);
+        Matrix4x4 pose1 = Marshal.PtrToStructure<Matrix4x4>(IntPtr.Add(poses.data, 64));
+        Debug.Log(pose0);
+        Debug.Log(pose1);
+
+        ipc.si_set_sampling_delay(0);
+        ipc.ee_set_encoder_buffering(false);
+        ipc.ee_set_reader_buffering(false);
+
+        ipc.rm_set_loop_control(hl2ss.stream_port.RM_VLC_LEFTFRONT,  true);
+        ipc.rm_set_loop_control(hl2ss.stream_port.RM_VLC_LEFTLEFT,   true);
+        ipc.rm_set_loop_control(hl2ss.stream_port.RM_VLC_RIGHTFRONT, true);
+        ipc.rm_set_loop_control(hl2ss.stream_port.RM_VLC_RIGHTRIGHT, true);
 
         ipc.Dispose();
     }
