@@ -912,10 +912,10 @@ private:
     void unpack_meshes(void* meshes_data, uint64_t count, std::vector<hl2ss::ulm::su_mesh>& out)
     {
         out.resize(count);
-        for (uint64_t i = 0; i < count; ++i) { check_result(hl2ss::ulm::su_unpack_item_mesh(meshes_data, (uint32_t)i, out[i])); }
+        for (uint64_t i = 0; i < count; ++i) { check_result(hl2ss::ulm::su_unpack_item_mesh(meshes_data, i, out[i])); }
     }
 
-    void unpack_item(uint32_t index)
+    void unpack_item(uint64_t index)
     {
         su_item_view& item = items[index];
         unpack_meshes(item.meshes_data,          item.meshes_count,          item.unpacked_meshes);
@@ -929,8 +929,8 @@ public:
     {
         if (status != 0) { return; }
         items.resize(items_count);
-        for (uint64_t i = 0; i < items_count; ++i) { check_result(hl2ss::ulm::su_unpack_item(this->items_data, (uint32_t)i, items[i])); }
-        for (uint64_t i = 0; i < items_count; ++i) { unpack_item((uint32_t)i); }
+        for (uint64_t i = 0; i < items_count; ++i) { check_result(hl2ss::ulm::su_unpack_item(this->items_data, i, items[i])); }
+        for (uint64_t i = 0; i < items_count; ++i) { unpack_item(i); }
     }
 };
 
