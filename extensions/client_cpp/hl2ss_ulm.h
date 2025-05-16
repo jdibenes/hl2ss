@@ -662,19 +662,19 @@ public:
 // Remote Configuration
 //-----------------------------------------------------------------------------
 
-class rc_vector_2_view : protected handle, public buffer<hl2ss::vector_2>
+class rc_rm_map_camera_points_view : protected handle, public buffer<hl2ss::vector_2>
 {
 public:
-    rc_vector_2_view(void* ipc, uint16_t port, uint32_t operation, hl2ss::vector_2 const* points, uint32_t count) : handle(hl2ss::ulm::rc_rm_map_camera_points(ipc, port, operation, points, count, data))
+    rc_rm_map_camera_points_view(void* ipc, uint16_t port, uint32_t operation, hl2ss::vector_2 const* points, uint32_t count) : handle(hl2ss::ulm::rc_rm_map_camera_points(ipc, port, operation, points, count, data))
     {
         size = count;
     }
 };
 
-class rc_matrix_4x4_view : protected handle, public buffer<hl2ss::matrix_4x4>
+class rc_rm_get_rignode_world_poses_view : protected handle, public buffer<hl2ss::matrix_4x4>
 {
 public:
-    rc_matrix_4x4_view(void* ipc, uint64_t const* timestamps, uint32_t count) : handle(hl2ss::ulm::rc_rm_get_rignode_world_poses(ipc, timestamps, count, data))
+    rc_rm_get_rignode_world_poses_view(void* ipc, uint64_t const* timestamps, uint32_t count) : handle(hl2ss::ulm::rc_rm_get_rignode_world_poses(ipc, timestamps, count, data))
     {
         size = count;
     }
@@ -808,14 +808,14 @@ public:
         check_result(hl2ss::ulm::rc_ee_set_quiet_mode(m_handle, mode));
     }
 
-    std::unique_ptr<rc_vector_2_view> rm_map_camera_points(uint16_t port, uint32_t operation, hl2ss::vector_2* points, uint32_t count)
+    std::unique_ptr<rc_rm_map_camera_points_view> rm_map_camera_points(uint16_t port, uint32_t operation, hl2ss::vector_2* points, uint32_t count)
     {
-        return std::make_unique<rc_vector_2_view>(m_handle, port, operation, points, count);
+        return std::make_unique<rc_rm_map_camera_points_view>(m_handle, port, operation, points, count);
     }
 
-    std::unique_ptr<rc_matrix_4x4_view> rm_get_rignode_world_poses(uint64_t* timestamps, uint32_t count)
+    std::unique_ptr<rc_rm_get_rignode_world_poses_view> rm_get_rignode_world_poses(uint64_t* timestamps, uint32_t count)
     {
-        return std::make_unique<rc_matrix_4x4_view>(m_handle, timestamps, count);
+        return std::make_unique<rc_rm_get_rignode_world_poses_view>(m_handle, timestamps, count);
     }
 
     uint64_t ts_get_current_time(uint32_t source)
@@ -858,7 +858,7 @@ public:
     }
 };
 
-class sm_mesh_collection : protected handle
+class sm_mesh_collection_view : protected handle
 {
 private:
     void* meshes_data;
@@ -866,7 +866,7 @@ private:
 public:
     std::vector<hl2ss::ulm::sm_mesh> meshes;
 
-    sm_mesh_collection(void* ipc, uint32_t count, uint8_t const* data, uint64_t size) : handle(hl2ss::ulm::sm_get_meshes(ipc, count, data, size, meshes_data)), meshes{ count }
+    sm_mesh_collection_view(void* ipc, uint32_t count, uint8_t const* data, uint64_t size) : handle(hl2ss::ulm::sm_get_meshes(ipc, count, data, size, meshes_data)), meshes{ count }
     {
         for (uint32_t i = 0; i < count; ++i) { check_result(hl2ss::ulm::sm_unpack_mesh(meshes_data, i, meshes[i])); }
     }
@@ -889,9 +889,9 @@ public:
         return std::make_unique<sm_surface_info_view>(m_handle);
     }
 
-    std::unique_ptr<sm_mesh_collection> get_meshes(hl2ss::sm_mesh_task const& tasks)
+    std::unique_ptr<sm_mesh_collection_view> get_meshes(hl2ss::sm_mesh_task const& tasks)
     {
-        return std::make_unique<sm_mesh_collection>(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size());
+        return std::make_unique<sm_mesh_collection_view>(m_handle, tasks.get_count(), tasks.get_data(), tasks.get_size());
     }
 };
 
