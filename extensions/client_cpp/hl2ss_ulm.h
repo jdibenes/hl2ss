@@ -1079,12 +1079,18 @@ using configuration_extended_audio     = hl2ss::ulm::configuration_extended_audi
 using configuration_extended_depth     = hl2ss::ulm::configuration_extended_depth;
 using configuration_pv_subsystem       = hl2ss::ulm::configuration_pv_subsystem;
 
+using source = hl2ss::shared::source;
+
 using ipc_rc  = hl2ss::shared::ipc_rc;
 using ipc_sm  = hl2ss::shared::ipc_sm;
 using ipc_su  = hl2ss::shared::ipc_su;
 using ipc_vi  = hl2ss::shared::ipc_vi;
 using ipc_umq = hl2ss::shared::ipc_umq;
 using ipc_gmq = hl2ss::shared::ipc_gmq;
+
+template<typename T>
+using calibration_view = hl2ss::shared::calibration_view<T>;
+using device_list_view = hl2ss::shared::device_list_view;
 
 HL2SS_INLINE
 void initialize()
@@ -1099,9 +1105,9 @@ void cleanup()
 }
 
 HL2SS_INLINE
-std::unique_ptr<hl2ss::shared::source> open_stream(char const* host, uint16_t port, uint64_t buffer_size, void* configuration, uint8_t decoded)
+std::unique_ptr<source> open_stream(char const* host, uint16_t port, uint64_t buffer_size, void* configuration, uint8_t decoded)
 {
-    return std::make_unique<hl2ss::shared::source>(host, port, buffer_size, configuration, decoded);
+    return std::make_unique<source>(host, port, buffer_size, configuration, decoded);
 }
 
 template<typename T>
@@ -1123,15 +1129,15 @@ void stop_subsystem_pv(char const* host, uint16_t port)
 }
 
 template<typename T>
-std::unique_ptr<hl2ss::shared::calibration_view<T>> download_calibration(char const* host, uint16_t port, void const* configuration)
+std::unique_ptr<calibration_view<T>> download_calibration(char const* host, uint16_t port, void const* configuration)
 {
-    return std::make_unique<hl2ss::shared::calibration_view<T>>(host, port, configuration);
+    return std::make_unique<calibration_view<T>>(host, port, configuration);
 }
 
 HL2SS_INLINE
-std::unique_ptr<hl2ss::shared::device_list_view> download_device_list(char const* host, uint16_t port, void const* configuration)
+std::unique_ptr<device_list_view> download_device_list(char const* host, uint16_t port, void const* configuration)
 {
-    return std::make_unique<hl2ss::shared::device_list_view>(host, port, configuration);
+    return std::make_unique<device_list_view>(host, port, configuration);
 }
 }
 }
