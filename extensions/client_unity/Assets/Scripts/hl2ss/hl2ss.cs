@@ -325,8 +325,22 @@ public static partial class hl2ss
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
     public struct matrix_4x4
     {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4 * 4)]
-        public float[] m;
+        public float m_00;
+        public float m_01;
+        public float m_02;
+        public float m_03;
+        public float m_10;
+        public float m_11;
+        public float m_12;
+        public float m_13;
+        public float m_20;
+        public float m_21;
+        public float m_22;
+        public float m_23;
+        public float m_30;
+        public float m_31;
+        public float m_32;
+        public float m_33;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -339,8 +353,8 @@ public static partial class hl2ss
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct uint64x2
     {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-        public ulong[] val;
+        public ulong val_0;
+        public ulong val_1;
     }
 
     //------------------------------------------------------------------------------
@@ -1125,7 +1139,7 @@ public static partial class hl2ss
 
     public static bool is_valid_pose(matrix_4x4 pose)
     {
-        return pose.m[15] != 0.0f;
+        return pose.m_33 != 0.0f;
     }
 
     //------------------------------------------------------------------------------
