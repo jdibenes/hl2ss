@@ -22,10 +22,10 @@ public class test_rm_depth_ahat : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
-        ushort port = hl2ss.stream_port.RM_DEPTH_AHAT;
+        var host = run_once.host_address;
+        var port = hl2ss.stream_port.RM_DEPTH_AHAT;
 
-        hl2ss.ulm.configuration_rm_depth_ahat configuration = new hl2ss.ulm.configuration_rm_depth_ahat();
+        var configuration = new hl2ss.ulm.configuration_rm_depth_ahat();
 
         using var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration);
         var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_depth_ahat>(calibration_handle.data);
