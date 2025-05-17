@@ -33,14 +33,15 @@ public class test_rgbd_align : MonoBehaviour
         // Configure
         host = run_once.host_address;
 
-        hl2ss.ulm.configuration_pv_subsystem configuration_subsystem = new hl2ss.ulm.configuration_pv_subsystem();
+        var configuration_subsystem = new hl2ss.ulm.configuration_pv_subsystem();
         configuration_pv = new hl2ss.ulm.configuration_pv();
-        hl2ss.ulm.configuration_rm_depth_longthrow configuration_zlt = new hl2ss.ulm.configuration_rm_depth_longthrow();
+        var configuration_zlt = new hl2ss.ulm.configuration_rm_depth_longthrow();
 
         configuration_pv.width = 640;
         configuration_pv.height = 360;
         configuration_pv.framerate = 30;
-        byte decoded_format = hl2ss.pv_decoded_format.RGBA;
+
+        var decoded_format = hl2ss.pv_decoded_format.RGBA;
 
         // Get calibration
         using var calibration_handle = hl2ss.svc.download_calibration(host, hl2ss.stream_port.RM_DEPTH_LONGTHROW, configuration_zlt);
@@ -72,7 +73,7 @@ public class test_rgbd_align : MonoBehaviour
 
         colormap_mat_lt.SetTexture("_ColorMapTex", colormap_texture);
         colormap_mat_lt.SetFloat("_Lf", 0.0f);
-        colormap_mat_lt.SetFloat("_Rf", 3.0f);
+        colormap_mat_lt.SetFloat("_Rf", 7.5f);
 
         rgb_image.GetComponent<Renderer>().material.mainTexture = tex_rgb;
         d_image.GetComponent<Renderer>().material.mainTexture   = tex_d_r;
@@ -83,20 +84,20 @@ public class test_rgbd_align : MonoBehaviour
     {
         // Get Depth and RGB data
         using var packet_zlt = source_zlt.get_by_index(-1);
-        if (packet_zlt.status != 0) { return; }
+        if (packet_zlt.status != hl2ss.mt.status.OK) { return; }
 
         using var packet_pv = source_pv.get_by_timestamp(packet_zlt.timestamp, hl2ss.mt.time_preference.PREFER_NEAREST, true); 
-        if (packet_pv.status != 0) { return; }
+        if (packet_pv.status != hl2ss.mt.status.OK) { return; }
 
         // Check poses are valid
-        Matrix4x4 pose_zlt = Marshal.PtrToStructure<Matrix4x4>(packet_zlt.pose);
+        var pose_zlt = Marshal.PtrToStructure<Matrix4x4>(packet_zlt.pose);
         if (pose_zlt.m33 == 0.0f) { return; }
 
-        Matrix4x4 pose_pv = Marshal.PtrToStructure<Matrix4x4>(packet_pv.pose);
+        var pose_pv = Marshal.PtrToStructure<Matrix4x4>(packet_pv.pose);
         if (pose_pv.m33 == 0.0f) { return; }
 
         // Compute Depth to RGB transform
-        Matrix4x4 depth2camera = pv_extrinsics * pose_pv.inverse * pose_zlt * zlt_extrinsics_inv;
+        var depth2camera = pv_extrinsics * pose_pv.inverse * pose_zlt * zlt_extrinsics_inv;
         using hl2da.pointer p_depth2camera = hl2da.pointer.get(depth2camera);
 
         // Extract data pointers
@@ -104,11 +105,11 @@ public class test_rgbd_align : MonoBehaviour
         packet_pv.unpack(out hl2ss.map_pv region_pv);
 
         // Get RGB intrinsics
-        hl2ss.pv_metadata metadata_pv = Marshal.PtrToStructure<hl2ss.pv_metadata>(region_pv.metadata);       
-        float[] pv_k = new float[4] { metadata_pv.f.x, metadata_pv.f.y, metadata_pv.c.x, metadata_pv.c.y };
+        var metadata_pv = Marshal.PtrToStructure<hl2ss.pv_metadata>(region_pv.metadata);       
+        var pv_k = new float[4] { metadata_pv.f.x, metadata_pv.f.y, metadata_pv.c.x, metadata_pv.c.y };
 
         // Align Depth
-        float[,,] pv_z = rgbd_aligner.align(align_algorithm, region_zlt.depth, p_depth2camera.value, pv_k, configuration_pv.width, configuration_pv.height);
+        var pv_z = rgbd_aligner.align(align_algorithm, region_zlt.depth, p_depth2camera.value, pv_k, configuration_pv.width, configuration_pv.height);
         using hl2da.pointer p_pv_z = hl2da.pointer.get(pv_z);
 
         // Display results
