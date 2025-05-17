@@ -8,9 +8,7 @@ public class test_ipc_rc : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
-
-        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.REMOTE_CONFIGURATION, out hl2ss.shared.ipc_rc ipc);
+        hl2ss.svc.open_ipc(run_once.host_address, hl2ss.ipc_port.REMOTE_CONFIGURATION, out hl2ss.shared.ipc_rc ipc);
 
         hl2ss.version version = ipc.ee_get_application_version();
         Debug.Log(string.Format("version {0}.{1}.{2}.{3}", version.field_0, version.field_1, version.field_2, version.field_3));
@@ -38,23 +36,22 @@ public class test_ipc_rc : MonoBehaviour
         ipc.ee_set_quiet_mode(false);
 
         var points = ipc.rm_map_camera_points(hl2ss.stream_port.RM_VLC_LEFTFRONT, hl2ss.rm_map_camera_point_operation.ImagePointToCameraUnitPlane, new float[4] { 0, 0, 320, 240 }, 2);
-        ulong timestamp = ipc.ts_get_current_time(hl2ss.ts_source.QPC);
+        var timestamp = ipc.ts_get_current_time(hl2ss.ts_source.QPC);
         var poses = ipc.rm_get_rignode_world_poses(new ulong[2] { timestamp, timestamp - hl2ss.time_base.HUNDREDS_OF_NANOSECONDS }, 2);
 
-        float[] image_points = new float[4];
+        var image_points = new float[4];
         Marshal.Copy(points.data, image_points, 0, 4);
         Debug.Log(string.Format("{0} {1} {2} {3}", image_points[0], image_points[1], image_points[2], image_points[3]));
 
         Debug.Log(timestamp);
-        Matrix4x4 pose0 = Marshal.PtrToStructure<Matrix4x4>(poses.data);
-        Matrix4x4 pose1 = Marshal.PtrToStructure<Matrix4x4>(IntPtr.Add(poses.data, 64));
-        Debug.Log(pose0);
-        Debug.Log(pose1);
+        var pose0 = Marshal.PtrToStructure<hl2ss.matrix_4x4>(poses.data);
+        var pose1 = Marshal.PtrToStructure<hl2ss.matrix_4x4>(IntPtr.Add(poses.data, Marshal.SizeOf<hl2ss.matrix_4x4>()));
+        Debug.Log(string.Format("pose0 [{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}, {15}]", pose0.m_00, pose0.m_01, pose0.m_02, pose0.m_03, pose0.m_10, pose0.m_11, pose0.m_12, pose0.m_13, pose0.m_20, pose0.m_21, pose0.m_22, pose0.m_23, pose0.m_30, pose0.m_31, pose0.m_32, pose0.m_33));
+        Debug.Log(string.Format("pose1 [{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}, {15}]", pose1.m_00, pose1.m_01, pose1.m_02, pose1.m_03, pose1.m_10, pose1.m_11, pose1.m_12, pose1.m_13, pose1.m_20, pose1.m_21, pose1.m_22, pose1.m_23, pose1.m_30, pose1.m_31, pose1.m_32, pose1.m_33));
 
         ipc.si_set_sampling_delay(0);
         ipc.ee_set_encoder_buffering(false);
         ipc.ee_set_reader_buffering(false);
-
         ipc.rm_set_loop_control(hl2ss.stream_port.RM_VLC_LEFTFRONT,  true);
         ipc.rm_set_loop_control(hl2ss.stream_port.RM_VLC_LEFTLEFT,   true);
         ipc.rm_set_loop_control(hl2ss.stream_port.RM_VLC_RIGHTFRONT, true);
