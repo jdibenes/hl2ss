@@ -25,6 +25,7 @@ public class test_si : MonoBehaviour
         
         var data = Marshal.PtrToStructure<hl2ss.si_frame>(region.tracking);
 
+        Debug.Log(string.Format("timestamp {0}", packet.timestamp));
         Debug.Log(string.Format("valid {0}", data.valid));
         Debug.Log(string.Format("head_pose position [{0}, {1}, {2}]", data.head_pose.position.x, data.head_pose.position.y, data.head_pose.position.z));
         Debug.Log(string.Format("head_pose up [{0}, {1}, {2}]",       data.head_pose.up.x,       data.head_pose.up.y,       data.head_pose.up.z));
