@@ -17,9 +17,9 @@ public class test_rm_vlc : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
+        var host = run_once.host_address;
 
-        hl2ss.ulm.configuration_rm_vlc configuration = new hl2ss.ulm.configuration_rm_vlc();
+        var configuration = new hl2ss.ulm.configuration_rm_vlc();
 
         using var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration);
         var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_vlc>(calibration_handle.data);
