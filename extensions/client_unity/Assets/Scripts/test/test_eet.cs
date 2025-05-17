@@ -30,6 +30,8 @@ public class test_eet : MonoBehaviour
 
         Debug.Log(string.Format("valid {0}", data.valid));
 
+        Debug.Log(string.Format("pose [{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}, {15}]", pose.m_00, pose.m_01, pose.m_02, pose.m_03, pose.m_10, pose.m_11, pose.m_12, pose.m_13, pose.m_20, pose.m_21, pose.m_22, pose.m_23, pose.m_30, pose.m_31, pose.m_32, pose.m_33));
+
         Debug.Log(string.Format("combined_ray origin [{0}, {1}, {2}]",    data.combined_ray.origin.x,    data.combined_ray.origin.y,    data.combined_ray.origin.z));
         Debug.Log(string.Format("combined_ray direction [{0}, {1}, {2}]", data.combined_ray.direction.x, data.combined_ray.direction.y, data.combined_ray.direction.z));
 
