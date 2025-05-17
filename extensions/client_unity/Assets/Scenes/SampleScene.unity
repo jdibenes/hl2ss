@@ -1167,8 +1167,6 @@ MonoBehaviour:
   source_index: 0
   profile_index: 0
   media_index: 15
-  width: 640
-  height: 360
 --- !u!1 &964864494
 GameObject:
   m_ObjectHideFlags: 0
