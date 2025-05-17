@@ -14,7 +14,7 @@ public class test_microphone : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        hl2ss.ulm.configuration_microphone configuration = new hl2ss.ulm.configuration_microphone();
+        var configuration = new hl2ss.ulm.configuration_microphone();
 
         hl2ss.svc.open_stream(run_once.host_address, hl2ss.stream_port.MICROPHONE, 1000, configuration, true, out source_microphone);
         index = -1;
@@ -57,7 +57,7 @@ public class test_microphone : MonoBehaviour
 
         packet.unpack<float>(out hl2ss.map_microphone region);
 
-        float[] samples = new float[region.count];
+        var samples = new float[region.count];
         Marshal.Copy(region.samples, samples, 0, samples.Length);
 
         buffer.AddRange(hl2ss.microphone_planar_to_packed<float>(samples, hl2ss.parameters_microphone.CHANNELS));
