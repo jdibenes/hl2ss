@@ -1,5 +1,4 @@
 
-using System;
 using System.Text;
 using UnityEngine;
 
@@ -8,9 +7,7 @@ public class test_ipc_umq : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
-
-        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.UNITY_MESSAGE_QUEUE, out hl2ss.shared.ipc_umq ipc);
+        hl2ss.svc.open_ipc(run_once.host_address, hl2ss.ipc_port.UNITY_MESSAGE_QUEUE, out hl2ss.shared.ipc_umq ipc);
 
         var buffer = new hl2ss.umq_command_buffer();
         var response = new uint[1];
