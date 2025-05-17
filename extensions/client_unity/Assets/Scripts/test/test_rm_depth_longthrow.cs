@@ -22,10 +22,10 @@ public class test_rm_depth_longthrow : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
-        ushort port = hl2ss.stream_port.RM_DEPTH_LONGTHROW;
+        var host = run_once.host_address;
+        var port = hl2ss.stream_port.RM_DEPTH_LONGTHROW;
 
-        hl2ss.ulm.configuration_rm_depth_longthrow configuration = new hl2ss.ulm.configuration_rm_depth_longthrow();
+        var configuration = new hl2ss.ulm.configuration_rm_depth_longthrow();
 
         using var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration);
         var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_depth_longthrow>(calibration_handle.data);
