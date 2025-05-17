@@ -9,7 +9,7 @@ public class test_eet : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        hl2ss.ulm.configuration_eet configuration = new hl2ss.ulm.configuration_eet();
+        var configuration = new hl2ss.ulm.configuration_eet();
 
         configuration.fps = 90;
 
