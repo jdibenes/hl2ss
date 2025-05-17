@@ -14,14 +14,13 @@ public class test_microphone : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
-
         hl2ss.ulm.configuration_microphone configuration = new hl2ss.ulm.configuration_microphone();
 
-        hl2ss.svc.open_stream(host, hl2ss.stream_port.MICROPHONE, 1000, configuration, true, out source_microphone);
-        index = 0;
+        hl2ss.svc.open_stream(run_once.host_address, hl2ss.stream_port.MICROPHONE, 1000, configuration, true, out source_microphone);
+        index = -1;
 
         buffer = new List<float>();
+
         audio_source = audio_source_object.GetComponent<AudioSource>();
         audio_source.clip = AudioClip.Create("audio_mc", 4 * hl2ss.parameters_microphone.GROUP_SIZE_AAC, hl2ss.parameters_microphone.CHANNELS, (int)hl2ss.parameters_microphone.SAMPLE_RATE, true, OnAudioRead);
         audio_source.Play();
@@ -31,9 +30,8 @@ public class test_microphone : MonoBehaviour
     {
         int count = 0;
         
-        while (count < data.Length)
+        while ((count < data.Length) && (count < buffer.Count))
         {
-            if (count >= buffer.Count) { break; }
             data[count] = buffer[count];
             count++;
         }
@@ -48,29 +46,20 @@ public class test_microphone : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        using (var packet = source_microphone.get_by_index(index))
+        using var packet = source_microphone.get_by_index(index);
+
+        switch (packet.status)
         {
-            if (packet.status < 0)
-            {
-                index++;
-                return;
-            }
-            if (packet.status > 0)
-            {
-                return;
-            }
-
-            index++;
-
-            packet.unpack<float>(out hl2ss.map_microphone region);
-
-            float[] b = new float[packet.sz_payload / sizeof(float)];
-            Marshal.Copy(region.samples, b, 0, b.Length);
-            for (int i = 0; i < (b.Length / 2); ++i)
-            {
-                buffer.Add(b[i]);
-                buffer.Add(b[(b.Length / 2) + i]);
-            }
+        case hl2ss.mt.status.DISCARDED: index = -1;                     return;
+        case hl2ss.mt.status.WAIT:                                      return;
+        case hl2ss.mt.status.OK:        index = packet.frame_stamp + 1; break;
         }
+
+        packet.unpack<float>(out hl2ss.map_microphone region);
+
+        float[] samples = new float[region.count];
+        Marshal.Copy(region.samples, samples, 0, samples.Length);
+
+        buffer.AddRange(hl2ss.microphone_planar_to_packed<float>(samples, hl2ss.parameters_microphone.CHANNELS));
     }
 }
