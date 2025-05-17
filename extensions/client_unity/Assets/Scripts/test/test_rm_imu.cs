@@ -12,9 +12,9 @@ public class test_rm_imu : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
+        var host = run_once.host_address;
 
-        hl2ss.ulm.configuration_rm_imu configuration = new hl2ss.ulm.configuration_rm_imu();
+        var configuration = new hl2ss.ulm.configuration_rm_imu();
 
         if (port != hl2ss.stream_port.RM_IMU_MAGNETOMETER)
         {
@@ -37,7 +37,7 @@ public class test_rm_imu : MonoBehaviour
 
         var pose = Marshal.PtrToStructure<hl2ss.matrix_4x4>(packet.pose);
 
-        hl2ss.rm_imu_sample[] samples = new hl2ss.rm_imu_sample[region.count];
+        var samples = new hl2ss.rm_imu_sample[region.count];
         for (int i = 0; i < region.count; ++i) { samples[i] = Marshal.PtrToStructure<hl2ss.rm_imu_sample>(IntPtr.Add(region.samples, i * Marshal.SizeOf<hl2ss.rm_imu_sample>())); }
 
         Debug.Log(string.Format("timestamp {0}", packet.timestamp));
