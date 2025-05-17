@@ -15,9 +15,9 @@ public class test_ea : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        string host = run_once.host_address;
+        var host = run_once.host_address;
 
-        hl2ss.ulm.configuration_extended_audio configuration = new hl2ss.ulm.configuration_extended_audio();
+        var configuration = new hl2ss.ulm.configuration_extended_audio();
 
         using var device_list_handle = hl2ss.svc.download_device_list(host, hl2ss.stream_port.EXTENDED_AUDIO, configuration);
 
@@ -66,7 +66,7 @@ public class test_ea : MonoBehaviour
 
         packet.unpack<float>(out hl2ss.map_microphone region);
 
-        float[] samples = new float[region.count];
+        var samples = new float[region.count];
         Marshal.Copy(region.samples, samples, 0, samples.Length);
 
         buffer.AddRange(hl2ss.microphone_planar_to_packed<float>(samples, hl2ss.parameters_microphone.CHANNELS));
