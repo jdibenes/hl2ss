@@ -12,21 +12,21 @@ public class test_rm_vlc : MonoBehaviour
     private RenderTexture texr_vlc;
     private Material mat_vlc;
 
-    private hl2ss.svc.source source_rm_vlc;    
+    private hl2ss.shared.source source_rm_vlc;    
 
     // Start is called before the first frame update
     void Start()
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.configuration_rm_vlc configuration = new hl2ss.svc.configuration_rm_vlc();
+        hl2ss.ulm.configuration_rm_vlc configuration = new hl2ss.ulm.configuration_rm_vlc();
 
         using (var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration))
         {
             var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_vlc>(calibration_handle.data);
         }
 
-        source_rm_vlc = hl2ss.svc.open_stream(host, port, 300, configuration, true);
+        hl2ss.svc.open_stream(host, port, 300, configuration, true, out source_rm_vlc);
 
         tex_vlc = new Texture2D(hl2ss.parameters_rm_vlc.WIDTH, hl2ss.parameters_rm_vlc.HEIGHT, TextureFormat.R8, false);
         texr_vlc = new RenderTexture(hl2ss.parameters_rm_vlc.WIDTH, hl2ss.parameters_rm_vlc.HEIGHT, 0, RenderTextureFormat.BGRA32);

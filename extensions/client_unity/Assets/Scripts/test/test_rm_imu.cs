@@ -7,14 +7,14 @@ public class test_rm_imu : MonoBehaviour
 {
     public ushort port = hl2ss.stream_port.RM_IMU_ACCELEROMETER;
 
-    private hl2ss.svc.source source_rm_imu;
+    private hl2ss.shared.source source_rm_imu;
 
     // Start is called before the first frame update
     void Start()
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.configuration_rm_imu configuration = new hl2ss.svc.configuration_rm_imu();
+        hl2ss.ulm.configuration_rm_imu configuration = new hl2ss.ulm.configuration_rm_imu();
 
         if (port != hl2ss.stream_port.RM_IMU_MAGNETOMETER)
         {
@@ -24,7 +24,7 @@ public class test_rm_imu : MonoBehaviour
             }
         }
 
-        source_rm_imu = hl2ss.svc.open_stream(host, port, 1000, configuration, true);
+        hl2ss.svc.open_stream(host, port, 1000, configuration, true, out source_rm_imu);
     }
 
     // Update is called once per frame

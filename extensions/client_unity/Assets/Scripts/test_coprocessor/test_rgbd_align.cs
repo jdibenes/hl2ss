@@ -11,14 +11,14 @@ public class test_rgbd_align : MonoBehaviour
     public Shader colormap_shader;
 
     private string host;
-    hl2ss.svc.configuration_pv configuration_pv;
+    hl2ss.ulm.configuration_pv configuration_pv;
 
     hl2ss.calibration_rm_depth_longthrow zlt_calibration;
     private Matrix4x4 zlt_extrinsics_inv;
     private Matrix4x4 pv_extrinsics;
 
-    private hl2ss.svc.source source_pv;
-    private hl2ss.svc.source source_zlt;
+    private hl2ss.shared.source source_pv;
+    private hl2ss.shared.source source_zlt;
 
     private hl2da.coprocessor.rgbd_align rgbd_aligner;
 
@@ -33,9 +33,9 @@ public class test_rgbd_align : MonoBehaviour
         // Configure
         host = run_once.host_address;
 
-        hl2ss.svc.configuration_pv_subsystem configuration_subsystem = new hl2ss.svc.configuration_pv_subsystem();
-        configuration_pv = new hl2ss.svc.configuration_pv();
-        hl2ss.svc.configuration_rm_depth_longthrow configuration_zlt = new hl2ss.svc.configuration_rm_depth_longthrow();
+        hl2ss.ulm.configuration_pv_subsystem configuration_subsystem = new hl2ss.ulm.configuration_pv_subsystem();
+        configuration_pv = new hl2ss.ulm.configuration_pv();
+        hl2ss.ulm.configuration_rm_depth_longthrow configuration_zlt = new hl2ss.ulm.configuration_rm_depth_longthrow();
 
         configuration_pv.width = 640;
         configuration_pv.height = 360;
@@ -56,8 +56,8 @@ public class test_rgbd_align : MonoBehaviour
         // Start streams
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration_subsystem);
 
-        source_pv  = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration_pv, decoded_format);
-        source_zlt = hl2ss.svc.open_stream(host, hl2ss.stream_port.RM_DEPTH_LONGTHROW, 50, configuration_zlt, true);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration_pv, decoded_format, out source_pv);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.RM_DEPTH_LONGTHROW, 50, configuration_zlt, true, out source_zlt);
 
         // Configure coprocessor
         hl2da.coprocessor.RM_DepthInitializeRays(hl2da.SENSOR_ID.RM_DEPTH_LONGTHROW, zlt_calibration.uv2xy);

@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class test_ipc_vi : MonoBehaviour
 {
-    private hl2ss.svc.ipc_vi ipc;
+    private hl2ss.shared.ipc_vi ipc;
 
     // Start is called before the first frame update
     void Start()

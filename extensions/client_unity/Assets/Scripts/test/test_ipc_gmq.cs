@@ -11,7 +11,7 @@ public class test_ipc_gmq : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.GUEST_MESSAGE_QUEUE, out hl2ss.svc.ipc_gmq ipc);
+        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.GUEST_MESSAGE_QUEUE, out hl2ss.shared.ipc_gmq ipc);
 
         uint[] response = new uint[1] { 1 };
 

@@ -24,7 +24,7 @@ public class test_ipc_sm : MonoBehaviour
 
         Debug.Log(string.Format("{0}, {1}, {2}", volumes.get_count(), volumes.get_data().Length, volumes.get_size()));
 
-        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.SPATIAL_MAPPING, out hl2ss.svc.ipc_sm ipc);
+        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.SPATIAL_MAPPING, out hl2ss.shared.ipc_sm ipc);
 
         ipc.set_volumes(volumes);
 

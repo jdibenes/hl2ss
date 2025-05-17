@@ -15,7 +15,7 @@ public class test_extended_depth : MonoBehaviour
     public ushort height = 360;
 
     private string host;
-    private hl2ss.svc.source source_ez;
+    private hl2ss.shared.source source_ez;
     private int ez_frame_size;
     private Texture2D tex_z;
     private RenderTexture texr_z;
@@ -26,12 +26,12 @@ public class test_extended_depth : MonoBehaviour
     {
         host = run_once.host_address;
 
-        hl2ss.svc.configuration_extended_depth configuration = new hl2ss.svc.configuration_extended_depth();
+        hl2ss.ulm.configuration_extended_depth configuration = new hl2ss.ulm.configuration_extended_depth();
 
         configuration.media_index = media_index;
         ez_frame_size = width * height * sizeof(ushort);
 
-        hl2ss.svc.configuration_pv_subsystem configuration_subsystem = new hl2ss.svc.configuration_pv_subsystem();
+        hl2ss.ulm.configuration_pv_subsystem configuration_subsystem = new hl2ss.ulm.configuration_pv_subsystem();
 
         configuration_subsystem.global_opacity = group_index;
         configuration_subsystem.output_width   = source_index;
@@ -39,7 +39,7 @@ public class test_extended_depth : MonoBehaviour
 
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.EXTENDED_DEPTH, configuration_subsystem);
 
-        source_ez = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_DEPTH, 300, configuration, true);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_DEPTH, 300, configuration, true, out source_ez);
 
         tex_z = new Texture2D(width, height, TextureFormat.R16, false);
         texr_z = new RenderTexture(width, height, 0, RenderTextureFormat.BGRA32);

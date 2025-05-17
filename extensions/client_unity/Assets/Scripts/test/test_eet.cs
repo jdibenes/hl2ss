@@ -4,18 +4,18 @@ using UnityEngine;
 
 public class test_eet : MonoBehaviour
 {
-    private hl2ss.svc.source source_eet;
+    private hl2ss.shared.source source_eet;
 
     // Start is called before the first frame update
     void Start()
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.configuration_eet configuration = new hl2ss.svc.configuration_eet();
+        hl2ss.ulm.configuration_eet configuration = new hl2ss.ulm.configuration_eet();
 
         configuration.fps = 90;
 
-        source_eet = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_EYE_TRACKER, 900, configuration, true);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_EYE_TRACKER, 900, configuration, true, out source_eet);
     }
 
     // Update is called once per frame

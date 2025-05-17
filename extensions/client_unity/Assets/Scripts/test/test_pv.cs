@@ -6,7 +6,7 @@ public class test_pv : MonoBehaviour
 {
     public GameObject quad_pv;
     private string host;
-    private hl2ss.svc.source source_pv;
+    private hl2ss.shared.source source_pv;
     private int pv_frame_size;
     private Texture2D tex_pv;
     private TextureFormat texture_format;
@@ -17,7 +17,7 @@ public class test_pv : MonoBehaviour
     {
         host = run_once.host_address;
 
-        hl2ss.svc.configuration_pv configuration = new hl2ss.svc.configuration_pv();
+        hl2ss.ulm.configuration_pv configuration = new hl2ss.ulm.configuration_pv();
 
         configuration.width = 640;
         configuration.height = 360;
@@ -50,7 +50,7 @@ public class test_pv : MonoBehaviour
             throw new System.Exception("Unsupported decoded format");
         }
 
-        hl2ss.svc.configuration_pv_subsystem configuration_subsystem = new hl2ss.svc.configuration_pv_subsystem();
+        hl2ss.ulm.configuration_pv_subsystem configuration_subsystem = new hl2ss.ulm.configuration_pv_subsystem();
 
         hl2ss.svc.start_subsystem_pv(host, hl2ss.stream_port.PERSONAL_VIDEO, configuration_subsystem);
 
@@ -59,7 +59,7 @@ public class test_pv : MonoBehaviour
             var calibration = Marshal.PtrToStructure<hl2ss.calibration_pv>(calibration_handle.data);
         }
 
-        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration, decoded_format);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.PERSONAL_VIDEO, 300, configuration, decoded_format, out source_pv);
     }
 
     // Update is called once per frame

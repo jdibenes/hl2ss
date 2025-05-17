@@ -17,7 +17,7 @@ public class test_rm_depth_ahat : MonoBehaviour
     private Material mat_z;
     private Material mat_ab;
 
-    private hl2ss.svc.source source_rm_depth_ahat;
+    private hl2ss.shared.source source_rm_depth_ahat;
 
     // Start is called before the first frame update
     void Start()
@@ -25,14 +25,14 @@ public class test_rm_depth_ahat : MonoBehaviour
         string host = run_once.host_address;
         ushort port = hl2ss.stream_port.RM_DEPTH_AHAT;
 
-        hl2ss.svc.configuration_rm_depth_ahat configuration = new hl2ss.svc.configuration_rm_depth_ahat();
+        hl2ss.ulm.configuration_rm_depth_ahat configuration = new hl2ss.ulm.configuration_rm_depth_ahat();
 
         using (var calibration_handle = hl2ss.svc.download_calibration(host, port, configuration))
         {
             var calibration = Marshal.PtrToStructure<hl2ss.calibration_rm_depth_ahat>(calibration_handle.data);
         }
 
-        source_rm_depth_ahat = hl2ss.svc.open_stream(host, port, 450, configuration, true);
+        hl2ss.svc.open_stream(host, port, 450, configuration, true, out source_rm_depth_ahat);
 
         tex_z  = new Texture2D(hl2ss.parameters_rm_depth_ahat.WIDTH, hl2ss.parameters_rm_depth_ahat.HEIGHT, TextureFormat.R16, false);
         tex_ab = new Texture2D(hl2ss.parameters_rm_depth_ahat.WIDTH, hl2ss.parameters_rm_depth_ahat.HEIGHT, TextureFormat.R16, false);

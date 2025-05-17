@@ -10,7 +10,7 @@ public class test_ipc_rc : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.REMOTE_CONFIGURATION, out hl2ss.svc.ipc_rc ipc);
+        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.REMOTE_CONFIGURATION, out hl2ss.shared.ipc_rc ipc);
 
         hl2ss.version version = ipc.ee_get_application_version();
         Debug.Log(string.Format("version {0}.{1}.{2}.{3}", version.field_0, version.field_1, version.field_2, version.field_3));

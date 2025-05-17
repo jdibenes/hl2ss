@@ -4,16 +4,16 @@ using UnityEngine;
 
 public class test_si : MonoBehaviour
 {
-    private hl2ss.svc.source source_si;
+    private hl2ss.shared.source source_si;
 
     // Start is called before the first frame update
     void Start()
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.configuration_si configuration = new hl2ss.svc.configuration_si();
+        hl2ss.ulm.configuration_si configuration = new hl2ss.ulm.configuration_si();
 
-        source_si = hl2ss.svc.open_stream(host, hl2ss.stream_port.SPATIAL_INPUT, 300, configuration, true);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.SPATIAL_INPUT, 300, configuration, true, out source_si);
     }
 
     // Update is called once per frame

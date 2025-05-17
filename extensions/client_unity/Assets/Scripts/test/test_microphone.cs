@@ -6,7 +6,7 @@ using UnityEngine;
 public class test_microphone : MonoBehaviour
 {
     public GameObject audio_source_object;
-    private hl2ss.svc.source source_microphone;
+    private hl2ss.shared.source source_microphone;
     private AudioSource audio_source;
     private long index;
     private List<float> buffer;
@@ -16,9 +16,9 @@ public class test_microphone : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.configuration_microphone configuration = new hl2ss.svc.configuration_microphone();
+        hl2ss.ulm.configuration_microphone configuration = new hl2ss.ulm.configuration_microphone();
 
-        source_microphone = hl2ss.svc.open_stream(host, hl2ss.stream_port.MICROPHONE, 1000, configuration, true);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.MICROPHONE, 1000, configuration, true, out source_microphone);
         index = 0;
 
         buffer = new List<float>();

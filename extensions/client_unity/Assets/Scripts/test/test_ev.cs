@@ -11,7 +11,7 @@ public class test_ev : MonoBehaviour
     public float profile_index = 4.0f;
 
     private string host;
-    private hl2ss.svc.source source_pv;
+    private hl2ss.shared.source source_pv;
     private int pv_frame_size;
     private Texture2D tex_pv;
 
@@ -20,7 +20,7 @@ public class test_ev : MonoBehaviour
     {
         host = run_once.host_address;
 
-        hl2ss.svc.configuration_pv configuration = new hl2ss.svc.configuration_pv();
+        hl2ss.ulm.configuration_pv configuration = new hl2ss.ulm.configuration_pv();
 
         configuration.width = 1280;
         configuration.height = 720;
@@ -58,7 +58,7 @@ public class test_ev : MonoBehaviour
 
         pv_frame_size = configuration.width * configuration.height * bpp;
 
-        hl2ss.svc.configuration_pv_subsystem configuration_subsystem = new hl2ss.svc.configuration_pv_subsystem();
+        hl2ss.ulm.configuration_pv_subsystem configuration_subsystem = new hl2ss.ulm.configuration_pv_subsystem();
 
         configuration_subsystem.global_opacity = group_index;
         configuration_subsystem.output_width   = source_index;
@@ -73,7 +73,7 @@ public class test_ev : MonoBehaviour
             Debug.Log(Encoding.Unicode.GetString(string_bytes));
         }
 
-        source_pv = hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_VIDEO, 300, configuration, decoded_format);
+        hl2ss.svc.open_stream(host, hl2ss.stream_port.EXTENDED_VIDEO, 300, configuration, decoded_format, out source_pv);
 
         tex_pv = new Texture2D(configuration.width, configuration.height, texture_format, false);
 

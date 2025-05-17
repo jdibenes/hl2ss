@@ -9,7 +9,7 @@ public class test_ipc_su : MonoBehaviour
     {
         string host = run_once.host_address;
 
-        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.SCENE_UNDERSTANDING, out hl2ss.svc.ipc_su ipc);
+        hl2ss.svc.open_ipc(host, hl2ss.ipc_port.SCENE_UNDERSTANDING, out hl2ss.shared.ipc_su ipc);
 
         hl2ss.su_task task = new hl2ss.su_task();
 
