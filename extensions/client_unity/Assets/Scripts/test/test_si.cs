@@ -19,7 +19,7 @@ public class test_si : MonoBehaviour
     {
         using var packet = source_si.get_by_index(-1);
 
-        if (packet.status != 0) { return; }
+        if (packet.status != hl2ss.mt.status.OK) { return; }
 
         packet.unpack(out hl2ss.map_si region);
         
