@@ -9,7 +9,7 @@ public class test_si : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        hl2ss.ulm.configuration_si configuration = new hl2ss.ulm.configuration_si();
+        var configuration = new hl2ss.ulm.configuration_si();
 
         hl2ss.svc.open_stream(run_once.host_address, hl2ss.stream_port.SPATIAL_INPUT, 300, configuration, true, out source_si);
     }
@@ -33,8 +33,8 @@ public class test_si : MonoBehaviour
         Debug.Log(string.Format("eye_ray origin [{0}, {1}, {2}]",     data.eye_ray.origin.x,     data.eye_ray.origin.y,     data.eye_ray.origin.z));
         Debug.Log(string.Format("eye_ray direction [{0}, {1}, {2}]",  data.eye_ray.direction.x,  data.eye_ray.direction.y,  data.eye_ray.direction.z));
 
-        hl2ss.si_hand_joint l_wrist = data.left_hand[hl2ss.si_hand_joint_kind.Wrist];
-        hl2ss.si_hand_joint r_wrist = data.right_hand[hl2ss.si_hand_joint_kind.Wrist];
+        var l_wrist = data.left_hand[hl2ss.si_hand_joint_kind.Wrist];
+        var r_wrist = data.right_hand[hl2ss.si_hand_joint_kind.Wrist];
 
         Debug.Log(string.Format("l_wrist position [{0}, {1}, {2}] orientation [{3}, {4}, {5} {6}] radius {7} accuracy {8}", l_wrist.position.x, l_wrist.position.y, l_wrist.position.z, l_wrist.orientation.x, l_wrist.orientation.y, l_wrist.orientation.z, l_wrist.orientation.w, l_wrist.radius, l_wrist.accuracy));
         Debug.Log(string.Format("r_wrist position [{0}, {1}, {2}] orientation [{3}, {4}, {5} {6}] radius {7} accuracy {8}", r_wrist.position.x, r_wrist.position.y, r_wrist.position.z, r_wrist.orientation.x, r_wrist.orientation.y, r_wrist.orientation.z, r_wrist.orientation.w, r_wrist.radius, r_wrist.accuracy));
