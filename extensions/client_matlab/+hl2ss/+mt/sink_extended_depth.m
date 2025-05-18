@@ -21,7 +21,7 @@ methods
             media_index     = 0xFFFFFFFF
             stride_mask     = 63
             chunk           = 4096
-            mode            = 0
+            mode            = 1
             divisor         = 1
             profile_z       = hl2ss.depth_profile.ZDEPTH
             buffer_size     = 300
