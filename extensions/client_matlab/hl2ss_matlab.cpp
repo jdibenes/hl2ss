@@ -1232,7 +1232,7 @@ public:
         matlab::data::TypedArray<uint64_t> timestamps = get_argument_array<uint64_t>(inputs);
         uint32_t                           count      = (uint32_t)timestamps.getNumberOfElements();
         auto result = ipc_rc->rm_get_rignode_world_poses(get_pointer(timestamps), count);
-        outputs[0] = to_typed_array<float>(result->data, count * sizeof(hl2ss::matrix_4x4), { 4, 4, count });;
+        outputs[0] = to_typed_array<float>(result->data, count * sizeof(hl2ss::matrix_4x4), { 4, 4, count });
         }
         else if (f == "ts_get_current_time")
         {
