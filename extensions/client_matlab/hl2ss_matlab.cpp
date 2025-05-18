@@ -1464,14 +1464,22 @@ public:
         if (f == "start")
         {
         matlab::data::StringArray commands = get_argument_array<matlab::data::MATLABString>(inputs);
-        
-        std::u16string utf16_s = u"";
-        for (size_t i = 0; i < commands.getNumberOfElements(); ++i) { if (commands[i].has_value()) { utf16_s = utf16_s + std::u16string(commands[i]) + u"\0"; } }
-        
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>,char16_t> convert;
-        auto utf8_s = convert.to_bytes(utf16_s);
 
-        ipc_vi->start(utf8_s.c_str());
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>,char16_t> convert;
+        std::vector<char> utf8_s;
+        
+        for (size_t i = 0; i < commands.getNumberOfElements(); ++i)
+        {
+        if (commands[i].has_value())
+        {
+        auto command = convert.to_bytes(commands[i]);
+        utf8_s.insert(utf8_s.end(), command.begin(), command.end());
+        utf8_s.push_back(0);
+        }
+        }
+        utf8_s.push_back(0);
+
+        ipc_vi->start(utf8_s.data());
         }
         else if (f == "pop")
         {
