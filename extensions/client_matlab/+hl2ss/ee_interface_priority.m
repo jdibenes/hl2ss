@@ -1,5 +1,5 @@
 
-classdef interface_priority
+classdef ee_interface_priority
 properties (Constant)
     LOWEST       = int32(-2);
     BELOW_NORMAL = int32(-1);
