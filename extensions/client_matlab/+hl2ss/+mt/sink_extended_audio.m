@@ -52,8 +52,13 @@ methods
         response = self.module('get_packet', self.port, hl2ss.grab_mode.BY_TIMESTAMP, uint64(timestamp), int32(time_preference), int32(tiebreak_right));
     end
 
-    function response = download_calibration(self)
-        response = self.module('download_calibration', self.host, self.port);
+    function response = download_calibration(self, profile, level)
+        arguments
+            self
+            profile = hl2ss.audio_profile.AAC_24000
+            level   = hl2ss.aac_level.L2
+        end
+        response = self.module('download_calibration', self.host, self.port, uint8(profile), uint8(level));
     end
     
     function close(self)
