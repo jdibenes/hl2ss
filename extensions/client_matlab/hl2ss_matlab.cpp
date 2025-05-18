@@ -548,7 +548,7 @@ public:
 
     void pack_pv(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "intrinsics", "exposure", "imaging", "gains", "resolution", "pose" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "intrinsics", "exposure", "imaging", "gains", "pose" });
 
         o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
         o[0]["status"]      = m_factory.createScalar<int32_t>(status);
