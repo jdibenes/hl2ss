@@ -1223,14 +1223,14 @@ public:
         uint16_t                        port      = get_argument<uint16_t>(inputs);
         uint32_t                        operation = get_argument<uint32_t>(inputs);
         matlab::data::TypedArray<float> points    = get_argument_array<float>(inputs);
-        uint32_t                        count     = get_argument<uint32_t>(inputs);
+        uint32_t                        count     = (uint32_t)points.getNumberOfElements() / 2;
         auto result = ipc_rc->rm_map_camera_points(port, operation, (hl2ss::vector_2*)get_pointer(points), count);
         outputs[0] = to_typed_array<float>(result->data, count * 2 * sizeof(float), { 2, count });
         }
         else if (f == "rm_get_rignode_world_poses")
         {
         matlab::data::TypedArray<uint64_t> timestamps = get_argument_array<uint64_t>(inputs);
-        uint32_t                           count      = get_argument<uint32_t>(inputs);
+        uint32_t                           count      = (uint32_t)timestamps.getNumberOfElements();
         auto result = ipc_rc->rm_get_rignode_world_poses(get_pointer(timestamps), count);
         outputs[0] = to_typed_array<float>(result->data, count * sizeof(hl2ss::matrix_4x4), { 4, 4, count });;
         }
