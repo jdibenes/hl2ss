@@ -32,8 +32,6 @@ for k = 1:numel(surface_infos)
     task.vertex_position_format        = hl2ss.sm_vertex_position_format.R32G32B32A32Float;
     task.triangle_index_format         = hl2ss.sm_triangle_index_format.R32Uint;
     task.vertex_normal_format          = hl2ss.sm_vertex_normal_format.R32G32B32A32Float;
-    task.include_vertex_normals        = true;
-    task.include_bounds                = true;
     tasks = [tasks; task];
 end
 
