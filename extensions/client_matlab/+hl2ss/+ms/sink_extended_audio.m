@@ -9,7 +9,9 @@ classdef sink_extended_audio < matlab.System
         port            = hl2ss.stream_port.EXTENDED_AUDIO
         chunk           = 4096
         mixer_mode      = hl2ss.mixer_mode.BOTH
-        device          = -1
+        device_index    = -1
+        source_index    = 0
+        format_index    = 0
         loopback_gain   = 1.0
         microphone_gain = 1.0
         profile         = hl2ss.audio_profile.AAC_24000
@@ -51,7 +53,7 @@ classdef sink_extended_audio < matlab.System
 
             coder.extrinsic('hl2ss_matlab')
 
-            obj.client = hl2ss.mt.sink_extended_audio(obj.host, obj.port, obj.chunk, hl2ss.extended_audio_device_mixer_mode(obj.mixer_mode, obj.device), obj.loopback_gain, obj.microphone_gain, obj.profile, obj.level, obj.buffer_size, @hl2ss_matlab);
+            obj.client = hl2ss.mt.sink_extended_audio(obj.host, obj.port, obj.chunk, hl2ss.extended_audio_device_mixer_mode(obj.mixer_mode, obj.device_index, obj.source_index, obj.format_index), obj.loopback_gain, obj.microphone_gain, obj.profile, obj.level, obj.buffer_size, @hl2ss_matlab);
             
             obj.client.open()
         end
