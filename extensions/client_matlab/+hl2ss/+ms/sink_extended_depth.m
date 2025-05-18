@@ -12,7 +12,7 @@ classdef sink_extended_depth < matlab.System
         height         = 360
         media_index    = 0xFFFFFFFF
         stride_mask    = 63
-        mode           = 0
+        mode           = 1
         divisor        = 1
         profile_z      = hl2ss.depth_profile.ZDEPTH
         buffer_size    = 30 * 10
@@ -66,7 +66,7 @@ classdef sink_extended_depth < matlab.System
             obj.client.open()
         end
 
-        function [frame_index, status, timestamp, depth] = stepImpl(obj, sync, index)
+        function [frame_index, status, timestamp, depth, pose] = stepImpl(obj, sync, index)
             if (sync <= 0)
                 response = obj.client.get_packet_by_index(index);
             else
@@ -82,6 +82,7 @@ classdef sink_extended_depth < matlab.System
             status      = data.status;
             timestamp   = data.timestamp;
             depth       = data.depth;
+            pose        = data.pose;
         end
 
         function resetImpl(obj)
@@ -93,32 +94,36 @@ classdef sink_extended_depth < matlab.System
             obj.client.stop_subsystem()
         end
 
-        function [out1, out2, out3, out4] = getOutputSizeImpl(obj)
+        function [out1, out2, out3, out4, out5] = getOutputSizeImpl(obj)
             out1 = [1, 1];
             out2 = [1, 1];
             out3 = [1, 1];
             out4 = obj.getImageSize();
+            out5 = [4, 4];
         end
 
-        function [out1, out2, out3, out4] = getOutputDataTypeImpl(obj)
+        function [out1, out2, out3, out4, out5] = getOutputDataTypeImpl(obj)
             out1 = 'int64';
             out2 = 'int32';
             out3 = 'uint64';
             out4 = 'uint16';
+            out5 = 'single';
         end
 
-        function [out1, out2, out3, out4] = isOutputComplexImpl(obj)
+        function [out1, out2, out3, out4, out5] = isOutputComplexImpl(obj)
             out1 = false;
             out2 = false;
             out3 = false;
             out4 = false;
+            out5 = false;
         end
 
-        function [out1, out2, out3, out4] = isOutputFixedSizeImpl(obj)
+        function [out1, out2, out3, out4, out5] = isOutputFixedSizeImpl(obj)
             out1 = true;
             out2 = true;
             out3 = true;
             out4 = true;
+            out5 = true;
         end
 
         function sts = getSampleTimeImpl(obj)
