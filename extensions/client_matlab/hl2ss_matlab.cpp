@@ -1,8 +1,7 @@
 
 #include "mex.hpp"
 #include "mexAdapter.hpp"
-#include "hl2ss_lnm.h"
-#include "hl2ss_mt.h"
+#include "hl2ss_ulm.h"
 
 namespace hl2ss
 {
@@ -16,8 +15,6 @@ uint8_t const BY_TIMESTAMP   = 1;
 }
 }
 
-typedef std::vector<uint64_t> options_t;
-
 //------------------------------------------------------------------------------
 // (*) MexFunction
 //------------------------------------------------------------------------------
@@ -30,23 +27,27 @@ private:
     uint32_t m_argument_index;
     bool m_initialized;
 
-    std::unique_ptr<hl2ss::mt::source> source_rm_vlc[4];
-    std::unique_ptr<hl2ss::mt::source> source_rm_depth_ahat;
-    std::unique_ptr<hl2ss::mt::source> source_rm_depth_longthrow;
-    std::unique_ptr<hl2ss::mt::source> source_rm_imu[3];
-    std::unique_ptr<hl2ss::mt::source> source_pv;
-    std::unique_ptr<hl2ss::mt::source> source_microphone;
-    std::unique_ptr<hl2ss::mt::source> source_si;
-    std::unique_ptr<hl2ss::mt::source> source_eet;
-    std::unique_ptr<hl2ss::mt::source> source_extended_audio;
-    std::unique_ptr<hl2ss::mt::source> source_ev;
-    std::unique_ptr<hl2ss::mt::source> source_extended_depth;
-    std::unique_ptr<hl2ss::ipc_rc>     ipc_rc;
-    std::unique_ptr<hl2ss::ipc_sm>     ipc_sm;
-    std::unique_ptr<hl2ss::ipc_su>     ipc_su;
-    std::unique_ptr<hl2ss::ipc_vi>     ipc_vi;
-    std::unique_ptr<hl2ss::ipc_umq>    ipc_umq;
-    std::unique_ptr<hl2ss::ipc_gmq>    ipc_gmq;
+    std::unique_ptr<hl2ss::shared::source> source_rm_vlc[4];
+    std::unique_ptr<hl2ss::shared::source> source_rm_depth_ahat;
+    std::unique_ptr<hl2ss::shared::source> source_rm_depth_longthrow;
+    std::unique_ptr<hl2ss::shared::source> source_rm_imu[3];
+    std::unique_ptr<hl2ss::shared::source> source_pv;
+    std::unique_ptr<hl2ss::shared::source> source_microphone;
+    std::unique_ptr<hl2ss::shared::source> source_si;
+    std::unique_ptr<hl2ss::shared::source> source_eet;
+    std::unique_ptr<hl2ss::shared::source> source_extended_audio;
+    std::unique_ptr<hl2ss::shared::source> source_ev;
+    std::unique_ptr<hl2ss::shared::source> source_extended_depth;
+
+    std::unique_ptr<hl2ss::shared::ipc_rc>  ipc_rc;
+    std::unique_ptr<hl2ss::shared::ipc_sm>  ipc_sm;
+    std::unique_ptr<hl2ss::shared::ipc_su>  ipc_su;
+    std::unique_ptr<hl2ss::shared::ipc_vi>  ipc_vi;
+    std::unique_ptr<hl2ss::shared::ipc_umq> ipc_umq;
+    std::unique_ptr<hl2ss::shared::ipc_gmq> ipc_gmq;
+
+    hl2ss::ulm::configuration_microphone     configuration_microphone;
+    hl2ss::ulm::configuration_extended_audio configuration_extended_audio;
 
 public:
     //------------------------------------------------------------------------------
@@ -138,132 +139,181 @@ public:
 
     void open_rm_vlc(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t  chunk       =               get_argument<uint64_t>(inputs);
-        uint8_t   mode        =               get_argument<uint8_t>(inputs);
-        uint8_t   divisor     =               get_argument<uint8_t>(inputs);
-        uint8_t   profile     =               get_argument<uint8_t>(inputs);
-        uint8_t   level       =               get_argument<uint8_t>(inputs);
-        uint32_t  bitrate     =               get_argument<uint32_t>(inputs);
-        options_t options     = to_std_vector(get_argument_array<uint64_t>(inputs));
-        bool      decoded     =               true;
-        uint64_t  buffer_size =               get_argument<uint64_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_rm_vlc();
 
-        (source_rm_vlc[port - hl2ss::stream_port::RM_VLC_LEFTFRONT] = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_vlc(host, port, chunk, mode, divisor, profile, level, bitrate, &options, decoded)))->start();
+        configuration.chunk   = get_argument<uint64_t>(inputs);
+        configuration.mode    = get_argument<uint8_t>(inputs);
+        configuration.divisor = get_argument<uint8_t>(inputs);
+        configuration.profile = get_argument<uint8_t>(inputs);
+        configuration.level   = get_argument<uint8_t>(inputs);
+        configuration.bitrate = get_argument<uint32_t>(inputs);
+
+        auto options = get_argument_array<uint64_t>(inputs);
+        
+        configuration.options_data = get_pointer(options);
+        configuration.options_size = options.getNumberOfElements();
+
+        bool     decoded     = true;
+        uint64_t buffer_size = get_argument<uint64_t>(inputs);
+
+        source_rm_vlc[port - hl2ss::stream_port::RM_VLC_LEFTFRONT] = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
     }
 
     void open_rm_depth_ahat(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t  chunk       =               get_argument<uint64_t>(inputs);
-        uint8_t   mode        =               get_argument<uint8_t>(inputs);
-        uint8_t   divisor     =               get_argument<uint8_t>(inputs);
-        uint8_t   profile_z   =               get_argument<uint8_t>(inputs);
-        uint8_t   profile_ab  =               get_argument<uint8_t>(inputs);
-        uint8_t   level       =               get_argument<uint8_t>(inputs);
-        uint32_t  bitrate     =               get_argument<uint32_t>(inputs);
-        options_t options     = to_std_vector(get_argument_array<uint64_t>(inputs));
-        bool      decoded     =               true;
-        uint64_t  buffer_size =               get_argument<uint64_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_rm_depth_ahat();
 
-        (source_rm_depth_ahat = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_depth_ahat(host, port, chunk, mode, divisor, profile_z, profile_ab, level, bitrate, &options, decoded)))->start();
+        configuration.chunk      = get_argument<uint64_t>(inputs);
+        configuration.mode       = get_argument<uint8_t>(inputs);
+        configuration.divisor    = get_argument<uint8_t>(inputs);
+        configuration.profile_z  = get_argument<uint8_t>(inputs);
+        configuration.profile_ab = get_argument<uint8_t>(inputs);
+        configuration.level      = get_argument<uint8_t>(inputs);
+        configuration.bitrate    = get_argument<uint32_t>(inputs);
+
+        auto options = get_argument_array<uint64_t>(inputs);
+
+        configuration.options_data = get_pointer(options);
+        configuration.options_size = options.getNumberOfElements();
+
+        bool     decoded     = true;
+        uint64_t buffer_size = get_argument<uint64_t>(inputs);
+
+        source_rm_depth_ahat = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
     }
 
     void open_rm_depth_longthrow(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t chunk       = get_argument<uint64_t>(inputs);
-        uint8_t  mode        = get_argument<uint8_t>(inputs);
-        uint8_t  divisor     = get_argument<uint8_t>(inputs);
-        uint8_t  png_filter  = get_argument<uint8_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_rm_depth_longthrow();
+
+        configuration.chunk      = get_argument<uint64_t>(inputs);
+        configuration.mode       = get_argument<uint8_t>(inputs);
+        configuration.divisor    = get_argument<uint8_t>(inputs);
+        configuration.png_filter = get_argument<uint8_t>(inputs);
+
         bool     decoded     = true;
         uint64_t buffer_size = get_argument<uint64_t>(inputs);
 
-        (source_rm_depth_longthrow = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_depth_longthrow(host, port, chunk, mode, divisor, png_filter, decoded)))->start();
+        source_rm_depth_longthrow = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
     }
 
     void open_rm_imu(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t chunk       = get_argument<uint64_t>(inputs);
-        uint8_t  mode        = get_argument<uint8_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_rm_imu();
+
+        configuration.chunk = get_argument<uint64_t>(inputs);
+        configuration.mode  = get_argument<uint8_t>(inputs);
+
+        bool     decoded     = true;
         uint64_t buffer_size = get_argument<uint64_t>(inputs);
         
-        (source_rm_imu[port - hl2ss::stream_port::RM_IMU_ACCELEROMETER] = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_rm_imu(host, port, chunk, mode)))->start();
+        source_rm_imu[port - hl2ss::stream_port::RM_IMU_ACCELEROMETER] = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
     }
-
+ 
     void open_pv(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint16_t  width          =               get_argument<uint16_t>(inputs);
-        uint16_t  height         =               get_argument<uint16_t>(inputs);
-        uint8_t   framerate      =               get_argument<uint8_t>(inputs);
-        uint64_t  chunk          =               get_argument<uint64_t>(inputs);
-        uint8_t   mode           =               get_argument<uint8_t>(inputs);
-        uint8_t   divisor        =               get_argument<uint8_t>(inputs);
-        uint8_t   profile        =               get_argument<uint8_t>(inputs);
-        uint8_t   level          =               get_argument<uint8_t>(inputs);
-        uint32_t  bitrate        =               get_argument<uint32_t>(inputs);
-        options_t options        = to_std_vector(get_argument_array<uint64_t>(inputs));
-        uint8_t   decoded_format =               get_argument<uint8_t>(inputs) % 5;
-        uint64_t  buffer_size    =               get_argument<uint64_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_pv();
+
+        configuration.width     = get_argument<uint16_t>(inputs);
+        configuration.height    = get_argument<uint16_t>(inputs);
+        configuration.framerate = get_argument<uint8_t>(inputs);
+        configuration.chunk     = get_argument<uint64_t>(inputs);
+        configuration.mode      = get_argument<uint8_t>(inputs);
+        configuration.divisor   = get_argument<uint8_t>(inputs);
+        configuration.profile   = get_argument<uint8_t>(inputs);
+        configuration.level     = get_argument<uint8_t>(inputs);
+        configuration.bitrate   = get_argument<uint32_t>(inputs);
+
+        auto options = get_argument_array<uint64_t>(inputs);
+
+        configuration.options_data = get_pointer(options);
+        configuration.options_size = options.getNumberOfElements();
+
+        uint8_t  decoded_format = get_argument<uint8_t>(inputs) % 5;
+        uint64_t buffer_size    = get_argument<uint64_t>(inputs);
 
         switch (port)
         {
-        case hl2ss::stream_port::PERSONAL_VIDEO: (source_pv = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_pv(host, port, width, height, framerate, chunk, mode, divisor, profile, level, bitrate, &options, decoded_format)))->start(); break;
-        case hl2ss::stream_port::EXTENDED_VIDEO: (source_ev = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_pv(host, port, width, height, framerate, chunk, mode, divisor, profile, level, bitrate, &options, decoded_format)))->start(); break;
+        case hl2ss::stream_port::PERSONAL_VIDEO: source_pv = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded_format); break;
+        case hl2ss::stream_port::EXTENDED_VIDEO: source_ev = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded_format); break;
         }
     }
 
     void open_microphone(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t chunk       = get_argument<uint64_t>(inputs);
-        uint8_t  profile     = get_argument<uint8_t>(inputs);
-        uint8_t  level       = get_argument<uint8_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_microphone();
+
+        configuration.chunk   = get_argument<uint64_t>(inputs);
+        configuration.profile = get_argument<uint8_t>(inputs);
+        configuration.level   = get_argument<uint8_t>(inputs);
+
         bool     decoded     = true;
         uint64_t buffer_size = get_argument<uint64_t>(inputs);
         
-        (source_microphone = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_microphone(host, port, chunk, profile, level, decoded)))->start();
+        source_microphone = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
+        
+        configuration_microphone = configuration;
     }
 
     void open_si(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t chunk       = get_argument<uint64_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_si();
+
+        configuration.chunk = get_argument<uint64_t>(inputs);
+
+        bool     decoded     = true;
         uint64_t buffer_size = get_argument<uint64_t>(inputs);
 
-        (source_si = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_si(host, port, chunk)))->start();
+        source_si = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
     }
 
     void open_eet(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t chunk       = get_argument<uint64_t>(inputs);
-        uint8_t  framerate   = get_argument<uint8_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_eet();
+
+        configuration.chunk = get_argument<uint64_t>(inputs);
+        configuration.fps   = get_argument<uint8_t>(inputs);
+
+        bool     decoded     = true;
         uint64_t buffer_size = get_argument<uint64_t>(inputs);
 
-        (source_eet = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_eet(host, port, chunk, framerate)))->start();
+        source_eet = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
     }
 
     void open_extended_audio(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t chunk           = get_argument<uint64_t>(inputs);
-        uint32_t mixer_mode      = get_argument<uint32_t>(inputs);
-        float    loopback_gain   = get_argument<float>(inputs);
-        float    microphone_gain = get_argument<float>(inputs);
-        uint8_t  profile         = get_argument<uint8_t>(inputs);
-        uint8_t  level           = get_argument<uint8_t>(inputs);
-        bool     decoded         = true;
-        uint64_t buffer_size     = get_argument<uint64_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_extended_audio();
 
-        (source_extended_audio = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_extended_audio(host, port, chunk, mixer_mode, loopback_gain, microphone_gain, profile, level, decoded)))->start();
+        configuration.chunk           = get_argument<uint64_t>(inputs);
+        configuration.mixer_mode      = get_argument<uint32_t>(inputs);
+        configuration.loopback_gain   = get_argument<float>(inputs);
+        configuration.microphone_gain = get_argument<float>(inputs);
+        configuration.profile         = get_argument<uint8_t>(inputs);
+        configuration.level           = get_argument<uint8_t>(inputs);
+
+        bool     decoded     = true;
+        uint64_t buffer_size = get_argument<uint64_t>(inputs);
+
+        source_extended_audio = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
+    
+        configuration_extended_audio = configuration;
     }
 
     void open_extended_depth(char const* host, uint16_t port, matlab::mex::ArgumentList inputs)
     {
-        uint64_t chunk       = get_argument<uint64_t>(inputs);
-        uint64_t media_index = get_argument<uint64_t>(inputs);
-        uint64_t stride_mask = get_argument<uint64_t>(inputs);
-        uint8_t  mode        = get_argument<uint8_t>(inputs);
-        uint8_t  divisor     = get_argument<uint8_t>(inputs);
-        uint8_t  profile_z   = get_argument<uint8_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_extended_depth();
+
+        configuration.chunk       = get_argument<uint64_t>(inputs);
+        configuration.media_index = get_argument<uint64_t>(inputs);
+        configuration.stride_mask = get_argument<uint64_t>(inputs);
+        configuration.mode        = get_argument<uint8_t>(inputs);
+        configuration.divisor     = get_argument<uint8_t>(inputs);
+        configuration.profile_z   = get_argument<uint8_t>(inputs);
+
         bool     decoded     = true;
         uint64_t buffer_size = get_argument<uint64_t>(inputs);
 
-        (source_extended_depth = std::make_unique<hl2ss::mt::source>(buffer_size, hl2ss::lnm::rx_extended_depth(host, port, media_index, stride_mask, chunk, mode, divisor, profile_z)))->start();
+        source_extended_depth = hl2ss::svc::open_stream<hl2ss::shared::source>(host, port, buffer_size, &configuration, decoded);
     }
 
     void open(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -291,12 +341,13 @@ public:
         case hl2ss::stream_port::EXTENDED_VIDEO:       open_pv(                host.c_str(), port, inputs); break;
         case hl2ss::stream_port::EXTENDED_DEPTH:       open_extended_depth(    host.c_str(), port, inputs); break;
         // IPC
-        case hl2ss::ipc_port::REMOTE_CONFIGURATION:    (ipc_rc  = hl2ss::lnm::ipc_rc( host.c_str(), port))->open(); break;
-        case hl2ss::ipc_port::SPATIAL_MAPPING:         (ipc_sm  = hl2ss::lnm::ipc_sm( host.c_str(), port))->open(); break;
-        case hl2ss::ipc_port::SCENE_UNDERSTANDING:     (ipc_su  = hl2ss::lnm::ipc_su( host.c_str(), port))->open(); break;
-        case hl2ss::ipc_port::VOICE_INPUT:             (ipc_vi  = hl2ss::lnm::ipc_vi( host.c_str(), port))->open(); break;
-        case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     (ipc_umq = hl2ss::lnm::ipc_umq(host.c_str(), port))->open(); break;
-        case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     (ipc_gmq = hl2ss::lnm::ipc_gmq(host.c_str(), port))->open(); break;
+        case hl2ss::ipc_port::REMOTE_CONFIGURATION:    ipc_rc  = hl2ss::svc::open_ipc<hl2ss::shared::ipc_rc>( host.c_str(), port); break;
+        case hl2ss::ipc_port::SPATIAL_MAPPING:         ipc_sm  = hl2ss::svc::open_ipc<hl2ss::shared::ipc_sm>( host.c_str(), port); break;
+        case hl2ss::ipc_port::SCENE_UNDERSTANDING:     ipc_su  = hl2ss::svc::open_ipc<hl2ss::shared::ipc_su>( host.c_str(), port); break;
+        case hl2ss::ipc_port::VOICE_INPUT:             ipc_vi  = hl2ss::svc::open_ipc<hl2ss::shared::ipc_vi>( host.c_str(), port); break;
+        case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     ipc_umq = hl2ss::svc::open_ipc<hl2ss::shared::ipc_umq>(host.c_str(), port); break;
+        case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     ipc_gmq = hl2ss::svc::open_ipc<hl2ss::shared::ipc_gmq>(host.c_str(), port); break;
+        //
         default:                                       throw std::runtime_error("Unknown port");
         }
     }
@@ -335,6 +386,7 @@ public:
         case hl2ss::ipc_port::VOICE_INPUT:             ipc_vi  = nullptr; break;
         case hl2ss::ipc_port::UNITY_MESSAGE_QUEUE:     ipc_umq = nullptr; break;
         case hl2ss::ipc_port::GUEST_MESSAGE_QUEUE:     ipc_gmq = nullptr; break;
+        //
         default:                                       throw std::runtime_error("Unknown port");
         }
     }
@@ -353,12 +405,12 @@ public:
 
     matlab::data::Array unpack_pose(hl2ss::matrix_4x4 const* pose)
     {
-        std::unique_ptr<float[]> pose_copy = std::make_unique<float[]>(hl2ss::packet::SZ_POSE / sizeof(float));
-        memcpy(pose_copy.get(), pose, hl2ss::packet::SZ_POSE);
+        std::unique_ptr<float[]> pose_copy = std::make_unique<float[]>(sizeof(hl2ss::matrix_4x4) / sizeof(float));
+        memcpy(pose_copy.get(), pose, sizeof(hl2ss::matrix_4x4));
         return m_factory.createArrayFromBuffer<float>({4, 4}, matlab::data::buffer_ptr_t<float>(pose_copy.release(), default_deleter), matlab::data::MemoryLayout::ROW_MAJOR);
     }
 
-    void pack_rm_vlc(int64_t frame_index, int32_t status, hl2ss::packet* packet, matlab::mex::ArgumentList outputs)
+    void pack_rm_vlc(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
         uint32_t size = hl2ss::parameters_rm_vlc::PIXELS * sizeof(uint8_t);
 
@@ -372,7 +424,7 @@ public:
         o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::map_rm_vlc region = hl2ss::unpack_rm_vlc(packet->payload.get());
+        hl2ss::map_rm_vlc region = hl2ss::unpack_rm_vlc(packet->payload, packet->sz_payload);
 
         o[0]["image"]        = unpack_payload<uint8_t>(region.image, 0, size, { hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
         o[0]["sensor_ticks"] = m_factory.createScalar<uint64_t>(region.metadata->sensor_ticks);
@@ -381,14 +433,14 @@ public:
         }
         if (packet->pose)
         {
-        o[0]["pose"]         = unpack_pose(packet->pose.get());
+        o[0]["pose"]         = unpack_pose(packet->pose);
         }
         }
 
         outputs[0] = std::move(o);
     }
 
-    void pack_rm_depth_ahat(int64_t frame_index, int32_t status, hl2ss::packet* packet, matlab::mex::ArgumentList outputs)
+    void pack_rm_depth_ahat(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
         uint32_t size = hl2ss::parameters_rm_depth_ahat::PIXELS * sizeof(uint16_t);
 
@@ -402,7 +454,7 @@ public:
         o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::map_rm_depth_ahat region = hl2ss::unpack_rm_depth_ahat(packet->payload.get());
+        hl2ss::map_rm_depth_ahat region = hl2ss::unpack_rm_depth_ahat(packet->payload, packet->sz_payload);
 
         o[0]["depth"]        = unpack_payload<uint16_t>(region.depth, 0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
         o[0]["ab"]           = unpack_payload<uint16_t>(region.ab,    0, size, { hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
@@ -410,14 +462,14 @@ public:
         }
         if (packet->pose)
         {
-        o[0]["pose"]         = unpack_pose(packet->pose.get());
+        o[0]["pose"]         = unpack_pose(packet->pose);
         }
         }
 
         outputs[0] = std::move(o);
     }
 
-    void pack_rm_depth_longthrow(int64_t frame_index, int32_t status, hl2ss::packet* packet, matlab::mex::ArgumentList outputs)
+    void pack_rm_depth_longthrow(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
         uint32_t size = hl2ss::parameters_rm_depth_longthrow::PIXELS * sizeof(uint16_t);
 
@@ -430,7 +482,7 @@ public:
         o[0]["timestamp"]    = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::map_rm_depth_longthrow region = hl2ss::unpack_rm_depth_longthrow(packet->payload.get());
+        hl2ss::map_rm_depth_longthrow region = hl2ss::unpack_rm_depth_longthrow(packet->payload, packet->sz_payload);
 
         o[0]["depth"]        = unpack_payload<uint16_t>(region.depth, 0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
         o[0]["ab"]           = unpack_payload<uint16_t>(region.ab,    0, size, { hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
@@ -438,14 +490,14 @@ public:
         }
         if (packet->pose)
         {
-        o[0]["pose"]         = unpack_pose(packet->pose.get());
+        o[0]["pose"]         = unpack_pose(packet->pose);
         }
         }
 
         outputs[0] = std::move(o);
     }
 
-    void pack_rm_imu(int64_t frame_index, int32_t status, hl2ss::packet* packet, matlab::mex::ArgumentList outputs)
+    void pack_rm_imu(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "sensor_timestamp", "host_timestamp", "x", "y", "z", "temperature", "pose" });
 
@@ -466,7 +518,7 @@ public:
         matlab::data::TypedArray<float>    z                = m_factory.createArray<float>({ samples });
         matlab::data::TypedArray<float>    temperature      = m_factory.createArray<float>({ samples });
 
-        hl2ss::map_rm_imu region = hl2ss::unpack_rm_imu(packet->payload.get());
+        hl2ss::map_rm_imu region = hl2ss::unpack_rm_imu(packet->payload, packet->sz_payload);
 
         for (uint32_t i = 0; i < samples; ++i)
         {
@@ -487,16 +539,16 @@ public:
         }
         if (packet->pose)
         {
-        o[0]["pose"]             = unpack_pose(packet->pose.get());
+        o[0]["pose"]             = unpack_pose(packet->pose);
         }
         }
 
         outputs[0] = std::move(o);
     }
 
-    void pack_pv(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint16_t width, uint16_t height, uint8_t channels, matlab::mex::ArgumentList outputs)
+    void pack_pv(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "intrinsics", "exposure", "imaging", "gains", "pose" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "image", "intrinsics", "exposure", "imaging", "gains", "resolution", "pose" });
 
         o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
         o[0]["status"]      = m_factory.createScalar<int32_t>(status);
@@ -506,8 +558,12 @@ public:
         o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        uint32_t image_size = packet->sz_payload - hl2ss::decoder_pv::METADATA_SIZE;
-        hl2ss::map_pv region = hl2ss::unpack_pv(packet->payload.get(), packet->sz_payload);
+        uint32_t image_size = packet->sz_payload - sizeof(hl2ss::pv_metadata);
+        hl2ss::map_pv region = hl2ss::unpack_pv(packet->payload, packet->sz_payload);
+        
+        uint32_t width    = region.metadata->width;
+        uint32_t height   = region.metadata->height;
+        uint32_t channels = image_size / (width * height);
 
         o[0]["image"]       = unpack_payload<uint8_t>(  region.image,                   0, image_size,           { height, width, channels });
         o[0]["intrinsics"]  = unpack_payload<float>(   &region.metadata->f,             0, 4 * sizeof(float),    { 4 });
@@ -517,14 +573,14 @@ public:
         }
         if (packet->pose)
         {
-        o[0]["pose"]        = unpack_pose(packet->pose.get());
+        o[0]["pose"]        = unpack_pose(packet->pose);
         }
         }
 
         outputs[0] = std::move(o);
     }
 
-    void pack_microphone(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint8_t profile, uint8_t level, matlab::mex::ArgumentList outputs)
+    void pack_microphone(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, uint8_t profile, uint8_t level, matlab::mex::ArgumentList outputs)
     {
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "audio" });
 
@@ -538,15 +594,15 @@ public:
         {
         if (profile != hl2ss::audio_profile::RAW)
         {
-        o[0]["audio"]       = unpack_payload<float>(  packet->payload.get(), 0, packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS,       packet->sz_payload / (sizeof(float)   * hl2ss::parameters_microphone::CHANNELS) });
+        o[0]["audio"]       = unpack_payload<float>(  packet->payload, 0, packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS,       packet->sz_payload / (sizeof(float)   * hl2ss::parameters_microphone::CHANNELS) });
         }
         else if (level == hl2ss::aac_level::L5)
         {
-        o[0]["audio"]       = to_typed_array<float>(  packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::ARRAY_CHANNELS, packet->sz_payload / (sizeof(float)   * hl2ss::parameters_microphone::ARRAY_CHANNELS) });
+        o[0]["audio"]       = to_typed_array<float>(  packet->payload,    packet->sz_payload, { hl2ss::parameters_microphone::ARRAY_CHANNELS, packet->sz_payload / (sizeof(float)   * hl2ss::parameters_microphone::ARRAY_CHANNELS) });
         }
         else
         {
-        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS,       packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_microphone::CHANNELS) });
+        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload,    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS,       packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_microphone::CHANNELS) });
         }
         }
         }
@@ -554,7 +610,7 @@ public:
         outputs[0] = std::move(o);
     }
 
-    void pack_si(int64_t frame_index, int32_t status, hl2ss::packet* packet, matlab::mex::ArgumentList outputs)
+    void pack_si(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "valid", "head_pose", "eye_ray", "left_hand", "right_hand" });
 
@@ -566,7 +622,7 @@ public:
         o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::map_si region = hl2ss::unpack_si(packet->payload.get());
+        hl2ss::map_si region = hl2ss::unpack_si(packet->payload, packet->sz_payload);
 
         o[0]["valid"]       = m_factory.createScalar<uint32_t>({ region.tracking->valid });
         o[0]["head_pose"]   = to_typed_array<float>(&region.tracking->head_pose,  sizeof(region.tracking->head_pose),  { 3, 3 });
@@ -579,7 +635,7 @@ public:
         outputs[0] = std::move(o);
     }
 
-    void pack_eet(int64_t frame_index, int32_t status, hl2ss::packet* packet, matlab::mex::ArgumentList outputs)
+    void pack_eet(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "combined_ray", "left_ray", "right_ray", "left_openness", "right_openness", "vergence_distance", "valid", "pose" });
 
@@ -591,7 +647,7 @@ public:
         o[0]["timestamp"]         = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        hl2ss::map_eet region = hl2ss::unpack_eet(packet->payload.get());
+        hl2ss::map_eet region = hl2ss::unpack_eet(packet->payload, packet->sz_payload);
 
         o[0]["combined_ray"]      = to_typed_array<float>(&region.tracking->combined_ray, sizeof(region.tracking->combined_ray), { 6 });
         o[0]["left_ray"]          = to_typed_array<float>(&region.tracking->left_ray,     sizeof(region.tracking->left_ray),     { 6 });
@@ -603,15 +659,17 @@ public:
         }
         if (packet->pose)
         {
-        o[0]["pose"]              = unpack_pose(packet->pose.get());
+        o[0]["pose"]              = unpack_pose(packet->pose);
         }
         }
 
         outputs[0] = std::move(o);
     }
 
-    void pack_extended_audio(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint8_t profile, matlab::mex::ArgumentList outputs)
+    void pack_extended_audio(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, uint8_t profile, uint8_t level, matlab::mex::ArgumentList outputs)
     {
+        (void)level;
+
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "audio" });
 
         o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
@@ -624,11 +682,15 @@ public:
         {
         if (profile != hl2ss::audio_profile::RAW)
         {
-        o[0]["audio"]       = unpack_payload<float>(  packet->payload.get(), 0, packet->sz_payload, { hl2ss::parameters_extended_audio::CHANNELS, packet->sz_payload / (sizeof(float) * hl2ss::parameters_extended_audio::CHANNELS) });
+        o[0]["audio"]       = unpack_payload<float>(  packet->payload, 0, packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS, packet->sz_payload / (sizeof(float) * hl2ss::parameters_microphone::CHANNELS) });
+        }
+        else if ((level & 0x80) == 0)
+        {
+        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload,    packet->sz_payload, { hl2ss::parameters_microphone::CHANNELS, packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_microphone::CHANNELS) });
         }
         else
         {
-        o[0]["audio"]       = to_typed_array<int16_t>(packet->payload.get(),    packet->sz_payload, { hl2ss::parameters_extended_audio::CHANNELS, packet->sz_payload / (sizeof(int16_t) * hl2ss::parameters_extended_audio::CHANNELS) });
+        o[0]["audio"]       = to_typed_array<int8_t>( packet->payload,    packet->sz_payload, { packet->sz_payload });
         }
         }
         }
@@ -636,9 +698,9 @@ public:
         outputs[0] = std::move(o);
     }
 
-    void pack_extended_depth(int64_t frame_index, int32_t status, hl2ss::packet* packet, uint16_t width, uint16_t height, matlab::mex::ArgumentList outputs)
+    void pack_extended_depth(int64_t frame_index, int32_t status, hl2ss::ulm::packet* packet, matlab::mex::ArgumentList outputs)
     {
-        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "depth" });
+        matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "frame_index", "status", "timestamp", "depth", "pose" });
 
         o[0]["frame_index"] = m_factory.createScalar<int64_t>(frame_index);
         o[0]["status"]      = m_factory.createScalar<int32_t>(status);
@@ -648,205 +710,147 @@ public:
         o[0]["timestamp"]   = m_factory.createScalar<uint64_t>(packet->timestamp);
         if (packet->payload)
         {
-        uint32_t size = width * height * sizeof(uint16_t);
-        hl2ss::map_extended_depth region = hl2ss::unpack_extended_depth(packet->payload.get(), packet->sz_payload);
+        hl2ss::map_extended_depth region = hl2ss::unpack_extended_depth(packet->payload, packet->sz_payload);
+
+        uint32_t width  = region.metadata->width;
+        uint32_t height = region.metadata->height;
+        uint32_t size   = width * height * sizeof(uint16_t);
 
         o[0]["depth"]       = unpack_payload<uint16_t>(region.depth, 0, size, { height, width });
+        }
+        if (packet->pose)
+        {
+        o[0]["pose"]        = unpack_pose(packet->pose);
         }
         }
 
         outputs[0] = std::move(o);
     }
 
-    std::shared_ptr<hl2ss::packet> grab(hl2ss::mt::source* source, int64_t&frame_index, int32_t& status, matlab::mex::ArgumentList inputs)
+    std::shared_ptr<hl2ss::shared::packet_view> grab(hl2ss::shared::source* source, int64_t& frame_index, int32_t& status, matlab::mex::ArgumentList inputs)
     {
         if (!source) { throw std::runtime_error("Port not open"); }
 
-        std::exception source_error;
-        if (!source->status(source_error)) { throw source_error; }
-
         uint8_t type = get_argument<uint8_t>(inputs);
+        std::unique_ptr<hl2ss::shared::packet_view> packet;
+
         if (type == hl2ss::matlab::grab_mode::BY_FRAME_INDEX)
         {
-        frame_index = get_argument<int64_t>(inputs);
-        return source->get_packet(frame_index, status);
+        int64_t index = get_argument<int64_t>(inputs);
+        
+        packet = source->get_by_index(index);
         }
         else if (type == hl2ss::matlab::grab_mode::BY_TIMESTAMP)
         {
         uint64_t timestamp       = get_argument<uint64_t>(inputs);
         int32_t  time_preference = get_argument<int32_t>(inputs);
         int32_t  tiebreak_right  = get_argument<int32_t>(inputs);
-        return source->get_packet(timestamp, time_preference, tiebreak_right, frame_index, status);
+
+        packet = source->get_by_timestamp(timestamp, time_preference, tiebreak_right);
         }
         else
         {
         throw std::runtime_error("Unsupported grab type");
         }
+
+        frame_index = packet->frame_stamp;
+        status      = packet->status;
+        
+        return packet;
     }
 
     void get_packet_rm_vlc(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        hl2ss::mt::source* source = source_rm_vlc[port - hl2ss::stream_port::RM_VLC_LEFTFRONT].get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_rm_vlc[port - hl2ss::stream_port::RM_VLC_LEFTFRONT].get(), frame_index, status, inputs);
         pack_rm_vlc(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet_rm_depth_ahat(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         (void)port;
-
-        hl2ss::mt::source* source = source_rm_depth_ahat.get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_rm_depth_ahat.get(), frame_index, status, inputs);
         pack_rm_depth_ahat(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet_rm_depth_longthrow(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         (void)port;
-
-        hl2ss::mt::source* source = source_rm_depth_longthrow.get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_rm_depth_longthrow.get(), frame_index, status, inputs);
         pack_rm_depth_longthrow(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet_rm_imu(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        hl2ss::mt::source* source = source_rm_imu[port - hl2ss::stream_port::RM_IMU_ACCELEROMETER].get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_rm_imu[port - hl2ss::stream_port::RM_IMU_ACCELEROMETER].get(), frame_index, status, inputs);
         pack_rm_imu(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet_pv(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        hl2ss::mt::source* source;
-
+        hl2ss::shared::source* source;
         switch (port)
         {
         case hl2ss::stream_port::PERSONAL_VIDEO: source = source_pv.get(); break;
         case hl2ss::stream_port::EXTENDED_VIDEO: source = source_ev.get(); break;
         default:                                 source = nullptr;         break;
-        }        
-
+        }
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
-        uint16_t width;
-        uint16_t height;
-        uint8_t channels;
-
-        if (packet)
-        {
-        hl2ss::rx_decoded_pv const* p_rx = source->get_rx<hl2ss::rx_decoded_pv>();
-        
-        width    = p_rx->width;
-        height   = p_rx->height;
-        channels = hl2ss::decoder_pv::decoded_bpp(p_rx->decoded_format);
-        }
-        else
-        {
-        width = height = channels = 0;
-        }
-
-        pack_pv(frame_index, status, packet.get(), width, height, channels, outputs);
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source, frame_index, status, inputs);
+        pack_pv(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet_microphone(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         (void)port;
-
-        hl2ss::mt::source* source = source_microphone.get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-        hl2ss::rx_microphone const* p_rx = source->get_rx<hl2ss::rx_microphone>();
-
-        pack_microphone(frame_index, status, packet.get(), p_rx->profile, p_rx->level, outputs);
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_microphone.get(), frame_index, status, inputs);
+        pack_microphone(frame_index, status, packet.get(), configuration_microphone.profile, configuration_microphone.level, outputs);
     }
 
     void get_packet_si(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         (void)port;
-
-        hl2ss::mt::source* source = source_si.get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_si.get(), frame_index, status, inputs);
         pack_si(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet_eet(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         (void)port;
-
-        hl2ss::mt::source* source = source_eet.get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_eet.get(), frame_index, status, inputs);
         pack_eet(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet_extended_audio(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         (void)port;
-
-        hl2ss::mt::source* source = source_extended_audio.get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-        hl2ss::rx_extended_audio const* p_rx = source->get_rx<hl2ss::rx_extended_audio>();
-
-        pack_extended_audio(frame_index, status, packet.get(), p_rx->profile, outputs);        
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_extended_audio.get(), frame_index, status, inputs);
+        pack_extended_audio(frame_index, status, packet.get(), configuration_extended_audio.profile, configuration_extended_audio.level, outputs);        
     }
 
     void get_packet_extended_depth(uint16_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         (void)port;
-
-        hl2ss::mt::source* source = source_extended_depth.get();
-
         int64_t frame_index;
         int32_t status;
-        std::shared_ptr<hl2ss::packet> packet = grab(source, frame_index, status, inputs);
-
-        uint16_t width;
-        uint16_t height;
-
-        if (packet)
-        {
-        hl2ss::rx_decoded_extended_depth const* p_rx = source->get_rx<hl2ss::rx_decoded_extended_depth>();
-        
-        width    = p_rx->width;
-        height   = p_rx->height;
-        }
-        else
-        {
-        width = height = 0;
-        }
-
-        pack_extended_depth(frame_index, status, packet.get(), width, height, outputs);
+        std::shared_ptr<hl2ss::shared::packet_view> packet = grab(source_extended_depth.get(), frame_index, status, inputs);
+        pack_extended_depth(frame_index, status, packet.get(), outputs);
     }
 
     void get_packet(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -884,18 +888,21 @@ public:
     {
         std::string host                       = get_argument_string(inputs);
         uint16_t    port                       = get_argument<uint16_t>(inputs);
-        bool        enable_mrc                 = get_argument<bool>(inputs);
-        bool        hologram_composition       = get_argument<bool>(inputs);
-        bool        recording_indicator        = get_argument<bool>(inputs);
-        bool        video_stabilization        = get_argument<bool>(inputs);
-        bool        blank_protected            = get_argument<bool>(inputs);
-        bool        show_mesh                  = get_argument<bool>(inputs);
-        bool        shared                     = get_argument<bool>(inputs);
-        float       global_opacity             = get_argument<float>(inputs);
-        float       output_width               = get_argument<float>(inputs);
-        float       output_height              = get_argument<float>(inputs);
-        uint32_t    video_stabilization_length = get_argument<uint32_t>(inputs);
-        uint32_t    hologram_perspective       = get_argument<uint32_t>(inputs);
+
+        auto configuration = hl2ss::ulm::configuration_pv_subsystem();
+
+        configuration.enable_mrc                 = get_argument<bool>(inputs);
+        configuration.hologram_composition       = get_argument<bool>(inputs);
+        configuration.recording_indicator        = get_argument<bool>(inputs);
+        configuration.video_stabilization        = get_argument<bool>(inputs);
+        configuration.blank_protected            = get_argument<bool>(inputs);
+        configuration.show_mesh                  = get_argument<bool>(inputs);
+        configuration.shared                     = get_argument<bool>(inputs);
+        configuration.global_opacity             = get_argument<float>(inputs);
+        configuration.output_width               = get_argument<float>(inputs);
+        configuration.output_height              = get_argument<float>(inputs);
+        configuration.video_stabilization_length = get_argument<uint32_t>(inputs);
+        configuration.hologram_perspective       = get_argument<uint32_t>(inputs);
 
         switch (port)
         {
@@ -905,7 +912,7 @@ public:
         default:                                                              throw std::runtime_error("Unsupported operation");
         }
 
-        hl2ss::lnm::start_subsystem_pv(host.c_str(), port, enable_mrc, hologram_composition, recording_indicator, video_stabilization, blank_protected, show_mesh, shared, global_opacity, output_width, output_height, video_stabilization_length, hologram_perspective);
+        hl2ss::svc::start_subsystem_pv(host.c_str(), port, &configuration);
     }
 
     void stop_subsystem_pv(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
@@ -921,7 +928,7 @@ public:
         default:                                                              throw std::runtime_error("Unsupported operation");
         }
 
-        hl2ss::lnm::stop_subsystem_pv(host.c_str(), port);
+        hl2ss::svc::stop_subsystem_pv(host.c_str(), port);
     }
 
     //------------------------------------------------------------------------------
@@ -934,14 +941,14 @@ public:
 
         if (source_rm_vlc[port - hl2ss::stream_port::RM_VLC_LEFTFRONT]) { throw std::runtime_error("Cannot download calibration while streaming"); }
 
-        std::shared_ptr<hl2ss::calibration_rm_vlc> data = hl2ss::lnm::download_calibration_rm_vlc(host, port);
+        auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_vlc>(host, port, nullptr);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "undistort_map", "intrinsics" });
 
-        o[0]["uv2xy"]         = unpack_payload<float>(&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
-        o[0]["extrinsics"]    = unpack_payload<float>(&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
-        o[0]["undistort_map"] = unpack_payload<float>(&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
-        o[0]["intrinsics"]    = to_typed_array<float>(data->intrinsics, { sizeof(data->intrinsics) / sizeof(float) });
+        o[0]["uv2xy"]         = unpack_payload<float>(calibration->data->uv2xy,         0, sizeof(calibration->data->uv2xy),         { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>(calibration->data->extrinsics,    0, sizeof(calibration->data->extrinsics),    { 4, 4 });
+        o[0]["undistort_map"] = unpack_payload<float>(calibration->data->undistort_map, 0, sizeof(calibration->data->undistort_map), { 2, hl2ss::parameters_rm_vlc::HEIGHT, hl2ss::parameters_rm_vlc::WIDTH });
+        o[0]["intrinsics"]    = to_typed_array<float>(calibration->data->intrinsics,     { sizeof(calibration->data->intrinsics) / sizeof(float) });
 
         outputs[0] = std::move(o);
     }
@@ -952,16 +959,16 @@ public:
 
         if (source_rm_depth_ahat) { throw std::runtime_error("Cannot download calibration while streaming"); }
 
-        std::shared_ptr<hl2ss::calibration_rm_depth_ahat> data = hl2ss::lnm::download_calibration_rm_depth_ahat(host, port);
+        auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_depth_ahat>(host, port, nullptr);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "scale", "alias", "undistort_map", "intrinsics" });
 
-        o[0]["uv2xy"]         = unpack_payload<float>(&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
-        o[0]["extrinsics"]    = unpack_payload<float>(&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
-        o[0]["scale"]         = m_factory.createScalar<float>(data->scale);
-        o[0]["alias"]         = m_factory.createScalar<float>(data->alias);
-        o[0]["undistort_map"] = unpack_payload<float>(&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
-        o[0]["intrinsics"]    = to_typed_array<float>(data->intrinsics, { sizeof(data->intrinsics) / sizeof(float) });
+        o[0]["uv2xy"]         = unpack_payload<float>(        calibration->data->uv2xy,         0, sizeof(calibration->data->uv2xy),         { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>(        calibration->data->extrinsics,    0, sizeof(calibration->data->extrinsics),    { 4, 4 });
+        o[0]["scale"]         = m_factory.createScalar<float>(calibration->data->scale);
+        o[0]["alias"]         = m_factory.createScalar<float>(calibration->data->alias);
+        o[0]["undistort_map"] = unpack_payload<float>(        calibration->data->undistort_map, 0, sizeof(calibration->data->undistort_map), { 2, hl2ss::parameters_rm_depth_ahat::HEIGHT, hl2ss::parameters_rm_depth_ahat::WIDTH });
+        o[0]["intrinsics"]    = to_typed_array<float>(        calibration->data->intrinsics,     { sizeof(calibration->data->intrinsics) / sizeof(float) });
 
         outputs[0] = std::move(o);
     }
@@ -972,15 +979,15 @@ public:
 
         if (source_rm_depth_longthrow) { throw std::runtime_error("Cannot download calibration while streaming"); }
 
-        std::shared_ptr<hl2ss::calibration_rm_depth_longthrow> data = hl2ss::lnm::download_calibration_rm_depth_longthrow(host, port);
+        auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_depth_longthrow>(host, port, nullptr);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "uv2xy", "extrinsics", "scale", "undistort_map", "intrinsics" });
 
-        o[0]["uv2xy"]         = unpack_payload<float>(&data->uv2xy,         0, sizeof(data->uv2xy),         { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
-        o[0]["extrinsics"]    = unpack_payload<float>(&data->extrinsics,    0, sizeof(data->extrinsics),    { 4, 4 });
-        o[0]["scale"]         = m_factory.createScalar<float>(data->scale);
-        o[0]["undistort_map"] = unpack_payload<float>(&data->undistort_map, 0, sizeof(data->undistort_map), { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
-        o[0]["intrinsics"]    = to_typed_array<float>(data->intrinsics, { sizeof(data->intrinsics) / sizeof(float) });
+        o[0]["uv2xy"]         = unpack_payload<float>(        calibration->data->uv2xy,         0, sizeof(calibration->data->uv2xy),         { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["extrinsics"]    = unpack_payload<float>(        calibration->data->extrinsics,    0, sizeof(calibration->data->extrinsics),    { 4, 4 });
+        o[0]["scale"]         = m_factory.createScalar<float>(calibration->data->scale);
+        o[0]["undistort_map"] = unpack_payload<float>(        calibration->data->undistort_map, 0, sizeof(calibration->data->undistort_map), { 2, hl2ss::parameters_rm_depth_longthrow::HEIGHT, hl2ss::parameters_rm_depth_longthrow::WIDTH });
+        o[0]["intrinsics"]    = to_typed_array<float>(        calibration->data->intrinsics,     { sizeof(calibration->data->intrinsics) / sizeof(float) });
 
         outputs[0] = std::move(o);
     }
@@ -991,11 +998,11 @@ public:
 
         if (source_rm_imu[port - hl2ss::stream_port::RM_IMU_ACCELEROMETER]) { throw std::runtime_error("Cannot download calibration while streaming"); }
 
-        std::shared_ptr<hl2ss::calibration_rm_imu> data = hl2ss::lnm::download_calibration_rm_imu(host, port);
+        auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_rm_imu>(host, port, nullptr);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "extrinsics" });
 
-        o[0]["extrinsics"] = unpack_payload<float>(&data->extrinsics, 0, sizeof(data->extrinsics), { 4, 4 });
+        o[0]["extrinsics"] = unpack_payload<float>(calibration->data->extrinsics, 0, sizeof(calibration->data->extrinsics), { 4, 4 });
 
         outputs[0] = std::move(o);
     }
@@ -1004,44 +1011,51 @@ public:
     {
         if (source_pv) { throw std::runtime_error("Cannot download calibration while streaming"); }
 
-        uint16_t width     = get_argument<uint16_t>(inputs);
-        uint16_t height    = get_argument<uint16_t>(inputs);
-        uint8_t  framerate = get_argument<uint8_t>(inputs);
+        auto configuration = hl2ss::ulm::configuration_pv();
 
-        std::shared_ptr<hl2ss::calibration_pv> data = hl2ss::lnm::download_calibration_pv(host, port, width, height, framerate);
+        configuration.width     = get_argument<uint16_t>(inputs);
+        configuration.height    = get_argument<uint16_t>(inputs);
+        configuration.framerate = get_argument<uint8_t>(inputs);
+
+        auto calibration = hl2ss::svc::download_calibration<hl2ss::calibration_pv>(host, port, &configuration);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "focal_length", "principal_point", "radial_distortion", "tangential_distortion", "projection", "extrinsics", "intrinsics_mf", "extrinsics_mf" });
 
-        o[0]["focal_length"]          = to_typed_array<float>(data->focal_length,          { sizeof(data->focal_length)          / sizeof(float) });
-        o[0]["principal_point"]       = to_typed_array<float>(data->principal_point,       { sizeof(data->principal_point)       / sizeof(float) });
-        o[0]["radial_distortion"]     = to_typed_array<float>(data->radial_distortion,     { sizeof(data->radial_distortion)     / sizeof(float) });
-        o[0]["tangential_distortion"] = to_typed_array<float>(data->tangential_distortion, { sizeof(data->tangential_distortion) / sizeof(float) });
-        o[0]["projection"]            = unpack_payload<float>(&data->projection, 0, sizeof(data->projection), { 4, 4 });
-        o[0]["extrinsics"]            = unpack_payload<float>(&data->extrinsics, 0, sizeof(data->extrinsics), { 4, 4 });
-        o[0]["intrinsics_mf"]         = to_typed_array<float>(data->intrinsics_mf,         { sizeof(data->intrinsics_mf)         / sizeof(float) });
-        o[0]["extrinsics_mf"]         = to_typed_array<float>(data->extrinsics_mf,         { sizeof(data->extrinsics_mf)         / sizeof(float) });
+        o[0]["focal_length"]          = to_typed_array<float>(calibration->data->focal_length,          { sizeof(calibration->data->focal_length)          / sizeof(float) });
+        o[0]["principal_point"]       = to_typed_array<float>(calibration->data->principal_point,       { sizeof(calibration->data->principal_point)       / sizeof(float) });
+        o[0]["radial_distortion"]     = to_typed_array<float>(calibration->data->radial_distortion,     { sizeof(calibration->data->radial_distortion)     / sizeof(float) });
+        o[0]["tangential_distortion"] = to_typed_array<float>(calibration->data->tangential_distortion, { sizeof(calibration->data->tangential_distortion) / sizeof(float) });
+        o[0]["projection"]            = unpack_payload<float>(calibration->data->projection,           0, sizeof(calibration->data->projection), { 4, 4 });
+        o[0]["extrinsics"]            = unpack_payload<float>(calibration->data->extrinsics,           0, sizeof(calibration->data->extrinsics), { 4, 4 });
+        o[0]["intrinsics_mf"]         = to_typed_array<float>(calibration->data->intrinsics_mf,         { sizeof(calibration->data->intrinsics_mf)         / sizeof(float) });
+        o[0]["extrinsics_mf"]         = to_typed_array<float>(calibration->data->extrinsics_mf,         { sizeof(calibration->data->extrinsics_mf)         / sizeof(float) });
 
         outputs[0] = std::move(o);
     }
 
     void download_devicelist_extended_audio(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_audio(host, port);
+        auto configuration = hl2ss::ulm::configuration_extended_audio();
+
+        configuration.profile = get_argument<uint8_t>(inputs);
+        configuration.level   = get_argument<uint8_t>(inputs);
+
+        auto device_list = hl2ss::svc::download_device_list(host, port, &configuration);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "device_list" });
 
-        o[0]["device_list"] = unpack_payload<uint8_t>(data->data(), 0, data->size(), { data->size() });
+        o[0]["device_list"] = unpack_payload<uint8_t>(device_list->data, 0, device_list->size, { device_list->size });
 
         outputs[0] = std::move(o);
     }
 
     void download_devicelist_extended_video(char const* host, uint32_t port, matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        std::shared_ptr<std::vector<uint8_t>> data = hl2ss::lnm::download_devicelist_extended_video(host, port);
+        auto device_list = hl2ss::svc::download_device_list(host, port, nullptr);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "device_list" });
 
-        o[0]["device_list"] = unpack_payload<uint8_t>(data->data(), 0, data->size(), { data->size() });
+        o[0]["device_list"] = unpack_payload<uint8_t>(device_list->data, 0, device_list->size, { device_list->size });
 
         outputs[0] = std::move(o);
     }
@@ -1079,40 +1093,40 @@ public:
 
         std::string f = get_argument_string(inputs);
 
-        if (f == "get_application_version")
+        if (f == "ee_get_application_version")
         {
-        outputs[0] = to_typed_array<uint16_t>(ipc_rc->get_application_version().field, { 4 });
+        outputs[0] = to_typed_array<uint16_t>(ipc_rc->ee_get_application_version().field, { 4 });
         }
-        else if (f == "get_pv_subsystem_status")
+        else if (f == "pv_get_subsystem_status")
         {
-        outputs[0] = m_factory.createScalar<bool>(ipc_rc->get_pv_subsystem_status());
+        outputs[0] = m_factory.createScalar<bool>(ipc_rc->pv_get_subsystem_status());
         }
-        else if (f == "get_utc_offset")
+        else if (f == "ts_get_utc_offset")
         {
-        outputs[0] = m_factory.createScalar<uint64_t>(ipc_rc->get_utc_offset());
+        outputs[0] = m_factory.createScalar<uint64_t>(ipc_rc->ts_get_utc_offset());
         }
-        else if (f == "set_hs_marker_state")
-        {
-        uint32_t state = get_argument<uint32_t>(inputs);
-        ipc_rc->set_hs_marker_state(state);
-        }
-        else if (f == "set_pv_backlight_compensation")
+        else if (f == "hs_set_marker_state")
         {
         uint32_t state = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_backlight_compensation(state);
+        ipc_rc->hs_set_marker_state(state);
         }
-        else if (f == "set_pv_exposure")
+        else if (f == "pv_set_backlight_compensation")
+        {
+        uint32_t state = get_argument<uint32_t>(inputs);
+        ipc_rc->pv_set_backlight_compensation(state);
+        }
+        else if (f == "pv_set_exposure")
         {
         uint32_t mode  = get_argument<uint32_t>(inputs);
         uint32_t value = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_exposure(mode, value);
+        ipc_rc->pv_set_exposure(mode, value);
         }
-        else if (f == "set_pv_exposure_priority_video")
+        else if (f == "pv_set_exposure_priority_video")
         {
         uint32_t enabled = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_exposure_priority_video(enabled);
+        ipc_rc->pv_set_exposure_priority_video(enabled);
         }
-        else if (f == "set_pv_focus")
+        else if (f == "pv_set_focus")
         {
         uint32_t mode            = get_argument<uint32_t>(inputs);
         uint32_t range           = get_argument<uint32_t>(inputs);
@@ -1120,65 +1134,65 @@ public:
         uint32_t value           = get_argument<uint32_t>(inputs);
         uint32_t driver_fallback = get_argument<uint32_t>(inputs);
 
-        ipc_rc->set_pv_focus(mode, range, distance, value, driver_fallback);
+        ipc_rc->pv_set_focus(mode, range, distance, value, driver_fallback);
         }
-        else if (f == "set_pv_iso_speed")
+        else if (f == "pv_set_iso_speed")
         {
         uint32_t mode  = get_argument<uint32_t>(inputs);
         uint32_t value = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_iso_speed(mode, value);
+        ipc_rc->pv_set_iso_speed(mode, value);
         }
-        else if (f == "set_pv_scene_mode")
+        else if (f == "pv_set_scene_mode")
         {
         uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_scene_mode(mode);
+        ipc_rc->pv_set_scene_mode(mode);
         }
-        else if (f == "set_pv_video_temporal_denoising")
+        else if (f == "pv_set_video_temporal_denoising")
         {
         uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_video_temporal_denoising(mode);
+        ipc_rc->pv_set_video_temporal_denoising(mode);
         }
-        else if (f == "set_pv_white_balance_preset")
+        else if (f == "pv_set_white_balance_preset")
         {
         uint32_t preset = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_white_balance_preset(preset);
+        ipc_rc->pv_set_white_balance_preset(preset);
         }
-        else if (f == "set_pv_white_balance_value")
+        else if (f == "pv_set_white_balance_value")
         {
         uint32_t value = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_white_balance_value(value);
+        ipc_rc->pv_set_white_balance_value(value);
         }
-        else if (f == "set_flat_mode")
+        else if (f == "ee_set_flat_mode")
         {
         uint32_t value = get_argument<uint32_t>(inputs);
-        ipc_rc->set_flat_mode(value);
+        ipc_rc->ee_set_flat_mode(value);
         }
-        else if (f == "set_rm_eye_selection")
+        else if (f == "rm_set_eye_selection")
         {
         uint32_t enable = get_argument<uint32_t>(inputs);
-        ipc_rc->set_rm_eye_selection(enable);
+        ipc_rc->rm_set_eye_selection(enable);
         }
-        else if (f == "set_pv_desired_optimization")
+        else if (f == "pv_set_desired_optimization")
         {
         uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_desired_optimization(mode);
+        ipc_rc->pv_set_desired_optimization(mode);
         }
-        else if (f == "set_pv_primary_use")
+        else if (f == "pv_set_primary_use")
         {
         uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_primary_use(mode);
+        ipc_rc->pv_set_primary_use(mode);
         }
-        else if (f == "set_pv_optical_image_stabilization")
+        else if (f == "pv_set_optical_image_stabilization")
         {
         uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_optical_image_stabilization(mode);
+        ipc_rc->pv_set_optical_image_stabilization(mode);
         }
-        else if (f == "set_pv_hdr_video")
+        else if (f == "pv_set_hdr_video")
         {
         uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->set_pv_hdr_video(mode);
+        ipc_rc->pv_set_hdr_video(mode);
         }
-        else if (f == "set_pv_regions_of_interest")
+        else if (f == "pv_set_regions_of_interest")
         {
         bool     clear             = get_argument<bool>(inputs);
         bool     set               = get_argument<bool>(inputs);
@@ -1191,18 +1205,60 @@ public:
         float    y                 = get_argument<float>(inputs);
         float    w                 = get_argument<float>(inputs);
         float    h                 = get_argument<float>(inputs);
-        ipc_rc->set_pv_regions_of_interest(clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h);
+        ipc_rc->pv_set_regions_of_interest(clear, set, auto_exposure, auto_focus, bounds_normalized, type, weight, x, y, w, h);
         }
-        else if (f == "set_interface_priority")
+        else if (f == "ee_set_interface_priority")
         {
         uint16_t port     = get_argument<uint16_t>(inputs);
         int32_t  priority = get_argument<int32_t>(inputs);
-        ipc_rc->set_interface_priority(port, priority);
+        ipc_rc->ee_set_interface_priority(port, priority);
         }
-        else if (f == "set_quiet_mode")
+        else if (f == "ee_set_quiet_mode")
         {
         uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->set_quiet_mode(mode);
+        ipc_rc->ee_set_quiet_mode(mode);
+        }
+        else if (f == "rm_map_camera_points")
+        {
+        uint16_t                        port      = get_argument<uint16_t>(inputs);
+        uint32_t                        operation = get_argument<uint32_t>(inputs);
+        matlab::data::TypedArray<float> points    = get_argument_array<float>(inputs);
+        uint32_t                        count     = get_argument<uint32_t>(inputs);
+        auto result = ipc_rc->rm_map_camera_points(port, operation, (hl2ss::vector_2*)get_pointer(points), count);
+        outputs[0] = to_typed_array<float>(result->data, count * 2 * sizeof(float), { 2, count });
+        }
+        else if (f == "rm_get_rignode_world_poses")
+        {
+        matlab::data::TypedArray<uint64_t> timestamps = get_argument_array<uint64_t>(inputs);
+        uint32_t                           count      = get_argument<uint32_t>(inputs);
+        auto result = ipc_rc->rm_get_rignode_world_poses(get_pointer(timestamps), count);
+        outputs[0] = to_typed_array<float>(result->data, count * sizeof(hl2ss::matrix_4x4), { 4, 4, count });;
+        }
+        else if (f == "ts_get_current_time")
+        {
+        uint32_t source = get_argument<uint32_t>(inputs);
+        outputs[0] = m_factory.createScalar<uint64_t>(ipc_rc->ts_get_current_time(source));
+        }
+        else if (f == "si_set_sampling_delay")
+        {
+        int64_t delay = get_argument<int64_t>(inputs);
+        ipc_rc->si_set_sampling_delay(delay);
+        }
+        else if (f == "ee_set_encoder_buffering")
+        {
+        bool enable = get_argument<bool>(inputs);
+        ipc_rc->ee_set_encoder_buffering(enable);
+        }
+        else if (f == "ee_set_reader_buffering")
+        {
+        bool enable = get_argument<bool>(inputs);
+        ipc_rc->ee_set_reader_buffering(enable);
+        }
+        else if (f == "rm_set_loop_control")
+        {
+        uint16_t port   = get_argument<uint16_t>(inputs);
+        bool     enable = get_argument<bool>(inputs);
+        ipc_rc->rm_set_loop_control(port, enable);
         }
         else
         {
@@ -1238,15 +1294,13 @@ public:
         }
         else if (f == "get_observed_surfaces")
         {
-        std::vector<hl2ss::sm_surface_info> surface_infos;
+        auto surface_infos = ipc_sm->get_observed_surfaces();
 
-        ipc_sm->get_observed_surfaces(surface_infos);
+        matlab::data::StructArray o = m_factory.createStructArray({ surface_infos->size }, { "id", "update_time" });
 
-        matlab::data::StructArray o = m_factory.createStructArray({ surface_infos.size() }, { "id", "update_time" });
-
-        for (size_t i = 0; i < surface_infos.size(); ++i)
+        for (size_t i = 0; i < surface_infos->size; ++i)
         {
-        auto& info = surface_infos[i];
+        auto& info = surface_infos->data[i];
 
         o[i]["id"]          = to_typed_array<uint64_t>(&info.id, sizeof(info.id), { sizeof(info.id) / sizeof(uint64_t) });
         o[i]["update_time"] = m_factory.createScalar<uint64_t>(info.update_time);
@@ -1265,37 +1319,35 @@ public:
         tasks.add_task(get_field_guid(p[i]["id"]), get_field_scalar<double>(p[i]["max_triangles_per_cubic_meter"]), get_field_scalar<uint32_t>(p[i]["vertex_position_format"]), get_field_scalar<uint32_t>(p[i]["triangle_index_format"]), get_field_scalar<uint32_t>(p[i]["vertex_normal_format"]));
         }
 
-        std::vector<hl2ss::sm_mesh> meshes;
+        auto result = ipc_sm->get_meshes(tasks);
 
-        ipc_sm->get_meshes(tasks, meshes);
+        matlab::data::StructArray o = m_factory.createStructArray({ result->meshes.size() }, { "status", "vertex_position_scale", "pose", "bounds", "vertex_positions", "triangle_indices", "vertex_normals" });
 
-        matlab::data::StructArray o = m_factory.createStructArray({ meshes.size() }, { "status", "vertex_position_scale", "pose", "bounds", "vertex_positions", "triangle_indices", "vertex_normals" });
-
-        for (size_t i = 0; i < meshes.size(); ++i)
+        for (size_t i = 0; i < result->meshes.size(); ++i)
         {
-        auto& mesh = meshes[i];
+        auto& mesh = result->meshes[i];
 
         o[i]["status"]                = m_factory.createScalar<uint32_t>(mesh.status);
         o[i]["vertex_position_scale"] = to_typed_array<float>(&mesh.vertex_position_scale, sizeof(mesh.vertex_position_scale), { sizeof(mesh.vertex_position_scale) / sizeof(float) });
         o[i]["pose"]                  = unpack_pose(&mesh.pose);
-        o[i]["bounds"]                = to_typed_array<float>(&mesh.bounds,                sizeof(mesh.bounds),                { sizeof(mesh.bounds)                / sizeof(float) });
+        o[i]["bounds"]                = to_typed_array<float>( mesh.bounds_data,                  mesh.bounds_size,            {        mesh.bounds_size            / sizeof(float) });
 
         switch (get_field_scalar<uint32_t>(p[i]["vertex_position_format"]))
         {
-        case hl2ss::sm_vertex_position_format::R16G16B16A16IntNormalized: o[i]["vertex_positions"] = to_typed_array<uint16_t>(mesh.vertex_positions.data(), mesh.vertex_positions.size(), { 4, mesh.vertex_positions.size() / (4 * sizeof(uint16_t)) }); break;
-        case hl2ss::sm_vertex_position_format::R32G32B32A32Float:         o[i]["vertex_positions"] = to_typed_array<float>(   mesh.vertex_positions.data(), mesh.vertex_positions.size(), { 4, mesh.vertex_positions.size() / (4 * sizeof(float)) });    break;
+        case hl2ss::sm_vertex_position_format::R16G16B16A16IntNormalized: o[i]["vertex_positions"] = to_typed_array<uint16_t>(mesh.vertex_positions_data, mesh.vertex_positions_size, { 4, mesh.vertex_positions_size / (4 * sizeof(uint16_t)) }); break;
+        case hl2ss::sm_vertex_position_format::R32G32B32A32Float:         o[i]["vertex_positions"] = to_typed_array<float>(   mesh.vertex_positions_data, mesh.vertex_positions_size, { 4, mesh.vertex_positions_size / (4 * sizeof(float)) });    break;
         }
 
         switch (get_field_scalar<uint32_t>(p[i]["triangle_index_format"]))
         {
-        case hl2ss::sm_triangle_index_format::R16UInt: o[i]["triangle_indices"] = to_typed_array<uint16_t>(mesh.triangle_indices.data(), mesh.triangle_indices.size(), { 3, mesh.triangle_indices.size() / (3 * sizeof(uint16_t)) }); break;
-        case hl2ss::sm_triangle_index_format::R32Uint: o[i]["triangle_indices"] = to_typed_array<uint32_t>(mesh.triangle_indices.data(), mesh.triangle_indices.size(), { 3, mesh.triangle_indices.size() / (3 * sizeof(uint32_t)) }); break;
+        case hl2ss::sm_triangle_index_format::R16UInt: o[i]["triangle_indices"] = to_typed_array<uint16_t>(mesh.triangle_indices_data, mesh.triangle_indices_size, { 3, mesh.triangle_indices_size / (3 * sizeof(uint16_t)) }); break;
+        case hl2ss::sm_triangle_index_format::R32Uint: o[i]["triangle_indices"] = to_typed_array<uint32_t>(mesh.triangle_indices_data, mesh.triangle_indices_size, { 3, mesh.triangle_indices_size / (3 * sizeof(uint32_t)) }); break;
         }
 
         switch (get_field_scalar<uint32_t>(p[i]["vertex_normal_format"]))
         {
-        case hl2ss::sm_vertex_normal_format::R8G8B8A8IntNormalized: o[i]["vertex_normals"] = to_typed_array<uint8_t>(mesh.vertex_normals.data(), mesh.vertex_normals.size(), { 4, mesh.vertex_normals.size() / (4 * sizeof(uint8_t))}); break;
-        case hl2ss::sm_vertex_normal_format::R32G32B32A32Float:     o[i]["vertex_normals"] = to_typed_array<float>(  mesh.vertex_normals.data(), mesh.vertex_normals.size(), { 4, mesh.vertex_normals.size() / (4 * sizeof(float))});   break;
+        case hl2ss::sm_vertex_normal_format::R8G8B8A8IntNormalized: o[i]["vertex_normals"] = to_typed_array<uint8_t>(mesh.vertex_normals_data, mesh.vertex_normals_size, { 4, mesh.vertex_normals_size / (4 * sizeof(uint8_t))}); break;
+        case hl2ss::sm_vertex_normal_format::R32G32B32A32Float:     o[i]["vertex_normals"] = to_typed_array<float>(  mesh.vertex_normals_data, mesh.vertex_normals_size, { 4, mesh.vertex_normals_size / (4 * sizeof(float))});   break;
         }
         }
 
@@ -1337,23 +1389,21 @@ public:
         matlab::data::TypedArray<uint64_t> guid_list = p[0]["guid_list"];
         for (size_t i = 0; i < (guid_list.getNumberOfElements() & ~1ULL); i += 2) { task.guid_list.push_back({ guid_list[i], guid_list[i + 1] }); }
 
-        hl2ss::su_result result;
-
-        ipc_su->query(task, result);
+        auto result = ipc_su->query(task);
 
         matlab::data::StructArray o = m_factory.createStructArray({ 1 }, { "status", "extrinsics", "pose", "items" });
 
-        o[0]["status"]     = m_factory.createScalar<uint32_t>(result.status);
-        o[0]["extrinsics"] = unpack_payload<float>(&result.extrinsics, 0, sizeof(result.extrinsics), { 4, 4 });
-        o[0]["pose"]       = unpack_payload<float>(&result.pose,       0, sizeof(result.pose),       { 4, 4 });
+        o[0]["status"]     = m_factory.createScalar<uint32_t>(result->status);
+        o[0]["extrinsics"] = unpack_payload<float>(&result->extrinsics, 0, sizeof(result->extrinsics), { 4, 4 });
+        o[0]["pose"]       = unpack_payload<float>(&result->pose,       0, sizeof(result->pose),       { 4, 4 });
 
-        if (result.items.size() > 0)
+        if (result->items.size() > 0)
         {
-        matlab::data::StructArray items = m_factory.createStructArray({ result.items.size() }, { "id", "kind", "orientation", "position", "location", "alignment", "extents", "meshes", "collider_meshes" });
+        matlab::data::StructArray items = m_factory.createStructArray({ result->items.size() }, { "id", "kind", "orientation", "position", "location", "alignment", "extents", "meshes", "collider_meshes" });
         
-        for (size_t i = 0; i < result.items.size(); ++i)
+        for (size_t i = 0; i < result->items.size(); ++i)
         {
-        auto& item = result.items[i];
+        auto& item = result->items[i];
 
         items[i]["id"]          = to_typed_array<uint64_t>(&item.id,          sizeof(item.id),          { sizeof(item.id)          / sizeof(uint64_t) });
         items[i]["kind"]        = m_factory.createScalar<int32_t>(item.kind);
@@ -1363,31 +1413,31 @@ public:
         items[i]["alignment"]   = m_factory.createScalar<int32_t>(item.alignment);
         items[i]["extents"]     = to_typed_array<float>(   &item.extents,     sizeof(item.extents),     { sizeof(item.extents)     / sizeof(float) });
 
-        if (item.meshes.size() > 0)
+        if (item.unpacked_meshes.size() > 0)
         {
-        matlab::data::StructArray meshes = m_factory.createStructArray({ item.meshes.size() }, { "vertex_positions", "triangle_indices" });
+        matlab::data::StructArray meshes = m_factory.createStructArray({ item.unpacked_meshes.size() }, { "vertex_positions", "triangle_indices" });
 
-        for (size_t j = 0; j < item.meshes.size(); ++j)
+        for (size_t j = 0; j < item.unpacked_meshes.size(); ++j)
         {
-        auto& mesh = item.meshes[j];
+        auto& mesh = item.unpacked_meshes[j];
 
-        meshes[j]["vertex_positions"] = to_typed_array<float>(   mesh.vertex_positions.data(), mesh.vertex_positions.size(), { 3, mesh.vertex_positions.size() / (3 * sizeof(float)) });
-        meshes[j]["triangle_indices"] = to_typed_array<uint32_t>(mesh.triangle_indices.data(), mesh.triangle_indices.size(), { 3, mesh.triangle_indices.size() / (3 * sizeof(uint32_t)) });
+        meshes[j]["vertex_positions"] = to_typed_array<float>(   mesh.vertex_positions_data, mesh.vertex_positions_size, { 3, mesh.vertex_positions_size / (3 * sizeof(float)) });
+        meshes[j]["triangle_indices"] = to_typed_array<uint32_t>(mesh.triangle_indices_data, mesh.triangle_indices_size, { 3, mesh.triangle_indices_size / (3 * sizeof(uint32_t)) });
         }
 
         items[i]["meshes"] = std::move(meshes);
         }
 
-        if (item.collider_meshes.size() > 0)
+        if (item.unpacked_collider_meshes.size() > 0)
         {
-        matlab::data::StructArray collider_meshes = m_factory.createStructArray({ item.collider_meshes.size() }, { "vertex_positions", "triangle_indices" });
+        matlab::data::StructArray collider_meshes = m_factory.createStructArray({ item.unpacked_collider_meshes.size() }, { "vertex_positions", "triangle_indices" });
 
-        for (size_t j = 0; j < item.collider_meshes.size(); ++j)
+        for (size_t j = 0; j < item.unpacked_collider_meshes.size(); ++j)
         {
-        auto &collider_mesh = item.collider_meshes[j];
+        auto &collider_mesh = item.unpacked_collider_meshes[j];
 
-        collider_meshes[j]["vertex_positions"] = to_typed_array<float>(   collider_mesh.vertex_positions.data(), collider_mesh.vertex_positions.size(), { 3, collider_mesh.vertex_positions.size() / (3 * sizeof(float)) });
-        collider_meshes[j]["triangle_indices"] = to_typed_array<uint32_t>(collider_mesh.triangle_indices.data(), collider_mesh.triangle_indices.size(), { 3, collider_mesh.triangle_indices.size() / (3 * sizeof(uint32_t)) });
+        collider_meshes[j]["vertex_positions"] = to_typed_array<float>(   collider_mesh.vertex_positions_data, collider_mesh.vertex_positions_size, { 3, collider_mesh.vertex_positions_size / (3 * sizeof(float)) });
+        collider_meshes[j]["triangle_indices"] = to_typed_array<uint32_t>(collider_mesh.triangle_indices_data, collider_mesh.triangle_indices_size, { 3, collider_mesh.triangle_indices_size / (3 * sizeof(uint32_t)) });
         }
 
         items[i]["collider_meshes"] = std::move(collider_meshes);
@@ -1414,23 +1464,24 @@ public:
         if (f == "start")
         {
         matlab::data::StringArray commands = get_argument_array<matlab::data::MATLABString>(inputs);
+        
+        std::u16string utf16_s = u"";
+        for (size_t i = 0; i < commands.getNumberOfElements(); ++i) { if (commands[i].has_value()) { utf16_s = utf16_s + std::u16string(commands[i]) + u"\0"; } }
+        
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>,char16_t> convert;
+        auto utf8_s = convert.to_bytes(utf16_s);
 
-        std::vector<std::u16string> strings;
-        for (size_t i = 0; i < commands.getNumberOfElements(); ++i) { if (commands[i].has_value()) { strings.push_back(commands[i]); } }
-
-        ipc_vi->start(strings);
+        ipc_vi->start(utf8_s.c_str());
         }
         else if (f == "pop")
         {
-        std::vector<hl2ss::vi_result> results;
+        auto results = ipc_vi->pop();
 
-        ipc_vi->pop(results);
+        matlab::data::StructArray o = m_factory.createStructArray({ results->size }, { "index", "confidence", "phrase_duration", "phrase_start_time", "raw_confidence" });
 
-        matlab::data::StructArray o = m_factory.createStructArray({ results.size() }, { "index", "confidence", "phrase_duration", "phrase_start_time", "raw_confidence" });
-
-        for (size_t i = 0; i < results.size(); ++i)
+        for (size_t i = 0; i < results->size; ++i)
         {
-        auto& result = results[i];
+        auto& result = results->data[i];
 
         o[i]["index"]             = m_factory.createScalar<uint32_t>(result.index);
         o[i]["confidence"]        = m_factory.createScalar<uint32_t>(result.confidence);
@@ -1483,11 +1534,10 @@ public:
 
         if (f == "pull")
         {
-        hl2ss::gmq_message msg;
-        ipc_gmq->pull(msg);
-        matlab::data::TypedArray<uint8_t> data = m_factory.createArray<uint8_t>({ msg.size });
-        if (msg.size > 0) { memcpy(get_pointer(data), msg.data.get(), msg.size); }
-        outputs[0] = m_factory.createScalar<uint32_t>(msg.command);
+        auto msg = ipc_gmq->pull();
+        matlab::data::TypedArray<uint8_t> data = m_factory.createArray<uint8_t>({ msg->size });
+        if (msg->size > 0) { memcpy(get_pointer(data), msg->data, msg->size); }
+        outputs[0] = m_factory.createScalar<uint32_t>(msg->command);
         outputs[1] = std::move(data);
         }
         else if (f == "push")
@@ -1525,7 +1575,7 @@ public:
     {
         try
         {
-        hl2ss::client::initialize();
+        hl2ss::svc::initialize();
         m_initialized = true;
         }
         catch (const std::exception& e)
@@ -1536,7 +1586,7 @@ public:
 
     ~MexFunction()
     {
-        if (m_initialized) { hl2ss::client::cleanup(); }
+        if (m_initialized) { hl2ss::svc::cleanup(); }
     }
 
     void select(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
