@@ -14,6 +14,7 @@ The `tasks_[...].json` files are provided as a reference for building with `cl.e
 Alternatively, you can build `hl2ss_ulm.cpp` as a shared library (.dll, .so, ...) and include `hl2ss_ulm.h` in your C++ project.
 See `main_ulm.cpp` for examples.
 You can use the included Python scripts `build_ulm_[...].py` to build the shared library.
+A prebuilt binary of the hl2ss_ulm shared library for Windows is included in [Releases](https://github.com/jdibenes/hl2ss/releases).
 
 If you build `main.cpp` or `main_ulm.cpp` on Windows, you may need to copy the FFmpeg and OpenCV DLLs to the client_cpp folder.
 
@@ -45,7 +46,7 @@ Build the hl2ss_ulm shared library and copy it to the hl2ss_labview folder. Also
 
 ## client_android
 
-Android Native Library for streaming HoloLens 2 sensor data to Android apps. The included Android Studio project builds the hl2ss_ulm shared library as an .aar file, which is compatible with client_unity and its C# wrapper. It has the same requirements as client_cpp. For Android, you can get prebuilt FFmpeg binaries from https://github.com/arthenica/ffmpeg-kit and OpenCV binaries from https://opencv.org/releases/.
+Android Native Library for streaming HoloLens 2 sensor data to Android apps. The included Android Studio project builds the hl2ss_ulm shared library as an .aar file, which is compatible with client_unity and its C# wrapper. It has the same requirements as client_cpp. For Android, you can get prebuilt FFmpeg binaries from https://github.com/arthenica/ffmpeg-kit and OpenCV binaries from https://opencv.org/releases/. A prebuilt binary of the hl2ss_ulm shared library is included in [Releases](https://github.com/jdibenes/hl2ss/releases).
 
 **Build**
 
