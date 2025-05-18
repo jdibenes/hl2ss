@@ -1097,10 +1097,6 @@ public:
         {
         outputs[0] = to_typed_array<uint16_t>(ipc_rc->ee_get_application_version().field, { 4 });
         }
-        else if (f == "pv_get_subsystem_status")
-        {
-        outputs[0] = m_factory.createScalar<bool>(ipc_rc->pv_get_subsystem_status());
-        }
         else if (f == "ts_get_utc_offset")
         {
         outputs[0] = m_factory.createScalar<uint64_t>(ipc_rc->ts_get_utc_offset());
@@ -1110,21 +1106,9 @@ public:
         uint32_t state = get_argument<uint32_t>(inputs);
         ipc_rc->hs_set_marker_state(state);
         }
-        else if (f == "pv_set_backlight_compensation")
+        else if (f == "pv_get_subsystem_status")
         {
-        uint32_t state = get_argument<uint32_t>(inputs);
-        ipc_rc->pv_set_backlight_compensation(state);
-        }
-        else if (f == "pv_set_exposure")
-        {
-        uint32_t mode  = get_argument<uint32_t>(inputs);
-        uint32_t value = get_argument<uint32_t>(inputs);
-        ipc_rc->pv_set_exposure(mode, value);
-        }
-        else if (f == "pv_set_exposure_priority_video")
-        {
-        uint32_t enabled = get_argument<uint32_t>(inputs);
-        ipc_rc->pv_set_exposure_priority_video(enabled);
+        outputs[0] = m_factory.createScalar<bool>(ipc_rc->pv_get_subsystem_status());
         }
         else if (f == "pv_set_focus")
         {
@@ -1135,17 +1119,6 @@ public:
         uint32_t driver_fallback = get_argument<uint32_t>(inputs);
 
         ipc_rc->pv_set_focus(mode, range, distance, value, driver_fallback);
-        }
-        else if (f == "pv_set_iso_speed")
-        {
-        uint32_t mode  = get_argument<uint32_t>(inputs);
-        uint32_t value = get_argument<uint32_t>(inputs);
-        ipc_rc->pv_set_iso_speed(mode, value);
-        }
-        else if (f == "pv_set_scene_mode")
-        {
-        uint32_t mode = get_argument<uint32_t>(inputs);
-        ipc_rc->pv_set_scene_mode(mode);
         }
         else if (f == "pv_set_video_temporal_denoising")
         {
@@ -1161,6 +1134,33 @@ public:
         {
         uint32_t value = get_argument<uint32_t>(inputs);
         ipc_rc->pv_set_white_balance_value(value);
+        }
+        else if (f == "pv_set_exposure")
+        {
+        uint32_t mode  = get_argument<uint32_t>(inputs);
+        uint32_t value = get_argument<uint32_t>(inputs);
+        ipc_rc->pv_set_exposure(mode, value);
+        }
+        else if (f == "pv_set_exposure_priority_video")
+        {
+        uint32_t enabled = get_argument<uint32_t>(inputs);
+        ipc_rc->pv_set_exposure_priority_video(enabled);
+        }
+        else if (f == "pv_set_iso_speed")
+        {
+        uint32_t mode  = get_argument<uint32_t>(inputs);
+        uint32_t value = get_argument<uint32_t>(inputs);
+        ipc_rc->pv_set_iso_speed(mode, value);
+        }
+        else if (f == "pv_set_backlight_compensation")
+        {
+        uint32_t state = get_argument<uint32_t>(inputs);
+        ipc_rc->pv_set_backlight_compensation(state);
+        }       
+        else if (f == "pv_set_scene_mode")
+        {
+        uint32_t mode = get_argument<uint32_t>(inputs);
+        ipc_rc->pv_set_scene_mode(mode);
         }
         else if (f == "ee_set_flat_mode")
         {
