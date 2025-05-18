@@ -26,7 +26,7 @@ C++ MEX client library for MATLAB. It uses client_cpp as a base so it has the sa
 
 Run `hl2ss_build_[...].m` to generate the MEX file. Add the client_matlab folder to MATLAB path (you can type `pathtool` in the MATLAB command window to do this).
 
-On Windows, set the `ffmpeg_path` and `opencv_path` variables in the build script to the folders containing the FFmpeg and OpenCV libraries. After building the MEX file, copy the FFmpeg and OpenCV DLLs to the client_matlab folder.
+On Windows, after building the MEX file, copy the FFmpeg and OpenCV DLLs to the client_matlab folder.
 
 ## client_unity
 
@@ -63,7 +63,7 @@ Build the hl2ss_ulm shared library then run:
 `python3 extension_hl2ss_ulm_stream_[...].py build`
 
 After building copy the `hl2ss_ulm_stream.[...].pyd` (or `hl2ss_ulm_stream.[...].so`) file in the `build/lib.[...]` folder to the [viewer](https://github.com/jdibenes/hl2ss/tree/main/viewer) folder.
-Also, copy the hl2ss_ulm shared library and the shared libraries for OpenCV and FFmpeg if necessary.
+Also, copy the hl2ss_ulm shared library and the shared libraries for OpenCV and FFmpeg if necessary. On Windows, you might need to use `py` instead of `python3`.
 
 ## pyzdepth 
 
